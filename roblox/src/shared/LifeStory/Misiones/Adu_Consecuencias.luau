@@ -16,7 +16,7 @@ local list = {
 		Requires = { Stage = { Min = "AdultoJoven" } },
 		Moment = "Aprendiste lo que es un recargo",
 		Steps = {
-			{ Type = "Reach", Place = "Banco", Text = "Te ha llegado un aviso de recargo: ve al banco a pagar las facturas",
+			{ Type = "Reach", Place = "Banco", Text = "Aviso de recargo: ve al banco a pagar las facturas",
 				Actors = { { Npc = "Ignacio", Place = "Banco", Offset = V(0, 0, 4) } } },
 			{ Type = "Talk", Npc = "Ignacio", Dialogue = "Recargo", Text = "Habla con Ignacio",
 				Actors = { { Npc = "Ignacio", Place = "Banco", Offset = V(0, 0, 4) } } },

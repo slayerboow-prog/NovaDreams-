@@ -33,7 +33,7 @@ return {
 			{ Type = "Talk", Npc = "TuFuturo", Dialogue = "Encuentro", Text = "Ve al parque: alguien con tu cara te espera junto a la fuente",
 				Actors = { { Npc = "TuFuturo", Place = "FuenteParque", Offset = V(0, 0, 4) } } },
 			{ Type = "Escape", Place = "GarajeCosme", Respawn = "FuenteParque", Catch = 4,
-				Text = "¡La Aduana del Tiempo! Lleva a tu yo del futuro al garaje de Cosme",
+				Text = "¡La Aduana del Tiempo! Lleva a tu yo futuro al garaje de Cosme",
 				CaughtLine = "¡Formulario de paradoja temporal! …Me falta la grapa. Vuelvan al parque, por favor.",
 				Actors = {
 					{ Npc = "TuFuturo", Mode = "Follow" },
@@ -54,7 +54,7 @@ return {
 			Encuentro = { Lines = {
 				{ S = "TuFuturo", T = "¡Hola! Soy tú. Con diez años más. Sí, tengo ojeras. Sí, esta cazadora está de moda en 2036. No. No te voy a decir los números de la lotería." },
 				{ S = "Yo", T = "¿Por qué has venido?" },
-				{ S = "TuFuturo", T = "Porque hoy, a las seis, vas a hacer algo terrible. Terrible. Vas a publicar un vídeo bailando con un calcetín en la cabeza. Se hará viral. Diez años después me siguen llamando «Calcetín»." },
+				{ S = "TuFuturo", T = "Hoy, a las seis, vas a publicar un vídeo bailando con un calcetín en la cabeza. Se hará viral. Diez años después me siguen llamando «Calcetín»." },
 				{ S = "TuFuturo", T = "En la boda de un amigo, el cura dijo «Calcetín, ¿quieres decir unas palabras?». EL CURA." },
 				{ Ask = "¿Qué le prometes?", Options = {
 					{ T = "«Prometo no publicar nada. Nunca. Con calcetín o sin él.»", Effects = { Traits = { Responsabilidad = 1 }, Flags = { "SinCalcetin" } }, Then = {
@@ -103,7 +103,7 @@ return {
 			{ Type = "Use", Prop = "Estuche", Text = "Tu estuche brilla. Ábrelo" },
 			{ Type = "Transition", Text = "Caes… caes… y aterrizas en un instituto igual que el tuyo. Pero todo es de papel cuadriculado.", Seconds = 4, Teleport = "PatioInstituto" },
 			{ Type = "Escape", Place = "PistaInstituto", Respawn = "PatioInstituto", Catch = 4, Props = { "Salida" },
-				Text = "¡Los lápices gigantes quieren examinarte! Corre hasta el portal de la pista",
+				Text = "¡Lápices gigantes! Corre hasta el portal de la pista",
 				CaughtLine = "¡Pregunta sorpresa! ¿Cuánto es 7 por 8? …Tarde. Suspenso. Vuelve al patio.",
 				Actors = {
 					{ Npc = "Lapiz1", Place = "PatioInstituto", Offset = V(-8, 0, -6), Mode = "Hunt", Speed = 11, Prompt = false },
@@ -170,7 +170,7 @@ return {
 			{ Type = "Talk", Npc = "Cosme", Dialogue = "Cascos", Text = "Pide ayuda a Cosme (corre al garaje)",
 				Actors = { { Npc = "Cosme", Place = "GarajeCosme", Offset = V(0, 0, 3) } } },
 			{ Type = "Fight", Place = "PlazaCentro", Respawn = "PlazaCentro", Action = "Ponerle los cascos 🎧", HP = 1, BeamColor = Color3.fromRGB(255, 120, 220),
-				Text = "Los fans hipnotizados quieren que bailes. Ponles los cascos ({count}/{total})",
+				Text = "Ponles los cascos a los fans hipnotizados ({count}/{total})",
 				CaughtLine = "♪ Zum-zum-zumbiiido ♪ (Te obligan a bailar un rato. Vuelves al centro de la plaza.)",
 				Props = { "Altavoz" },
 				Actors = {
@@ -210,7 +210,7 @@ return {
 			} },
 			Cascos = { Lines = {
 				{ S = "Cosme", T = "¿Música hipnótica alienígena? Frecuencia de 400 pulsaciones con subgraves de nebulosa. Un clásico. Lo que necesitas es una canción MÁS pegadiza." },
-				{ S = "Cosme", T = "Y solo hay una canción más pegadiza que el tecno alienígena: la música del camión de los helados. Es tan pegadiza que se quedó en mi cabeza en 1987 y aún no ha salido." },
+				{ S = "Cosme", T = "Solo hay una canción más pegadiza que el tecno alienígena: la del camión de los helados. Se me metió en la cabeza en 1987 y aún no ha salido." },
 				{ S = "Cosme", T = "Toma: cascos anti-hipnosis. Suena la del camión de los helados en bucle. Pónselos a cada hipnotizado. Y al DJ, sobre todo al DJ." },
 			} },
 			Despiertan = { Lines = {
@@ -342,7 +342,7 @@ return {
 			{ Type = "Use", Prop = "Zoltan", Text = "Echa una ficha a Zoltán y pide un deseo" },
 			{ Type = "Transition", Text = "A la mañana siguiente…", Seconds = 3, Teleport = "Home" },
 			{ Type = "Escape", Place = "Ocio", Respawn = "Home", Catch = 4,
-				Text = "¡Todo el mundo te persigue por tu deseo! Vuelve a los recreativos sin que te atrapen",
+				Text = "¡Te persiguen por tu deseo! Vuelve a los recreativos",
 				CaughtLine = "¡Te tengo! ¡Te tengo! (Te rodean. Tardas media hora en escapar. Vuelves a casa.)",
 				Actors = {
 					{ Npc = "Seguidor1", Place = "Home", Offset = V(-8, 0, 6), Mode = "Hunt", Speed = 11, Prompt = false },

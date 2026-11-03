@@ -50,7 +50,7 @@ return {
 			-- ESCENA del motor (Happenings/Cielo): tres estrellas verdes caen de la Grieta; cada una deja un
 			-- cráter humeante que se queda (Cielo.Crater.*) y del parque sale Chispa, que huye asustada
 			{ Type = "Cinematic", Id = "Grieta_Caen", Actors = { COSME, PIP }, Props = { "Medidor" } },
-			{ Type = "Group", Text = "El medidor pita en tres sitios. Recoge lo que ha caído de la Grieta",
+			{ Type = "Group", Text = "Recoge las tres cosas caídas de la Grieta (mira el medidor)",
 				Actors = { { Npc = "Pip", Mode = "Follow" } },
 				Steps = {
 					-- Al recogerlo, una luz sube del cráter y el cráter se enfría (se queda, ya sin humo)
@@ -61,7 +61,7 @@ return {
 					{ Type = "Use", Prop = "Moneda", Text = "Un cráter humeante en el camino al cole",
 						Effects = { World = { ["Cielo.Crater.Camino"] = "Frio" }, Scene = "Grieta_Recoger" } },
 				} },
-			{ Type = "Talk", Npc = "Bigotes", Dialogue = "Bigotes", Text = "Bigotes te espera en el tejado del cole… bueno, en el patio",
+			{ Type = "Talk", Npc = "Bigotes", Dialogue = "Bigotes", Text = "Habla con Bigotes en el patio del cole",
 				Actors = { { Npc = "Bigotes", Place = "Patio", Offset = V(2, 0, 3), Scale = 0.35 } } },
 			{ Type = "Reach", Place = "GarajeCosme", Text = "Lleva los restos al garaje de Cosme", Actors = { COSME, PIP }, Props = { "Medidor" } },
 			{ Type = "Scene", Dialogue = "Perilla", Actors = { COSME, PIP }, Props = { "Medidor" } },
@@ -231,9 +231,9 @@ return {
 		Steps = {
 			{ Type = "Talk", Npc = "CazadorTiempo", Dialogue = "Multa", Text = "Habla con el señor de los formularios",
 				Actors = { COSME, { Npc = "CazadorTiempo", Place = "GarajeCosme", Offset = V(-3, 0, 4) } } },
-			{ Type = "Talk", Npc = "Funcionaria", Dialogue = "Ventanilla1", Text = "Ventanilla 1: Correos",
+			{ Type = "Talk", Npc = "Funcionaria", Dialogue = "Ventanilla1", Text = "Ventanilla 1: ve a Correos",
 				Actors = { { Npc = "Funcionaria", Place = "Correos", Offset = V(0, 0, 3) } } },
-			{ Type = "Talk", Npc = "Funcionaria", Dialogue = "Ventanilla2", Text = "Ventanilla 2: el banco (la misma señora… ¿cómo ha llegado antes que tú?)",
+			{ Type = "Talk", Npc = "Funcionaria", Dialogue = "Ventanilla2", Text = "Ventanilla 2: ve al banco (¿la misma señora otra vez?)",
 				Actors = { { Npc = "Funcionaria", Place = "Banco", Offset = V(0, 0, 3) } } },
 			{ Type = "Talk", Npc = "Ines", Dialogue = "Ventanilla3", Text = "Ventanilla 3: la comisaría (necesitas un sello de la policía)",
 				Actors = { { Npc = "Ines", Place = "Policia", Offset = V(0, 0, 4) }, { Npc = "Funcionaria", Place = "Policia", Offset = V(4, 0, 4) } } },
@@ -338,7 +338,7 @@ return {
 					{ Type = "Talk", Npc = "Lucia", Dialogue = "DevolverDiario", Text = "El diario, a Lucía" },
 				} },
 			{ Type = "Fight", Place = "GimnasioColegio", Respawn = "EntradaColegio", Action = "Emparejar calcetines 🧦", HP = 8, BeamColor = Color3.fromRGB(255, 120, 200),
-				Text = "¡El Monstruo de los Calcetines Desparejados sale del montón y embiste! Empareja sus calcetines",
+				Text = "¡El Monstruo de los Calcetines embiste! Empareja sus calcetines",
 				CaughtLine = "¡ABRAZO DE CALCETÍN! (Te lanza contra las colchonetas de un golpe. Vuelves a la entrada, sin aire.)",
 				Actors = { { Npc = "Pip", Place = "GimnasioColegio", Offset = V(6, 0, 6), Mode = "Cheer" } },
 				Enemies = {
@@ -435,7 +435,7 @@ return {
 					{ Type = "Use", Prop = "Anclaje3", Text = "Anclaje de la plaza del centro" },
 				} },
 			{ Type = "Fight", Place = "Patio", Respawn = "Patio", Action = "Apagarle el comunicador 📡", HP = 3, BeamColor = Color3.fromRGB(120, 255, 160), Props = { "Aguja" },
-				Text = "¡Los agentes grises van a por la aguja! Pelea y apágales el comunicador ({count}/{total})",
+				Text = "¡Defiende la aguja! Apaga a los agentes grises ({count}/{total})",
 				CaughtLine = "¡Oferta exclusiva! ¡Firme aquí! (Te derriban de un empujón. Te levantas junto a la aguja.)",
 				Actors = { { Npc = "Cosme", Place = "Patio", Offset = V(4, 0, -3) }, { Npc = "Pip", Place = "Patio", Offset = V(6, 0, -1) } },
 				Enemies = {

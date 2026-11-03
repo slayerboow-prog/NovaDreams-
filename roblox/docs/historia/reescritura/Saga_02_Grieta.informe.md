@@ -30,13 +30,13 @@ _Ninguno._
 
 - PASO 1 → paso 1 del juego (Talk «Medidor»): conversación «Medidor» con 34 frases nuevas (música Descubrimiento→Tension)
 - PASO 3.1 → paso 3.1 del juego (Use): lo que pasa al usarlo va en la conversación del objeto «Calcetin» (3 frases)
-- PASO 3.1 → paso 3.1 del juego (Use): objetivo «Investiga el cráter junto a la fuente.»
+- PASO 3.1 → paso 3.1 del juego (Use): objetivo «Investiga el cráter junto a la fuente»
 - PASO 3.2 → paso 3.2 del juego (Use): lo que pasa al usarlo va en la conversación del objeto «Paraguas» (1 frases)
-- PASO 3.2 → paso 3.2 del juego (Use): objetivo «Investiga el cráter de la zona de juegos.»
+- PASO 3.2 → paso 3.2 del juego (Use): objetivo «Investiga el cráter de la zona de juegos»
 - PASO 3.3 → paso 3.3 del juego (Use): lo que pasa al usarlo va en la conversación del objeto «Moneda» (3 frases)
-- PASO 3.3 → paso 3.3 del juego (Use): objetivo «Investiga el tercer cráter.»
+- PASO 3.3 → paso 3.3 del juego (Use): objetivo «Investiga el cráter del camino al cole»
 - PASO 4 → paso 4 del juego (Talk «Bigotes»): conversación «Bigotes» con 15 frases nuevas (música Tension)
-- PASO 5 → paso 5 del juego (Reach): objetivo «Lleva los objetos al garaje de Cosme.»
+- PASO 5 → paso 5 del juego (Reach): objetivo «Lleva los objetos al garaje de Cosme»
 - PASO 6 → paso 6 del juego (Scene «Perilla»): conversación «Perilla» con 22 frases nuevas
 - Conversación «Bigotes»: se conservan delante 1 frases del juego que dependen de lo vivido
 

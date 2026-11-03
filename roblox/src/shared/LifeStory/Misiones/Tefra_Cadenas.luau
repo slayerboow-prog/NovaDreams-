@@ -65,9 +65,9 @@ return {
 				CaughtLine = "¡Fuera de aquí, curioso! (Te echan a la calle.)",
 				Actors = { { Npc = "PoliciaMilitar2", Place = "Tefra_Calabozos", Offset = V(8, 0, 6), Mode = "Hunt", Speed = 9, Prompt = false } } },
 			{ Type = "Use", Prop = "Registro", Text = "Busca a Galo en el registro de detenidos" },
-			{ Type = "Reach", Place = "Tefra_TierraDeNadie", Text = "Sigue al Sargento Murria hasta las Trincheras del Este sin acercarte demasiado",
+			{ Type = "Reach", Place = "Tefra_TierraDeNadie", Text = "Sigue a Murria a las Trincheras del Este sin acercarte",
 				Actors = { at("SargentoMurria", "Tefra_PuertaEste", 40, 10, "Wander") } },
-			{ Type = "Group", Text = "Galo está atrapado en un campo de minas: desactiva las minas del camino",
+			{ Type = "Group", Text = "Desactiva las minas del camino hasta Galo",
 				Actors = { at("GaloPadre", "Tefra_TierraDeNadie", 0, 18) },
 				Steps = {
 					{ Type = "Use", Prop = "Mina1", Text = "La mina de la izquierda" },
@@ -253,7 +253,7 @@ return {
 			{ Type = "MiniGame", Game = "Timing", Title = "Pan de sirena", Icon = "🥖", Hint = "Saca el pan del horno cuando la aguja esté en el dorado",
 				Rounds = 4, Need = 2, Zone = 0.3, Speed = 0.9,
 				Actors = { at("ErnestoPanadero", "Tefra_Panaderia", 2, 3) } },
-			{ Type = "Group", Text = "Busca el candado de Ada entre los mil del puente (lee al menos dos)", Need = 2,
+			{ Type = "Group", Text = "Busca el candado de Ada en el puente (lee al menos dos)", Need = 2,
 				Steps = {
 					{ Type = "Use", Prop = "CandadoAzul", Text = "Un candado azul" },
 					{ Type = "Use", Prop = "CandadoRojo", Text = "Un candado rojo" },

@@ -39,7 +39,7 @@ return {
 		Moment = "Volaste sobre Valmar mientras la defendían desde el suelo",
 		Rewards = { Money = 300 },
 		Steps = {
-			{ Type = "Event", Event = "InvasionMission", Match = { Chain = "Vuelo" }, Text = "Completa una misión de vuelo de la invasión (en avioneta o en nave)" },
+			{ Type = "Event", Event = "InvasionMission", Match = { Chain = "Vuelo" }, Text = "Haz una misión de vuelo de la invasión (avioneta o nave)" },
 		},
 	},
 	{
@@ -55,7 +55,7 @@ return {
 		Moment = "Ayudaste a que Valmar volviera a ser Valmar",
 		Rewards = { Money = 250 },
 		Steps = {
-			{ Type = "Event", Event = "InvasionCured", Text = "Devuelve su forma a un vecino transformado (inversor de fase, Laboratorio Xeno)" },
+			{ Type = "Event", Event = "InvasionCured", Text = "Cura a un vecino con el inversor del Laboratorio Xeno" },
 			{ Type = "Event", Event = "InvasionRepaired", Text = "Repara un destrozo de la invasión" },
 		},
 	},

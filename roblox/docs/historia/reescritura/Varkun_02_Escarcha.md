@@ -32,4 +32,6 @@ Varkun: Pero todos los mundos gritan al final. Y cuando el tuyo lo haga, yo esta
 Cosme: (señala) Eso lo veremos, Deshilador. Yo también sé coser.
 Pip: (cruza los brazos) Señor, se va. La Rueca se va.
 NILDA: (pensativo) Mi abuela conoció ese nombre. Hay un archivo cerrado en mi memoria. Dice: «Para V., si alguna vez vuelve».
-Cosme: (sonríe) Criatura… esto acaba de empezar.
+Pip: (levanta una ceja) Señor, la Aguja de oro está temblando. Ha oído otro desgarro.
+Cosme: (pensativo) La señal es de mi casa, criatura. De Tefra.
+Cosme: (asiente) Coge el casco. Esto acaba de empezar.

@@ -133,8 +133,8 @@ return {
 	},
 	Steps = {
 		["1"] = { Effects = { Scene = "Saga_16_G1_Fin" } },
-		["2"] = { Set = { Text = "investigar la Plaza Mayor." } },
+		["2"] = { Set = { Text = "Investiga la Plaza Mayor de la 66-B" } },
 		["3"] = { Effects = { Scene = "Saga_16_G4_Entra" } },
-		["4"] = { Set = { Text = "llegar a la universidad 66-B." } },
+		["4"] = { Set = { Text = "Llega a la universidad de la 66-B" } },
 	},
 }

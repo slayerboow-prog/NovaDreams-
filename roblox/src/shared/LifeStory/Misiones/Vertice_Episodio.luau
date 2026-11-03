@@ -59,9 +59,9 @@ return {
 			{ Type = "Talk", Npc = "Gil", Dialogue = "Bienvenida", Text = "Un empleado de MegaVerso te saluda junto a la estatua",
 				Actors = { at("Gil", "Vertice_Estatua", 0, -3) } },
 			{ Type = "Event", Event = "HazardChanged", Match = { Planet = "Vertice", Phase = "Aviso" }, Place = "Vertice_Avenida",
-				Text = "Pasea por la Avenida Rebajas, delante de las cámaras (mira tu medidor de 👁 vigilancia)" },
+				Text = "Pasea por la Avenida Rebajas ante las cámaras (medidor de 👁)" },
 			{ Type = "Event", Event = "HazardChanged", Match = { Planet = "Vertice", Phase = "Normal" },
-				Text = "¡Te están mirando! Usa un 📵 inhibidor de la mochila o métete en el Arcade de neón hasta que baje" },
+				Text = "¡Te miran! Usa un 📵 inhibidor o métete en el Arcade de neón" },
 		},
 		Dialogues = {
 			Llegada = respaldo("Cosme", "Vértice. Aquí hasta el aire tiene precio, criatura."),
@@ -90,7 +90,7 @@ return {
 		Steps = {
 			{ Type = "Talk", Npc = "AbrilCruz", Dialogue = "Abril", Text = "Busca a Abril en la entrada del Rastro", Actors = { at("AbrilCruz", "Vertice_Rastro", 0, 3), at("Cosme", "Vertice_Rastro", 4, 2) } },
 			{ Type = "Event", Event = "JobTaskDone", Match = { JobId = "VerticeTecnicoCupula" }, Place = "Vertice_Plaza",
-				Text = "Haz un turno de 💡 técnico/a de cúpula (tablón de la plaza): arregla dos paneles antes del apagón" },
+				Text = "Arregla 2 paneles: tablón 💡 de técnico/a de la plaza" },
 			{ Type = "Reach", Place = "Vertice_Rastro", Text = "Vuelve con Abril: te espera en la entrada del Rastro", Actors = { COSME_SIGUE } },
 			{ Type = "Scene", Dialogue = "Prueba", Actors = { at("AbrilCruz", "Vertice_Rastro", 0, 3), at("Cosme", "Vertice_Rastro", 5, 2) } },
 		},
@@ -186,13 +186,13 @@ return {
 					{ Npc = "DronSeguridad2", Offset = V(-14, 0, 6), Speed = 10, HP = 3, Bye = "(Chisporrotea y se posa en el suelo, apagado.)" },
 				} },
 			{ Type = "Fight", Place = "Vertice_Plaza", Respawn = "Vertice_Plaza", Action = "Apagar 💥", HP = 4, If = { Choices = { VerticeCuenta = "Quedarse" } },
-				Text = "La Contable ha visto el dinero que falta: ¡un dron dorado viene a por ti! ({count}/{total})",
+				Text = "¡Un dron dorado de la Contable! Derríbalo ({count}/{total})",
 				CaughtLine = "(El dron dorado te enseña tu saldo en grande. Te escabulles.)",
 				Enemies = {
 					{ Npc = "DronSeguridad3", Offset = V(0, 0, 16), Speed = 11, HP = 4, Bye = "(Se apaga. En su pantalla: «Cuenta cuadrada… casi».)" },
 				} },
 			{ Type = "Escape", Place = "Vertice_AscensorDentro", Respawn = "Vertice_Plaza", Catch = 4,
-				Text = "🚦 ¡Hora punta! Corre hasta el ascensor del Rastro entre la gente, sin que te pille la seguridad",
+				Text = "🚦 ¡Hora punta! Corre entre la gente al ascensor del Rastro",
 				CaughtLine = "«Cliente detenido por correr en zona peatonal». (Te sueltan en la plaza con una multa archivada.)",
 				Actors = {
 					{ Npc = "SeguridadMV1", Place = "Vertice_Plaza", Offset = V(18, 0, 10), Mode = "Hunt", Speed = 10, Prompt = false },

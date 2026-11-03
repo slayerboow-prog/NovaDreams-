@@ -286,7 +286,7 @@ PASO 2 · INFILTRACIÓN
 «Entrar sin que te vean»
 
 Lugar: Universidad 66-B
-Objetivo: llegar a la entrada del laboratorio.
+Objetivo: Desconecta a los guardias del laboratorio ({count}/{total})
 
 ⸻
 

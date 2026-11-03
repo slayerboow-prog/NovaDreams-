@@ -28,9 +28,9 @@ return {
 		Rewards = { Money = 20 },
 		Steps = {
 			{ Type = "Scene", Dialogue = "Salir", Actors = { { Npc = "Familia", Place = "CasaFamiliar", Offset = V(2, 0, 3) } } },
-			{ Type = "Reach", Place = "MetroBoca", Text = "Ve andando hasta la boca de metro más cercana (mira el plano en la app 🚇 Metro del móvil)" },
+			{ Type = "Reach", Place = "MetroBoca", Text = "Ve a la boca de metro más cercana (app 🚇 Metro del móvil)" },
 			{ Type = "Event", Event = "MetroGate", Place = "MetroBoca", Text = "Compra un billete o un abono en las máquinas y pasa el torno" },
-			{ Type = "Event", Event = "RodeMetro", Match = { Station = "Campus" }, Place = "MetroCampus", Text = "Coge el metro hasta la estación Campus (Línea 1; si vienes de la Línea 2, transbordo en Plaza Mayor)" },
+			{ Type = "Event", Event = "RodeMetro", Match = { Station = "Campus" }, Place = "MetroCampus", Text = "Coge el metro a Campus (Línea 1; transbordo en Plaza Mayor)" },
 			{ Type = "Reach", Place = "Universidad", Text = "Sal a la calle y llega a la facultad (¡antes de las 8:30!)" },
 			{ Type = "Scene", Dialogue = "Puntual", If = { Hours = { From = 5, To = 8.5 } }, Actors = { { Npc = "Luca", Place = "Universidad", Offset = V(2, 0, 4) } } },
 			{ Type = "Scene", Dialogue = "Tarde", If = { Hours = { From = 8.5, To = 5 } }, Actors = { { Npc = "Luca", Place = "Universidad", Offset = V(2, 0, 4) } } },
@@ -129,9 +129,9 @@ return {
 		Rewards = { Money = 25 },
 		Steps = {
 			{ Type = "Scene", Dialogue = "Cartel" },
-			{ Type = "Event", Event = "MetroGate", Place = "MetroBoca", Text = "Entra en el metro (billete, bonometro o abono trabajador) y pasa el torno" },
+			{ Type = "Event", Event = "MetroGate", Place = "MetroBoca", Text = "Entra en el metro y pasa el torno con tu billete o abono" },
 			{ Type = "Event", Event = "RodeMetro", Place = "MetroBoca", Text = "Viaja en metro hasta la estación más cercana a tu trabajo y baja" },
-			{ Type = "Event", Event = "JobTaskDone", Text = "Ya en el trabajo: empieza el turno (tablón de trabajo o app del móvil) y haz una tarea" },
+			{ Type = "Event", Event = "JobTaskDone", Text = "Empieza el turno en el tablón del trabajo y haz una tarea" },
 			{ Type = "Scene", Dialogue = "Final" },
 		},
 		Dialogues = {

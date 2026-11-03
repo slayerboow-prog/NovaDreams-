@@ -92,7 +92,7 @@ return {
 			{ Type = "Use", Prop = "Nevera", Text = "Guarda la compra en la nevera de la residencia", Actors = COCINA },
 			{ Type = "Event", Event = "Ate", Text = "Tu primera cena de independiente: cómete algo (desde la mochila)", Actors = COCINA },
 			{ Type = "Scene", Dialogue = "Cena", Actors = COCINA },
-			{ Type = "Event", Event = "Slept", Text = "Duerme en tu cama de la residencia (de noche, te despiertas a las 8:30)", Props = { "CamaDormir" },
+			{ Type = "Event", Event = "Slept", Text = "Duerme en tu cama de la residencia (de noche)", Props = { "CamaDormir" },
 				Actors = { { Npc = "Ivan", Place = "HabitacionResidencia", Offset = V(-3, 0, 2), Mode = "Sit" } } },
 		},
 		Dialogues = {

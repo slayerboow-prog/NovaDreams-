@@ -23,7 +23,7 @@ _Ninguno._
 ## Aplicado
 
 - PASO 1 → paso 1 del juego (Talk «Capitana»): conversación «Capitana» con 23 frases nuevas
-- PASO 2 → paso 2 del juego (MiniGame): objetivo «completar correctamente el rodaje.»
+- PASO 2 → paso 2 del juego (MiniGame): objetivo «Completa el rodaje sin fallos»
 - PASO 2 → paso 2 del juego (MiniGame): 7 frases al empezar el paso (escena ligera «Saga_15_G2_Entra», la lanza el paso 1 al cumplirse; el jugador no pierde el control)
 - PASO 3 → paso 3 del juego (Scene «Grabacion»): conversación «Grabacion» con 22 frases nuevas (música Tension)
 
@@ -54,7 +54,7 @@ _Ninguno._
 ## Notas del guion sin equivalente directo (bloques de dirección, minijuegos, memoria…)
 
 - PASO 1 · OBJETIVO: Habla con la Capitana Ñoz.
-- PASO 2 · Objetivo: completar correctamente el rodaje.: 
+- PASO 2 · Objetivo: Completa el rodaje sin fallos: 
 - PASO 3 · MOMENTO DE BIOGRAFÍA: «Protagonizaste un episodio especial de «Terrícolas en apuros»»
 
 ## Cómo se traduce el formato

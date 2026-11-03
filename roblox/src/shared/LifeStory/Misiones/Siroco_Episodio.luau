@@ -54,7 +54,7 @@ return {
 		Steps = {
 			{ Type = "Cinematic", Id = "Siroco_Llegada", Actors = { at("RafaQuiroga", "Siroco_Plataforma", 3, 2) } },
 			{ Type = "Talk", Npc = "RafaQuiroga", Dialogue = "Llegada", Text = "Habla con el mecánico que te grita desde la pista", Actors = { at("RafaQuiroga", "Siroco_Plataforma", 3, 2) } },
-			{ Type = "Reach", Place = "Siroco_TallerDentro", Text = "¡Hora roja! Corre detrás de Rafa hasta su taller en los Boxes (por la sombra de los toldos)", Actors = { RAFA_SIGUE } },
+			{ Type = "Reach", Place = "Siroco_TallerDentro", Text = "¡Hora roja! Sigue a Rafa por la sombra a su taller de los Boxes", Actors = { RAFA_SIGUE } },
 			{ Type = "Scene", Dialogue = "Taller", Actors = { at("RafaQuiroga", "Siroco_TallerDentro", 3, 1), at("NinaQuiroga", "Siroco_TallerDentro", -3, 2) } },
 			{ Type = "Event", Event = "HazardCountered", Match = { Planet = "Siroco" }, Place = "Siroco_TallerDentro",
 				Text = "Bebe 💧 agua fresca de la mochila (mira tu medidor de sed)", Actors = { at("NinaQuiroga", "Siroco_TallerDentro", -3, 2) } },
@@ -102,7 +102,7 @@ return {
 		Steps = {
 			{ Type = "Scene", Dialogue = "Cobradores", Actors = { at("RafaQuiroga", "Siroco_Taller", 2, 2), at("CobradorHierro1", "Siroco_Taller", -6, -2), at("CobradorHierro2", "Siroco_Taller", -6, 4) } },
 			{ Type = "Escape", Place = "Siroco_CantinaDentro", Respawn = "Siroco_Taller", Catch = 4,
-				Text = "¡Huye con Rafa por el Zoco del Viento hasta la cantina sin que te pillen los cobradores!",
+				Text = "¡Huye con Rafa por el Zoco del Viento hasta la cantina!",
 				CaughtLine = "¡Te pillé! …(Rafa tira un bidón al suelo, el cobrador resbala y seguís corriendo.)",
 				Actors = {
 					RAFA_SIGUE,
@@ -161,9 +161,9 @@ return {
 		Steps = {
 			{ Type = "Talk", Npc = "LuzPozo", Dialogue = "Luz", Text = "Habla con Luz en la puerta de su casa de Pozo Hondo", Actors = { at("LuzPozo", "Siroco_CasaLuz", 2, 2) } },
 			{ Type = "Event", Event = "JobTaskDone", Match = { JobId = "SirocoAguador" }, Count = 2, Place = "Siroco_Fuente",
-				Text = "Trabaja de aguador/a: el tablón «Trabajar» está junto a la fuente (haz 2 repartos)" },
+				Text = "Haz 2 repartos de agua: tablón «Trabajar» de la fuente" },
 			{ Type = "Event", Event = "PlanetGather", Match = { Item = "AguaFresca" }, Place = "Siroco_Zoco",
-				Text = "Corta un cactus de agua con cuidado (hay uno en el Zoco y otro junto a los Boxes)" },
+				Text = "Corta un cactus de agua en el Zoco o junto a los Boxes" },
 			{ Type = "Talk", Npc = "LuzPozo", Dialogue = "Gracias", Text = "Vuelve con Luz", Actors = { at("LuzPozo", "Siroco_CasaLuz", 2, 2) } },
 		},
 		Dialogues = {
@@ -206,7 +206,7 @@ return {
 		},
 		Steps = {
 			{ Type = "Talk", Npc = "NinaQuiroga", Dialogue = "Piezas", Text = "Habla con Nina en el taller", Actors = { at("NinaQuiroga", "Siroco_Taller", 2, 2) } },
-			{ Type = "Reach", Place = "Siroco_Cementerio", Text = "Ve al Cementerio de Deslizadores (al este del cañón: mejor en tu nave)" },
+			{ Type = "Reach", Place = "Siroco_Cementerio", Text = "Ve al Cementerio de Deslizadores, al este del cañón (en nave)" },
 			{ Type = "Group", Text = "Desmonta las tres piezas que necesita Nina",
 				Steps = {
 					{ Type = "Use", Prop = "Bobina", Text = "Una bobina de encendido" },

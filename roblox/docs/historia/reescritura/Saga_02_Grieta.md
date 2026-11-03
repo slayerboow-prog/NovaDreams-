@@ -673,7 +673,7 @@ PASO 3.3 · EL CAMINO AL COLEGIO
 
 Objetivo:
 
-«Investiga el tercer cráter.»
+«Investiga el cráter del camino al cole.»
 
 Esta vez no hay humor inmediato.
 

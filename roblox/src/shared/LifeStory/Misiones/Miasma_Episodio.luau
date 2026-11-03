@@ -54,11 +54,11 @@ return {
 		Steps = {
 			{ Type = "Cinematic", Id = "Miasma_Llegada", Actors = { at("MaraSolis", "Miasma_Plataforma", 3, 2) } },
 			{ Type = "Talk", Npc = "MaraSolis", Dialogue = "Llegada", Text = "Habla con la piloto que te hace señas en la plataforma", Actors = { at("MaraSolis", "Miasma_Plataforma", 3, 2) } },
-			{ Type = "Reach", Place = "Miasma_BordeLastre", Text = "Sigue a Mara por la pasarela del sur hasta el borde del Barrio Lastre", Actors = { MARA_SIGUE } },
+			{ Type = "Reach", Place = "Miasma_BordeLastre", Text = "Sigue a Mara por la pasarela sur hasta el Barrio Lastre", Actors = { MARA_SIGUE } },
 			{ Type = "Talk", Npc = "MaraSolis", Dialogue = "Filtro", Text = "Mara quiere enseñarte algo antes de que respires más", Actors = { at("MaraSolis", "Miasma_BordeLastre", 3, -3) } },
 			{ Type = "Event", Event = "HazardCountered", Match = { Planet = "Miasma" }, Place = "Miasma_BordeLastre",
-				Text = "Usa una 🫧 cápsula de aire limpio de la mochila (mira tu medidor de ☣ toxinas)", Actors = { at("MaraSolis", "Miasma_BordeLastre", 3, -3) } },
-			{ Type = "Reach", Place = "Miasma_CantinaDentro", Text = "Entra con Mara en la cantina El Lastre (dentro el aire está filtrado)", Actors = { MARA_SIGUE } },
+				Text = "Usa una 🫧 cápsula de aire de la mochila (medidor de ☣)", Actors = { at("MaraSolis", "Miasma_BordeLastre", 3, -3) } },
+			{ Type = "Reach", Place = "Miasma_CantinaDentro", Text = "Entra con Mara en la cantina El Lastre (aire filtrado)", Actors = { MARA_SIGUE } },
 			{ Type = "Scene", Dialogue = "Cantina", Actors = { at("MaraSolis", "Miasma_CantinaDentro", 2, 1), at("BrumaTaller", "Miasma_CantinaDentro", -3, 2) } },
 		},
 		Dialogues = {
@@ -176,9 +176,9 @@ return {
 		Steps = {
 			{ Type = "Talk", Npc = "BrumaTaller", Dialogue = "Trato", Text = "Habla con la vieja Bruma en el taller de filtros de Lastre", Actors = { at("BrumaTaller", "Miasma_Taller", 0, 3) } },
 			{ Type = "Event", Event = "JobTaskDone", Match = { JobId = "MiasmaFiltrador" }, Count = 2, Place = "Miasma_Taller",
-				Text = "Trabaja de filtrador: tablón «Trabajar» en la puerta del taller (cambia 2 filtros)" },
+				Text = "Cambia 2 filtros: tablón «Trabajar» en la puerta del taller" },
 			{ Type = "Event", Event = "PlanetGather", Match = { Item = "EsporaFiltro" }, Place = "Miasma_Gondolas",
-				Text = "Recoge espora de filtro: el musgo amarillo de las Góndolas o de Lastre («Recoger»)" },
+				Text = "Recoge musgo amarillo en las Góndolas o en Lastre" },
 			{ Type = "Talk", Npc = "BrumaTaller", Dialogue = "Gracias", Text = "Lleva la espora a Bruma", Actors = { at("BrumaTaller", "Miasma_Taller", 0, 3) } },
 		},
 		Dialogues = {
@@ -219,14 +219,14 @@ return {
 				Actors = { at("ComandanteAndres", "Miasma_Hangar", 2, 2), at("LeoSolis", "Miasma_Hangar", -2, 3) } },
 			{ Type = "Cinematic", Id = "Miasma_Ataque", Actors = { at("ComandanteAndres", "Miasma_Hangar", 2, 2), at("LeoSolis", "Miasma_Hangar", -2, 3) } },
 			{ Type = "Escape", Place = "Miasma_Gondolas", Respawn = "Miasma_Plataforma", Catch = 4,
-				Text = "¡Corre a las Góndolas por la pasarela del norte sin que te alcancen los del Dominio!",
+				Text = "¡Corre a las Góndolas por la pasarela norte sin que te pillen!",
 				CaughtLine = "(Un soldado te corta el paso en la pasarela. Leo te agarra y te saca por debajo de un globo.)",
 				Actors = {
 					LEO_SIGUE,
 					{ Npc = "SoldadoDominio1", Place = "Miasma_Torre", Offset = V(6, 0, -8), Mode = "Hunt", Speed = 10, Prompt = false },
 				} },
 			{ Type = "Fight", Place = "Miasma_Gondolas", Respawn = "Miasma_Panuelos", Action = "Derribar 💥", HP = 4,
-				Text = "¡Dos soldados del Dominio en las Góndolas! Derríbalos antes de que corten los cables ({count}/{total})",
+				Text = "¡Derriba a los soldados del Dominio en las Góndolas! ({count}/{total})",
 				CaughtLine = "(Te tiran al suelo de la pasarela. Leo te ayuda a levantarte: «¡Otra vez!».)",
 				Actors = { at("LeoSolis", "Miasma_Gondolas", -4, 4, "Point") },
 				Enemies = {
@@ -281,7 +281,7 @@ return {
 		},
 		Steps = {
 			{ Type = "Talk", Npc = "AbuelaNiebla", Dialogue = "Radio", Text = "Habla con la Abuela Niebla en su góndola", Actors = { at("AbuelaNiebla", "Miasma_GondolaNiebla", 2, 2) } },
-			{ Type = "Reach", Place = "Miasma_Antena", Text = "Ve a la antena de la Refinería: es la única que llega hasta la niebla" },
+			{ Type = "Reach", Place = "Miasma_Antena", Text = "Ve a la antena de la Refinería: la única que cruza la niebla" },
 			{ Type = "Use", Prop = "Radio", Text = "Gira la antena hacia abajo, hacia la niebla" },
 			{ Type = "Cinematic", Id = "Miasma_Senal", Actors = { at("AbuelaNiebla", "Miasma_Antena", -3, 2) } },
 			{ Type = "Talk", Npc = "MaraSolis", Dialogue = "Codigos", Text = "Cuéntaselo a Mara en su hangar", Actors = { at("MaraSolis", "Miasma_HangarMara", 2, 1) } },

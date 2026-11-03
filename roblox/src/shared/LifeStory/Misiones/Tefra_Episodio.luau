@@ -63,9 +63,9 @@ return {
 			{ Type = "Scene", Dialogue = "Refugio",
 				Actors = { at("DoctoraFermina", "Tefra_RefugioDentro", 3, 1), at("Cosme", "Tefra_RefugioDentro", -2, 2), at("RefugiadoMayor", "Tefra_RefugioDentro", 5, -2) } },
 			{ Type = "Event", Event = "HeatChanged", Match = { Phase = "Aviso" }, Place = "Tefra_PozoMagma",
-				Text = "Lleva el botiquín de Fermina a los obreros del Pozo de Magma (mira tu medidor de 🌡 calor)" },
+				Text = "Lleva el botiquín al Pozo de Magma (mira tu medidor de 🌡)" },
 			{ Type = "Event", Event = "HeatChanged", Match = { Phase = "Normal" },
-				Text = "¡Demasiado calor! Usa el 🧴 gel térmico de la mochila o métete en un refugio para enfriarte" },
+				Text = "¡Calor! Usa el 🧴 gel de la mochila o entra en un refugio" },
 			{ Type = "Talk", Npc = "Cosme", Dialogue = "Estatua", Text = "Cosme te espera en el Mirador de las Lunas, junto a la estatua",
 				Actors = { at("Cosme", "Tefra_Estatua", 0, -3) } },
 		},
@@ -120,7 +120,7 @@ return {
 		},
 		Steps = {
 			{ Type = "Escape", Place = "Tefra_RuinasOvillo", Respawn = "Tefra_Estatua", Catch = 4,
-				Text = "Cruza hasta las cúpulas del Ovillo sin que te pare la policía militar",
+				Text = "Cruza hasta las cúpulas del Ovillo sin que te pare la policía",
 				CaughtLine = "¡Alto! ¿Papeles? …¿No? Media vuelta, al Mirador. Y que no os vuelva a ver.",
 				Actors = {
 					COSME_SIGUE,
@@ -137,7 +137,7 @@ return {
 			{ Type = "Scene", Dialogue = "Emboscada",
 				Actors = { at("Cosme", "Tefra_CasaCosme", 0, 2), at("DaliaRenn", "Tefra_CasaCosmePuerta", -6, 4), at("PoliciaMilitar1", "Tefra_CasaCosmePuerta", -14, -6), at("PoliciaMilitar2", "Tefra_CasaCosmePuerta", -14, 6) } },
 			{ Type = "Fight", Place = "Tefra_CasaCosmePuerta", Respawn = "Tefra_CasaCosme", Action = "Derribar 💥", HP = 4,
-				Text = "¡Emboscada de la policía militar! Dalia te cubre: derriba a los dos ({count}/{total})",
+				Text = "¡Emboscada! Derriba a los dos policías con Dalia ({count}/{total})",
 				CaughtLine = "(Te tiran al suelo entre la ceniza. Dalia tira de ti hacia la cúpula.)",
 				Actors = { at("DaliaRenn", "Tefra_CasaCosmePuerta", -4, 4, "Point"), at("Cosme", "Tefra_CasaCosme", 0, 2) },
 				Enemies = {
@@ -151,7 +151,7 @@ return {
 				},
 				Actors = { at("Brasa", "Tefra_CasaCosmePuerta", 6, -6), at("DaliaRenn", "Tefra_CasaCosmePuerta", -4, 4), at("Cosme", "Tefra_CasaCosme", 0, 2) } },
 			{ Type = "Escape", Place = "Tefra_BloqueRefugio", Respawn = "Tefra_CasaCosmePuerta", Catch = 4,
-				Text = "Huid por los túneles hasta el Bloque del Refugio 2, en el Mercado",
+				Text = "Huye por los túneles al Refugio 2, en el Mercado",
 				CaughtLine = "¡Por aquí! …(Te cortan el paso. Dalia te saca por otra boca del túnel.)",
 				Actors = {
 					DALIA_SIGUE, COSME_SIGUE,
@@ -218,10 +218,10 @@ return {
 		Steps = {
 			{ Type = "Talk", Npc = "DaliaRenn", Dialogue = "Plan", Text = "Escucha el plan de Dalia", Actors = { at("DaliaRenn", "Tefra_BloqueRefugio", 0, -4), at("Cosme", "Tefra_BloqueRefugio", 3, -2) } },
 			{ Type = "Event", Event = "JobTaskDone", Match = { JobId = "TefraFundidor" }, Place = "Tefra_OficinaTrabajo",
-				Text = "Trabaja un turno de 🔥 fundidor/a (tablón de la Oficina de trabajo, en las Fundiciones): así te dan el mono de obrero" },
+				Text = "Haz un turno de 🔥 fundidor/a en las Fundiciones (te dan el mono)" },
 			{ Type = "Talk", Npc = "DaliaRenn", Dialogue = "Disfraz", Text = "Dalia te espera junto al astillero del Muelle", Actors = { at("DaliaRenn", "Tefra_Astillero", -6, -2) } },
 			{ Type = "Escape", Place = "Tefra_DespachoCorvo", Respawn = "Tefra_Astillero", Catch = 4,
-				Text = "Con el mono puesto, entra en la torre de control sin que te reconozcan",
+				Text = "Con el mono puesto, entra en la torre de control del Muelle",
 				CaughtLine = "Tú no eres de mi turno. ¡Fuera del Muelle, obrero! (Vuelves al astillero.)",
 				Actors = {
 					{ Npc = "PoliciaMilitar1", Place = "Tefra_Calabozos", Offset = V(10, 0, 8), Mode = "Hunt", Speed = 9, Prompt = false },
@@ -234,7 +234,7 @@ return {
 					{ Id = "Ordenes", Text = "Solo las órdenes: que no noten nada más", Effects = { Flags = { "SoloOrdenes" }, Traits = { Responsabilidad = 1 } } },
 				} },
 			{ Type = "Escape", Place = "Tefra_Terraza", Respawn = "Tefra_TorreControl", Catch = 4,
-				Text = "¡Salta la alarma! Escapa del Muelle y sube a la terraza del Mirador",
+				Text = "¡Alarma! Escapa del Muelle a la terraza del Mirador",
 				CaughtLine = "¡Te tengo! …(Te zafas de la bufanda y vuelves a correr desde la torre.)",
 				Actors = {
 					{ Npc = "PoliciaMilitar1", Place = "Tefra_TorreControl", Offset = V(-12, 0, 6), Mode = "Hunt", Speed = 11, Prompt = false },
@@ -296,8 +296,8 @@ return {
 		},
 		Steps = {
 			{ Type = "Talk", Npc = "DaliaRenn", Dialogue = "Cargas", Text = "Habla con Dalia a la puerta de la central", Actors = { at("DaliaRenn", "Tefra_Central", -3, -4) } },
-			{ Type = "Reach", Place = "Tefra_PozoMagma", Text = "Baja hasta el Pozo de Magma (cuidado con el 🌡 calor: usa gel si hace falta)", Actors = { DALIA_SIGUE } },
-			{ Type = "Group", Text = "Pon las cargas en los tres conductos de vapor (en el orden que quieras), bajo el fuego de Ovilla",
+			{ Type = "Reach", Place = "Tefra_PozoMagma", Text = "Baja al Pozo de Magma (cuidado con el 🌡 calor)", Actors = { DALIA_SIGUE } },
+			{ Type = "Group", Text = "Pon las cargas en los 3 conductos de vapor del Pozo",
 				Actors = { DALIA_SIGUE },
 				Steps = {
 					{ Type = "Use", Prop = "Conducto1", Text = "El conducto oeste" },
@@ -317,7 +317,7 @@ return {
 				},
 				Actors = { at("IngenieroOrsi", "Tefra_Lanza", 0, -4), at("DaliaRenn", "Tefra_PozoMagma", -4, 4) } },
 			{ Type = "Escape", Place = "Tefra_HospitalDentro", Respawn = "Tefra_PozoMagma", Catch = 4, If = { Choices = { TefraOrsi = "Sacar" } },
-				Text = "Escolta a Orsi hasta el Campus Nilda: va despacio y la policía militar le busca",
+				Text = "Escolta a Orsi hasta el Campus Nilda (va despacio)",
 				CaughtLine = "¡Ahí está el ingeniero! (Os cortan el paso. Volvéis al Pozo a probar otra calle.)",
 				Actors = {
 					{ Npc = "IngenieroOrsi", Mode = "Follow" }, DALIA_SIGUE,
@@ -325,7 +325,7 @@ return {
 					{ Npc = "PoliciaMilitar2", Place = "Tefra_Raciones", Offset = V(0, 0, -8), Mode = "Hunt", Speed = 10, Prompt = false },
 				} },
 			{ Type = "Escape", Place = "Tefra_RefugioDentro", Respawn = "Tefra_PozoMagma", Catch = 4, If = { Choices = { TefraOrsi = "Dejar" } },
-				Text = "Sal de los Pozos antes de que lleguen los guardias: corre al refugio",
+				Text = "¡Sal de los Pozos y corre al refugio antes que los guardias!",
 				CaughtLine = "¡Alto! (Te escabulles entre el vapor y vuelves al Pozo.)",
 				Actors = {
 					DALIA_SIGUE,
@@ -390,14 +390,14 @@ return {
 		Steps = {
 			{ Type = "Talk", Npc = "DaliaRenn", Dialogue = "Bandera", Text = "Habla con Dalia en la Puerta Este", Actors = { at("DaliaRenn", "Tefra_PuertaEste", -4, 2) } },
 			{ Type = "Escape", Place = "Tefra_TierraDeNadie", Respawn = "Tefra_PuertaEste", Catch = 4,
-				Text = "Cruza la tierra de nadie hasta las trincheras (cuidado: no todos los de Ovilla saben que hay tregua)",
+				Text = "Cruza la tierra de nadie hasta las trincheras de Ovilla",
 				CaughtLine = "¡Alto ahí, de Bastión! (Os hacen volver a la Puerta con las manos en alto.)",
 				Actors = {
 					DALIA_SIGUE,
 					{ Npc = "SoldadoOvilla", Place = "Tefra_TierraDeNadie", Offset = V(-30, 0, 20), Mode = "Hunt", Speed = 10, Prompt = false },
 				} },
 			{ Type = "Scene", Dialogue = "Tobi", Actors = { at("TobiRenn", "Tefra_TierraDeNadie", 0, -6), at("DaliaRenn", "Tefra_TierraDeNadie", -3, 2) } },
-			{ Type = "Choice", Key = "TefraTobiLanza", Text = "Tobi no sabe nada de la Lanza. Si se lo cuentas, Ovilla evacuará sus ciudades… y Corvo sabrá que alguien habló. ¿Se lo cuentas?",
+			{ Type = "Choice", Key = "TefraTobiLanza", Text = "Tobi no sabe nada de la Lanza. Si se lo cuentas, Ovilla evacuará… y Corvo sabrá que alguien habló. ¿Se lo cuentas?",
 				Options = {
 					{ Id = "Contar", Text = "Contárselo todo y darle una copia de las órdenes", Effects = { Flags = { "TobiSabeLanza" }, Rel = { TobiRenn = 15 }, Traits = { Valentia = 1 } } },
 					{ Id = "Callar", Text = "Callar: no puedes fiarte del capitán enemigo", Effects = { Flags = { "TobiNoSabe" }, Traits = { Responsabilidad = 1 } } },
@@ -532,7 +532,7 @@ return {
 		Steps = {
 			{ Type = "Talk", Npc = "DaliaRenn", Dialogue = "Salir", Text = "Habla con Dalia en el refugio", Actors = { at("DaliaRenn", "Tefra_RefugioDentro", -2, 2), at("Cosme", "Tefra_RefugioDentro", 2, 2) } },
 			{ Type = "Escape", Place = "Tefra_MiradorCentro", Respawn = "Tefra_Refugio", Catch = 4,
-				Text = "Escolta a Dalia hasta el Mirador de las Lunas: la buscan los de Corvo y los de Ovilla",
+				Text = "Escolta a Dalia hasta el Mirador de las Lunas",
 				CaughtLine = "(Os rodean junto a una fuente seca. Ferra aparece y os abre paso… de vuelta al refugio.)",
 				Actors = {
 					DALIA_SIGUE, COSME_SIGUE,
@@ -541,7 +541,7 @@ return {
 					{ Npc = "PoliciaMilitar2", Place = "Tefra_Estatua", Offset = V(30, 0, -10), Mode = "Hunt", Speed = 11, Prompt = false, If = { Flags = { "PrecioCabeza" } } },
 				} },
 			{ Type = "Fight", Place = "Tefra_MiradorCentro", Respawn = "Tefra_Estatua", Action = "Derribar 💥", HP = 5,
-				Text = "Los últimos fieles de Corvo quieren callar a Dalia: ¡defiéndela! ({count}/{total})",
+				Text = "¡Defiende a Dalia de los fieles de Corvo! ({count}/{total})",
 				CaughtLine = "(Te derriban junto a las tiendas. Un refugiado te ayuda a levantarte.)",
 				Actors = { at("DaliaRenn", "Tefra_MiradorCentro", 0, 6, "Point") },
 				Enemies = {

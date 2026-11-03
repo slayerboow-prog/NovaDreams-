@@ -41,11 +41,11 @@ return {
 			{ Type = "Talk", Npc = "Luca", Dialogue = "Rumor", Text = "Luca tiene que contarte algo (bajando la voz)",
 				Actors = { { Npc = "Luca", Place = "Universidad", Offset = V(-6, 0, -3) } } },
 			{ Type = "Use", Prop = "Cartel", Text = "Ve al pie del Monte del Silencio y busca pistas" },
-			{ Type = "Reach", Place = CIMA, Hours = { From = 2, To = 5 }, Text = "Sube a la cima del monte de madrugada (entre las 2:00 y las 5:00)" },
+			{ Type = "Reach", Place = CIMA, Hours = { From = 2, To = 5 }, Text = "Sube a la cima del monte de madrugada (de 2:00 a 5:00)" },
 			{ Type = "Use", Prop = "Mochila", Text = "Hay algo tirado en la cima…" },
 			{ Type = "Cinematic", Id = "Loco_Abduccion", Props = NAVE_PROPS },
 			{ Type = "Escape", Seconds = 25, Respawn = CIMA, Catch = 4, Props = NAVE_PROPS,
-				Text = "¡La luz te está absorbiendo! Corre y que no te atrapen durante 25 segundos",
+				Text = "¡La luz te absorbe! Corre por el monte durante 25 s",
 				CaughtLine = "¡Blorp! ¡Te tengo! …¡Ay, se me escapa! (Vuelves a la cima. La luz te busca otra vez.)",
 				Actors = { { Npc = "Blorp", Place = CIMA, Offset = V(0, 0, -10), Mode = "Hunt", Speed = 12, Prompt = false } } },
 			{ Type = "Scene", Dialogue = "Bajan", Props = NAVE_PROPS,
@@ -61,7 +61,7 @@ return {
 					{ Npc = "Blorp", Place = CIMA, Offset = V(4, 0, -6), Mode = "Point" },
 				} },
 			{ Type = "Fight", Place = CIMA, Respawn = CIMA, Action = "Disparar 🔫", HP = 3, BeamColor = Color3.fromRGB(90, 255, 120), Props = NAVE_PROPS,
-				Text = "¡Quieren capturarte! Derrota a los alienígenas con su propia pistola ({count}/{total})",
+				Text = "Derrota a los alienígenas con su propia pistola ({count}/{total})",
 				CaughtLine = "¡Te tengo, terrícola! (Te suelta al ver la pistola. Vuelves a la cima.)",
 				Enemies = {
 					{ Npc = "Blorp", Offset = V(4, 0, -6), Speed = 11, HP = 2, Hurt = "¡Blorp! ¡Eso es MI pistola! ¡Me la regaló mi madre!", Bye = "¡Me vuelvo a la nave! ¡Blooorp!" },
@@ -99,7 +99,7 @@ return {
 				{ S = "Narrador", T = "La luz se apaga de golpe. Una escalerilla baja de la nave. Por ella bajan tres… personas. Verdes. Con antenas. Y cara de estar MUY hartas." },
 				{ S = "CapitanNoz", T = "¡CORTEN! ¡Corten, corten! ¡Terrícola! ¡Nos estás estropeando el episodio!" },
 				{ S = "Yo", T = "¿El… episodio?" },
-				{ S = "CapitanNoz", T = "«Terrícolas en apuros», el reality número uno de la galaxia. Trescientas temporadas. Abducimos humanos y los vemos intentar abrir un bote de pepinillos con guantes de boxeo." },
+				{ S = "CapitanNoz", T = "«Terrícolas en apuros», el reality número uno de la galaxia. Abducimos humanos y los vemos abrir un bote de pepinillos con guantes de boxeo." },
 				{ S = "Zarg", T = "Y tú no te dejas abducir. Llevamos veinticinco segundos de huida. La audiencia se aburre. Se aburre MUCHO." },
 				{ S = "Blorp", T = "¡Blorp! ¡Capitana! ¡Los datos dicen que la audiencia se ha triplicado! ¡Les encanta cómo corre!", A = "Cheer" },
 				{ S = "CapitanNoz", T = "…Entonces te queremos de protagonista. PARA SIEMPRE. ¡A por él! ¡A por ella! ¡A por lo que sea! ¡CAPTURADLE!" },
@@ -111,7 +111,7 @@ return {
 			} },
 			Liberados = { Lines = {
 				{ S = "Narrador", T = "Los tres alienígenas se desintegran en chispas verdes y reaparecen dentro de la nave, teletransportados, castigados y sin merienda." },
-				{ S = "CapitanNoz", T = "(Por el altavoz de la nave) ¡Está bien! ¡Está bien! ¡Devolvemos a los terrícolas! ¡Y cancelamos la temporada! …¡Pero te llevarás un premio a mejor actor o actriz revelación!" },
+				{ S = "CapitanNoz", T = "(Por el altavoz) ¡Vale, vale! ¡Devolvemos a los terrícolas y cancelamos la temporada! …¡Pero te llevas el premio a la revelación del año!" },
 				{ S = "Narrador", T = "De la luz bajan flotando tres personas en pijama. La última lleva botas de montaña y un bocadillo de tortilla a medio comer." },
 				{ S = "Fermin", T = "¡Tres semanas! ¡Tres semanas abriendo botes de pepinillos con guantes de boxeo! …Aunque he ganado dos concursos. En la galaxia soy muy conocido." },
 				{ S = "Fermin", T = "Gracias, de verdad. Me has salvado. Y a los otros dos. Uno es un fontanero; la otra, una profesora de yoga. Ahora son pareja. Cosas del plató." },
@@ -169,7 +169,7 @@ return {
 			{ Type = "Scene", Dialogue = "Aduana",
 				Actors = { { Npc = "Rex", Place = "HomeSalon", Offset = V(2, 0, 2) }, { Npc = "CazadorTiempo", Place = "HomeSalon", Offset = V(-2, 0, 4) } } },
 			{ Type = "Escape", Place = "FacultadDerecho", Respawn = "Home", Catch = 4,
-				Text = "¡Llévate a Rex a la Facultad de Derecho antes de que el agente Cronos os atrape!",
+				Text = "¡Lleva a Rex a la Facultad de Derecho antes que Cronos!",
 				CaughtLine = "¡Formulario 27-B! ¡Queda usted retenido! …Ah, no, que me falta un sello. Vuelvan a empezar.",
 				Actors = {
 					{ Npc = "Rex", Mode = "Follow" },
@@ -227,7 +227,7 @@ return {
 					} },
 				} },
 				{ S = "Cosme", T = "(Desde el fondo) Y si no vale, yo le hago unos papeles. Tengo una fotocopiadora que fotocopia en el pasado. Técnicamente, siempre tuvo visado.", If = { NotFlags = { "CosmeSinMemoria" } } },
-				{ S = "Cosme", T = "(Desde el fondo) No sé quién es este dinosaurio. Tampoco sé quién soy yo, la verdad. Pero tengo una fotocopiadora rarísima en el garaje, y seguro que algo sabe hacer. Técnicamente, siempre tuvo visado.", If = { Flags = { "CosmeSinMemoria" } } },
+				{ S = "Cosme", T = "(Desde el fondo) No sé quién es este dinosaurio. Pero tengo una fotocopiadora rarísima en el garaje. Técnicamente, siempre tuvo visado.", If = { Flags = { "CosmeSinMemoria" } } },
 				{ S = "CazadorTiempo", T = "No he oído nada. …Recurso aceptado. Residencia temporal concedida. Sello. Sello. Y sello." },
 				{ S = "Rex", T = "¡GRAAAAH! Perdón. Es de alegría. Toma: un diente mío. En mi época es lo que se regala a los amigos. Me salen nuevos cada martes." },
 				{ S = "Narrador", T = "Recibes 🦖 el Diente de Rex." },
@@ -283,12 +283,12 @@ return {
 				{ S = "Cosme", T = "¡Criatura! ¡Cuánto has crecido! Ya estudias en la universidad… ¿Cuántos años tienes? No me lo digas. Me da igual. El tiempo es una ilusión. El alquiler, no.", If = { Stage = { Max = "AdultoJoven" } } },
 				{ S = "Cosme", T = "¡Criatura! ¡Cuánto has crecido! Ya trabajas, pagas facturas… ¿Cuántos años tienes? No me lo digas. Me da igual. El tiempo es una ilusión. El alquiler, no.", If = { Stage = { Min = "Adulto" } } },
 				{ S = "Cosme", T = "Mira: el mando de dimensiones. Cada botón, una Valmar distinta. Hay infinitas. En una eres rico. En otra eres una silla. No toques el botón de la silla." },
-				{ S = "Pip", T = "El señor Cosme quiere presentarlo en un congreso de científicos. Necesita pruebas. Y un voluntario. El último voluntario fui yo. Ahora tengo un tornillo que canta." },
+				{ S = "Pip", T = "El señor Cosme quiere presentarlo en un congreso. Necesita pruebas. Y un voluntario. El último fui yo. Ahora tengo un tornillo que canta." },
 				{ S = "Cosme", T = "He abierto tres portales: en el parque, en la plaza del centro y en la playa. Tú entras, miras, sales. Yo apunto. Ciencia." },
 			} },
 			Gatos = { Lines = {
-				{ S = "Narrador", T = "Al otro lado del portal, Valmar es igual… pero todo el mundo es un gato. Los coches son gatos. Las farolas son gatos. Hay un gato conduciendo un autobús lleno de gatos." },
-				{ S = "Bigotes", T = "Humano. Aquí no se permiten humanos sin correa. Soy el presidente de esta dimensión y exijo que… ¿Te conozco? Tienes cara de haberme tocado la barriga alguna vez." },
+				{ S = "Narrador", T = "Al otro lado, Valmar es igual… pero todo es un gato. Los coches. Las farolas. Hay un gato conduciendo un autobús lleno de gatos." },
+				{ S = "Bigotes", T = "Humano. Aquí no se permiten humanos sin correa. Soy el presidente y exijo que… ¿Te conozco? Tienes cara de haberme rascado la barriga." },
 				{ S = "Narrador", T = "Sales del portal antes de que te pongan un collar. Cosme apunta: «Dimensión G-4: gatos. Descartada. Los gatos no pagan congresos»." },
 			} },
 			Alcalde = { Lines = {
@@ -305,7 +305,7 @@ return {
 				{ S = "Cosme", T = "Criatura. Tengo que contarte una cosa. Yo no soy tu Cosme. Bueno, sí. Soy un Cosme. Pero soy el de la dimensión K-12." },
 				{ S = "Cosme", T = "Tu Cosme, el de siempre, el del microondas y la gallina… hace un mes probó el mando. Llegó a la dimensión aburrida. Y… se quedó." },
 				{ S = "Yo", T = "¿Se quedó? ¿Por qué?" },
-				{ S = "Cosme", T = "Porque allí nadie le mira como a un loco. Porque allí todo sale bien. Yo vine a sustituirle para que no lo echaras de menos. Somos casi iguales. Yo tengo un lunar más.", A = "Sad" },
+				{ S = "Cosme", T = "Porque allí nadie le mira como a un loco. Allí todo sale bien. Yo vine a sustituirle para que no le echaras de menos. Yo tengo un lunar más.", A = "Sad" },
 			} },
 			Final = { Lines = {
 				{ S = "Cosme", T = "Pase lo que pase, el mando ya es tuyo. Te llevará a otros sitios de la región. Casi nunca a la dimensión de los gatos. Casi.", If = { Choices = { CualCosme = "Quedarse" } } },
@@ -376,7 +376,7 @@ return {
 					{ Npc = "Impostor2", Place = "EstadioUniversitario", Offset = V(5, 0, 9) },
 				} },
 			{ Type = "Fight", Place = "EstadioUniversitario", Respawn = "EstadioUniversitario", Action = "Arrancarle el disfraz", HP = 3, BeamColor = Color3.fromRGB(120, 255, 255),
-				Text = "¡Los cambiaformas intentan copiarte la cara! Quítales el disfraz ({count}/{total})",
+				Text = "¡Cambiaformas en la fiesta! Quítales el disfraz ({count}/{total})",
 				CaughtLine = "¡Ya casi tengo tu nariz! …Uy, se me escapa. (Te zafas y vuelves al centro de la pista.)",
 				Enemies = {
 					{ Npc = "Impostor1", Offset = V(6, 0, 6), Speed = 12, Hurt = "¡Hola, compañero humano! ¡Deja mi cara humana!", Bye = "¡Glglglgl! (Se convierte en un charco de gelatina azul que sale reptando hacia su nave.)" },
@@ -392,7 +392,7 @@ return {
 		Dialogues = {
 			Julia = { Lines = {
 				{ S = "Julia", T = "¡Has venido! {Bienvenido/Bienvenida} a la mejor fiesta de la facultad. Hay pizza, hay música… y hay dos personas que no ha invitado nadie." },
-				{ S = "Julia", T = "No sé. Son raros. Muy raros. Uno me ha dado la mano con el codo. La otra me ha preguntado «qué tal tu digestión humana». Habla con la gente, ¿vale? Tú tienes buen ojo." },
+				{ S = "Julia", T = "Son raros. Muy raros. Uno me ha dado la mano con el codo. Otra me ha preguntado «qué tal tu digestión humana». Habla con la gente, ¿vale?" },
 			} },
 			Adrian = { Lines = {
 				{ S = "Adrian", T = "¿Yo raro? Estoy bailando. Bueno. Intentándolo. Es mi primera fiesta desde el examen de Estadística. Tengo el cuerpo oxidado." },
@@ -452,7 +452,7 @@ return {
 			{ Type = "Talk", Npc = "Evaluador", Dialogue = "Prueba2", Text = "Prueba 2: una pregunta difícil",
 				Actors = { { Npc = "Evaluador", Place = "Biblioteca", Offset = V(0, 0, 5) } } },
 			{ Type = "Fight", Place = "Biblioteca", Respawn = "Biblioteca", Action = "Responder bien 🧠", HP = 2, BeamColor = Color3.fromRGB(200, 120, 255),
-				Text = "Prueba 3: los exámenes sorpresa te persiguen. ¡Respóndelos! ({count}/{total})",
+				Text = "Prueba 3: responde a los exámenes sorpresa ({count}/{total})",
 				CaughtLine = "¡SUSPENSO! …Es broma. Tienes otra oportunidad. Vuelve a empezar.",
 				Actors = { { Npc = "Evaluador", Place = "Biblioteca", Offset = V(0, 0, 8) } },
 				Enemies = {
@@ -471,7 +471,7 @@ return {
 				{ S = "Evaluador", T = "Tres pruebas. Reflejos, juicio y valor. Sin chuletas. Puedes usar calculadora, eso sí. Soy exigente, no un monstruo." },
 			} },
 			Prueba2 = { Lines = {
-				{ S = "Evaluador", T = "Prueba dos. Hay un botón. Si lo pulsas, todos los humanos de la Tierra reciben un helado gratis cada día… pero tu vecino Cosme se convierte en pato. Para siempre." },
+				{ S = "Evaluador", T = "Prueba dos. Un botón. Si lo pulsas, todos los humanos tienen un helado gratis cada día… pero tu vecino Cosme se convierte en pato. Para siempre." },
 				{ Ask = "¿Pulsas el botón?", Options = {
 					{ T = "«No. Cosme es insoportable, pero es MI vecino insoportable.»", Effects = { Traits = { Empatia = 2 }, Rel = { Cosme = 5 }, Flags = { "SalvasteACosme" } }, Then = {
 						{ S = "Evaluador", T = "Lealtad por encima del helado. Interesante. Muy poco frecuente en los humanos." },

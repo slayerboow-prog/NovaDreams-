@@ -54,10 +54,10 @@ return {
 		Rewards = { Money = 60, Flags = { "NivalisLlegado" } },
 		Steps = {
 			{ Type = "Cinematic", Id = "Nivalis_Llegada" },
-			{ Type = "Reach", Place = "Nivalis_Mirador", Text = "Sal por la Puerta Norte hasta el Mirador del Valle, fuera de la muralla (mira tu medidor de ❄ frío)" },
+			{ Type = "Reach", Place = "Nivalis_Mirador", Text = "Sal por la Puerta Norte al Mirador del Valle (medidor de ❄)" },
 			{ Type = "Event", Event = "HazardChanged", Match = { Planet = "Nivalis", Phase = "Aviso" }, Place = "Nivalis_Mirador",
-				Text = "Mira el Palacio de Escarcha desde el Mirador… hasta que el frío te muerda" },
-			{ Type = "Talk", Npc = "Tila", Dialogue = "Tila", Text = "¡Tiritas! Una farolera te hace señas desde la hoguera de la plaza", Actors = { at("Tila", "Nivalis_Hoguera", 2, 2) } },
+				Text = "Mira el Palacio de Escarcha desde el Mirador del Valle" },
+			{ Type = "Talk", Npc = "Tila", Dialogue = "Tila", Text = "¡Tiritas! Ve a la hoguera de la plaza: una farolera te llama", Actors = { at("Tila", "Nivalis_Hoguera", 2, 2) } },
 			{ Type = "Event", Event = "HazardCountered", Match = { Planet = "Nivalis" }, Place = "Nivalis_Hoguera",
 				Text = "Tómate la 🍲 sopa caliente (desde la mochila)", Actors = { at("Tila", "Nivalis_Hoguera", 2, 2) } },
 			{ Type = "Talk", Npc = "Tila", Dialogue = "Silencio", Text = "Tila quiere decirte algo, muy bajito", Actors = { at("Tila", "Nivalis_Hoguera", 2, 2) } },
@@ -99,7 +99,7 @@ return {
 		Steps = {
 			{ Type = "Talk", Npc = "Tila", Dialogue = "Plan", Text = "Escucha el plan de Tila (en susurros)", Actors = { at("Tila", "Nivalis_Hoguera", 2, 2) } },
 			{ Type = "Escape", Place = "Nivalis_CasaTila", Respawn = "Nivalis_Hoguera", Catch = 4,
-				Text = "Cruza la Plaza de los Faroles hasta la casa de Tila sin que te pille la guardia (andando: correr se oye)",
+				Text = "Cruza la Plaza de los Faroles hasta casa de Tila, sin correr",
 				CaughtLine = "¡Quieto! ¿Qué hace usted en la calle en la hora del silencio? …Vuelva a la hoguera. Ahora.",
 				Actors = {
 					TILA_SIGUE,
@@ -108,14 +108,14 @@ return {
 				} },
 			{ Type = "Scene", Dialogue = "Delacion", Actors = { at("VecinoCarambano", "Nivalis_CasaTila", 6, -4), at("Tila", "Nivalis_CasaTila", -2, 2) } },
 			{ Type = "Escape", Place = "Nivalis_TermasDentro", Respawn = "Nivalis_CasaTila", Catch = 4,
-				Text = "¡Os han delatado! Escóndete con Tila en las Termas del Farol, en el Patio de Armas",
+				Text = "¡Os delatan! Escóndete con Tila en las Termas del Farol",
 				CaughtLine = "¡Alto! ¡Documentos! …(Tila tira un cubo de nieve al farol del guardia y volvéis a correr desde la casa.)",
 				Actors = {
 					TILA_SIGUE,
 					{ Npc = "GuardiaRegente1", Place = "Nivalis_Plaza", Offset = V(-6, 0, 0), Mode = "Hunt", Speed = 10, Prompt = false },
 					{ Npc = "GuardiaRegente2", Place = "Nivalis_Plataforma", Offset = V(-20, 0, 0), Mode = "Hunt", Speed = 10, Prompt = false },
 				} },
-			{ Type = "Choice", Key = "NivalisVecino", Text = "Entre el vapor, Tila te cuenta quién os delató: el señor Carámbano, que roba musgo de las hogueras para sus hijos. Si lo cuentas a la guardia, se lo llevan. ¿Qué haces?",
+			{ Type = "Choice", Key = "NivalisVecino", Text = "Os delató el señor Carámbano: roba musgo para sus hijos. Si se lo cuentas a la guardia, se lo llevan. ¿Qué haces?",
 				Options = {
 					{ Id = "Castigar", Text = "Denunciarle tú también: que pruebe su medicina", Effects = { Flags = { "CarambanoDenunciado" }, Traits = { Valentia = 1 } } },
 					{ Id = "Dejar", Text = "Dejarle: tiene miedo y dos hijos", Effects = { Flags = { "CarambanoPerdonado" }, Rel = { Tila = 10 }, Traits = { Empatia = 1 } } },
@@ -170,7 +170,7 @@ return {
 		Steps = {
 			{ Type = "Talk", Npc = "Tila", Dialogue = "Oficio", Text = "Habla con Tila al pie de la Torre del Farolero", Actors = { at("Tila", "Nivalis_TorreFarol", 2, 2) } },
 			{ Type = "Event", Event = "JobTaskDone", Match = { JobId = "NivalisFarolero" }, Place = "Nivalis_TorreFarol",
-				Text = "Haz una ronda de 🏮 farolero/a (tablón «Trabajar» junto a la Torre del Farolero)", Actors = { at("Tila", "Nivalis_TorreFarol", 2, 2) } },
+				Text = "Haz una ronda de 🏮 farolero/a (tablón de la Torre del Farolero)", Actors = { at("Tila", "Nivalis_TorreFarol", 2, 2) } },
 			{ Type = "Talk", Npc = "Tila", Dialogue = "Codigo", Text = "Tila te espera en la plaza para mandar el mensaje", Actors = { at("Tila", "Nivalis_Plaza", 0, 2) } },
 			{ Type = "Group", Text = "Enciende los tres faroles del código, como te ha dicho Tila",
 				Actors = { TILA_SIGUE },
@@ -230,7 +230,7 @@ return {
 		Steps = {
 			{ Type = "Talk", Npc = "Tila", Dialogue = "Callejon", Text = "Habla con Tila en el callejón de detrás de la Biblioteca", Actors = { at("Tila", "Nivalis_Callejon", 0, 2) } },
 			{ Type = "Escape", Place = "Nivalis_BibliotecaDentro", Respawn = "Nivalis_Callejon", Catch = 4,
-				Text = "Entra en la Biblioteca de los Ecos sin que te vea la ronda del Cuerpo de Guardia",
+				Text = "Entra en la Biblioteca de los Ecos sin que te vea la guardia",
 				CaughtLine = "¿Quién anda ahí? …(Te escondes en un ventisquero y vuelves al callejón.)",
 				Actors = {
 					TILA_SIGUE,
@@ -241,14 +241,14 @@ return {
 				Win = { Flags = { "CristalEncontrado" } }, Lose = { Flags = { "CristalAlFinal" } },
 				Actors = { TILA_SIGUE } },
 			{ Type = "Scene", Dialogue = "Copo", Actors = { at("MadreCopo", "Nivalis_BibliotecaDentro", -3, -2), at("Tila", "Nivalis_BibliotecaDentro", 3, 1) } },
-			{ Type = "Choice", Key = "NivalisCristal", Text = "Madre Copo te ofrece el cristal con la canción de la Reina. Si te lo pillan, es delito. Si se queda aquí, la guardia puede encontrarlo. ¿Qué haces?",
+			{ Type = "Choice", Key = "NivalisCristal", Text = "Madre Copo te ofrece el cristal de la Reina. Llevarlo es delito; dejarlo aquí, un riesgo. ¿Qué haces?",
 				Options = {
 					{ Id = "Llevar", Text = "Llevármelo: lo guardaré yo", Effects = { Items = { CristalReina = 1 }, Flags = { "CristalContigo" }, Traits = { Valentia = 1 } } },
 					{ Id = "Dejar", Text = "Dejarlo con Madre Copo: nadie lo esconde mejor", Effects = { Flags = { "CristalConCopo" }, Rel = { MadreCopo = 15 }, Traits = { Responsabilidad = 1 } } },
 				},
 				Actors = { at("MadreCopo", "Nivalis_BibliotecaDentro", -3, -2), at("Tila", "Nivalis_BibliotecaDentro", 3, 1) } },
 			{ Type = "Fight", Place = "Nivalis_Biblioteca", Respawn = "Nivalis_BibliotecaDentro", Action = "Empujar a la nieve 💨", HP = 3,
-				Text = "¡La guardia ha oído la canción! Empuja a los dos guardias a la nieve ({count}/{total})",
+				Text = "¡La guardia lo ha oído! Empújalos a la nieve ({count}/{total})",
 				CaughtLine = "(Resbalas en el hielo de la entrada. Tila te levanta de un tirón.)",
 				Actors = { at("Tila", "Nivalis_Biblioteca", -4, 3, "Point") },
 				Enemies = {
@@ -256,7 +256,7 @@ return {
 					{ Npc = "GuardiaRegente2", Offset = V(-12, 0, 6), Speed = 10, HP = 2, Bye = "¡Mi farol! ¡Se me ha apagado el farol!" },
 				} },
 			{ Type = "Escape", Place = "Nivalis_Pasadizo", Respawn = "Nivalis_Biblioteca", Catch = 4,
-				Text = "¡Vienen más! Huye con Tila hasta el pasadizo de la Muralla Vieja (la nieve borrará tus huellas)",
+				Text = "¡Vienen más! Huye con Tila al pasadizo de la Muralla Vieja",
 				CaughtLine = "(Una mano te agarra la capa. Tila le tira su lata de aceite y volvéis a correr.)",
 				Actors = {
 					TILA_SIGUE,

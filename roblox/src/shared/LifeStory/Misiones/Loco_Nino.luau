@@ -157,7 +157,7 @@ return {
 			{ Type = "Use", Prop = "Bigotes", Text = "Busca a Bigotes en la zona de juegos del cole" },
 			{ Type = "Use", Prop = "Globos", Text = "Arma: una caja de globos de agua (en el patio)", Props = { "Nave" } },
 			{ Type = "Fight", Place = "Patio", Respawn = "JuegosColegio", Action = "Lanzar globo de agua 🎈", HP = 2, BeamColor = Color3.fromRGB(80, 170, 255),
-				Text = "¡Las cucarachas cazarrecompensas! Échalas con globos de agua ({count}/{total})",
+				Text = "¡Cucarachas cazarrecompensas! Échalas con globos ({count}/{total})",
 				CaughtLine = "¡Te pillé, larva! …Uy, que tú no eres el gato. Suéltate y vuelve a empezar.",
 				Props = { "Nave" },
 				Enemies = {
@@ -233,7 +233,7 @@ return {
 			{ Type = "Talk", Npc = "Julian", Dialogue = "Granjero", Text = "Habla con Julián, el granjero",
 				Actors = { { Npc = "Julian", Place = "GranjaPatio", Offset = V(4, 0, -3) }, { Npc = "Cosme", Place = "GranjaPatio", Offset = V(-4, 0, -3) }, PETRA_COMIENDO },
 				Props = { "Huevos" } },
-			{ Type = "Use", Prop = "Huevo", Text = "Entra en el granero: en el nido de paja del fondo hay algo enorme…",
+			{ Type = "Use", Prop = "Huevo", Text = "Entra en el granero: hay algo enorme en el nido del fondo…",
 				Actors = { { Npc = "Cosme", Mode = "Follow" }, PETRA_COMIENDO } },
 			{ Type = "Escape", Place = "GranjaSilo", Respawn = "GranjaPatio", Catch = 7, Text = "¡PETRA TE HA VISTO! ¡Sal del granero y corre hasta el silo!",
 				CaughtLine = "¡¡¡CLOC!!! (Te ha cogido con el pico y te ha dejado otra vez en la puerta del granero. Con cariño. Mucho cariño.)",
@@ -330,7 +330,7 @@ return {
 					{ Npc = "Clon2", Place = "EntradaColegio", Offset = V(-5, 0, 7), Mode = "Dance", Prompt = false },
 				} },
 			{ Type = "Fight", Place = "Patio", Respawn = "EntradaColegio", Action = "Pulsar su botón de deshacer", HP = 1, BeamColor = Color3.fromRGB(120, 255, 200), Catch = 3,
-				Text = "Tus clones van a abrazarte (y no te sueltan). Pulsa su botón de deshacer ({count}/{total})",
+				Text = "Pulsa el botón de deshacer de tus clones ({count}/{total})",
 				CaughtLine = "¡ABRAZO GRUPAL! (Tardas un rato en soltarte. Vuelves a la entrada.)",
 				Enemies = {
 					{ Npc = "Clon1", Offset = V(-6, 0, 0), Speed = 12, Bye = "¡Pero si aún no me había comido los de Lengua! *pop*" },
@@ -479,7 +479,7 @@ return {
 			{ Type = "Scene", Dialogue = "Palomas", Props = { "Latas" },
 				Actors = { { Npc = "Abu", Place = "Parque", Offset = V(3, 0, 2) }, { Npc = "Cosme", Place = "Parque", Offset = V(-4, 0, 4) } } },
 			{ Type = "Fight", Place = "Parque", Respawn = "Parque", Action = "Disparar el tirachinas 🪃", HP = 2, BeamColor = Color3.fromRGB(160, 110, 60),
-				Text = "¡Las palomas robot de Cosme roban bocadillos! Apágalas con el tirachinas ({count}/{total})",
+				Text = "Apaga las palomas robot con el tirachinas ({count}/{total})",
 				CaughtLine = "¡Cucurrú-bip! (Te han quitado la merienda. Vuelves al banco del parque.)",
 				Actors = { { Npc = "Abu", Place = "Parque", Offset = V(3, 0, 2), Mode = "Cheer" }, { Npc = "Cosme", Place = "Parque", Offset = V(-4, 0, 4) } },
 				Enemies = {

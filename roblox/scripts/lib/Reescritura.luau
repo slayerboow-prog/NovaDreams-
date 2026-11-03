@@ -3639,6 +3639,9 @@ function Reescritura.build(doc: Doc, game: Game, mapa: { [string]: any }?): ({ [
 				table.insert(blocks, b)
 			end
 			for _, o in s.Objectives do
+				-- La tarjeta del móvil: en mayúscula y sin punto final («llegar al aula.» → «Llegar al aula»;
+				-- lo comprueba scripts/test-textos.luau)
+				o = o:gsub("^%l", string.upper):gsub("([^%.])%.$", "%1")
 				table.insert(objectives, o)
 			end
 			cond = cond or s.Cond

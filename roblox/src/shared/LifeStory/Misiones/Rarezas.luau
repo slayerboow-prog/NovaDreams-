@@ -171,7 +171,7 @@ return {
 				{ S = "Narrador", T = "«Guau-guau. Guau. Guau-guau-guau. Guau.» El perro te mira como si fueras un poco lento. Lo vuelve a repetir. Más despacio." },
 			} },
 			Tabla = { Lines = {
-				{ S = "Narrador", T = "Guau largo = 1, guau corto = 0. Traduces con la tabla del libro. El perro dice: «C-O-L-U-M-P-I-O. H-U-E-S-O. N-O-  E-S  M-Í-O». " },
+				{ S = "Narrador", T = "Guau largo = 1, guau corto = 0. Traduces con la tabla del libro. El perro dice: «C-O-L-U-M-P-I-O. H-U-E-S-O. N-O / E-S / M-Í-O». " },
 				{ S = "Narrador", T = "Alguien ha subrayado la tabla con rotulador verde. En el margen: «Para Pip. Por si algún día lo necesita. — C.»" },
 			} },
 			Caja = { Lines = {
@@ -268,7 +268,7 @@ return {
 			{ Type = "Talk", Npc = "Candela", Dialogue = "Candela", Text = "Candela también ha visto el botón",
 				Actors = { { Npc = "Candela", Place = "Biblioteca", Offset = V(3, 0, 3) } } },
 			{ Type = "Use", Prop = "Boton", Text = "Pulsa el botón del 13" },
-			{ Type = "Transition", Text = "El ascensor sube. Y sube. Y sube. Suena música de ascensor al revés. Se abren las puertas: un pasillo de hormigón que no debería estar ahí. Todo está en silencio. Muy en silencio.", Seconds = 4, Teleport = "Piso13" },
+			{ Type = "Transition", Text = "El ascensor sube y sube. Música de ascensor al revés. Se abren las puertas: un pasillo de hormigón que no debería estar ahí. Silencio total.", Seconds = 4, Teleport = "Piso13" },
 			{ Type = "Use", Prop = "Mesa", Text = "Investiga el piso 13" },
 			{ Type = "Talk", Npc = "CazadorTiempo", Dialogue = "Cronos", Text = "Alguien te espera junto a la ventana",
 				Actors = { { Npc = "CazadorTiempo", Place = "Piso13", Offset = V(-1.2, 0, 12) }, { Npc = "Candela", Place = "Piso13", Offset = V(1.2, 0, 4) } } },
@@ -470,7 +470,7 @@ return {
 		},
 		Steps = {
 			{ Type = "Use", Prop = "Columpio", Text = "Súbete al columpio verde" },
-			{ Type = "Transition", Text = "Subes. Y subes. El parque se vuelve de color sepia. Los coches son redondos. Un niño con gorra graba algo en un banco con una navaja de juguete.", Seconds = 4, Teleport = "ColumpiosParque" },
+			{ Type = "Transition", Text = "Subes. Y subes. El parque se vuelve sepia. Los coches son redondos. Un niño con gorra graba algo en un banco con una navaja de juguete.", Seconds = 4, Teleport = "ColumpiosParque" },
 			{ Type = "Use", Prop = "Iniciales", Text = "Mira qué ha grabado el niño en el banco" },
 			{ Type = "Talk", Npc = "Abu", Dialogue = "Abu", Text = "Vuelve al presente y pregúntale a {abu}",
 				Actors = { { Npc = "Abu", Place = "Home", Offset = V(2, 0, 3), Mode = "Sit" } } },

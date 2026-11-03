@@ -24,7 +24,7 @@ _Ninguno._
 
 ## Aplicado
 
-- PASO 1+2 → paso 1 del juego (Fight): objetivo «llegar a la entrada del laboratorio.»
+- PASO 1+2 → paso 1 del juego (Fight): objetivo «Desconecta a los guardias del laboratorio ({count}/{total})»
 - PASO 1+2 → paso 1 del juego (Fight): 23 frases al cumplirlo (escena ligera «Saga_17_G1_2_Fin», sin quitar el control)
 - PASO 3 → paso 2 del juego (Use): lo que pasa al usarlo va en la conversación del objeto «Capsula» (14 frases)
 - PASO 4+5 → paso 3 del juego (Escape): 27 frases al empezar el paso (escena ligera «Saga_17_G4_5_Entra», la lanza el paso 2 al cumplirse; el jugador no pierde el control)
@@ -51,7 +51,7 @@ _Ninguno._
 
 - PASO 1 · OBJETIVO: Prepara el equipo de rescate.
 - PASO 1 · Al terminar:: Pip: Equipo preparado.
-- PASO 2 · Objetivo: llegar a la entrada del laboratorio.: 
+- PASO 2 · Objetivo: Desconecta a los guardias del laboratorio ({count}/{total}): 
 - PASO 3 · OBJETIVO: Encuentra a Cosme.
 - PASO 3 · OBJETIVO: Libera a Cosme.
 - PASO 5 · MOMENTO DE BIOGRAFÍA: «Rescataste a Cosme de la dimensión 66-B»

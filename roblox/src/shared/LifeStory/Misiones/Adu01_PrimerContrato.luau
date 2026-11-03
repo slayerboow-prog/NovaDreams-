@@ -80,7 +80,7 @@ return {
 	Steps = {
 		{ Type = "Transition", Text = "Septiembre. Un lunes cualquiera… que no es cualquiera.", Seconds = 3 },
 		-- Si todavía vives con tu familia (sin carrera), toca independizarse
-		{ Type = "Event", Event = "HomeClaimed", Text = "Busca una casa libre (cartel «Se vende») y quédatela: vas a necesitar tu propio sitio",
+		{ Type = "Event", Event = "HomeClaimed", Text = "Busca una casa con el cartel «Se vende» y cómprala",
 			If = { NotFlags = { "TieneHogar" } } },
 
 		-- El primer día

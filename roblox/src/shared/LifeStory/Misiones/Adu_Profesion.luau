@@ -102,7 +102,7 @@ return {
 				{ Type = "Reach", Place = "Home", Text = "Vuelve a casa" },
 				Comun.paso("Adu_DespidoCasa"),
 				{ Type = "Event", Event = "JobTaskDone", Count = 2,
-					Text = "Mientras sale algo de lo tuyo, paga el alquiler: trabaja en cualquier tablón «Trabajar» ({count}/{total})",
+					Text = "Paga el alquiler: trabaja en un tablón «Trabajar» ({count}/{total})",
 					Nudge = { After = 300, Every = 400, S = "Familia", T = "(mensaje) ¿Qué tal la búsqueda? Si necesitas lentejas, ya sabes." } },
 				{ Type = "Scene", Dialogue = "NuevaPuerta" },
 			}
@@ -148,7 +148,7 @@ return {
 		Moment = "Ascendiste en la policía",
 		Memory = "AscensoPolicia",
 		Steps = {
-			{ Type = "Event", Event = "Promoted", Match = { Institution = "Policia" }, Text = "Gánate un ascenso en la policía: patrulla, ayuda a los vecinos y resuelve casos" },
+			{ Type = "Event", Event = "Promoted", Match = { Institution = "Policia" }, Text = "Patrulla Valmar y resuelve casos para ganar un ascenso" },
 			{ Type = "Reach", Place = "Policia", Text = "Inés quiere verte en la comisaría", Actors = INES },
 			Comun.paso("Adu_AscensoRango", INES),
 		},

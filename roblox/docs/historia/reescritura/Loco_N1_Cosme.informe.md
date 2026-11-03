@@ -28,12 +28,12 @@ _Ninguno._
 
 - PASO 1 → paso 1 del juego (Talk «Presentacion»): conversación «Presentacion» con 27 frases nuevas (música Descubrimiento)
 - PASO 2.1 → paso 2.1 del juego (Use): lo que pasa al usarlo va en la conversación del objeto «Tornillo» (2 frases)
-- PASO 2.1 → paso 2.1 del juego (Use): objetivo «Busca el tornillo cerca de la fuente del parque.»
+- PASO 2.1 → paso 2.1 del juego (Use): objetivo «Busca el tornillo cerca de la fuente del parque»
 - PASO 2.2 → paso 2.2 del juego (Use): lo que pasa al usarlo va en la conversación del objeto «Bobina» (8 frases)
-- PASO 2.2 → paso 2.2 del juego (Use): objetivo «Recupera la bobina en la heladería.»
+- PASO 2.2 → paso 2.2 del juego (Use): objetivo «Recupera la bobina en la heladería»
 - PASO 2.3 → paso 2.3 del juego (Use): lo que pasa al usarlo va en la conversación del objeto «Chip» (7 frases)
-- PASO 2.3 → paso 2.3 del juego (Use): objetivo «Busca el chip. Bigotes lo tiene.»
-- PASO 3 → paso 3 del juego (Reach): objetivo «Lleva las tres piezas a Cosme.»
+- PASO 2.3 → paso 2.3 del juego (Use): objetivo «Busca el chip. Bigotes lo tiene»
+- PASO 3 → paso 3 del juego (Reach): objetivo «Lleva las tres piezas a Cosme»
 - PASO 3 → paso 3 del juego (Reach): 1 frases al empezar el paso (escena ligera «Loco_N1_G3_Entra», la lanza el paso 2 al cumplirse; el jugador no pierde el control)
 - PASO 4 → paso 4 del juego (Scene «Prueba»): conversación «Prueba» con 20 frases nuevas (música Descubrimiento→Tension)
 
