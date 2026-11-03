@@ -34,6 +34,18 @@ TerrainBuilder.Colors = {
 -- asoman por calles, aceras ni suelos (v77). En las lomas del relieve (lejos de todo) sí hay Grass.
 TerrainBuilder.Flat = Enum.Material.LeafyGrass
 
+-- Suelta el hilo si lleva mucho rato sin soltarlo. build() son miles de FillBlock seguidos: sin soltar,
+-- en un Studio cargado pasaba del tiempo máximo de un script («Script timeout: exhausted allowed
+-- execution time», Play en Studio v133) y se moría Main.server entero en el primer paso: no arrancaba
+-- ningún servicio (ni los remotos, ni las calles, ni el pase de batalla).
+local lastYield = os.clock()
+local function breathe()
+	if os.clock() - lastYield >= 0.1 then
+		task.wait()
+		lastYield = os.clock()
+	end
+end
+
 -- Rellena un rectángulo grande en trozos (el terreno prefiere regiones no gigantes)
 local function tiles(terrain: Terrain, x0: number, x1: number, z0: number, z1: number, y0: number, y1: number, material: Enum.Material)
 	local step = 1024
@@ -41,6 +53,7 @@ local function tiles(terrain: Terrain, x0: number, x1: number, z0: number, z1: n
 		for z = z0, z1 - 1, step do
 			local w, d = math.min(step, x1 - x), math.min(step, z1 - z)
 			terrain:FillBlock(CFrame.new(x + w / 2, (y0 + y1) / 2, z + d / 2), Vector3.new(w, y1 - y0, d), material)
+			breathe()
 		end
 	end
 end
@@ -91,6 +104,7 @@ function TerrainBuilder.build()
 				terrain:FillBlock(CFrame.new((x0 + x1) / 2, -5, z + stripe / 2), Vector3.new(x1 - x0 - BEACH * 2, 8, stripe), TerrainBuilder.Flat)
 			end
 		end
+		breathe()
 	end
 	-- Islas pequeñas (la del faro, el islote y la de las gaviotas)
 	for _, island in CityPlan.Islands do
@@ -119,6 +133,7 @@ function TerrainBuilder.build()
 		local size = if road.Axis == "X" then Vector3.new(length, 16, half * 2) else Vector3.new(half * 2, 16, length)
 		local center = if road.Axis == "X" then Vector3.new(mid, 4, road.At) else Vector3.new(road.At, 4, mid)
 		terrain:FillBlock(CFrame.new(center), size, Enum.Material.Air)
+		breathe()
 	end
 	local strips, circles = require(script.Parent.Kit.Roads).footprints()
 	for _, strip in strips do
@@ -127,16 +142,20 @@ function TerrainBuilder.build()
 		local dir = c - a
 		local cf = CFrame.lookAt(Vector3.new(mid.X, 4, mid.Z), Vector3.new(c.X, 4, c.Z) + Vector3.new(0.001, 0, 0.001))
 		terrain:FillBlock(cf, Vector3.new(strip.Width - 1, 16, dir.Magnitude), Enum.Material.Air)
+		breathe()
 	end
 	for _, circle in circles do
 		cylinder(terrain, circle.Position.X, circle.Position.Z, circle.Radius - 0.5, -4, 12, Enum.Material.Air)
+		breathe()
 	end
 
 	-- 3c) Aeropuerto: tierra ganada al mar y hueco bajo sus pistas (y bajo el aeródromo de la isla)
 	require(script.Parent.Kit.Airport).terrain(terrain)
+	breathe()
 	-- 3d) Puerto de Valmar: la dársena dragada (agua junto a los muelles) y nada de terreno bajo el
 	--     hormigón de los muelles y del dique (Kit/Puerto, shared/Port/PuertoPlan). La costa no cambia.
 	require(script.Parent.Kit.Puerto).terrain(terrain)
+	breathe()
 
 	-- 4) Río: orillas de arena, cauce y agua (queda a Y = -2, dos studs bajo la orilla)
 	local river = CityPlan.River
@@ -182,6 +201,7 @@ function TerrainBuilder.build()
 				terrain:ReplaceMaterial(region, 4, TerrainBuilder.Flat, Enum.Material.Ground)
 			end
 		end
+		breathe()
 	end
 
 	-- 6) Colina del mirador (Landmarks)
@@ -197,6 +217,7 @@ function TerrainBuilder.build()
 	for _, r in sunken do
 		local size = Vector3.new(r.X1 - r.X0, 16, r.Z1 - r.Z0)
 		terrain:FillBlock(CFrame.new((r.X0 + r.X1) / 2, 4, (r.Z0 + r.Z1) / 2), size, Enum.Material.Air)
+		breathe()
 	end
 
 	-- 8) Bocas de metro: se vacía la roca por donde bajan las escaleras, el vestíbulo y el pozo de las

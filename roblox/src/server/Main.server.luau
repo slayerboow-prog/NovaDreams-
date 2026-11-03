@@ -10,9 +10,11 @@ local Boot = require(script.Parent.Boot)
 workspace:SetAttribute("ServerReady", false)
 
 -- 1) Terreno primero, para que nadie caiga al vacío mientras se prepara la ciudad
+-- (hasta 120 s: build() suelta el hilo a ratos y no debe quedarse a medias mientras el mar y el relieve,
+-- que van detrás, ya escriben en el mismo terreno)
 Boot.step("TerrainBuilder", function()
 	require(World.TerrainBuilder).build()
-end)
+end, 120)
 -- 1b) El mar hondo alrededor de Valmar (World/OceanBuilder, docs/mar/diseno.md): en su hilo y poco a
 --     poco (no frena el arranque); solo toca el mar lejos de la costa, los puertos y las islas
 task.spawn(function()
