@@ -22,10 +22,10 @@ local NacaraV2 = L.load("src/shared/Sea/NacaraV2")
 local UserMaterialChoice = L.load("src/shared/UserMaterialChoice")
 
 ---------------------------------------------------------------------
-print("▶ Apagado hasta que el dueño apruebe")
+print("▶ Encendido (fase 1, aprobada por el dueño)")
 local config = fs.readFile("src/shared/Config.luau")
-check(string.find(config, "NacaraV2 = false", 1, true) ~= nil and NacaraV2.On == false, "Config.Sea.NacaraV2 = false: el prototipo no se construye")
-check(Civ.AreaById.Palacio == nil, "apagado, Civ no cambia (sin la isla del palacio)")
+check(string.find(config, "NacaraV2 = true", 1, true) ~= nil and NacaraV2.On == true, "Config.Sea.NacaraV2 = true: el prototipo de la fase 1 se construye")
+check(Civ.AreaById.Palacio ~= nil and Civ.AreaById.Palacio.Name == "Palacio Real", "encendido, Civ suma la isla del Palacio Real")
 local civService = fs.readFile("src/server/Services/SeaCivService.luau")
 check(string.find(civService, "if NacaraV2.On then", 1, true) ~= nil, "SeaCivService solo lo construye con el interruptor")
 
@@ -236,7 +236,8 @@ for _, item in Nacara.Layout do
 	end
 end
 for _, a in Civ.Areas do
-	if a.Id ~= "Plaza" then
+	-- el área «Palacio» la añade la propia Nácara v2 al encenderse: no es algo previo que se pueda pisar
+	if a.Id ~= "Plaza" and a.Id ~= "Palacio" then
 		near(a.X, a.Z, a.R, a.Name)
 	end
 end
