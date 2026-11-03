@@ -55,8 +55,8 @@ Config.Calendar = {
 Config.Sea = {
 	V4 = true,
 	-- Nácara v2 (el mapa del dueño, docs/mar/nacara-v2/diseno.md): el prototipo del Palacio Real y la Plaza
-	-- Central (World/NacaraV2Builder). APAGADO hasta que el dueño apruebe las vistas previas.
-	NacaraV2 = false,
+	-- Central (World/NacaraV2Builder). ENCENDIDO: el dueño aprobó las vistas previas con texturas (fase 1).
+	NacaraV2 = true,
 }
 
 -- Estaciones y tiempo (shared/Seasons.luau, docs/clima/estaciones.md). Un día de juego dura
