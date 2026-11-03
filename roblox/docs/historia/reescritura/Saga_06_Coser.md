@@ -337,7 +337,7 @@ PASO 2 · VARIOS OBJETIVOS
 
 «Los tres anclajes»
 
-Objetivo: colocar los tres anclajes en Valmar.
+Objetivo: Clava los tres anclajes del cielo en Valmar
 
 El jugador debe recorrer la ciudad.
 

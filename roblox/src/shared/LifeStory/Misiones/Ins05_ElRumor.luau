@@ -94,7 +94,7 @@ return {
 		{ Type = "Talk", Npc = "Dario", Dialogue = "Dario", Text = "Habla con Darío", Actors = PISTA },
 
 		-- Omar
-		{ Type = "Reach", Place = "Parque", Text = "Busca a Omar. Sara cree que sabe dónde está: en el banco del parque", Actors = BANCO },
+		{ Type = "Reach", Place = "Parque", Text = "Busca a Omar en el banco del parque (Sara cree que está allí)", Actors = BANCO },
 		{ Type = "Talk", Npc = "Omar", Dialogue = "Omar", Text = "Siéntate con Omar", Actors = BANCO },
 
 		-- El día después

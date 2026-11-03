@@ -54,9 +54,9 @@ return {
 		Steps = {
 			{ Type = "Cinematic", Id = "Umbria_Llegada", Actors = { at("Garza", "Umbria_Plataforma", 3, 2) } },
 			{ Type = "Talk", Npc = "Garza", Dialogue = "Llegada", Text = "Habla con el hombre de la chaqueta remendada", Actors = { at("Garza", "Umbria_Plataforma", 3, 2) } },
-			{ Type = "Reach", Place = "Umbria_SueloHondo", Text = "Baja con Garza al Suelo Hondo, al bosque de setas de fuera de la empalizada (mira el medidor de 🍄 esporas)", Actors = { GARZA_SIGUE } },
+			{ Type = "Reach", Place = "Umbria_SueloHondo", Text = "Baja con Garza al bosque de setas del Suelo Hondo (medidor 🍄)", Actors = { GARZA_SIGUE } },
 			{ Type = "Event", Event = "HazardChanged", Match = { Planet = "Umbria", Phase = "Aviso" }, Place = "Umbria_SueloHondo",
-				Text = "Busca con Garza el rastro de las máquinas entre las esporeras (cuidado: pican)", Actors = { at("Garza", "Umbria_SueloHondo", 3, 3) } },
+				Text = "Busca con Garza el rastro de las máquinas en las esporeras", Actors = { at("Garza", "Umbria_SueloHondo", 3, 3) } },
 			{ Type = "Talk", Npc = "Garza", Dialogue = "Mascarilla", Text = "¡Estornudas! Garza te llama", Actors = { at("Garza", "Umbria_SueloHondo", 3, 3) } },
 			{ Type = "Event", Event = "HazardCountered", Match = { Planet = "Umbria" }, Place = "Umbria_SueloHondo",
 				Text = "Úntate el 🍯 ungüento de savia (desde la mochila)", Actors = { at("Garza", "Umbria_SueloHondo", 3, 3) } },
@@ -114,7 +114,7 @@ return {
 					{ Id = "Gratis", Text = "«Nada. Esto lo hago gratis.»", Effects = { Flags = { "UmbriaGratis" }, Rel = { AlcaldesaSavia = 15 }, Traits = { Empatia = 1 } } },
 				},
 				Actors = { at("AlcaldesaSavia", "Umbria_AyuntamientoDentro", -2, 0), at("Garza", "Umbria_AyuntamientoDentro", 3, 2) } },
-			{ Type = "Group", Text = "Tapa los tres huecos de la barricada del Vivero, en la Puerta Sur",
+			{ Type = "Group", Text = "Tapa los 3 huecos de la barricada del Vivero (Puerta Sur)",
 				Actors = { GARZA_SIGUE },
 				Steps = {
 					{ Type = "Use", Prop = "Barricada1", Text = "El hueco oeste" },
@@ -123,7 +123,7 @@ return {
 				} },
 			{ Type = "Scene", Dialogue = "Zumbido", Actors = { at("Garza", "Umbria_PuertaSur", 3, -2) } },
 			{ Type = "Fight", Place = "Umbria_PuertaSur", Respawn = "Umbria_Raices", Action = "Golpear 💥", HP = 4,
-				Text = "¡La primera oleada! Derriba a las máquinas del Enjambre antes de que muerdan la madera ({count}/{total})",
+				Text = "¡Primera oleada! Derriba a las máquinas del Enjambre ({count}/{total})",
 				CaughtLine = "(Una máquina te tira al barro. Garza te levanta de un tirón: «¡Arriba!».)",
 				Actors = { at("Garza", "Umbria_PuertaSur", 3, -2, "Point") },
 				Enemies = {
@@ -180,7 +180,7 @@ return {
 		Steps = {
 			{ Type = "Talk", Npc = "PodadoraLiquen", Dialogue = "Oficio", Text = "Habla con la podadora junto al Tronco Mayor", Actors = { at("PodadoraLiquen", "Umbria_Ayuntamiento", 2, 4) } },
 			{ Type = "Event", Event = "JobTaskDone", Match = { JobId = "UmbriaPodador" }, Place = "Umbria_Ayuntamiento",
-				Text = "Cura un árbol como 🪓 podador/a (tablón «Trabajar» junto al Tronco Mayor)", Actors = { at("PodadoraLiquen", "Umbria_Ayuntamiento", 2, 4) } },
+				Text = "Cura un árbol: tablón 🪓 de podador/a del Tronco Mayor", Actors = { at("PodadoraLiquen", "Umbria_Ayuntamiento", 2, 4) } },
 			{ Type = "Talk", Npc = "NiaVaina", Dialogue = "Nia", Text = "Una niña te hace señas desde su vaina, en el Vivero", Actors = { at("NiaVaina", "Umbria_VainaNia", 0, 2) } },
 			{ Type = "Use", Prop = "MaderaMuerta", Text = "Entra en la vaina y dale madera muerta a lo que zumba", Actors = { at("NiaVaina", "Umbria_VainaNiaDentro", -2, 1), at("Dron7", "Umbria_VainaNiaDentro", 3, -1) } },
 			{ Type = "Choice", Key = "UmbriaDron", Text = "Es una máquina del Enjambre. Pequeña, estropeada… y no ataca. Nía te pide que no se lo digas a nadie. ¿Qué haces?",
@@ -239,7 +239,7 @@ return {
 		Steps = {
 			{ Type = "Talk", Npc = "Garza", Dialogue = "Claro", Text = "Habla con Garza en la Puerta Sur", Actors = { at("Garza", "Umbria_PuertaSur", 3, 0) } },
 			{ Type = "Escape", Place = "Umbria_ClaroMuerto", Respawn = "Umbria_PuertaSur", Catch = 4,
-				Text = "Cruza el bosque hasta el Claro Muerto sin que te alcancen las máquinas que patrullan",
+				Text = "Cruza el bosque hasta el Claro Muerto sin que te vean",
 				CaughtLine = "(Una máquina te derriba entre los helechos. Garza la aparta y volvéis a la puerta.)",
 				Actors = {
 					GARZA_SIGUE,
@@ -256,7 +256,7 @@ return {
 				} },
 			{ Type = "Scene", Dialogue = "Confesion", Actors = { at("Garza", "Umbria_ClaroMuerto", -3, 2) } },
 			{ Type = "Escape", Place = "Umbria_Raices", Respawn = "Umbria_ClaroMuerto", Catch = 4,
-				Text = "¡Viene un enjambre entero! Corre con Garza de vuelta a la Plaza de las Raíces",
+				Text = "¡Un enjambre! Corre con Garza a la Plaza de las Raíces",
 				CaughtLine = "(El zumbido te rodea. Garza tira de ti hacia otro sendero.)",
 				Actors = {
 					GARZA_SIGUE,

@@ -65,7 +65,7 @@ return {
 		},
 		Varkun2_G4_Entra = {
 			Light = true,
-			Duration = 31.2,
+			Duration = 40.6,
 			Anchors = { Sitio = "Player", Yo = "Player" },
 			Tracks = {
 				Actors = {
@@ -86,7 +86,9 @@ return {
 						To = "Yo",
 						A = "ThinkChin",
 					},
-					{ At = 27.5, S = "Cosme", T = "Criatura… esto acaba de empezar.", To = "Yo", A = "Happy", Mood = "Joy" },
+					{ At = 27.5, S = "Pip", T = "Señor, la Aguja de oro está temblando. Ha oído otro desgarro.", To = "Yo", A = "Ask" },
+					{ At = 32.6, S = "Cosme", T = "La señal es de mi casa, criatura. De Tefra.", To = "Yo", A = "ThinkChin" },
+					{ At = 36.5, S = "Cosme", T = "Coge el casco. Esto acaba de empezar.", To = "Yo", A = "Nod" },
 				},
 				Music = { { At = 0, Intensity = "Intima" } },
 			},

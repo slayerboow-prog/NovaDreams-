@@ -108,7 +108,7 @@ return {
 				{ S = "Narrador", T = "Huellas moradas de pies descalzos. Van de la cocina a la habitación 214. En zigzag. Como quien camina dormido." },
 			} },
 			Etiqueta = { Lines = {
-				{ S = "Narrador", T = "La etiqueta, con letra de abuela: «Zumo de mora. Moras del Monte del Silencio, cogidas de noche. NO BEBER DE MADRUGADA, que da sonambulismo. Te quiere, la abuela»." },
+				{ S = "Narrador", T = "Con letra de abuela: «Zumo de mora del Monte del Silencio, cogidas de noche. NO BEBER DE MADRUGADA, que da sonambulismo. Te quiere, la abuela»." },
 				{ S = "Narrador", T = "¿Moras del Monte del Silencio? ¿El monte de las luces raras? Apuntas eso para otro momento." },
 			} },
 			Pilar = { Lines = {
@@ -250,7 +250,7 @@ return {
 				{ S = "Narrador", T = "Las instrucciones de la tienda vienen en sueco. Candela las traduce con el móvil. Iván monta la tienda al revés. Dos veces." },
 			} },
 			Moras = { Lines = {
-				{ S = "Narrador", T = "Un zarzal enorme. Las moras brillan un poquito en la oscuridad. Como si tuvieran pilas. Iván dice que es normal. Candela dice que no lo es. Tú no dices nada, porque ya sabes de qué monte es esto." },
+				{ S = "Narrador", T = "Un zarzal enorme. Las moras brillan en la oscuridad, como con pilas. Iván dice que es normal. Candela, que no. Tú callas: ya sabes de qué monte es esto." },
 			} },
 			Hoguera = { Lines = {
 				{ S = "Narrador", T = "La hoguera prende a la tercera. Luca saca un paquete de nubes de azúcar de Bolonia. Dice que son mejores. Son iguales." },
@@ -314,7 +314,7 @@ return {
 			{ Type = "Use", Prop = "Castillo", Text = "Concurso de castillos de arena",
 				Actors = { { Npc = "Candela", Place = "Playa", Offset = V(8, 0, 6) }, { Npc = "Carla", Place = "Playa", Offset = V(10, 0, 4) } } },
 			{ Type = "Fight", Place = "Playa", Respawn = "Playa", Action = "Echarle un cubo de agua dulce 🪣", HP = 6, BeamColor = Color3.fromRGB(120, 200, 255),
-				Text = "¡Don Pinzas quiere desalojar la playa! Échale agua dulce (la odia)",
+				Text = "¡Don Pinzas invade la playa! Échale agua dulce",
 				CaughtLine = "¡Pinza legal! (Te pellizca el bañador con mucha educación. Vuelves a la orilla.)",
 				Actors = {
 					{ Npc = "Julia", Place = "Playa", Offset = V(-8, 0, 10), Mode = "Cheer" },
@@ -385,7 +385,7 @@ return {
 					{ Type = "Use", Prop = "Foto", Text = "Algo en el suelo" },
 				} },
 			{ Type = "Escape", Place = "Residencia", Respawn = "ResidenciaCampus", Catch = 4,
-				Text = "¡Un agente gris del Consorcio! Vuelve a la residencia sin que te atrape",
+				Text = "¡Un agente gris! Vuelve a la residencia sin que te atrape",
 				CaughtLine = "Documentación, por favor. …Ah, que corre. Corra, corra. (Te suelta y vuelves junto al pabellón.)",
 				Actors = {
 					{ Npc = "Candela", Mode = "Follow" },
@@ -397,7 +397,7 @@ return {
 		},
 		Dialogues = {
 			Mapa = { Lines = {
-				{ S = "Narrador", T = "Un mapa del campus de hace veinte años. Todo está igual… menos un edificio pequeño detrás de la residencia, entre los árboles: «Pabellón 0 — Laboratorio de Física Aplicada. ACCESO RESTRINGIDO»." },
+				{ S = "Narrador", T = "Un mapa del campus de hace veinte años. Hay un edificio de más detrás de la residencia: «Pabellón 0 — Laboratorio de Física Aplicada. ACCESO RESTRINGIDO»." },
 				{ S = "Candela", T = "Pabellón 0 no existe. He hecho el recorrido de todos los edificios del campus. Tengo un Excel. No existe." },
 				{ S = "Candela", T = "…Vale. Ahora tengo que ir a comprobarlo. Por el Excel." },
 			} },
@@ -461,7 +461,7 @@ return {
 			-- La invitación: escena escrita a mano, una variante por persona (Happenings/Universidad.luau)
 			{ Type = "Cinematic", Id = "UniS_Cita_Invitacion", Actors = citaActores("Campus") },
 			{ Type = "Event", Event = "BoughtItem", Match = { ShopId = "Heladeria" }, Place = "Heladeria", Text = "Compra dos helados en la heladería", Actors = citaActores("Contigo") },
-			{ Type = "Reach", Place = "Playa", Hours = { From = 18, To = 22 }, Text = "Id a ver el atardecer a Playa Dorada (entre las 18:00 y las 22:00)", Actors = citaActores("Contigo") },
+			{ Type = "Reach", Place = "Playa", Hours = { From = 18, To = 22 }, Text = "Ve a ver el atardecer a Playa Dorada (de 18:00 a 22:00)", Actors = citaActores("Contigo") },
 			{ Type = "Scene", Dialogue = "Atardecer", Actors = citaActores("Playa") },
 		},
 		Dialogues = {
@@ -528,7 +528,7 @@ return {
 			{ Type = "Talk", Npc = "Tito", Dialogue = "Confrontar", Text = "Vuelve a la habitación y enfréntate a «Tito»",
 				Actors = { { Npc = "Tito", Place = "HabitacionResidencia", Offset = V(0, 0, 3) }, { Npc = "Candela", Place = "HabitacionResidencia", Offset = V(3, 0, 2) } } },
 			{ Type = "Fight", Place = "HabitacionResidencia", Respawn = "Residencia", Action = "Quitarle la peluca 👱", HP = 3, BeamColor = Color3.fromRGB(200, 200, 60),
-				Text = "¡«Tito» se quita la sonrisa y viene a por ti! Arráncale el disfraz",
+				Text = "¡«Tito» viene a por ti! Arráncale el disfraz",
 				CaughtLine = "¡Oferta de fidelización! (Te intenta hacer firmar un contrato. Te escapas al pasillo.)",
 				Actors = { { Npc = "Candela", Place = "HabitacionResidencia", Offset = V(3, 0, 2), Mode = "Point" } },
 				Enemies = {
@@ -545,7 +545,7 @@ return {
 			} },
 			Fotos = { Lines = {
 				{ S = "Narrador", T = "El corcho de fotos: la primera cena, la fiesta de Adrián, el día de playa… Tito sale en todas. Siempre en el borde. Siempre sonriendo. Siempre mirando a cámara." },
-				{ S = "Narrador", T = "Pero en la foto de la cocina, la sartén quemada tapa la mitad de la cara de Iván… y a Tito se le ve la oreja por detrás de la sartén. No puede estar ahí. La sartén está pegada a la pared." },
+				{ S = "Narrador", T = "En la foto de la cocina, a Tito se le ve la oreja por detrás de la sartén. No puede estar ahí: la sartén está pegada a la pared." },
 			} },
 			Registro = { Lines = {
 				{ S = "Portero", T = "¿Tito? Aquí no hay ningún Tito. Habitación 214: tú, Iván y Candela. Lo pone en mi libro. Mi libro no se equivoca desde 1984." },

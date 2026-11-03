@@ -110,6 +110,14 @@ Don Escamas observa desde una caja.
 
 ⸻
 
+PIP
+
+Pip:
+
+—(pensativo) Tres años sin un solo pitido del medidor. Hasta esta mañana.
+
+⸻
+
 COSME
 
 Cosme no mira inmediatamente.

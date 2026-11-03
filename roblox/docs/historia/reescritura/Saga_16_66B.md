@@ -254,7 +254,7 @@ PASO 2 · EXPLORACIÓN
 
 «Mira a tu alrededor»
 
-Objetivo: investigar la Plaza Mayor.
+Objetivo: Investiga la Plaza Mayor de la 66-B
 
 El jugador debe localizar tres elementos, no simplemente pulsar un único cartel.
 
@@ -721,7 +721,7 @@ PASO 4 · HUIDA
 
 «¡Los drones!»
 
-Objetivo: llegar a la universidad 66-B.
+Objetivo: Llega a la universidad de la 66-B
 
 Lugar: Plaza → calles → Universidad de Valmar 66-B
 

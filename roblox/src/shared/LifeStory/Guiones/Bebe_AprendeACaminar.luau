@@ -63,7 +63,7 @@ return {
 				Yo = "Player",
 			},
 			Tracks = {
-				Light = { { At = 0, Fade = 1, Preset = "InteriorCalido" } },
+				Light = { { At = 0, Fade = 1, Preset = "InteriorCalido" }, { At = 44, Fade = 2, Preset = "Intima", Weight = 0.6 } },
 				Actors = {
 					{ At = 0, Use = { Anchor = "A_Familia", Key = "Familia", Npc = "Familia" } },
 					{ At = 2.5, Mood = { Mood = "Joy", Key = "Familia" } },

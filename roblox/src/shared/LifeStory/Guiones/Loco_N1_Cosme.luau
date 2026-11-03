@@ -157,9 +157,9 @@ return {
 	},
 	Steps = {
 		["2"] = { Effects = { Scene = "Loco_N1_G3_Entra" } },
-		["2.1"] = { Set = { Text = "Busca el tornillo cerca de la fuente del parque." } },
-		["2.2"] = { Set = { Text = "Recupera la bobina en la heladería." } },
-		["2.3"] = { Set = { Text = "Busca el chip. Bigotes lo tiene." } },
-		["3"] = { Set = { Text = "Lleva las tres piezas a Cosme." } },
+		["2.1"] = { Set = { Text = "Busca el tornillo cerca de la fuente del parque" } },
+		["2.2"] = { Set = { Text = "Recupera la bobina en la heladería" } },
+		["2.3"] = { Set = { Text = "Busca el chip. Bigotes lo tiene" } },
+		["3"] = { Set = { Text = "Lleva las tres piezas a Cosme" } },
 	},
 }

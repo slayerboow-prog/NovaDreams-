@@ -115,6 +115,6 @@ return {
 	},
 	Steps = {
 		["1"] = { Effects = { Scene = "Saga_15_G2_Entra" } },
-		["2"] = { Set = { Text = "completar correctamente el rodaje.", Win = { Flags = { "BuenRodaje", "Saga_15_P2_Gana" }, Traits = { Valentia = 1 } } } },
+		["2"] = { Set = { Text = "Completa el rodaje sin fallos", Win = { Flags = { "BuenRodaje", "Saga_15_P2_Gana" }, Traits = { Valentia = 1 } } } },
 	},
 }

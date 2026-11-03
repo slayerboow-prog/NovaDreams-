@@ -110,7 +110,7 @@ return {
 		{ Type = "Scene", Dialogue = "Foto", Actors = CEREMONIA },
 
 		-- La celebración
-		{ Type = "Reach", Place = "CafeteriaCentral", Text = "Celebración en la Cafetería Central: Lola ha cerrado para vosotros", Actors = FIESTA },
+		{ Type = "Reach", Place = "CafeteriaCentral", Text = "Ve a la fiesta de la Cafetería Central: Lola os espera", Actors = FIESTA },
 		{ Type = "Cinematic", Id = "Uni06_Brindis", Actors = FIESTA },
 		{ Type = "Cinematic", Id = "Uni06_Final", Actors = CIERRE },
 	},

@@ -26,7 +26,7 @@ _Ninguno._
 
 ## Aplicado
 
-- PASO 1 → paso 1 del juego (Talk «Credencial»): conversación «Credencial» con 26 frases nuevas
+- PASO 1 → paso 1 del juego (Talk «Credencial»): conversación «Credencial» con 27 frases nuevas
 - PASO 2.1 → paso 2.1 del juego (Use): lo que pasa al usarlo va en la conversación del objeto «Punto1» (2 frases)
 - PASO 2.2 → paso 2.2 del juego (Use): lo que pasa al usarlo va en la conversación del objeto «Punto2» (1 frases)
 - PASO 2.3 → paso 2.3 del juego (Use): lo que pasa al usarlo va en la conversación del objeto «Punto3» (3 frases)
@@ -53,8 +53,8 @@ _Ninguna corrección._
 
 ## Avisos
 
-- PASO 4 (línea 1461): «Mención de Cósimo» no está en el reparto del juego: sus frases no se aplican (si es alguien, ponlo en Hablantes del mapa)
-- PASO 4 (línea 1465): «Entrega de credencial» no está en el reparto del juego: sus frases no se aplican (si es alguien, ponlo en Hablantes del mapa)
+- PASO 4 (línea 1469): «Mención de Cósimo» no está en el reparto del juego: sus frases no se aplican (si es alguien, ponlo en Hablantes del mapa)
+- PASO 4 (línea 1473): «Entrega de credencial» no está en el reparto del juego: sus frases no se aplican (si es alguien, ponlo en Hablantes del mapa)
 
 ## Notas del guion sin equivalente directo (bloques de dirección, minijuegos, memoria…)
 

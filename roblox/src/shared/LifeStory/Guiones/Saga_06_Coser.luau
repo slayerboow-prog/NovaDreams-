@@ -90,5 +90,5 @@ return {
 			},
 		},
 	},
-	Steps = { ["2"] = { Effects = { Scene = "Saga_06_G3_Entra" }, Set = { Text = "colocar los tres anclajes en Valmar." } } },
+	Steps = { ["2"] = { Effects = { Scene = "Saga_06_G3_Entra" }, Set = { Text = "Clava los tres anclajes del cielo en Valmar" } } },
 }

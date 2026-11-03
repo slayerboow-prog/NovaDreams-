@@ -54,7 +54,7 @@ return {
 			} },
 
 		-- El negocio
-		{ Type = "Reach", Place = "EstadioAltamar", Text = "Sábado: vende camisetas falsas del Altamar a la salida del estadio", If = NEGOCIO,
+		{ Type = "Reach", Place = "EstadioAltamar", Text = "Sábado: vende camisetas falsas a la salida del estadio", If = NEGOCIO,
 			Actors = { { Npc = "Rayo", Place = "EstadioAltamar", Offset = V(-6, 0, 6) } } },
 		{ Type = "Scene", Dialogue = "Estadio", If = NEGOCIO,
 			Actors = { { Npc = "Rayo", Place = "EstadioAltamar", Offset = V(-6, 0, 6) }, { Npc = "Nico", Place = "EstadioAltamar", Offset = V(4, 0, 4) } } },
@@ -66,7 +66,7 @@ return {
 			Actors = { { Npc = "Carmen", Place = "AulaInstituto", Offset = V(0, 0, -6) }, { Npc = "Nerea", Place = "AulaInstituto", Offset = V(2, 0, -3) } } },
 
 		-- Salvar a Rayo
-		{ Type = "Reach", Place = "Gasolinera", Text = "Ve al taller de Tobías (gasolinera): a Rayo le encantan los motores", If = SALVAR,
+		{ Type = "Reach", Place = "Gasolinera", Text = "Ve con Rayo al taller de Tobías, en la gasolinera", If = SALVAR,
 			Actors = { { Npc = "Tomas", Place = "Gasolinera", Offset = V(0, 0, 4) } } },
 		{ Type = "Talk", Npc = "Tomas", Dialogue = "Tomas", Text = "Habla con Tobías", If = SALVAR, Actors = { { Npc = "Tomas", Place = "Gasolinera", Offset = V(0, 0, 4) } } },
 		{ Type = "Reach", Place = "Parque", Text = "Vuelve al parque: díselo a Rayo", If = SALVAR, Actors = { { Npc = "Rayo", Place = "Parque", Offset = V(-12, 0, 8), Mode = "Sit" } } },

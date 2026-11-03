@@ -134,9 +134,9 @@ return {
 		Saga_03_G4_Musica = { Light = true, Duration = 109.9, Anchors = { Yo = "Player" }, Tracks = { Music = { { At = 0, Intensity = "Descubrimiento" } } } },
 	},
 	Steps = {
-		["2"] = { Effects = { Scene = "Saga_03_G3_Entra" }, Set = { Text = "Prepara la huida de Don Escamas." } },
-		["2.1"] = { Set = { Text = "Consigue algo donde Don Escamas pueda viajar." } },
-		["2.2"] = { Set = { Text = "Busca algo que hayan dejado los agentes." } },
-		["3"] = { Set = { Text = "Lleva a Don Escamas al garaje de Cosme sin que te atrapen." } },
+		["2"] = { Effects = { Scene = "Saga_03_G3_Entra" }, Set = { Text = "Prepara la huida de Don Escamas" } },
+		["2.1"] = { Set = { Text = "Consigue algo donde Don Escamas pueda viajar" } },
+		["2.2"] = { Set = { Text = "Busca algo que hayan dejado los agentes" } },
+		["3"] = { Set = { Text = "Lleva a Don Escamas al garaje de Cosme sin que te atrapen" } },
 	},
 }

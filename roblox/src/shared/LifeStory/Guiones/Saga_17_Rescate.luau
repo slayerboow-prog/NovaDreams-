@@ -119,7 +119,7 @@ return {
 		},
 	},
 	Steps = {
-		["1"] = { Effects = { Scene = "Saga_17_G1_2_Fin" }, Set = { Text = "llegar a la entrada del laboratorio." } },
+		["1"] = { Effects = { Scene = "Saga_17_G1_2_Fin" }, Set = { Text = "Desconecta a los guardias del laboratorio ({count}/{total})" } },
 		["2"] = { Effects = { Scene = "Saga_17_G4_5_Entra" } },
 	},
 }

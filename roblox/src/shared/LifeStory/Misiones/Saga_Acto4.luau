@@ -144,7 +144,7 @@ return {
 		Memory = "TodosLosAliados",
 		Rewards = { Flags = { "AliadosReunidos" } },
 		Steps = {
-			{ Type = "Talk", Npc = "Cosme", Dialogue = "Lista", Text = "Cosme tiene la lista de aliados", Actors = { COSME, PIP } },
+			{ Type = "Talk", Npc = "Cosme", Dialogue = "Lista", Text = "Habla con Cosme en el garaje: tiene la lista de aliados", Actors = { COSME, PIP } },
 			{ Type = "Group", Text = "Visita a tus aliados (vendrán los que ayudaste en tu vida)", Need = 3,
 				Actors = {
 					{ Npc = "Ivan", Place = "HabitacionResidencia", Offset = V(-3, 0, 2) },
@@ -242,7 +242,7 @@ return {
 		},
 		Steps = {
 			{ Type = "Fight", Place = "OficinasFinanciero", Respawn = "OficinasFinanciero", Action = "Desconectar ⚡", HP = 3, BeamColor = Color3.fromRGB(120, 255, 160),
-				Text = "Asalto a la sede de MegaVerso: ábrete paso a través de la seguridad ({count}/{total})",
+				Text = "Asalta la sede de MegaVerso: supera a la seguridad ({count}/{total})",
 				CaughtLine = "Tiene usted una llamada de ventas. (Te derriban. Candela te saca de ahí por la oreja.)",
 				Actors = { { Npc = "Candela", Place = "OficinasFinanciero", Offset = V(-6, 0, 10), Mode = "Point" }, { Npc = "AgenteGris2", Place = "OficinasFinanciero", Offset = V(6, 0, 10), Mode = "Wave", If = { Flags = { "GrisArrepentida" } } } },
 				Enemies = {
@@ -298,7 +298,7 @@ return {
 		Moment = "Le dijiste que no a Cósimo",
 		Memory = "ElTrato",
 		Steps = {
-			{ Type = "Talk", Npc = "Cosimo", Dialogue = "Oferta", Text = "Abre la puerta",
+			{ Type = "Talk", Npc = "Cosimo", Dialogue = "Oferta", Text = "Llaman a tu puerta: ábrela",
 				Actors = { { Npc = "Cosimo", Place = "Home", Offset = V(0, 0, 5) } } },
 			{ Type = "Choice", Key = "Trato", Text = "Cósimo te ofrece una vida perfecta en la 66-B a cambio de soltar el ancla. ¿Qué haces?",
 				Options = {
@@ -359,7 +359,7 @@ return {
 			{ Type = "Scene", Dialogue = "Llegada", Props = { "Grieta" },
 				Actors = { { Npc = "Cosimo", Place = CIMA, Offset = V(0, 0, -6) }, { Npc = "Cosme", Place = CIMA, Offset = V(3, 0, 6) } } },
 			{ Type = "Escape", Seconds = 25, Respawn = CIMA, Catch = 4, Props = { "Grieta" },
-				Text = "¡La Grieta tira de ti! Aguanta 25 segundos sin que los drones te empujen dentro",
+				Text = "¡La Grieta tira de ti! Aguanta 25 s en la cima del monte",
 				CaughtLine = "¡Casi! (Cosme te agarra de la mano. Esta vez no te suelta.)",
 				Actors = {
 					{ Npc = "DronCosimo1", Place = CIMA, Offset = V(-10, 0, -4), Mode = "Hunt", Speed = 13, Prompt = false },
@@ -367,7 +367,7 @@ return {
 					{ Npc = "Cosme", Place = CIMA, Offset = V(3, 0, 6), Mode = "Point" },
 				} },
 			{ Type = "Fight", Place = CIMA, Respawn = CIMA, Action = "Coser con la aguja 🪡", HP = 3, BeamColor = Color3.fromRGB(120, 255, 160), Props = { "Grieta" },
-				Text = "¡Oleada de drones y robots! Explosiones por toda la cima: tus aliados te cubren ({count}/{total})",
+				Text = "¡Oleada en la cima! Derriba drones y robots ({count}/{total})",
 				CaughtLine = "¡Te tengo! (Una explosión te tumba. Un aliado te levanta. Vuelves a la cima.)",
 				Actors = ALIADOS_FINAL,
 				Enemies = {
@@ -379,7 +379,7 @@ return {
 			{ Type = "Scene", Dialogue = "Restos", If = MUCHOS_RESTOS, Props = { "Grieta" },
 				Actors = { { Npc = "Pip", Place = CIMA, Offset = V(0, 0, 10) }, { Npc = "Cosimo", Place = CIMA, Offset = V(0, 0, -6) } } },
 			{ Type = "Fight", Place = CIMA, Respawn = CIMA, Action = "Coser su perilla con la aguja 🪡", HP = 6, If = MUCHOS_RESTOS, BeamColor = Color3.fromRGB(120, 255, 160), Props = { "Grieta" },
-				Text = "¡Cósimo en persona! Tus Restos de la Grieta brillan y le frenan: cóselo de vuelta a su dimensión",
+				Text = "¡Tus Restos de la Grieta frenan a Cósimo! Cóselo de vuelta",
 				CaughtLine = "¡Ja! ¡El público adora un giro! (Un golpe de energía te lanza lejos. Tus aliados te levantan.)",
 				Actors = ALIADOS_FINAL,
 				Enemies = {
@@ -470,7 +470,7 @@ return {
 		Steps = {
 			{ Type = "Scene", Dialogue = "Garaje", Props = { "Cosedora" },
 				Actors = { COSME, { Npc = "Cosimo", Place = "GarajeCosme", Offset = V(-3, 0, 3) }, PIP, ESCAMAS } },
-			{ Type = "Reach", Place = "Patio", Text = "Id al patio del cole: donde clavaste el primer anclaje, hace años",
+			{ Type = "Reach", Place = "Patio", Text = "Ve al patio del cole, donde clavaste el primer anclaje",
 				Actors = { { Npc = "Cosme", Mode = "Follow" }, { Npc = "Cosimo", Mode = "Follow" }, { Npc = "Ivan", Mode = "Follow" }, { Npc = "Candela", Mode = "Follow" } } },
 			-- ESCENA del motor (Happenings/Cielo): la última costura (de la etapa 4 a cerrada) y el amanecer
 			{ Type = "Cinematic", Id = "Grieta_Final",

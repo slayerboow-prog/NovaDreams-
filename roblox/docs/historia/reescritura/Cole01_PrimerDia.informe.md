@@ -65,34 +65,34 @@ _Ninguno._
 - PASO 3 → paso 3 del juego (Talk «Salida»): conversación «Salida» con 17 frases nuevas (música Intima)
 - PASO 4 → paso 4 del juego (Reach): 5 frases al empezar el paso (escena ligera «Cole01_G4_Entra», la lanza el paso 3 al cumplirse; el jugador no pierde el control)
 - PASO 5 → paso 5 del juego (Scene «DaniBalon»): conversación «DaniBalon» con 3 frases nuevas (música Descubrimiento)
-- PASO 6 → paso 6 del juego (MiniGame): objetivo «Pásale el balón a Dani.»
+- PASO 6 → paso 6 del juego (MiniGame): objetivo «Pásale el balón a Dani»
 - PASO 7 → paso 7 del juego (Scene «DaniGracias»): conversación «DaniGracias» con 9 frases nuevas (música Descubrimiento)
 - PASO 8 → paso 8 del juego (Reach): 2 frases al empezar el paso (escena ligera «Cole01_G8_Entra», la lanza el paso 7 al cumplirse; el jugador no pierde el control)
 - PASO 9 → paso 9 del juego (Scene «Entrada»): conversación «Entrada» con 12 frases nuevas (música Intima)
 - PASO 10 → paso 10 del juego (Talk «ConoceLucia»): conversación «ConoceLucia» con 20 frases nuevas (música Descubrimiento)
-- PASO 11 → paso 11 del juego (Group): objetivo «Conoce el colegio.»
+- PASO 11 → paso 11 del juego (Group): objetivo «Conoce el colegio»
 - PASO 11.6 → paso 11.6 del juego (Talk «Info_Iker»): conversación «Info_Iker» con 8 frases nuevas
 - PASO 11.7 → paso 11.7 del juego (Talk «Info_Vega»): conversación «Info_Vega» con 5 frases nuevas
 - PASO 11.8 → paso 11.8 del juego (Talk «Info_Ramon»): conversación «Info_Ramon» con 6 frases nuevas
-- PASO 12 → paso 12 del juego (Reach): objetivo «Encuentra el aula 1.º A.»
+- PASO 12 → paso 12 del juego (Reach): objetivo «Encuentra el aula 1.º A»
 - PASO 12 → paso 12 del juego (Reach): 1 frases al empezar el paso (escena ligera «Cole01_G12_Entra», la lanza el paso 11 al cumplirse; el jugador no pierde el control)
 - PASO 13 → paso 13 del juego (Cinematic «Cole01_Bienvenida»): la escena «Cole01_Bienvenida» se cuenta con el guion nuevo (misma escena, 11 planos, 11 frases, 44.2 s, música Descubrimiento)
 - PASO 15+16+17 → paso 15 del juego (Scene «Presentaciones»): conversación «Presentaciones» con 23 frases nuevas (música Descubrimiento)
-- PASO 18 → paso 18 del juego (Class): objetivo «Completa tu primera clase de Matemáticas.»
+- PASO 18 → paso 18 del juego (Class): objetivo «Completa tu primera clase de Matemáticas»
 - PASO 18 → paso 18 del juego (Class): 2 frases al empezar el paso (escena ligera «Cole01_G18_Entra», la lanza el paso 17 al cumplirse; el jugador no pierde el control)
 - PASO 19 → paso 19 del juego (Scene «Timbre»): conversación «Timbre» con 3 frases nuevas (música Descubrimiento)
-- PASO 20 → paso 20 del juego (Reach): objetivo «Sal al patio.»
+- PASO 20 → paso 20 del juego (Reach): objetivo «Sal al patio»
 - PASO 20 → paso 20 del juego (Reach): 5 frases al empezar el paso (escena ligera «Cole01_G20_Entra», la lanza el paso 19 al cumplirse; el jugador no pierde el control)
 - PASO 21 → paso 21 del juego (Choice): «OPCIÓN A — LOS DEPORTISTAS» es la conversación de la opción Deportistas («Grupo_Deportistas», 7 frases)
 - PASO 21 → paso 21 del juego (Choice): «OPCIÓN B — LOS ARTISTAS» es la conversación de la opción Artistas («Grupo_Artistas», 7 frases)
 - PASO 21 → paso 21 del juego (Choice): «OPCIÓN C — LOS CURIOSOS» es la conversación de la opción Estudiantes («Grupo_Estudiantes», 7 frases)
-- PASO 21 → paso 21 del juego (Choice): objetivo «Decide con quién pasar tu primer recreo.»
+- PASO 21 → paso 21 del juego (Choice): objetivo «Decide con quién pasar tu primer recreo»
 - PASO 22 → paso 22 del juego (Cinematic «Cole01_LibrosCaen»): la escena «Cole01_LibrosCaen» se cuenta con el guion nuevo (misma escena, 11 planos, 6 frases, 38.3 s, música Tension)
-- PASO 23 → paso 23 del juego (Group): objetivo «Ayuda a Mateo a recoger sus cosas.»
+- PASO 23 → paso 23 del juego (Group): objetivo «Ayuda a Mateo a recoger sus cosas»
 - PASO 24 → paso 24 del juego (Scene «MateoGracias»): conversación «MateoGracias» con 12 frases nuevas (música Intima)
 - PASO 25 → paso 25 del juego (Scene «MateoSolo»): conversación «MateoSolo» con 3 frases nuevas (música Tension)
 - PASO 26 → paso 26 del juego (Scene «FinDeClases»): conversación «FinDeClases» con 6 frases nuevas (música Descubrimiento)
-- PASO 27 → paso 27 del juego (Reach): objetivo «Vuelve a casa.»
+- PASO 27 → paso 27 del juego (Reach): objetivo «Vuelve a casa»
 - PASO 27 → paso 27 del juego (Reach): 3 frases al empezar el paso (escena ligera «Cole01_G27_Entra», la lanza el paso 26 al cumplirse; el jugador no pierde el control)
 - PASO 28 → paso 28 del juego (Scene «Cena»): conversación «Cena» con 23 frases nuevas (música Intima)
 

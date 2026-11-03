@@ -64,7 +64,7 @@ _Ninguno._
 - PASO 2 → paso 2 del juego (Reach): 4 frases al empezar el paso (van detrás de las del final del paso 1, en su escena «Cole08_G1_Fin»)
 - PASO 3 → paso 3 del juego (Scene «Presentacion»): conversación «Presentacion» con 13 frases nuevas (música Intima)
 - PASO 4 → paso 4 del juego (Choice): 10 frases al empezar el paso (escena ligera «Cole08_G4_Entra», la lanza el paso 3 al cumplirse; el jugador no pierde el control)
-- PASO 5 → paso 5 del juego (Reach): objetivo «llegar al área correspondiente.»
+- PASO 5 → paso 5 del juego (Reach): objetivo «Llegar al área correspondiente»
 - PASO 6 → paso 6 del juego (Scene «Entreno_Futbol»): conversación «Entreno_Futbol» con 6 frases nuevas (música Tension)
 - PASO 7 → paso 7 del juego (MiniGame): 4 frases al empezar el paso (escena ligera «Cole08_G7_Entra», la lanza el paso 6 al cumplirse; el jugador no pierde el control)
 - PASO 8 → paso 8 del juego (Reach): 1 frases al empezar el paso (escena ligera «Cole08_G8_Entra», la lanza el paso 7 al cumplirse; el jugador no pierde el control)

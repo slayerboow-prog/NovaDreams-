@@ -56,7 +56,7 @@ return {
 					{ Type = "Use", Prop = "Punto3", Text = "El patio del instituto" },
 				} },
 			{ Type = "Fight", Place = "Parque", Respawn = "Parque", Action = "Enrollarla en la aguja 🪡", HP = 2, BeamColor = Color3.fromRGB(120, 255, 160),
-				Text = "¡Hilachas sueltas atacan el parque! Enróllalas antes de que lo enreden todo ({count}/{total})",
+				Text = "¡Hilachas en el parque! Enróllalas todas ({count}/{total})",
 				CaughtLine = "¡Latigazo de hilo! (Te atan los tobillos y caes de bruces. Te desenredas junto a la fuente.)",
 				Enemies = {
 					{ Npc = "Hilacha1", Offset = V(-8, 0, 4), Speed = 13, Bye = "¡Ovillo! (Se enrolla sola y cae al suelo, dormida.)" },
@@ -125,7 +125,7 @@ return {
 			Mapa = { Kind = "Mural", Name = "Un mapa de Valmar en la pared", Prompt = "Mirar el mapa", Place = OFICINA, Offset = V(0, 0, 8), Color = Color3.fromRGB(230, 230, 220), Dialogue = "Mapa", Once = true },
 		},
 		Steps = {
-			{ Type = "Talk", Npc = "AgenteGris2", Dialogue = "Recepcion", Text = "Entra en la oficina. La recepcionista sonríe",
+			{ Type = "Talk", Npc = "AgenteGris2", Dialogue = "Recepcion", Text = "Habla con la recepcionista de la oficina de MegaVerso",
 				Actors = { { Npc = "AgenteGris2", Place = OFICINA, Offset = V(0, 0, 3) } } },
 			{ Type = "Group", Text = "Mientras nadie mira, busca información",
 				Actors = { { Npc = "AgenteGris2", Place = OFICINA, Offset = V(0, 0, 3), Mode = "Chat" }, { Npc = "AgenteGris1", Place = OFICINA, Offset = V(2, 0, 4), Mode = "Chat" } },
@@ -135,7 +135,7 @@ return {
 					{ Type = "Use", Prop = "Mapa", Text = "El mapa de la pared" },
 				} },
 			{ Type = "Escape", Place = "PlazaFinanciera", Respawn = OFICINA, Catch = 4,
-				Text = "¡Te han visto! Sal de la oficina hasta la plaza del Distrito Financiero",
+				Text = "¡Te han visto! Huye a la plaza del Distrito Financiero",
 				CaughtLine = "Tiene usted una llamada de ventas. (Te empotran contra la pared. Te zafas de un codazo y vuelves a intentarlo.)",
 				Actors = {
 					{ Npc = "RobotSeguridad", Place = OFICINA, Offset = V(-6, 0, 8), Mode = "Hunt", Speed = 11, Prompt = false },
@@ -205,7 +205,7 @@ return {
 			{ Type = "Talk", Npc = "Pip", Dialogue = "Pip", Text = "Habla con Pip", Actors = { PIP, ESCAMAS } },
 			{ Type = "Use", Prop = "Caja", Text = "Abre el archivo", Actors = { PIP } },
 			{ Type = "Use", Prop = "Proyector", Text = "Pon la cinta en el proyector", Actors = { PIP } },
-			{ Type = "Talk", Npc = "Cosme", Dialogue = "Cosme", Text = "Cosme se ha despertado. Te está mirando desde la puerta",
+			{ Type = "Talk", Npc = "Cosme", Dialogue = "Cosme", Text = "Habla con Cosme en la puerta del garaje",
 				Actors = { { Npc = "Cosme", Place = "GarajeCosme", Offset = V(0, 0, 5) }, PIP } },
 		},
 		Dialogues = {
@@ -282,7 +282,7 @@ return {
 			Cuenta = { Kind = "Pantalla", Name = "La cuenta atrás", Prompt = "Desenchufar la cuenta atrás", Place = "PlazaCentro", Offset = V(0, 0, -10), Color = Color3.fromRGB(255, 80, 80), Dialogue = "Cuenta", Once = true },
 		},
 		Steps = {
-			{ Type = "Talk", Npc = "Omar", Dialogue = "Amigos", Text = "Tus amigos están en la fiesta. Habla con Omar",
+			{ Type = "Talk", Npc = "Omar", Dialogue = "Amigos", Text = "Habla con Omar en la fiesta de la plaza",
 				Actors = {
 					{ Npc = "Omar", Place = "PlazaCentro", Offset = V(6, 0, 6) },
 					{ Npc = "Nico", Place = "PlazaCentro", Offset = V(4, 0, 8), Mode = "Dance" },
@@ -368,7 +368,7 @@ return {
 		Steps = {
 			{ Type = "Talk", Npc = "CazadorTiempo", Dialogue = "Cronos", Text = "Habla con el agente Cronos",
 				Actors = { { Npc = "CazadorTiempo", Place = "PatioInstituto", Offset = V(0, 0, 4) } } },
-			{ Type = "Talk", Npc = "Funcionaria", Dialogue = "Ventanilla", Text = "La funcionaria de las ventanillas sabe quién entrega formularios (Correos)",
+			{ Type = "Talk", Npc = "Funcionaria", Dialogue = "Ventanilla", Text = "Pregunta en Correos quién entrega los formularios",
 				Actors = { { Npc = "Funcionaria", Place = "Correos", Offset = V(0, 0, 3) } } },
 			{ Type = "Use", Prop = "Formularios", Text = "Revisa los formularios del Consorcio", Actors = { { Npc = "Funcionaria", Place = "Correos", Offset = V(0, 0, 3) } } },
 			{ Type = "Chase", Npc = "AgenteGris2", Catch = 6, Text = "¡La agente gris que los entrega está ahí mismo! ¡Atrápala!",
@@ -438,7 +438,7 @@ return {
 		Memory = "GraduacionInterdimensional",
 		Rewards = { Items = { BataChamuscada = 1 }, Flags = { "SagaActo2", "CosmeSecuestrado" } },
 		Steps = {
-			{ Type = "Talk", Npc = "Cosme", Dialogue = "Casualidad", Text = "Cosme ha venido a tu graduación. «Por casualidad»",
+			{ Type = "Talk", Npc = "Cosme", Dialogue = "Casualidad", Text = "Habla con Cosme en tu graduación (patio del instituto)",
 				Actors = {
 					{ Npc = "Cosme", Place = "PatioInstituto", Offset = V(0, 0, 5) },
 					{ Npc = "Omar", Place = "PatioInstituto", Offset = V(-5, 0, 6), Mode = "Chat" },

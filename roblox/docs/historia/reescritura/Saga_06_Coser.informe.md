@@ -28,7 +28,7 @@ _Ninguno._
 ## Aplicado
 
 - PASO 1 → paso 1 del juego (Talk «Plan»): conversación «Plan» con 21 frases nuevas
-- PASO 2 → paso 2 del juego (Group): objetivo «colocar los tres anclajes en Valmar.»
+- PASO 2 → paso 2 del juego (Group): objetivo «Clava los tres anclajes del cielo en Valmar»
 - PASO 3 → paso 3 del juego (Fight): 5 frases al empezar el paso (escena ligera «Saga_06_G3_Entra», la lanza el paso 2 al cumplirse; el jugador no pierde el control)
 - PASO 5 → paso 5 del juego (Scene «Voz»): conversación «Voz» con 13 frases nuevas
 - Momento de la biografía: «Cosiste el cielo de Valmar.»
@@ -54,7 +54,7 @@ _Ninguno._
 
 ## Notas del guion sin equivalente directo (bloques de dirección, minijuegos, memoria…)
 
-- PASO 2 · Objetivo: colocar los tres anclajes en Valmar.: El jugador debe recorrer la ciudad.
+- PASO 2 · Objetivo: Clava los tres anclajes del cielo en Valmar: El jugador debe recorrer la ciudad.
 - PASO 3 · OBJETIVO: Desactiva los dos comunicadores.
 - PASO 5 · MOMENTO DE BIOGRAFÍA: «Cosiste el cielo de Valmar.»
 

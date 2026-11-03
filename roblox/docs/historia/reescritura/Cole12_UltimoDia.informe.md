@@ -45,7 +45,7 @@ _Ninguno._
 
 - PASO 2 → paso 2 del juego (Scene «Manana»): conversación «Manana» con 6 frases nuevas
 - PASO 4 → paso 4 del juego (Scene «Llegada»): conversación «Llegada» con 5 frases nuevas (música Intima)
-- PASO 5 → paso 5 del juego (Group): objetivo «visitar al menos 4 de 6 lugares.»
+- PASO 5 → paso 5 del juego (Group): objetivo «Visitar al menos 4 de 6 lugares»
 - PASO 5.1 → paso 5.1 del juego (Use): lo que pasa al usarlo va en la conversación del objeto «Rec_Pupitre» (1 frases)
 - PASO 5.2 → paso 5.2 del juego (Use): lo que pasa al usarlo va en la conversación del objeto «Rec_Taquilla» (2 frases)
 - PASO 5.3 → paso 5.3 del juego (Use): lo que pasa al usarlo va en la conversación del objeto «Rec_Campo» (3 frases)

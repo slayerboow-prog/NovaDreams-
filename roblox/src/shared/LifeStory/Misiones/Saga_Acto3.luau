@@ -124,7 +124,7 @@ return {
 		Steps = {
 			{ Type = "Transition", Text = "Cruzas el portal. En esta Valmar todo es igual… pero los gatos son del tamaño de personas y las personas llevan correa.", Seconds = 5, Teleport = "Parque" },
 			{ Type = "Escape", Place = "PlazaCentro", Respawn = "Parque", Catch = 4, Props = { "Portal" },
-				Text = "¡La policía gatuna quiere ponerte correa! Llega al palacio presidencial (la plaza del centro)",
+				Text = "¡Policía gatuna! Llega al palacio de la plaza del centro",
 				CaughtLine = "¡Correa reglamentaria! (Te la quitas mientras el gato se lame una pata. Vuelves al portal.)",
 				Actors = {
 					{ Npc = "Ivan", Mode = "Follow" },
@@ -182,7 +182,7 @@ return {
 			Nave = { Kind = "Nave", Name = "La nave del reality", Place = "MonteSilencio", Offset = V(0, 0, -8), Height = 20, Prompt = false },
 		},
 		Steps = {
-			{ Type = "Talk", Npc = "CapitanNoz", Dialogue = "Capitana", Text = "La Capitana Ñoz baja de la nave",
+			{ Type = "Talk", Npc = "CapitanNoz", Dialogue = "Capitana", Text = "Habla con la Capitana Ñoz junto a su nave, en el monte",
 				Props = { "Nave" },
 				Actors = {
 					{ Npc = "CapitanNoz", Place = "MonteSilencio", Offset = V(0, 0, 3) },
@@ -253,9 +253,9 @@ return {
 			Rejilla = { Kind = "Maquina", Name = "Una rejilla de ventilación con vapor verde", Prompt = "Mirar por la rejilla", Place = "Universidad", Offset = V(6, 0, 4), Dialogue = "Rejilla", Once = true },
 		},
 		Steps = {
-			{ Type = "Transition", Text = "Cruzas el portal. La Valmar 66-B: el cielo es morado, las farolas se burlan de ti y en todos los balcones hay un señor con perilla regando plantas carnívoras.", Seconds = 5, Teleport = "PlazaCentro" },
+			{ Type = "Transition", Text = "La Valmar 66-B: cielo morado, farolas que se burlan de ti y, en cada balcón, un señor con perilla regando plantas carnívoras.", Seconds = 5, Teleport = "PlazaCentro" },
 			{ Type = "Use", Prop = "Cartel", Text = "Mira a tu alrededor en la plaza", Actors = EQUIPO },
-			{ Type = "Talk", Npc = "TuMalvado", Dialogue = "Malvado", Text = "Alguien con tu cara (y perilla) te mira desde un banco",
+			{ Type = "Talk", Npc = "TuMalvado", Dialogue = "Malvado", Text = "Habla con tu doble de perilla en el banco de la plaza",
 				Actors = {
 					{ Npc = "TuMalvado", Place = "PlazaCentro", Offset = V(4, 0, 4) },
 					{ Npc = "Ivan", Place = "PlazaCentro", Offset = V(-3, 0, 6) },
@@ -340,7 +340,7 @@ return {
 				} },
 			{ Type = "Use", Prop = "Capsula", Text = "Abre la cápsula de Cosme", Actors = EQUIPO },
 			{ Type = "Escape", Place = "GarajeCosme", Respawn = "Universidad", Catch = 4,
-				Text = "¡Cósimo ha activado la alarma! Las puertas se cierran: vuelve al portal (el garaje) con Cosme",
+				Text = "¡Alarma! Vuelve con Cosme al portal del garaje",
 				CaughtLine = "¡Concursante atrapado! (Pip dispara confeti al dron y te suelta.)",
 				Actors = {
 					{ Npc = "Cosme", Mode = "Follow" },

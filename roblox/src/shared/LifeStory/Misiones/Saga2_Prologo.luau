@@ -20,9 +20,9 @@ return {
 		Moment = "Encontraste el primer hilo negro de Varkun en la Ruta de los Saqueadores",
 		Rewards = { Money = 400, Flags = { "VarkunCarrete" } },
 		Steps = {
-			{ Type = "Event", Event = "VarkunStep", Match = { Step = "Wreck" }, Text = "Sigue la señal de socorro hasta la Ruta de los Saqueadores (con la nave)" },
+			{ Type = "Event", Event = "VarkunStep", Match = { Step = "Wreck" }, Text = "Sigue la señal de socorro en nave a la Ruta de los Saqueadores" },
 			{ Type = "Event", Event = "VarkunStep", Match = { Step = "Ambush" }, Text = "Derriba a las tres Agujas que vigilan el carguero" },
-			{ Type = "Event", Event = "VarkunStep", Match = { Step = "Delivered" }, Text = "Lleva el carrete de hilo negro a la Estación Cénit (atraca en su muelle)" },
+			{ Type = "Event", Event = "VarkunStep", Match = { Step = "Delivered" }, Text = "Lleva el hilo negro al muelle de la Estación Cénit" },
 			{ Type = "Event", Event = "VarkunStep", Match = { Step = "Vault" }, Text = "La Vigilancia guarda el carrete en su caja fuerte" },
 		},
 	},

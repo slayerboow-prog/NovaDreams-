@@ -142,9 +142,9 @@ return {
 		Saga_02_G4_Musica = { Light = true, Duration = 52.7, Anchors = { Yo = "Player" }, Tracks = { Music = { { At = 0, Intensity = "Tension" } } } },
 	},
 	Steps = {
-		["3.1"] = { Set = { Text = "Investiga el cráter junto a la fuente." } },
-		["3.2"] = { Set = { Text = "Investiga el cráter de la zona de juegos." } },
-		["3.3"] = { Set = { Text = "Investiga el tercer cráter." } },
-		["5"] = { Set = { Text = "Lleva los objetos al garaje de Cosme." } },
+		["3.1"] = { Set = { Text = "Investiga el cráter junto a la fuente" } },
+		["3.2"] = { Set = { Text = "Investiga el cráter de la zona de juegos" } },
+		["3.3"] = { Set = { Text = "Investiga el cráter del camino al cole" } },
+		["5"] = { Set = { Text = "Lleva los objetos al garaje de Cosme" } },
 	},
 }

@@ -68,7 +68,7 @@ return {
 				{ S = "Narrador", T = "Un correo de tu jefe: «Recordatorio: reunión el lunes». Enviado el lunes. Hay cuarenta y tres iguales. Todos de hoy." },
 			} },
 			Donuts = { Lines = {
-				{ S = "Narrador", T = "Una caja de donuts con un pósit: «Invita Juanjo, ¡feliz lunes!». Te comes uno. Aparece otro en su sitio. Te comes ese. Aparece otro. Esto explica muchas cosas de tus pantalones." },
+				{ S = "Narrador", T = "Una caja de donuts con un pósit: «Invita Juanjo, ¡feliz lunes!». Te comes uno. Aparece otro. Y otro. Esto explica muchas cosas de tus pantalones." },
 			} },
 			CafeteraX = { Lines = {
 				{ S = "Narrador", T = "La cafetera nueva. Cromada. En la etiqueta: «X-9000. Fabricada en 2240. Devuelve el café del futuro»." },
@@ -141,7 +141,7 @@ return {
 			} },
 			LetraPequena = { Lines = {
 				{ S = "Narrador", T = "El contrato tiene 3.000 páginas. Glub te mira con cara de que nadie las ha leído nunca. En la página 2.847, en letra diminuta:" },
-				{ S = "Narrador", T = "«Cláusula 88: si el cliente consumió calamares de Plutón en temporada baja, la deuda queda condonada, porque en temporada baja los calamares de Plutón son gratis»." },
+				{ S = "Narrador", T = "«Cláusula 88: si el cliente comió calamares de Plutón en temporada baja, la deuda queda perdonada. En temporada baja son gratis»." },
 				{ S = "Glub", T = "…¿Temporada baja? ¿En 1987? …Lo compruebo. Lo compruebo. …Era temporada baja. Plof. Plof, guarda los sellos. Nos vamos." },
 			} },
 			Final = { Lines = {
@@ -181,7 +181,7 @@ return {
 			{ Type = "Use", Prop = "Tostadora", Text = "Habla con… la tostadora",
 				Actors = { { Npc = "Pip", Place = "GarajeCosme", Offset = V(2, 0, 4) }, { Npc = "Cosme", Place = "GarajeCosme", Offset = V(0, 0, 2), Mode = "Sit", Prompt = false } } },
 			{ Type = "Fight", Place = "GarajeCosme", Respawn = "GarajeCosme", Action = "Desenchufar ⚡", HP = 3, BeamColor = Color3.fromRGB(255, 90, 90),
-				Text = "¡La rebelión de los electrodomésticos! Desenchúfalos a todos ({count}/{total})",
+				Text = "¡Rebelión de electrodomésticos! Desenchúfalos ({count}/{total})",
 				CaughtLine = "¡Aspirado! (Te escupe la aspiradora al otro lado del garaje, lleno de pelusas.)",
 				Actors = { { Npc = "Pip", Place = "GarajeCosme", Offset = V(6, 0, 6) }, { Npc = "Cosme", Place = "GarajeCosme", Offset = V(0, 0, 2), Mode = "Sit", Prompt = false } },
 				Enemies = {
@@ -205,7 +205,7 @@ return {
 				{ S = "Cosme", T = "Escúchame bien: no tengo codos. Nunca valoras los codos hasta que eres una tostadora." },
 				{ Ask = "¿Qué le dices?", Options = {
 					{ T = "«¿Por qué querías guardarte, Cosme?»", Effects = { Traits = { Empatia = 2 } }, Then = {
-						{ S = "Cosme", T = "…Porque me hago mayor. Y tengo miedo de olvidarme de cosas. De la gallina. De los clones. De ti. Ya está. Lo he dicho. Qué vergüenza. Estoy tostando de la vergüenza." },
+						{ S = "Cosme", T = "…Porque me hago mayor. Y tengo miedo de olvidarme de cosas. La gallina. Los clones. Tú. Ya está, lo he dicho. Estoy tostando de la vergüenza." },
 					} },
 					{ T = "«Tranquilo. Te saco de ahí.»", Effects = { Traits = { Valentia = 1 }, Rel = { Cosme = 4 } }, Then = {
 						{ S = "Cosme", T = "Eso quería oír. Primero, los electrodomésticos. Van a por ti. El microondas es el cabecilla. Siempre lo supe." },
@@ -219,7 +219,7 @@ return {
 			Despierta = { Lines = {
 				{ S = "Cosme", T = "¡AH! ¡Codos! ¡Tengo codos! ¡Mirad qué codos! …Qué sensación tan maravillosa. Nunca más me guardaré en un electrodoméstico." },
 				{ S = "Pip", T = "Señor, se le ha quedado un trocito de mente en la tostadora. Un 2 %. La parte que opina de todo." },
-				{ S = "Cosme", T = "Pues que se quede allí. Así no la pierdo. Toma, criatura: quédate la tostadora. Si algún día me olvido de algo… pregúntaselo a ella. Lo sabrá. Y te lo dirá de mala manera." },
+				{ S = "Cosme", T = "Pues que se quede allí. Toma, criatura: quédate la tostadora. Si algún día me olvido de algo… pregúntaselo a ella. Te lo dirá de mala manera." },
 				{ S = "Cosme", T = "Y gracias. Por venir. Siempre vienes. Eso no lo inventé yo. Eso es lo mejor que me ha pasado sin inventarlo." },
 				{ S = "Narrador", T = "Recibes 🍞 la Tostadora de Cosme." },
 			} },
@@ -320,14 +320,14 @@ return {
 			{ Type = "Talk", Npc = "Cosme", Dialogue = "Detector", Text = "Pide ayuda a Cosme",
 				Actors = { { Npc = "Cosme", Place = "GarajeCosme", Offset = V(0, 0, 3) }, { Npc = "Pip", Place = "GarajeCosme", Offset = V(3, 0, 2) } } },
 			{ Type = "Escape", Seconds = 20, Respawn = "GarajeCosme", Catch = 4, Props = { "Portal" },
-				Text = "¡Tu yo malvado quiere empujarte al portal de su dimensión! Aguanta 20 segundos mientras Cosme lo carga",
+				Text = "¡Tu yo malvado te empuja al portal! Aguanta 20 s junto a Cosme",
 				CaughtLine = "¡Te tengo, yo bueno! (Casi te empuja al portal. Cosme tira de ti justo a tiempo.)",
 				Actors = {
 					{ Npc = "TuMalvado", Place = "GarajeCosme", Offset = V(-8, 0, 6), Mode = "Hunt", Speed = 13, Prompt = false },
 					{ Npc = "Cosme", Place = "GarajeCosme", Offset = V(4, 0, -3), Mode = "Point" },
 				} },
 			{ Type = "Fight", Place = "GarajeCosme", Respawn = "GarajeCosme", Action = "Arrancarle la perilla 🥸", HP = 6, BeamColor = Color3.fromRGB(180, 40, 70), Props = { "Portal" },
-				Text = "¡El portal está listo! Arráncale la perilla: sin ella pierde su poder",
+				Text = "¡Portal listo! Arráncale la perilla a tu yo malvado",
 				CaughtLine = "¡Muahaha! (Te hace una llave malvada. Vuelves al fondo del garaje.)",
 				Actors = { { Npc = "Cosme", Place = "GarajeCosme", Offset = V(4, 0, -3), Mode = "Cheer" } },
 				Enemies = {
@@ -345,19 +345,19 @@ return {
 				{ S = "TuMalvado", T = "Vaya, vaya. El «yo» bueno. Bienvenid{o/a} a MI casa. Porque ahora es mía. Y tu trabajo. Y tu sofá. Muahaha." },
 				{ S = "Yo", T = "¿Quién eres? ¿Y por qué llevas perilla?", If = { NotFlags = { "ConoceTuMalvado" } } },
 				{ S = "TuMalvado", T = "Soy tú. De la dimensión 66-B. Allí soy malvado. Los malvados llevamos perilla. Es la norma. Hay un reglamento.", If = { NotFlags = { "ConoceTuMalvado" } } },
-				{ S = "TuMalvado", T = "Mi vida allí es un desastre. Me echaron del trabajo por malvado. Mi gato se fue con otro. Así que me quedo con la tuya. Tú puedes quedarte la mía. Tiene deudas. Muchas.", If = { NotFlags = { "ConoceTuMalvado" } } },
+				{ S = "TuMalvado", T = "Mi vida allí es un desastre. Me echaron por malvado. Mi gato se fue con otro. Así que me quedo con la tuya. Tú quédate la mía. Tiene deudas. Muchas.", If = { NotFlags = { "ConoceTuMalvado" } } },
 				{ S = "Yo", T = "Tú. El del banco de la 66-B.", If = { Flags = { "ConoceTuMalvado" } } },
 				{ S = "TuMalvado", T = "Te lo avisé en la plaza: «algún día iré a quedarme con tu vida». Soy malvado, pero de palabra. Pues ya es algún día. Tu sofá es comodísimo.", If = { Flags = { "ConoceTuMalvado" } } },
 			} },
 			Familia = { Lines = {
 				{ S = "Familia", T = "¡Cariño! ¿Por qué hay dos como tú? ¿Y por qué el otro me ha dicho «muahaha» cuando le he preguntado si quería croquetas?" },
-				{ S = "Familia", T = "Tranquilidad. Una madre, un padre… una familia siempre sabe cuál es el de verdad. Tú eres el de verdad. El otro no se ha comido las croquetas. Nadie de esta familia rechaza una croqueta." },
+				{ S = "Familia", T = "Tranquilidad. Una familia sabe cuál es el de verdad. Eres tú: el otro no se ha comido las croquetas. Nadie de esta familia rechaza una croqueta." },
 				{ S = "Familia", T = "Ve a ver a ese vecino tuyo, el de los inventos. Estas cosas raras siempre son culpa suya." },
 			} },
 			Detector = { Lines = {
 				{ S = "Cosme", T = "¿Otro tú? ¿Con perilla? Dimensión 66-B, seguro. Allí todo el mundo es malvado. Hasta las palomas. Especialmente las palomas." },
 				{ S = "Pip", T = "Me temo que el señor Cosme dejó abierto un portal a la 66-B el martes pasado. Para comprar tornillos malvados. Son más baratos." },
-				{ S = "Cosme", T = "¡Eran de oferta! Da igual. Plan: yo cargo el portal, que tarda un poco. Tú aguantas sin que te empuje dentro. Y luego… le quitas la perilla. Sin perilla, un malvado no es nada." },
+				{ S = "Cosme", T = "¡Eran de oferta! Plan: yo cargo el portal. Tú aguantas sin que te empuje dentro. Y luego… le quitas la perilla. Sin perilla, un malvado no es nada." },
 			} },
 			Final = { Lines = {
 				{ S = "TuMalvado", T = "…Sin perilla ya no me sale ser malvado. Solo me sale estar triste. Mi vida en la 66-B es horrible, ¿sabes? Nadie me quiere. Ni mi gato." },

@@ -681,7 +681,7 @@ return {
 		["11"] = { Effects = { Scene = "Cole08_G12_Entra" } },
 		["16"] = { Effects = { Scene = "Cole08_G16_Fin" } },
 		["3"] = { Effects = { Scene = "Cole08_G4_Entra" } },
-		["5"] = { Set = { Text = "llegar al área correspondiente." } },
+		["5"] = { Set = { Text = "Llegar al área correspondiente" } },
 		["6"] = { Effects = { Scene = "Cole08_G7_Entra" } },
 		["7"] = { Effects = { Scene = "Cole08_G8_Entra" } },
 		["9"] = { Effects = { Scene = "Cole08_G10_Entra" } },

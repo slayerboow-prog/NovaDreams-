@@ -346,7 +346,7 @@ return {
 			Toma2 = { Kind = "Pantalla", Name = "Cámara alienígena: toma 2 (la playa)", Prompt = "Grabar la toma", Place = "Playa", Offset = V(0, 0, 5), Color = Color3.fromRGB(90, 255, 120), Dialogue = "Toma2", Once = true },
 		},
 		Steps = {
-			{ Type = "Talk", Npc = "CapitanNoz", Dialogue = "Cancelacion", Text = "La Capitana Ñoz baja de la nave",
+			{ Type = "Talk", Npc = "CapitanNoz", Dialogue = "Cancelacion", Text = "Habla con la Capitana Ñoz junto a su nave, en el monte",
 				Props = { "Nave" },
 				Actors = {
 					{ Npc = "CapitanNoz", Place = "MonteSilencio", Offset = V(0, 0, 3) },

@@ -395,7 +395,7 @@ PASO 2 · MINIJUEGO
 
 En escena: Capitana Ñoz, Blorp
 
-Objetivo: completar correctamente el rodaje.
+Objetivo: Completa el rodaje sin fallos
 
 ⸻
 

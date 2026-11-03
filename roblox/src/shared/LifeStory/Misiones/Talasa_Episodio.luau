@@ -86,7 +86,7 @@ return {
 		Steps = {
 			{ Type = "Talk", Npc = "Cosme", Dialogue = "Tabla", Text = "Cosme te espera junto a la Fuente de las Perlas", Actors = { at("Cosme", "Talasa_Fuente", 0, 3) } },
 			{ Type = "Event", Event = "JobTaskDone", Match = { JobId = "TalasaTecnicoPresion" }, Place = "Talasa_Faro",
-				Text = "Haz un turno de 🔧 técnico/a de presión (tablón junto al Faro): ajusta dos válvulas antes de que cambie la marea" },
+				Text = "Ajusta 2 válvulas: tablón 🔧 de presión, junto al Faro" },
 			{ Type = "Reach", Place = "Talasa_CompuertaFaro", Text = "⛈ ¡Viene la tormenta eléctrica! Métete en la Compuerta del Faro", Actors = { COSME_SIGUE } },
 			{ Type = "Scene", Dialogue = "Tormenta",
 				Actors = { at("Bruma", "Talasa_CompuertaFaro", -1, 3), at("Cosme", "Talasa_CompuertaFaro", -3, -2) } },
@@ -119,14 +119,14 @@ return {
 			{ Type = "Talk", Npc = "NoaFerran", Dialogue = "Voluntaria", Text = "Habla con la voluntaria en la puerta de la Estación Meridiana",
 				Actors = { at("NoaFerran", "Talasa_Estacion", 0, 3), at("Cosme", "Talasa_Estacion", 4, 4) } },
 			{ Type = "Reach", Place = "Talasa_Escalerilla", Text = "Ve a la escalerilla de buceo, al final del Muelle flotante" },
-			{ Type = "Group", Text = "Bucea en las Praderas de Luz y toma tres muestras del coral negro (las boyas amarillas marcan dónde)",
+			{ Type = "Group", Text = "Toma 3 muestras de coral negro en las Praderas (boyas amarillas)",
 				Steps = {
 					{ Type = "Event", Event = "PoiDiscovered", Match = { Id = "Talasa_Muestra1" }, Text = "La muestra junto a la primera boya" },
 					{ Type = "Event", Event = "PoiDiscovered", Match = { Id = "Talasa_Muestra2" }, Text = "La muestra de la barca hundida" },
 					{ Type = "Event", Event = "PoiDiscovered", Match = { Id = "Talasa_Muestra3" }, Text = "La muestra que se encoge con la luz" },
 				} },
 			{ Type = "Event", Event = "HazardCountered", Match = { Planet = "Talasa" },
-				Text = "🌊 La presión aprieta: usa una 🫧 carga de oxígeno de la mochila antes de subir" },
+				Text = "🌊 ¡Presión! Usa una 🫧 carga de oxígeno de la mochila" },
 			{ Type = "Talk", Npc = "NoaFerran", Dialogue = "Microscopio", Text = "Lleva las muestras al laboratorio de la Estación",
 				Actors = { at("NoaFerran", "Talasa_EstacionDentro", 0, -3), at("Cosme", "Talasa_EstacionDentro", 4, 0) } },
 			{ Type = "MiniGame", Game = "Timing", Title = "El microscopio", Icon = "🔬", Hint = "Enfoca la muestra: pulsa cuando la aguja pase por el verde",
@@ -163,14 +163,14 @@ return {
 		Rewards = { Money = 90 },
 		Steps = {
 			{ Type = "Talk", Npc = "Bruma", Dialogue = "Plan", Text = "Bruma te espera en su balsa, al norte de Las Balsas", Actors = { at("Bruma", "Talasa_CasaBruma", 0, 3) } },
-			{ Type = "Choice", Key = "TalasaBruma", Text = "Bruma quiere llevarse una barca del Consejo para sacar a seis familias de Las Balsas. Si la pillan, la encierran. ¿Qué haces?",
+			{ Type = "Choice", Key = "TalasaBruma", Text = "Bruma quiere una barca del Consejo para salvar a seis familias de Las Balsas. Si la pillan, la encierran. ¿Qué haces?",
 				Options = {
 					{ Id = "Ayudar", Text = "Ayudarla: distraer a la patrulla en el Muelle", Effects = { Flags = { "BrumaAyudada" }, Rel = { Bruma = 15 }, Items = { Talasa_PerlaBruma = 1 }, Traits = { Empatia = 1 } } },
 					{ Id = "Patrulla", Text = "Avisar a la patrulla: una barca robada no salva a nadie", Effects = { Flags = { "BrumaDelatada" }, Rel = { Bruma = -15, AlmiranteCoria = 10 }, Traits = { Responsabilidad = 1 } } },
 				},
 				Actors = { at("Bruma", "Talasa_CasaBruma", 0, 3) } },
 			{ Type = "Fight", Place = "Talasa_Muelle", Respawn = "Talasa_Muelle", Action = "Apartar 💥", HP = 4,
-				Text = "¡Cangrejos de coral negro suben por los pilotes del Muelle! Apártalos ({count}/{total})",
+				Text = "¡Cangrejos en los pilotes del Muelle! Apártalos ({count}/{total})",
 				CaughtLine = "(Un cangrejo te tira de la cubierta. Te subes por la escalerilla, empapado.)",
 				Actors = { at("Bruma", "Talasa_Muelle", -6, 4, "Point") },
 				Enemies = {
@@ -178,7 +178,7 @@ return {
 					{ Npc = "CangrejoCoral2", Offset = V(20, 0, 6), Speed = 9, HP = 3, Bye = "(Se deshace en arena negra.)" },
 				} },
 			{ Type = "Escape", Place = "Talasa_Balsas", Respawn = "Talasa_Muelle", Catch = 4, If = { Choices = { TalasaBruma = "Ayudar" } },
-				Text = "Bruma ya tiene la barca: llévate a la patrulla lejos, hasta Las Balsas, sin que te pillen",
+				Text = "Aleja a la patrulla hasta Las Balsas sin que te pillen",
 				CaughtLine = "¡Alto! ¿Tú otra vez? Al Muelle, y quietecito. (Vuelves al Muelle.)",
 				Actors = {
 					{ Npc = "PatrullaConsejo1", Place = "Talasa_Muelle", Offset = V(10, 0, -6), Mode = "Hunt", Speed = 10, Prompt = false },
@@ -220,8 +220,8 @@ return {
 		},
 		Steps = {
 			{ Type = "Talk", Npc = "NoaFerran", Dialogue = "Sonar", Text = "Escucha el sónar con la voluntaria", Actors = { at("NoaFerran", "Talasa_EstacionDentro", 0, -3), at("Cosme", "Talasa_EstacionDentro", 4, 0) } },
-			{ Type = "Use", Prop = "Cuaderno", Text = "La voluntaria ha salido corriendo. Ha dejado su cuaderno en la mesa" },
-			{ Type = "Choice", Key = "TalasaNoa", Text = "El cuaderno lo firma «Dra. Noa Ferrán», la creadora del coral vivo, la mujer que busca el Consejo. Y Elio es su hijo. ¿Qué haces?",
+			{ Type = "Use", Prop = "Cuaderno", Text = "Coge el cuaderno que la voluntaria ha dejado en la mesa" },
+			{ Type = "Choice", Key = "TalasaNoa", Text = "Lo firma «Dra. Noa Ferrán», la creadora del coral vivo a la que busca el Consejo. Y Elio es su hijo. ¿Qué haces?",
 				Options = {
 					{ Id = "Callar", Text = "Guardar su secreto: primero hay que sacar a Elio", Effects = { Flags = { "NoaProtegida" }, Rel = { NoaFerran = 15 }, Traits = { Empatia = 1 } } },
 					{ Id = "Contar", Text = "Contárselo a la Almirante Coria: la ciudad tiene derecho a saberlo", Effects = { Flags = { "NoaDelatada" }, Rel = { NoaFerran = -10, AlmiranteCoria = 10 }, Traits = { Responsabilidad = 1 } } },

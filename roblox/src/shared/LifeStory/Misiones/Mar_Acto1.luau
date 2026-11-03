@@ -127,7 +127,7 @@ return {
 			Concha3 = { Kind = "Cristal", Name = "Una concha de espiral", Prompt = "Coger la concha", Place = "Mar_Burbuja", Offset = V(4, 0, -24), Color = Color3.fromRGB(220, 210, 255), Once = true },
 		},
 		Steps = {
-			{ Type = "Talk", Npc = "Oriana", Dialogue = "Oriana", Place = "Mar_Plaza", Text = "Habla con Oriana en la Lonja Honda (la cúpula de aire de la plaza)" },
+			{ Type = "Talk", Npc = "Oriana", Dialogue = "Oriana", Place = "Mar_Plaza", Text = "Habla con Oriana en la Lonja Honda (cúpula de la plaza)" },
 			{ Type = "Reach", Place = "Mar_Burbuja", Text = "Ve a La Burbuja, la posada de los secos, en el Talud del Naufragio (al este de las Ruinas, a ~20 m)" },
 			{ Type = "Talk", Npc = "Bartolo", Dialogue = "Bartolo", Place = "Mar_Burbuja", Text = "Habla con Bartolo, el desguacero, junto a la posada" },
 			{ Type = "Group", Text = "Bartolo quiere tres conchas bonitas a cambio de «algo especial»",
@@ -164,7 +164,7 @@ return {
 		Memory = "JuicioConsejo",
 		Rewards = { Money = 150, Flags = { "MarJuicio" }, Rel = { Maresa = 10 } },
 		Steps = {
-			{ Type = "Talk", Npc = "GuardiaConsejo", Dialogue = "Guardia", Place = "Mar_Consejo", Text = "La Guardia del Consejo te espera en la Concha del Consejo (al norte de la plaza)" },
+			{ Type = "Talk", Npc = "GuardiaConsejo", Dialogue = "Guardia", Place = "Mar_Consejo", Text = "Ve a la Concha del Consejo, al norte de la plaza" },
 			{ Type = "Cinematic", Id = "Mar_Juicio" },
 			{ Type = "Choice", Key = "MarJuicio", Text = "Maresa te mira: «¿Por qué ha bajado un seco a Nácara?»",
 				Options = {

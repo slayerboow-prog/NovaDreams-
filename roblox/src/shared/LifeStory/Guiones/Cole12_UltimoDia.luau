@@ -509,7 +509,7 @@ return {
 		},
 	},
 	Steps = {
-		["5"] = { Effects = { Scene = "Cole12_G6_Entra" }, Set = { Text = "visitar al menos 4 de 6 lugares." } },
+		["5"] = { Effects = { Scene = "Cole12_G6_Entra" }, Set = { Text = "Visitar al menos 4 de 6 lugares" } },
 		["7"] = { Effects = { Scene = "Cole12_G8_Entra" } },
 	},
 }

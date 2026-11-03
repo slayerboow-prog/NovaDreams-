@@ -10,6 +10,7 @@ return {
 	Dialogues = {
 		Credencial = {
 			Lines = {
+				{ S = "Pip", T = "Tres años sin un solo pitido del medidor. Hasta esta mañana.", To = "Yo", A = "ThinkChin" },
 				{ S = "Cosme", T = "Criatura. Ya no eres tan criatura.", To = "Yo", A = "HandsOnHips" },
 				{ S = "Cosme", T = "Pero te lo sigo llamando.", To = "Yo", Pause = 0.9 },
 				{ S = "Pip", T = "Confirmo que la criatura ha crecido. Mucho.", To = "Yo", A = "ArmsCrossed" },
