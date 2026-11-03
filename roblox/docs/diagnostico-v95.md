@@ -1385,3 +1385,34 @@ En la nube (`cloud-test.sh --version 132`):
   con uno solo) ✅; **«la pared del veril baja de verdad»** 6 de 6 ✅. Lo de −14 de la v131 queda arreglado.
 - `OceanCheck`: la sonda no lee ese atributo, así que no se vio su texto; la consola salió sin errores ni avisos (el
   constructor avisa en la consola cuando sale «MAL:»).
+
+## Verificación v133
+
+Publicada la **versión 133** (commit `e8cab9c`, con `PUBLISH_BRANCH=publicar-v133 bash scripts/publish.sh`, base `7538d8a`).
+Trae, sobre la v132, las cinemáticas con caras por frase, los gestos nuevos y los primeros pasos en 41 s (`7835cde`),
+`test-cineplanos` arreglado y **Nácara v2 encendida (fase 1: Palacio Real y Plaza Central)**: `Config.Sea.NacaraV2 = true`,
+aprobado por el dueño tras ver las vistas previas con texturas (commit `da86f58`).
+
+Pruebas (lune 0.10.5, rojo 7.7.0): pasaron `test-compile`, `test-clientboot`, `test-serverboot`, `test-hud`,
+`test-persistence`, `test-cinematic`, `test-scenes`, `test-cinemateca`, `test-transiciones`, `test-vfx`, `test-nacara`,
+`test-nacara-v2`, `test-hondario`, `test-mar`, `test-mar-fondo`, `test-planetas`, `test-personajes` y `test-estilo-bloque`
+(`test-cinematic`, `test-mar-fondo` y `test-planetas` tardan más de 10 min: se repitieron sin límite de tiempo y pasaron).
+`test-nacara-v2` comprobaba la v2 **apagada**: se cambió para comprobarla encendida (la isla del Palacio Real la añade la
+propia v2, así que no cuenta como algo previo que se pueda pisar; commit `d77562a`). Con el lugar construido:
+`test-mapcoherence` **0 críticos**, 50 avisos, 9 info; `test-cineplanos` ✅ todo correcto.
+
+Subidas: `upload-nacara-v2.sh` (revisor dentro, sin `MODERACION_PERMITIR`; el revisor necesitó `bpy` 5.1.0 en Python 3.13,
+porque el 4.2.0 no existe para esa versión): 4 mallas (`Capitel`, `Concha`, `Percebes`, `Relieve`), ninguna marcada, y
+28 texturas (commit `e8cab9c`). Roblox no devolvió la imagen de cada decal: se guardó el id del decal. Después se
+repitieron `test-compile`, `test-clientboot`, `test-serverboot` y `test-nacara-v2`, y pasaron.
+
+- ⚠️ **En la v133 Nácara v2 sale con colores lisos** (los ornamentos sí cargan): los MaterialVariant «NV2_…» los crea
+  `build-place.luau` solo con el id de imagen (`shared/TextureImageIds`), y `image-ids.sh` corre sobre la versión ya
+  publicada, que antes de la v133 no traía `NacaraV2AssetIds` (se quedó esperando y Roblox la cortó a los 5 min).
+  `scripts/cloud/imagenes-texturas.luau` ahora incluye las texturas de Nácara v2 (con `FindFirstChild`). Tras publicar,
+  `image-ids.sh` sobre la v133 sacó las 28 imágenes (85 en total, ninguna perdida): **la próxima publicación ya las lleva**.
+
+En la nube (`cloud-test.sh --version 133`):
+- `arranque`: ✅ 5 bien, 0 mal, 1 aviso (`[BodyPieceService] 4 pieza(s) de pelo/ropa sueltas … retiradas`, como en la
+  v132), 126 servicios, 434815 piezas en `workspace.Town`. **Sin errores en la consola** (nada de Nácara v2).
+- `mar-v3-sonda`: ✅ 16 bien, 0 mal, 0 avisos, sin errores en la consola.
