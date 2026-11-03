@@ -13,6 +13,8 @@
 --   · Clap (aplaudir) · ThinkChin (mano en la barbilla) · WaveLite (saludo corto con la mano)
 --   · Nervous (nervios: se toca las manos, mira alrededor) · Ashamed (vergüenza: baja la cabeza y
 --     aparta la mirada). Las dos son también emociones que duran (ActorMoods: Nervous, Shame).
+--   · Flinch (se encoge de golpe: un susto, un golpe) · Recoil (se echa atrás) · LookAround (mira a un lado
+--     y a otro) · Hug (abre los brazos para abrazar)
 --   · Lean (se inclina hacia quien escucha: confianza, un secreto) · LookAway (aparta la mirada un
 --     momento) · PointLite (señala con el brazo, sin animación: sentado o en un cuerpo que no es R15)
 --
@@ -45,6 +47,11 @@ Emotion.Poses = {
 	Lean = true,
 	LookAway = true,
 	PointLite = true,
+	-- (v130) cuerpo en las escenas: encogerse de golpe, echarse atrás, mirar alrededor, abrazar
+	Flinch = true,
+	Recoil = true,
+	LookAround = true,
+	Hug = true,
 }
 
 function Emotion.valid(name: any): boolean

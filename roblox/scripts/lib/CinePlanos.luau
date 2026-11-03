@@ -133,6 +133,42 @@ function E.buildMap(dir: string?): string
 	return cached
 end
 
+-- (v132) Un mapa construido de fuera (el de la publicación: rojo build + build-place) NO trae lo que el
+-- servidor monta al arrancar (la isla del sueño, Bastión Ceniza, los barrios de los planetas, Nácara): sin
+-- eso, todas sus escenas salían «SinLugar». Se hace una copia con los extras de arranque
+-- (scripts/audit/cine-extras.luau) y se guarda en la caché con la huella del archivo. Los mapas de la
+-- caché (mapa-….rbxl, de E.buildMap) ya los llevan.
+function E.withExtras(placePath: string): string
+	if placePath:match("mapa%-[%w]+%.rbxl$") or placePath:match("extras%-[%w]+%.rbxl$") then
+		return placePath
+	end
+	local serde = require("@lune/serde")
+	local cacheDir = (process.env.TMPDIR or "/tmp") .. "/cineplanos-cache"
+	fs.writeDir(cacheDir)
+	local source = fs.readFile(placePath)
+	local fingerprint = serde.hash("sha256", source .. E.mapFingerprint()):sub(1, 16)
+	local out = cacheDir .. "/extras-" .. fingerprint .. ".rbxl"
+	if fs.isFile(out) then
+		print("▶ Mapa con los extras de arranque ya preparado: " .. out)
+		return out
+	end
+	local tmp = cacheDir .. "/preparando-" .. fingerprint .. ".rbxl"
+	fs.writeFile(tmp, source)
+	print("▶ Añadiendo los extras de arranque a " .. placePath)
+	local extras = process.exec("lune", { "run", "scripts/audit/cine-extras.luau", tmp })
+	if not extras.ok then
+		error(extras.stderr)
+	end
+	print("  " .. (extras.stdout:gsub("%s+$", "")))
+	for _, name in fs.readDir(cacheDir) do
+		if name:match("^extras%-.*%.rbxl$") then
+			pcall(fs.removeFile, cacheDir .. "/" .. name)
+		end
+	end
+	fs.move(tmp, out, true)
+	return out
+end
+
 export type Spot = { Position: Vector3, CFrame: CFrame, Size: Vector3, Instance: any, Radius: number }
 
 -- Caja de un modelo como Model:GetBoundingBox (orientada como su PrimaryPart / pivote)

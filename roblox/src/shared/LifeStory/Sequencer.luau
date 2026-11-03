@@ -194,6 +194,7 @@ Sequencer.Beats = {
 }
 -- Gestos de la pista Acting (las animaciones de Roblox que sabe hacer ActorLife.play)
 Sequencer.ActingPlays = { Wave = true, Cheer = true, Laugh = true, Point = true, Dance = true }
+Sequencer.ActingPoses = require(script.Parent.Emotion).Poses -- (posturas: Flinch, Recoil, LookAround, Hug…)
 -- Miradas que no son un actor ni un ancla
 Sequencer.LookSpecial = { Speaker = true, Suelo = true, Floor = true, Away = true, Apartar = true, Yo = true, Player = true }
 Sequencer.LINE_GAP = 0.25 -- entre una frase y la siguiente
@@ -1141,8 +1142,8 @@ function validateBody(def: { [string]: any }, c: { [string]: any }): { string }
 	for i, act in def.Tracks.Acting or {} do
 		local where = "Acting[" .. i .. "]"
 		at(where, act)
-		if not Sequencer.ActingPlays[act.Play] then
-			err("%s: gesto desconocido '%s' (Wave, Cheer, Laugh, Point, Dance)", where, tostring(act.Play))
+		if not Sequencer.ActingPlays[act.Play] and not Sequencer.ActingPoses[act.Play] then
+			err("%s: gesto desconocido '%s' (Wave, Cheer, Laugh, Point, Dance o una postura de Emotion)", where, tostring(act.Play))
 		end
 		local whoName = act.Who
 		if whoName ~= "Yo" and whoName ~= "Todos" and not keys[whoName] and not (c.Cast and c.Cast[whoName]) then

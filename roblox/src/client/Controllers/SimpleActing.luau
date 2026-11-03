@@ -139,6 +139,19 @@ function SimpleActing.pose(emotion: string, gesture: string?, since: number, tal
 	elseif what == "ArmsCrossed" then
 		rx, lx = 0.9, 0.9
 		rz, lz = -0.5, 0.5
+	elseif what == "Flinch" or what == "Recoil" then
+		-- (v130) encogerse / echarse atrás: la cabeza atrás y los brazos delante, de golpe
+		local k = if what == "Flinch" then math.max(0, 1 - since / 0.9) else math.max(0, 1 - since / 1.4)
+		pitch += (if what == "Flinch" then -0.25 else 0.2) * k
+		rx, lx = 1.3 * k, 1.3 * k
+		rz, lz = -0.3 * k, 0.3 * k
+	elseif what == "Hug" then
+		rx, lx = 1.4, 1.4
+		rz, lz = 0.35, -0.35
+		roll += 0.1
+	end
+	if what == "LookAround" then
+		yaw += math.sin(since * 2.6 + seed) * 0.75
 	end
 	return pitch, yaw, roll, rx, rz, lx, lz
 end
