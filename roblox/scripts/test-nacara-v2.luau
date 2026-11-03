@@ -81,8 +81,26 @@ end
 local count, lightsBy, kitBy = {}, {}, {}
 local badMat, tooHigh, glassCollide, links = {}, 0, 0, 0
 local top = Nacara.FloorY + Nacara.MaxTop + 1.5
+local ornaments, badOrn, badVariant, textured, solid = 0, 0, {}, 0, 0
 for _, s in all.Parts do
-	count[s.District] = (count[s.District] or 0) + 1
+	if s.Ornament then
+		ornaments += 1
+		if not NacaraV2.Ornaments[s.Ornament] or not Builder.OrnamentFallback[s.Ornament] then
+			badOrn += 1
+		end
+	else
+		count[s.District] = (count[s.District] or 0) + 1
+	end
+	if s.Material ~= "Neon" and s.Material ~= "Glass" then
+		solid += 1
+	end
+	if s.Variant then
+		textured += 1
+		local set = NacaraV2.Textures[s.Variant]
+		if not set or swapped[set.Base] or not allowed[set.Base] then
+			table.insert(badVariant, s.Name .. ":" .. tostring(s.Variant))
+		end
+	end
 	if string.find(s.District, "-", 1, true) then
 		links += 1
 	end
@@ -130,6 +148,42 @@ check(-2 - (Nacara.FloorY + NacaraV2.PalaceMaxTop) >= 40, "la aguja del Palacio 
 check(glassCollide == 0, "el cristal y la luz no chocan (solo suelos, muros y bases)")
 check(kinds == #all.Kit and #all.Kit <= NacaraV2.KitBudget, ("%d mallas del kit del mar (≤ %d), todas del kit"):format(#all.Kit, NacaraV2.KitBudget))
 check(links > 0 and links <= NacaraV2.LinkBudget, ("tubos curvos y pasarelas: %d piezas (≤ %d)"):format(links, NacaraV2.LinkBudget))
+check(ornaments > 100 and ornaments <= NacaraV2.OrnamentBudget and badOrn == 0, ("%d ornamentos (conchas, frisos, percebes, capiteles; ≤ %d), todos con su malla y su respaldo"):format(ornaments, NacaraV2.OrnamentBudget))
+check(#badVariant == 0 and textured >= solid * 0.85, ("%d de %d piezas macizas (no luz ni cristal) con textura (MaterialVariant «NV2_…» sobre un material que los packs del dueño no cambian)"):format(textured, solid) .. (if #badVariant > 0 then ": " .. table.concat(badVariant, ", ", 1, math.min(5, #badVariant)) else ""))
+-- Las texturas y el atlas: hechos, cuadrados y del tamaño del móvil (≤ 1024)
+local function pngSize(path: string): (number, number)
+	local b = fs.readFile(path)
+	local function u32(i: number): number
+		return string.byte(b, i) * 16777216 + string.byte(b, i + 1) * 65536 + string.byte(b, i + 2) * 256 + string.byte(b, i + 3)
+	end
+	return u32(17), u32(21)
+end
+local texOk, texCount = true, 0
+for name, set in NacaraV2.Textures do
+	for _, m in { "color", "normal", "roughness" } do
+		local f = "assets/nacara-v2/tex/" .. string.lower(name) .. "_" .. m .. ".png"
+		if fs.isFile(f) then
+			local w, h = pngSize(f)
+			texCount += 1
+			texOk = texOk and w == h and w <= 1024
+		else
+			texOk = false
+		end
+	end
+	local _ = set
+end
+for _, m in { "color", "normal", "roughness" } do
+	local f = "assets/nacara-v2/tex/ornamentos_" .. m .. ".png"
+	local w, h = 0, 0
+	if fs.isFile(f) then
+		w, h = pngSize(f)
+	end
+	texOk = texOk and w == 1024 and h == 1024
+end
+for name in NacaraV2.Ornaments do
+	texOk = texOk and fs.isFile("assets/nacara-v2/" .. name .. ".fbx")
+end
+check(texOk, ("texturas propias: %d mapas de 512 (8 texturas) y el atlas de ornamentos de 1024; las 4 mallas en assets/nacara-v2"):format(texCount))
 check(#all.Parts <= 3600, ("la ciudad entera: %d piezas, %d mallas, %d rellenos de terreno"):format(#all.Parts, #all.Kit, #all.Terrain))
 
 ---------------------------------------------------------------------

@@ -189,7 +189,7 @@ return {
 					{ Id = "Garza", Text = "Contárselo a Garza: él sabrá qué es", Effects = { Flags = { "Dron7Garza" }, Traits = { Responsabilidad = 1 } } },
 				},
 				Actors = { at("NiaVaina", "Umbria_VainaNiaDentro", -2, 1), at("Dron7", "Umbria_VainaNiaDentro", 3, -1) } },
-			{ Type = "Scene", Dialogue = "Dron", Actors = { at("NiaVaina", "Umbria_VainaNiaDentro", -2, 1), at("Dron7", "Umbria_VainaNiaDentro", 3, -1) } },
+			{ Type = "Scene", Dialogue = "Dron", Actors = { at("NiaVaina", "Umbria_VainaNia", -1.2, -3), at("Dron7", "Umbria_VainaNia", 1.2, -3.4) } },
 		},
 		Dialogues = {
 			Oficio = { Lines = {

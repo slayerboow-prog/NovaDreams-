@@ -340,11 +340,9 @@ local WATCHED = { CamaraDentro = true, CamaraEnPersonaje = true, BajoTierra = tr
 -- Conocidos (escena · plano · tipo) que no tienen arreglo general: ver docs/auditoria-cinematicas-visual.md
 local PENDIENTES: { [string]: string } = {
 	-- v127 (los barrios de los planetas ya están en el mapa de la auditoría)
-	["Umbria_03_Savia#6 Dron|General|CortadoEnBorde"] = "dentro de la vaina de Nia (una sala redonda de ~8 studs): el plano de situación no cabe sin cortar un poco a quien está junto a la pared; el siguiente plano ya es el suyo",
 	-- v125.6 (cámara con sentido común: tope de cenital 45°, distancia mínima del plano): lo que queda
 	["Adu03_Reencuentro#20 Banco|PrimerPlano:Nico|CortadoEnBorde"] = "(v125.6) corrillo: al bajar la cámara de un cenital alguien queda cortado en el borde; el ajuste elige el que menos corta",
 	["Aliado_Gnomos#7 Consejo|PrimerPlano:Gnomo3|CortadoEnBorde"] = "(v125.6) corrillo: al bajar la cámara de un cenital alguien queda cortado en el borde; el ajuste elige el que menos corta",
-	["Bebe_AprendeACaminar#4 Bebe_PrimerosPasosAbu|PrimerPlano:Yo|MuyCerca"] = "(v125.6, comprobación nueva) sala pequeña o corrillo: el ajuste no puede alejar la cámara sin meterla en una pared o detrás de alguien",
 	["Bebe_AprendeACaminar#4 Bebe_PrimerosPasosAbu|Reaccion:Yo|MuyCerca"] = "(v125.6, comprobación nueva) sala pequeña o corrillo: el ajuste no puede alejar la cámara sin meterla en una pared o detrás de alguien",
 	["Bebe_ExploraLaCasa#5 Bebe_Casa_G2_Fin|Reaccion:Yo|MuyCerca"] = "(v125.6, comprobación nueva) sala pequeña o corrillo: el ajuste no puede alejar la cámara sin meterla en una pared o detrás de alguien",
 	["Cole01_PrimerDia#24 Cole01_Bienvenida|PrimerPlano:Sara|Cenital"] = "(v125.6, tope 45°) corrillo apretado: el único giro sin nadie delante de la cara mira desde arriba (46-49°)",
@@ -406,7 +404,6 @@ local PENDIENTES: { [string]: string } = {
 	["Adu_Ascenso#5 Adu_Ascenso|General|CortadoEnBorde"] = "grupo apretado: ningún giro deja a todos dentro o fuera del cuadro; el ajuste elige el que menos tapa",
 	["Bebe_AprendeACaminar#4 Bebe_PrimerosPasosAbu|Hombro:Familia>Yo|Cenital"] = "último recurso del ajuste en un sitio muy estrecho (esquina de la sala)",
 	["Bebe_AprendeACaminar#4 Bebe_PrimerosPasosAbu|Seguir:Yo|CortadoEnBorde"] = "grupo apretado: ningún giro deja a todos dentro o fuera del cuadro; el ajuste elige el que menos tapa",
-	["Bebe_AprendeACaminar#4 Bebe_PrimerosPasosAbu|PrimerPlano:Yo|CortadoEnBorde"] = "grupo apretado: ningún giro deja a todos dentro o fuera del cuadro; el ajuste elige el que menos tapa",
 	["Cole03_Grupo#23 Quedada|Hombro:Yo>Sara|DeEspaldas"] = "el actor mira a otro sitio en ese momento (acotación del guion)",
 	["Cole07_Excursion#6 Cole07_G6|General:L_AutobusCole|CortadoEnBorde"] = "grupo apretado: ningún giro deja a todos dentro o fuera del cuadro; el ajuste elige el que menos tapa",
 	["Cole07_Excursion#6 Cole07_G6|General:Sitio|CortadoEnBorde"] = "grupo apretado: ningún giro deja a todos dentro o fuera del cuadro; el ajuste elige el que menos tapa",
@@ -472,7 +469,9 @@ for _, a in process.args do
 		placePath = a
 	end
 end
-placePath = placePath or process.env.CINEPLANOS_MAPA or E.buildMap()
+placePath = placePath or process.env.CINEPLANOS_MAPA
+-- (un mapa de fuera, sin lo que el servidor monta al arrancar: se le añade antes de mirar nada)
+placePath = if placePath then E.withExtras(placePath) else E.buildMap()
 local ctx = E.open(placePath)
 local t0 = os.clock()
 local scenes = E.collect(ctx)

@@ -289,6 +289,8 @@ local scenes = {
 				mood(4.2, "VecinoGrieta", "Surprise"),
 				mood(4.4, "MadreGrieta", "Fear"),
 				gesture(6, "VecinoGrieta", "Point"),
+				gesture(3.9, "MadreGrieta", "Flinch"),
+				gesture(3.95, "Cosme", "Flinch"),
 				look(0.2, "Cosme", "Grieta"),
 				mood(0.3, "Cosme", "Surprise"),
 				gesture(4.2, "Cosme", "Point"),
@@ -296,8 +298,8 @@ local scenes = {
 				look(10.4, "Cosme", "Yo"),
 			},
 			Dialogue = {
-				{ At = 0.4, S = "Cosme", T = "¿Has oído eso?", To = "Yo" },
-				{ At = 7.6, S = "Cosme", T = "Eso… antes no estaba ahí.", To = "Yo" },
+				{ At = 0.4, S = "Cosme", T = "¿Has oído eso?", To = "Yo", Mood = "Surprise", G = "LookAround" },
+				{ At = 7.6, S = "Cosme", T = "Eso… antes no estaba ahí.", To = "Yo", Mood = "Fear", G = "Recoil" },
 				{ At = 10.6, S = "Cosme", T = "A casa, criatura. Y ni una palabra.", To = "Yo", Mood = "Fear" },
 			},
 		},
@@ -379,6 +381,8 @@ local scenes = {
 				{ At = 1.3, Move = { Key = "ObreroB", To = { "Plataforma", V(12, 0, -4) }, Run = true } },
 				mood(1, "ObreroA", "Fear"),
 				mood(1.3, "ObreroB", "Fear"),
+				gesture(0.45, "Cosme", "Flinch"),
+				gesture(12.6, "Cosme", "Recoil"),
 				look(0.4, "Cosme", "Ovillo"),
 				mood(0.6, "Cosme", "Fear"),
 				look(6, "Cosme", "Lanza"),
@@ -388,8 +392,8 @@ local scenes = {
 				mood(14.8, "Cosme", "Sad"),
 			},
 			Dialogue = {
-				{ At = 9.2, S = "Cosme", T = "…Tefra. Aquí nada tenía esquinas, criatura. Nada.", To = "Yo" },
-				{ At = 15, S = "Cosme", T = "Esto no es mi casa. Esto es un cuartel.", Pause = 0.6, To = "Yo" },
+				{ At = 9.2, S = "Cosme", T = "…Tefra. Aquí nada tenía esquinas, criatura. Nada.", To = "Yo", Mood = "Sad", G = "LookAround" },
+				{ At = 15, S = "Cosme", T = "Esto no es mi casa. Esto es un cuartel.", Pause = 0.6, To = "Yo", Mood = "Sad", A = "Sad" },
 			},
 			Titles = {
 				{ At = 2.7, Text = "🌋 Tefra · Bastión Ceniza", Sub = "Saga 2 · Episodio 1: «Ceniza en Bastión»", Duration = 3 },
@@ -428,20 +432,39 @@ local function base(id: string, group: string): { [string]: any }?
 end
 
 -- Añade las pistas de `extra` (al final de cada lista) y aplica `shots` (retoques de planos por su At)
-local function layered(id: string, group: string, extra: { [string]: { any } }, shots: { [number]: { [string]: any } }?)
+-- `lines`: retoques de las frases por su número (cara —Mood—, cuerpo —G—, actuación —A—)
+local function layered(id: string, group: string, extra: { [string]: { any } }, shots: { [number]: { [string]: any } }?, lines: { [number]: { [string]: any } }?)
 	local def = base(id, group)
 	if not def then
 		return
 	end
 	def.Tracks = def.Tracks or {}
-	for track, list in extra do
-		def.Tracks[track] = def.Tracks[track] or {}
-		for _, entry in list do
-			table.insert(def.Tracks[track], entry)
+	local function add(tracks: { [string]: any }, track: string, list: { any }, always: boolean)
+		if not always and tracks[track] == nil then
+			return
 		end
-		table.sort(def.Tracks[track], function(a, b)
+		tracks[track] = tracks[track] or {}
+		for _, entry in list do
+			table.insert(tracks[track], deepCopy(entry))
+		end
+		table.sort(tracks[track], function(a, b)
 			return (a.At or 0) < (b.At or 0)
 		end)
+	end
+	for track, list in extra do
+		add(def.Tracks, track, list, true)
+		-- (una variante que trae su propia lista de esa pista la sustituye entera: también lleva las capas)
+		for _, variant in def.Variants or {} do
+			if type(variant.Tracks) == "table" then
+				add(variant.Tracks, track, list, false)
+			end
+		end
+	end
+	for index, change in lines or {} do
+		local line = (def.Tracks.Dialogue or {})[index]
+		for k, v in (if line then change else {}) do
+			line[k] = v
+		end
 	end
 	for _, shot in def.Tracks.Camera or {} do
 		local change = shots and shots[shot.At]
@@ -468,24 +491,104 @@ layered("Bebe_NacimientoCuna", "Colegio", {
 	Sound = {
 		{ At = 6.4, Play = "Whoosh", Volume = 0.35, Pitch = 1.2 },
 	},
+}, nil, {
+	[1] = { Mood = "Joy", G = "Lean" },
+	[2] = { Mood = "Joy" },
+	[3] = { Mood = "Nervous", G = "Nervous" },
+	[6] = { Mood = "Joy", G = "Hug" },
 })
 
--- BEBÉ · Primeros pasos: luz cálida que te sigue, motas en el salón, la familia con su luz principal y
--- el momento de llegar a Abu más íntimo
-layered("Bebe_PrimerosPasosAbu", "Colegio", {
-	Fx = {
-		{ At = 0, Play = "Dust", Anchor = "Sitio", Params = { Size = V(14, 6, 14) }, Seconds = 79 },
-		{ At = 0, Play = "KeyLight", Anchor = "Yo", Params = { Offset = V(2, 4, 3), Brightness = 1.2 }, Seconds = 79 },
-		{ At = 2.4, Play = "KeyLight", Anchor = "Actor:Familia", Seconds = 40 },
-		{ At = 2.4, Play = "RimLight", Anchor = "Actor:Familia", Params = { Color = Color3.fromRGB(255, 230, 190), Brightness = 1.4 }, Seconds = 40 },
+-- BEBÉ · Primeros pasos (Bebe_AprendeACaminar, paso 4), dirigida a mano: 41 s en vez de 80. Antes eran
+-- 20 frases de la familia una detrás de otra y un final con tres planos del cielo. Ahora: el gancho son tus
+-- pasos (cámara a tu altura), la sorpresa de tu familia (se echa atrás), los brazos abiertos, el «¡lo has
+-- hecho!» con su celebración, un momento íntimo con su cara de cerca y, al final, la Grieta que te espera.
+scenes.Bebe_PrimerosPasosAbu = {
+	Skippable = true,
+	Duration = 41,
+	Sting = "PrimerosPasos",
+	Anchors = {
+		A_Familia = "Place:FamiliaPadre",
+		Grieta = "Rift",
+		L_HomeSalon = "Place:HomeSalon",
+		L_Ventanal = "Place:Ventanal",
+		Sitio = "Place:FamiliaAbu",
+		Yo = "Player",
 	},
-	Light = {
-		{ At = 44, Preset = "Intima", Fade = 2, Weight = 0.6 },
+	Tracks = {
+		Camera = {
+			-- 0 · GANCHO: tus pasos, a tu altura, la cámara te acompaña
+			{ At = 0, Duration = 2.6, Shot = "Seguir:Yo", Fov = { 62, 54 } },
+			-- 2,6 · Tu familia no se lo cree (se echa atrás)
+			{ At = 2.6, Duration = 2.6, Shot = "Reaccion:Familia", Cut = "Cut" },
+			-- 5,2 · Tus pies, cerca (inserto) y el foco pasa a tu familia, al fondo
+			{ At = 5.2, Duration = 2.2, Shot = "Inserto:Yo", Rack = { "Actor:Familia" }, Cut = "Cut" },
+			-- 7,4 · Los brazos abiertos, por encima de su hombro
+			{ At = 7.4, Duration = 3, Shot = "Hombro:Familia>Yo", Cut = "Cut" },
+			-- 10,4 · El último tramo
+			{ At = 10.4, Duration = 3, Shot = "Seguir:Yo", Cut = "Cut" },
+			-- 13,4 · «¡Lo has hecho!»: su cara, celebrando
+			{ At = 13.4, Duration = 2.6, Shot = "PrimerPlano:Familia", Cut = "Cut" },
+			-- 16 · Tu reacción (el premio)
+			{ At = 16, Duration = 2.2, Shot = "Reaccion:Yo", Cut = "Cut" },
+			-- 18,2 · Abrazo
+			{ At = 18.2, Duration = 2.8, Shot = "Medio:Familia", Cut = "Cut" },
+			-- 21 · El momento íntimo: se acerca la cámara
+			{ At = 21, Duration = 3.6, Shot = "Dolly:Familia", Cut = "Cut" },
+			{ At = 24.6, Duration = 3.4, Shot = "PrimerPlano:Familia", Cut = "Cut" },
+			{ At = 28, Duration = 2.6, Shot = "PPP:Familia", Cut = "Cut" },
+			{ At = 30.6, Duration = 2.4, Shot = "Reaccion:Yo", Cut = "Cut" },
+			-- 33 · La ventana: fuera, el mundo sigue
+			{ At = 33, Duration = 3.4, Shot = "General:L_Ventanal", Cut = "Cut" },
+			-- 36,4 · Y la Grieta te espera (teleobjetivo, tiembla con el destello)
+			{ At = 36.4, Duration = 4.6, Fixed = { "Yo", V(-1.8, 3.4, 4.8), true }, Look = { "Grieta" }, Fov = { 34, 26 }, Shake = 0.15, Cut = "Whip" },
+		},
+		Actors = {
+			{ At = 0, Use = { Anchor = "A_Familia", Key = "Familia", Npc = "Familia" } },
+			look(0.2, "Familia", "Yo"),
+			mood(0.4, "Familia", "Surprise"),
+			gesture(2.8, "Familia", "Recoil"),
+			gesture(7.6, "Familia", "Hug"),
+			gesture(13.6, "Familia", "Cheer"),
+			gesture(18.4, "Familia", "Hug"),
+			mood(21, "Familia", "Calm"),
+		},
+		-- Cada frase con su cara (Mood) y su cuerpo (G); las importantes, con plano de reacción después
+		Dialogue = {
+			{ At = 0.6, S = "Familia", T = "¡Pero bueno!", To = "Yo", Mood = "Surprise", A = "Surprised" },
+			{ At = 2.8, S = "Familia", T = "¿Ya estás caminando? ¿Tú solit{o/a}?", To = "Yo", Mood = "Surprise", G = "Recoil" },
+			{ At = 7.6, S = "Familia", T = "Ven aquí. Vamos, un paso más.", To = "Yo", Mood = "Joy", G = "Hug" },
+			{ At = 13.5, S = "Familia", T = "¡Lo has hecho!", To = "Yo", Mood = "Joy", A = "Happy" },
+			{ At = 18.4, S = "Familia", T = "Mi pequeñ{o/a} explorador{/a}.", To = "Yo", Mood = "Joy", G = "Hug" },
+			{ At = 21.3, S = "Familia", T = "Parece que ayer no podías ni levantar la cabeza.", To = "Yo", Mood = "Calm", G = "Lean" },
+			{ At = 24.8, S = "Familia", T = "Prométeme una cosa. No tengas prisa.", To = "Yo", Mood = "Sad", A = "Sad" },
+			{ At = 28.2, S = "Familia", T = "Disfruta cada paso.", To = "Yo", Mood = "Joy", A = "Happy" },
+			{ At = 33.2, S = "Narrador", T = "Y mientras tú das tus primeros pasos, el mundo sigue avanzando." },
+			{ At = 37, S = "Narrador", T = "Aunque algunas cosas ya te estaban esperando." },
+		},
+		Fx = {
+			{ At = 0, Play = "Dust", Anchor = "Sitio", Params = { Size = V(14, 6, 14) }, Seconds = 36 },
+			{ At = 0, Play = "KeyLight", Anchor = "Yo", Params = { Offset = V(2, 4, 3), Brightness = 1.2 }, Seconds = 33 },
+			{ At = 2.6, Play = "KeyLight", Anchor = "Actor:Familia", Seconds = 30 },
+			{ At = 2.6, Play = "RimLight", Anchor = "Actor:Familia", Params = { Color = Color3.fromRGB(255, 230, 190), Brightness = 1.4 }, Seconds = 30 },
+			{ At = 36.4, Play = "RiftLight", Anchor = "Yo", Seconds = 4.6 },
+		},
+		Light = {
+			{ At = 0, Preset = "InteriorCalido", Fade = 1 },
+			{ At = 21, Preset = "Intima", Fade = 1.5, Weight = 0.7 },
+			{ At = 36.4, Preset = "Grieta", Fade = 0.5, Weight = 0.5 },
+		},
+		Sky = {
+			{ At = 36.8, Rift = "Flare", Seconds = 2.4, Strength = 0.9 },
+		},
+		Sound = {
+			{ At = 0.2, Play = "Ping", Volume = 0.35 },
+			{ At = 13.4, Play = "Ping", Volume = 0.45, Pitch = 1.3 },
+			{ At = 36.6, Play = "Hum", Pitch = 0.6, Volume = 0.5 },
+		},
+		Ambience = { { At = 0, Kind = "Casa" } },
+		Music = { { At = 0, Intensity = "Intima" }, { At = 33, Intensity = "Descubrimiento" } },
 	},
-	Sound = {
-		{ At = 0.4, Play = "Whoosh", Volume = 0.3, Pitch = 1.2 },
-	},
-})
+}
 
 -- SAGA 1 · La Gran Fusión: viento y polvo en la cima, fogonazo con el trueno, cascotes que caen de la
 -- raja, la luz de la Grieta recortando a Cosme y a ti, chispas en la máquina y la llegada de Cósimo con
@@ -512,6 +615,14 @@ layered("Grieta_Fusion", "Cielo", {
 	Shake = {
 		{ At = 18.9, Strength = 0.4, Seconds = 0.8 },
 	},
+	Actors = {
+		{ At = 4.5, Gesture = { Key = "Cosme", Play = "Flinch" } },
+		{ At = 18.95, Gesture = { Key = "Cosme", Play = "Recoil" } },
+	},
+	Acting = {
+		{ At = 4.5, Who = "Yo", Play = "Flinch" },
+		{ At = 18.95, Who = "Yo", Play = "Recoil" },
+	},
 	Sound = {
 		{ At = 16.9, Play = "Whoosh", Volume = 0.5 },
 		{ At = 18.9, Play = "Thunder", Volume = 0.7 },
@@ -519,6 +630,12 @@ layered("Grieta_Fusion", "Cielo", {
 }, {
 	[19.1] = { Cut = "Whip" },
 	[23.1] = { Rack = { "Actor:Cosimo" } },
+}, {
+	[1] = { Mood = "Nervous", G = "LookAround" },
+	[2] = { Mood = "Calm", G = "Lean" },
+	[3] = { Mood = "Calm", G = "Lean" },
+	[4] = { Mood = "Angry", G = "PointLite" },
+	[5] = { Mood = "Angry", G = "PointLite" },
 })
 
 return scenes

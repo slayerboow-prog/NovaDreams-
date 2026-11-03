@@ -897,7 +897,12 @@ local function playActing(run: ClientRun, d: { [string]: any })
 		end
 	end
 	for _, model in models do
-		pcall(ActorLife.play, model, d.Play, d.Duration)
+		-- (animación de cuerpo entero; o postura de Emotion —Flinch, Recoil, LookAround, Hug…—)
+		if Sequencer.ActingPlays[d.Play] then
+			pcall(ActorLife.play, model, d.Play, d.Duration)
+		else
+			pcall(ActorLife.gesture, model, d.Play, d.Duration)
+		end
 	end
 end
 

@@ -33,6 +33,8 @@ from PIL import Image, ImageDraw, ImageFont
 ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
 MAR = os.path.join(ROOT, "assets", "mar")
 REF = os.path.join(ROOT, "docs", "mar", "referencia", "ciudad-marina-dueno.png")
+NV2 = os.path.join(ROOT, "assets", "nacara-v2")  # las texturas y los ornamentos (nacara_v2_texturas.py / _ornamentos.py)
+TEXTURES = {}  # NacaraV2.Textures (del volcado)
 
 
 def rb(x, y, z):
@@ -89,7 +91,69 @@ def material(key, color, rough=0.6, emission=0.0, alpha=1.0, glass=False, image=
     return m
 
 
+def textured(variant, color, studs, metal=False, uv=False, prefix=None):
+    """La textura de Nácara v2 tal cual (color × el color de la pieza, normal, rugosidad, metal). Como un
+    MaterialVariant de Roblox: se repite cada «studs» en el mundo (proyección de caja); los ornamentos, con su UV."""
+    key = f"TX|{variant}|{tuple(round(v, 3) for v in color)}|{uv}"
+    if key in _mats:
+        return _mats[key]
+    base = os.path.join(NV2, "tex", (prefix or variant.lower()))
+    m = bpy.data.materials.new(key)
+    m.use_nodes = True
+    nt = m.node_tree
+    b = nt.nodes["Principled BSDF"]
+    if uv:
+        vec = nt.nodes.new("ShaderNodeTexCoord").outputs["UV"]
+        proj = "FLAT"
+    else:
+        geo = nt.nodes.new("ShaderNodeNewGeometry")
+        mp = nt.nodes.new("ShaderNodeVectorMath")
+        mp.operation = "SCALE"
+        mp.inputs["Scale"].default_value = 1.0 / studs
+        nt.links.new(geo.outputs["Position"], mp.inputs[0])
+        vec = mp.outputs["Vector"]
+        proj = "BOX"
+
+    def img(suffix, noncolor):
+        f = base + "_" + suffix + ".png"
+        if not os.path.exists(f):
+            return None
+        t = nt.nodes.new("ShaderNodeTexImage")
+        t.image = bpy.data.images.load(f, check_existing=True)
+        if noncolor:
+            t.image.colorspace_settings.name = "Non-Color"
+        t.projection = proj
+        t.projection_blend = 0.25
+        nt.links.new(vec, t.inputs["Vector"])
+        return t
+
+    c = img("color", False)
+    mul = nt.nodes.new("ShaderNodeMixRGB")
+    mul.blend_type = "MULTIPLY"
+    mul.inputs[0].default_value = 1.0
+    mul.inputs[2].default_value = (*lin(color), 1)
+    nt.links.new(c.outputs["Color"], mul.inputs[1])
+    nt.links.new(mul.outputs[0], b.inputs["Base Color"])
+    r = img("roughness", True)
+    if r:
+        nt.links.new(r.outputs["Color"], b.inputs["Roughness"])
+    n = img("normal", True)
+    if n:
+        nm = nt.nodes.new("ShaderNodeNormalMap")
+        nm.inputs["Strength"].default_value = 1.0
+        nt.links.new(n.outputs["Color"], nm.inputs["Color"])
+        nt.links.new(nm.outputs["Normal"], b.inputs["Normal"])
+    mt = img("metalness", True)
+    if mt:
+        nt.links.new(mt.outputs["Color"], b.inputs["Metallic"])
+    _mats[key] = m
+    return m
+
+
 def part_material(p, night):
+    v = p.get("Variant")
+    if v and v in TEXTURES and p["Material"] not in ("Neon", "Glass"):
+        return textured(v, p["Color"], TEXTURES[v]["Studs"])
     mat, c = p["Material"], p["Color"]
     t = p.get("Transparency", 0) or 0
     if mat == "Neon":
@@ -134,13 +198,43 @@ def prim(kind):
 C3 = Matrix(((1, 0, 0), (0, 0, -1), (0, 1, 0)))  # Roblox -> Blender
 
 
+_orn = {}
+
+
+def ornament_mesh(kind):
+    """La malla del ornamento (FBX de assets/nacara-v2), centrada en su caja (el pivote de una MeshPart)."""
+    if kind in _orn:
+        return _orn[kind]
+    before = set(bpy.data.objects)
+    bpy.ops.import_scene.fbx(filepath=os.path.join(NV2, kind + ".fbx"), axis_forward="-Z", axis_up="Y")
+    new = [o for o in bpy.data.objects if o not in before and o.type == "MESH"]
+    ob = new[0]
+    for o in bpy.data.objects:
+        if o not in before and o is not ob:
+            bpy.data.objects.remove(o, do_unlink=True)
+    bpy.context.view_layer.update()
+    ob.data.transform(ob.matrix_world)
+    co = np.array([v.co[:] for v in ob.data.vertices])
+    lo, hi = co.min(0), co.max(0)
+    ob.data.transform(Matrix.Translation(Vector(tuple(-(lo + hi) / 2))))
+    ext = hi - lo
+    # tamaño unidad en ejes de Roblox (X ancho, Y alto = z de Blender, Z hondo = y de Blender)
+    ob.data.transform(Matrix.Diagonal((1 / ext[0], 1 / ext[1], 1 / ext[2], 1)))
+    me = ob.data
+    me.materials.clear()
+    me.materials.append(material("base", (200, 200, 200)))
+    bpy.data.objects.remove(ob)
+    _orn[kind] = me
+    return me
+
+
 def add_part(p, coll, night):
     shape = p["Shape"] if p["Shape"] != "Mesh" else "Block"
-    me = prim(shape)
+    me = ornament_mesh(p["Ornament"]) if p.get("Ornament") else prim(shape)
     ob = bpy.data.objects.new("p", me)
     coll.objects.link(ob)
     sx, sy, sz = p["Size"]
-    if shape == "Ball":
+    if shape == "Ball" and not p.get("Ornament"):
         sx = sy = sz = min(sx, sy, sz)
     r = p["Rot"]
     R = Matrix(((r[0], r[1], r[2]), (r[3], r[4], r[5]), (r[6], r[7], r[8])))
@@ -148,7 +242,10 @@ def add_part(p, coll, night):
     m4.translation = rb(*p["Pos"])
     ob.matrix_world = m4
     ob.material_slots[0].link = "OBJECT"
-    ob.material_slots[0].material = part_material(p, night)
+    if p.get("Ornament"):
+        ob.material_slots[0].material = textured("ornamentos", p["Color"], 1, uv=True, prefix="ornamentos")
+    else:
+        ob.material_slots[0].material = part_material(p, night)
     ob.visible_shadow = p["Material"] not in ("Glass", "Neon")
     return ob
 
@@ -288,7 +385,12 @@ def terrain(ops, coll, rnd):
         if not o.data.materials:
             o.data.materials.append(material("T_base", ROCK["Basalt"], rough=0.95))
         o.material_slots[0].link = "OBJECT"
-        o.material_slots[0].material = material("T_" + mat, ROCK.get(mat, (90, 90, 100)), rough=0.95)
+        if mat == "Basalt":
+            o.material_slots[0].material = textured("RocaGastada", (150, 165, 190), 14)
+        elif mat == "Sandstone":
+            o.material_slots[0].material = textured("LosaArenisca", (190, 170, 140), 10)
+        else:
+            o.material_slots[0].material = material("T_" + mat, ROCK.get(mat, (90, 90, 100)), rough=0.95)
         o["terrain"] = op
         if o.data.users == 1:
             for p_ in o.data.polygons:
@@ -385,6 +487,9 @@ def build(data, night, focus=None, radius=None):
     _fbx.clear()
     _kitdata.clear()
     _rocks.clear()
+    _orn.clear()
+    TEXTURES.clear()
+    TEXTURES.update(data["V2"].get("Textures") or {})
     coll = bpy.context.scene.collection
     rnd = random.Random(11)
     cx, cy, cz = data["Center"]
@@ -430,10 +535,10 @@ def scene_setup(look, args, mist_start, mist_depth, w, h, exposure):
     world.use_nodes = True
     bg = world.node_tree.nodes["Background"]
     bg.inputs["Color"].default_value = (*lin(look["Ambient"]), 1)
-    bg.inputs["Strength"].default_value = 0.55
+    bg.inputs["Strength"].default_value = 0.8
     scene.world = world
     moon = bpy.data.lights.new("luna", "SUN")
-    moon.energy = 0.9
+    moon.energy = 1.6
     moon.color = lin((150, 190, 255))
     moon.angle = math.radians(12)
     so = bpy.data.objects.new("luna", moon)
@@ -545,11 +650,12 @@ def label(path, text, tags=None, title=None):
 
 # Vistas a la altura del jugador (coordenadas de la plaza: x, altura sobre el suelo de la plaza, z)
 FRAMES = [
-    ("1", "Palacio Real desde la salida norte de la Plaza Central", (-34, 16, -62), (5, 44, -152), "Palacio", 230),
-    ("2", "Mercado Submarino: puestos, toldos y farolillos", (-284, 18, -98), (-326, 14, -142), "Mercado", 170),
-    ("3", "Acuario Gigante desde el este", (-36, 18, 176), (-117, 20, 158), "Acuario", 200),
-    ("4", "Templo de los Sirenos desde la ciudad", (378, 16, -66), (444, 26, -87), "Templo", 190),
+    ("1", "Palacio Real: nácar, oro, capiteles y la gran cúpula", (-34, 26, -86), (5, 30, -152), "Palacio", 230),
+    ("2", "Mercado Submarino: puestos de coral tallado, toldos de kelp trenzado y farolillos", (-298, 15, -108), (-326, 11, -140), "Mercado", 170),
+    ("3", "Acuario Gigante: zócalo de mosaico y la cúpula", (-58, 15, 172), (-117, 16, 158), "Acuario", 200),
+    ("4", "Templo de los Sirenos: coral tallado, tejado de mosaico y agujas de oro", (404, 14, -72), (444, 20, -87), "Templo", 190),
     ("5", "Puerto de Sirenas y Jardines de Coral", (268, 18, 92), (318, 10, 140), "Puerto", 220),
+    ("6", "De cerca: la Universidad Marina (columnas, frisos, marcos de oro, percebes)", (180, 17, -270), (171, 12, -318), "Universidad", 160),
 ]
 
 
@@ -599,7 +705,7 @@ def main():
         d = by[focus]
         build(data, True, (data["Center"][0] + d["X"], data["Center"][2] + d["Z"]), radius + 160)
         W = args.ancho
-        scene = scene_setup(look, args, 25.0, float(look.get("Visibility", 216)) * 1.15, W, W * 9 // 16, 1.1)
+        scene = scene_setup(look, args, 25.0, float(look.get("Visibility", 216)) * 1.15, W, W * 9 // 16, 1.3)
         camera(scene, data, cam, tgt, 70)
         out = os.path.join(args.outdir, f"vista-{fid}.jpg")
         render(scene, out)

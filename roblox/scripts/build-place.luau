@@ -196,6 +196,38 @@ do
 	end
 end
 
+-- (Nácara v2) Los MaterialVariant «NV2_<Textura>» (shared/Sea/NacaraV2.Textures) con las texturas de
+-- assets/nacara-v2/tex (las sube scripts/upload-nacara-v2.sh: shared/Sea/NacaraV2AssetIds; su imagen,
+-- shared/TextureImageIds). Sin ids, no se crea nada: Nácara v2 (apagado) se queda con sus colores lisos.
+do
+	local seaTree = rawget(sharedTree, "Sea")
+	local NacaraV2 = requireModule(rawget(seaTree, "NacaraV2"))
+	local tex = (requireModule(rawget(seaTree, "NacaraV2AssetIds")).Texturas or {}) :: { [string]: string }
+	local function image(key: string): string?
+		local value = tex[key]
+		local n = type(value) == "string" and (value:match("(%d+)%s*$") or value:match("id=(%d+)"))
+		return if n and imageOf[n] then imageOf[n] else nil
+	end
+	for name, set in NacaraV2.Textures do
+		local key = string.lower(name)
+		local color = image(key .. "_color")
+		if color then
+			local variant = materialService:FindFirstChild(NacaraV2.VariantPrefix .. name) or roblox.Instance.new("MaterialVariant")
+			variant.Name = NacaraV2.VariantPrefix .. name
+			variant.BaseMaterial = (roblox.Enum.Material :: any)[set.Base]
+			variant.StudsPerTile = set.Studs
+			pcall(function()
+				variant.MaterialPattern = roblox.Enum.MaterialPattern.Regular
+			end)
+			variant.ColorMap = color
+			variant.NormalMap = image(key .. "_normal") or ""
+			variant.RoughnessMap = image(key .. "_roughness") or ""
+			variant.MetalnessMap = image(key .. "_metalness") or ""
+			variant.Parent = materialService
+		end
+	end
+end
+
 local count = 0
 for _, d in town:GetDescendants() do
 	if d:IsA("BasePart") then
