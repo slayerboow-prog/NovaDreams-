@@ -720,7 +720,7 @@ function TownBuilder.build(): Folder
 	require(Kit.Districts).finish(world, Region.centers())
 	-- Repaso final: que ninguna moldura, bordillo o cristalera parpadee contra la pared de detrás
 	-- (varias pasadas: al crecer una pieza puede quedar a ras de otra)
-	for _ = 1, 4 do
+	for _ = 1, 8 do
 		if require(Kit.Polish).fixCoplanar(world) == 0 then
 			break
 		end

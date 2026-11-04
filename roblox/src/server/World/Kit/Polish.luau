@@ -12,7 +12,7 @@ local GROW = 0.06 -- total en el eje (0,03 por cada lado)
 local EPS = 0.02 -- dos caras a menos de esto se consideran el mismo plano
 local CELL = 40 -- tamaño de las celdas para buscar parejas cercanas
 
-type Face = { Part: BasePart, A: number, U0: number, U1: number, V0: number, V1: number }
+type Face = { Part: BasePart, A: number, At: number, U0: number, U1: number, V0: number, V1: number }
 
 -- Caja alineada con los ejes de una pieza (solo si no está girada en ángulos raros)
 local function box(part: BasePart): (Vector3?, Vector3?)
@@ -51,8 +51,8 @@ local function differs(a: BasePart, b: BasePart): boolean
 end
 
 function Polish.fixCoplanar(root: Instance): number
-	-- Agrupa las caras por plano: (eje, sentido, posición redondeada)
-	local planes: { [string]: { Face } } = {}
+	-- Agrupa las caras por plano: (eje, sentido) y, dentro, por posición redondeada
+	local planes: { [string]: { [number]: { Face } } } = {}
 	for _, part in root:GetDescendants() do
 		if part:IsA("Part") and part.Shape == Enum.PartType.Block and part.Transparency < 0.95 then
 			local lo, hi = box(part)
@@ -62,15 +62,18 @@ function Polish.fixCoplanar(root: Instance): number
 					local v = if axis == 3 then 2 else 3
 					for side = -1, 1, 2 do
 						local at = axisValue(if side < 0 then lo else hi, axis)
-						local key = axis .. ":" .. side .. ":" .. math.floor(at / EPS + 0.5)
-						local list = planes[key]
+						local key = axis .. ":" .. side
+						local n = math.floor(at / EPS + 0.5)
+						planes[key] = planes[key] or {}
+						local list = planes[key][n]
 						if not list then
 							list = {}
-							planes[key] = list
+							planes[key][n] = list
 						end
 						table.insert(list, {
 							Part = part,
 							A = axis,
+							At = at,
 							U0 = axisValue(lo, u),
 							U1 = axisValue(hi, u),
 							V0 = axisValue(lo, v),
@@ -84,8 +87,20 @@ function Polish.fixCoplanar(root: Instance): number
 
 	-- Busca parejas que se solapan y decide qué pieza crece (la de menor volumen)
 	local grow: { [BasePart]: { [number]: boolean } } = {}
-	for _, list in planes do
-		if #list > 1 then
+	local cover: { [BasePart]: { [number]: boolean } } = {} -- las que tapan a una más pequeña en ese eje
+	for _, byPos in planes do
+		for n, own in byPos do
+			-- (también con las caras de la casilla de al lado: tras crecer 0,03, muchas caras caen justo
+			-- en el borde entre dos casillas y un redondeo de nada las separaba, así que seguían a ras)
+			local next = byPos[n + 1]
+			local list = own
+			if next then
+				list = table.clone(own)
+				table.move(next, 1, #next, #list + 1, list)
+			end
+			if #list < 2 then
+				continue
+			end
 			local grid: { [string]: { Face } } = {}
 			for _, f in list do
 				for gu = math.floor(f.U0 / CELL), math.floor(f.U1 / CELL) do
@@ -103,11 +118,14 @@ function Polish.fixCoplanar(root: Instance): number
 						local b = cell[j]
 						local w = math.min(a.U1, b.U1) - math.max(a.U0, b.U0)
 						local h = math.min(a.V1, b.V1) - math.max(a.V0, b.V0)
-						if w > 0.05 and h > 0.05 and differs(a.Part, b.Part) then
+						if w > 0.05 and h > 0.05 and math.abs(a.At - b.At) < EPS and differs(a.Part, b.Part) then
 							local sa, sb = a.Part.Size, b.Part.Size
-							local small = if sa.X * sa.Y * sa.Z <= sb.X * sb.Y * sb.Z then a.Part else b.Part
+							local aSmall = sa.X * sa.Y * sa.Z <= sb.X * sb.Y * sb.Z
+							local small, big = if aSmall then a.Part else b.Part, if aSmall then b.Part else a.Part
 							grow[small] = grow[small] or {}
 							grow[small][a.A] = true
+							cover[big] = cover[big] or {}
+							cover[big][a.A] = true
 						end
 					end
 				end
@@ -115,15 +133,25 @@ function Polish.fixCoplanar(root: Instance): number
 		end
 	end
 
+	-- Una pieza que también tapa a otra más pequeña en ese eje no crece en esta pasada: si crecieran
+	-- las dos (un bordillo contra la acera, y la acera contra la calzada), seguirían a ras. Lo hará en
+	-- la siguiente, cuando la pequeña ya esté delante.
 	local count = 0
 	for part, axes in grow do
 		local size = part.Size
+		local grew = false
 		for axis in axes do
+			if cover[part] and cover[part][axis] then
+				continue
+			end
+			grew = true
 			local l = localAxis(part, axis)
 			size += if l == 1 then Vector3.new(GROW, 0, 0) elseif l == 2 then Vector3.new(0, GROW, 0) else Vector3.new(0, 0, GROW)
 		end
-		part.Size = size
-		count += 1
+		if grew then
+			part.Size = size
+			count += 1
+		end
 	end
 	return count
 end
