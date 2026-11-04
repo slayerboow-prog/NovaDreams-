@@ -199,6 +199,14 @@ function NaveLoader.start(): boolean
 			NaveLoader.Status = "respaldo: sin ids"
 			return false
 		end
+		-- Las texturas se suben como Decal: hay que pasarlas a id de imagen o la SurfaceAppearance no
+		-- carga («Asset type does not match requested type») y la nave sale sin chapa
+		if type(ids.Texturas) == "table" then
+			local Images = require(ReplicatedStorage.Shared.Images)
+			pcall(Images.resolve, ids.Texturas)
+			ids = table.clone(ids)
+			ids.Texturas = Images.map(ids.Texturas)
+		end
 		local AssetLoader = require(script.Parent.AssetLoader)
 		local folder, why = NaveLoader.prepare(ids, AssetLoader.download)
 		if not folder then

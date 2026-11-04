@@ -76,6 +76,21 @@ pcall(function()
 		end
 	end
 end)
+-- (la nave realista —shared/AirCombat/NaveAssetIds.Texturas, scripts/upload-nave.sh— también: World/NaveLoader
+-- pone sus mapas en la SurfaceAppearance o en el TextureID y con el id del Decal no se ven)
+pcall(function()
+	local module = Cloud.Shared:WaitForChild("AirCombat"):FindFirstChild("NaveAssetIds")
+	if not module then
+		return
+	end
+	for _, value in (require(module) :: any).Texturas or {} do
+		local n = numberOf(value)
+		if n and not seen[n] then
+			seen[n] = true
+			table.insert(pending, n)
+		end
+	end
+end)
 table.sort(pending)
 
 local found: { [string]: string } = {}
