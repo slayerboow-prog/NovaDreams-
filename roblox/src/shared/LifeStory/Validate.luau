@@ -46,9 +46,22 @@ Validate.MaxWaitGameMinutes = 12 * 60 -- una espera no pasa de medio día de jue
 Validate.MaxWaitSeconds = 600 -- ni de 10 minutos reales, pase lo que pase con el reloj
 
 -- ¿Lo traen los sistemas de siempre (sin escena)? Compañeros y profes del colegio (SchoolService,
--- atributo StoryNpc) y la familia de casa (BabyService, marcas FamilySpot).
+-- atributo StoryNpc), la familia de casa (BabyService, marcas FamilySpot) y los Hondarios de Nácara
+-- (SeaCivService.worldActor: la gente de shared/Sea/Civ, Ilun, Oriana y tu Sargo).
+local SEA_EXTRA = { Ilun = true, Oriana = true, Sargo = true }
+local seaPeople: { [string]: any }? = nil
+local function livesAtSea(npc: string): boolean
+	if SEA_EXTRA[npc] then
+		return true
+	end
+	if seaPeople == nil then
+		local ok, Civ = pcall(require, (script.Parent.Parent :: any).Sea.Civ)
+		seaPeople = if ok and type(Civ) == "table" and type(Civ.PersonById) == "table" then Civ.PersonById else {}
+	end
+	return (seaPeople :: any)[npc] ~= nil
+end
 function Validate.ambientNpc(npc: any): boolean
-	return type(npc) == "string" and (SchoolLife.livesAtSchool(npc) or npc:sub(1, 8) == "Familia_")
+	return type(npc) == "string" and (SchoolLife.livesAtSchool(npc) or npc:sub(1, 8) == "Familia_" or livesAtSea(npc))
 end
 
 -- Qué colegio le toca a cada etapa (para las clases) y a qué sitios con horario no se manda a nadie
