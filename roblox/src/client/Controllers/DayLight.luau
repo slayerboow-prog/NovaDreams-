@@ -586,7 +586,12 @@ end
 function DayLight.init()
 	-- La iluminación «Future» (luces con sombras, reflejos) va en el archivo del juego
 	-- (default.project.json); desde un script no se puede cambiar: aquí solo se avisa si no está.
-	if Lighting.Technology ~= Enum.Technology.Future then
+	-- (con pcall: hoy un script no puede LEER Lighting.Technology —«lacking capability RobloxScript»,
+	-- Studio v133— y ese error paraba DayLight.init entero: sin ciclo de día y noche)
+	local okTech, technology = pcall(function()
+		return Lighting.Technology
+	end)
+	if okTech and technology ~= Enum.Technology.Future then
 		warn("[DayLight] Lighting.Technology no es Future: revisa default.project.json")
 	end
 	local since = UPDATE_EVERY
