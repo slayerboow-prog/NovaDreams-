@@ -33,12 +33,15 @@ local function wetAmount(): number
 	return if type(wet) == "number" then wet else 0
 end
 
+-- (también LEER el mapa va con pcall: en algunos variants un script no puede leer NormalMap —«lacking
+-- capability Plugin», Studio v133— y ese error paraba MaterialDetail.init entero: sin césped, sin
+-- niveles de detalle y sin repaso de distancia)
 local function setMap(v: any, property: string, want: string)
-	if v[property] ~= want then
-		pcall(function()
+	pcall(function()
+		if v[property] ~= want then
 			v[property] = want
-		end)
-	end
+		end
+	end)
 end
 
 local function applyTo(variant: Instance, tier: Graphics.Tier)
