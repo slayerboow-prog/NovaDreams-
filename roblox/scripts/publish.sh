@@ -18,6 +18,7 @@ set -euo pipefail
 cd "$(dirname "$0")/.."
 FILE="${1:-RealLifeSimulator.rbxl}"
 : "${ROBLOX_API_KEY:?Falta ROBLOX_API_KEY}"
+ROBLOX_API_KEY="$(printf '%s' "$ROBLOX_API_KEY" | tr -d '[:space:]')" # (al pegarla en Windows se cuelan espacios y saltos de línea)
 ROBLOX_UNIVERSE_ID="${ROBLOX_UNIVERSE_ID:-10767975237}" # Heroes of History (experiencia)
 ROBLOX_PLACE_ID="${ROBLOX_PLACE_ID:-113359543879512}" # Heroes of History (lugar de inicio)
 BRANCH="${PUBLISH_BRANCH:-claude/roblox-game-d98vy8}"
@@ -82,7 +83,8 @@ upToDate
 
 URL="https://apis.roblox.com/universes/v1/${ROBLOX_UNIVERSE_ID}/places/${ROBLOX_PLACE_ID}/versions?versionType=Published"
 echo "Publicando $FILE ($(du -h "$FILE" | cut -f1)) del commit $COMMIT…"
-curl -sS --fail-with-body -X POST "$URL" \
+# (si Roblox corta la conexión a medias, se reintenta: publicar dos veces el mismo commit no hace daño)
+curl -sS --fail-with-body --retry 3 --retry-all-errors --retry-delay 15 -X POST "$URL" \
 	-H "x-api-key: ${ROBLOX_API_KEY}" \
 	-H "Content-Type: application/octet-stream" \
 	--data-binary @"$FILE"
