@@ -5231,6 +5231,11 @@ function LifeStoryService.init()
 					task.spawn(function()
 						local ok, err = pcall(function()
 							growUp(player, data, CFG.TickSeconds)
+							-- (revisando escenas en la Cinemateca, lejos de donde estabas: la historia espera;
+							-- si no, llegar al sitio de la escena contaba como llegar de verdad)
+							if player:GetAttribute("Cinemateca") then
+								return
+							end
 							tickPlayer(player, data)
 							if slow then
 								slowTick(player, data)

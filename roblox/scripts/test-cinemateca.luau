@@ -177,7 +177,10 @@ local function snapshot(value: any, seen: { [any]: boolean }?): string
 end
 local profile = H.profiles[tester]
 -- (lo único que cambia solo con el tiempo de juego: relojes de la partida; no es de las escenas)
-local CLOCKS = { { "Life", "StageSeconds" }, { "Story", "Clock" }, { "Stats", "PlaySeconds" } }
+local CLOCKS = { { "Life", "StageSeconds" }, { "Story", "Clock" }, { "Story", "LastSeen" }, { "Stats", "PlaySeconds" } }
+-- (antes de la foto, una revisión lenta de la historia: la que descubre el barrio donde ya estás. Si no,
+-- llegaba en mitad de las escenas y parecía que la Cinemateca había cambiado la partida)
+task.wait(H.Config.LifeStory.RefreshSeconds + 0.6)
 local function photo(): string
 	local saved = {}
 	for i, path in CLOCKS do
@@ -253,6 +256,27 @@ check(#bad == 0, ("se pueden poner todas (%d puestas)%s"):format(played, if #bad
 local after = photo()
 local changed = changedParts()
 check(after == before, "SANDBOX: después de verlas todas, la partida es EXACTAMENTE la misma (historia, marcas, dinero, mochila, memoria del mundo)" .. (if after ~= before then ": cambia " .. table.concat(changed, ", ") else ""))
+-- Lejos de donde estabas (en el sitio de una escena), la historia no te da por llegado: sin barrios
+-- descubiertos ni misiones que empiezan solas al llegar. Al volver, todo sigue como siempre.
+local talk = 1
+for _, e in list do
+	if e.Kind == "Conversación" then
+		talk = e.Index -- (una conversación: sigue en marcha justo después de ponerla)
+		break
+	end
+end
+Cine.play(tester, talk)
+check(#moves > 0 and tester:GetAttribute("Cinemateca") == true, "al llevarte al sitio de la escena, se marca que estás en la Cinemateca")
+Cine.close(tester)
+check(tester:GetAttribute("Cinemateca") == nil, "…y al volver se quita")
+-- (en el arnés las escenas acaban en el acto: se simula estar allí lo que dura una)
+tester:SetAttribute("Cinemateca", true)
+profile.Story.Discovered["Zone:Valmar Centro"] = nil
+task.wait(H.Config.LifeStory.RefreshSeconds + 0.6)
+check(profile.Story.Discovered["Zone:Valmar Centro"] == nil, "en el sitio de la escena, la historia espera (no descubres el barrio)")
+tester:SetAttribute("Cinemateca", nil)
+task.wait(H.Config.LifeStory.RefreshSeconds + 0.6)
+check(profile.Story.Discovered["Zone:Valmar Centro"] == true, "…y al volver, sigue como siempre")
 -- (control: la misma escena SIN sandbox sí deja cráteres; así se sabe que la prueba mira de verdad)
 local Happening = H.loadModule(ROOT .. "/server/Services/HappeningService")
 Happening.play(normal, "Grieta_Caen")

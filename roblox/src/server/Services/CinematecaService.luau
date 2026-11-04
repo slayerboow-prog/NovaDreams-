@@ -191,11 +191,11 @@ local function goHome(player: Player, s: Session)
 	if s.Home and player.Parent then
 		-- (solo si te habíamos llevado a otro sitio: si sigues en casa, no se te mueve)
 		local ok, root = pcall(deps.root, player)
-		if ok and root and (root.Position - s.Home.Position).Magnitude < 1 then
-			return
+		if not (ok and root and (root.Position - s.Home.Position).Magnitude < 1) then
+			pcall(deps.teleport, player, s.Home)
 		end
-		pcall(deps.teleport, player, s.Home)
 	end
+	player:SetAttribute("Cinemateca", nil)
 end
 
 -- La escena en marcha acaba (sola, saltada o cortada): vuelta y aviso a la pantalla
@@ -255,6 +255,9 @@ function CinematecaService.play(player: Player, index: any): boolean
 		return false
 	end
 	if stage then
+		-- (lejos de donde estabas, la historia no corre: LifeStoryService no te da por llegado a los sitios
+		-- de las escenas; antes «descubrías» barrios y empezaban solas las misiones canónicas de allí)
+		player:SetAttribute("Cinemateca", true)
 		deps.stream(player, stage.Position)
 		pcall(deps.teleport, player, CFrame.new(stage.Position + Vector3.new(0, 3, 0)))
 	end
