@@ -61,6 +61,21 @@ pcall(function()
 		end
 	end
 end)
+-- (el espacio, los planetas y la nave —shared/Cosmos/EspacioTextureIds, scripts/upload-espacio.sh— también:
+-- son Decal y el «NaveCasco» del archivo salía con sus ids, «Asset type does not match requested type»)
+pcall(function()
+	local module = Cloud.Shared:WaitForChild("Cosmos"):FindFirstChild("EspacioTextureIds")
+	if not module then
+		return
+	end
+	for _, value in require(module) :: any do
+		local n = numberOf(value)
+		if n and not seen[n] then
+			seen[n] = true
+			table.insert(pending, n)
+		end
+	end
+end)
 table.sort(pending)
 
 local found: { [string]: string } = {}
