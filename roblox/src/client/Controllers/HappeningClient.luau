@@ -45,6 +45,7 @@ local CameraShots = require(ReplicatedStorage.Shared.CameraShots)
 local ActorMoods = require(ReplicatedStorage.Shared.LifeStory.ActorMoods)
 local Emotion = require(ReplicatedStorage.Shared.LifeStory.Emotion)
 local SkyMoods = require(ReplicatedStorage.Shared.SkyMoods)
+local GameClock = require(ReplicatedStorage.Shared.GameClock)
 local Strings = require(ReplicatedStorage.Shared.LifeStory.Strings)
 local SceneDirector = require(ReplicatedStorage.Shared.LifeStory.SceneDirector)
 local StageDirector = require(ReplicatedStorage.Shared.LifeStory.StageDirector)
@@ -1374,7 +1375,7 @@ local function play(payload: { [string]: any })
 		pcall(function()
 			local clock = player:GetAttribute("StoryClock")
 			if type(clock) ~= "number" then
-				clock = game:GetService("Lighting").ClockTime
+				clock = GameClock.hour() -- (la hora del juego, no la del sol)
 			end
 			local auto = SceneDirector.mood(def, clock, run.Light)
 			if auto.Ambience then
