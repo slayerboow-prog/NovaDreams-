@@ -411,10 +411,13 @@ Speech.prefetch({}, true) -- (se olvida la cola)
 clock += 61 -- (minuto nuevo: cupo entero)
 -- Pedir una que el adelanto aún está generando: se espera a esa, no se pide dos veces
 loadSeconds, loadYield = 0, 0.15
-Speech.prefetch({ { Text = "Se está generando ya.", Voice = mama } })
+-- (se cuenta desde antes del adelanto: si el hilo del adelanto aún no ha arrancado, la pide say y el
+-- adelanto ya no; si ha arrancado, say espera a esa. En los dos casos, una sola petición)
 local before2 = loads
+Speech.prefetch({ { Text = "Se está generando ya.", Voice = mama } })
 local both = Speech.say("Se está generando ya.", mama)
-check(both ~= nil and loads == before2, "si ya se está generando, se espera a esa (una sola petición)")
+task.wait(0.4)
+check(both ~= nil and loads == before2 + 1, "si ya se está generando, se espera a esa (una sola petición)")
 if both then
 	both.Stop()
 end
