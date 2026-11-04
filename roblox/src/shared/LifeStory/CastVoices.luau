@@ -227,7 +227,7 @@ local PEOPLE: { [string]: { G: string, P: number, S: number } } = {
 	DronEnjambre3 = { G = "M", P = -11, S = 0.6 },
 	-- Tálasa · Abisalia (Saga 2)
 	AlmiranteCoria = { G = "F", P = -1.6, S = 0.96 }, -- firme, nunca duda en voz alta
-	Bruma = { G = "F", P = 0.6, S = 1.08 }, -- rápida, cortante
+	Bruma = { G = "F", P = 0.75, S = 1.1 }, -- rápida, cortante (con 0,6 / 1,08 sonaba igual que RacionadoraPia)
 	NoaFerran = { G = "F", P = -0.9, S = 0.92 }, -- cansada, muy precisa
 	PatrullaConsejo1 = { G = "M", P = -0.6, S = 1.02 },
 	PatrullaConsejo2 = { G = "F", P = 0.4, S = 1.05 },
@@ -242,6 +242,15 @@ local PEOPLE: { [string]: { G: string, P: number, S: number } } = {
 	DronSeguridad1 = { G = "M", P = 10, S = 1.3 },
 	DronSeguridad2 = { G = "F", P = 10.5, S = 1.35 },
 	DronSeguridad3 = { G = "F", P = 9, S = 1.2 },
+	-- El mar · Nácara (los Hondarios: sin voz propia sonaban todos con la voz fija de su nombre)
+	Ilun = { G = "M", P = 3.2, S = 1.13 }, -- de tu edad, bocazas
+	Sargo = { G = "M", P = 1.9, S = 1.06 }, -- joven, con miedo
+	Oriana = { G = "F", P = 0.35, S = 0.97 }, -- perlera, de vuelta de todo
+	Lia = { G = "F", P = 1.15, S = 1.16 }, -- siempre con prisa
+	Bartolo = { G = "M", P = 0.55, S = 1.11 }, -- charlatán
+	GuardiaConsejo = { G = "M", P = -2.25, S = 0.95 }, -- cero ganas de bromas
+	Maresa = { G = "F", P = -3.15, S = 0.87 }, -- la Guardiana: seria y justa
+	Tome = { G = "M", P = -3.25, S = 0.79 }, -- habla despacio, como crecen las algas
 	-- Gente de las escenas que no está en el reparto
 	Chispa = { G = "F", P = 9, S = 1.2 }, -- la criatura de la estrella
 }
