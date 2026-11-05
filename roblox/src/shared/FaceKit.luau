@@ -38,6 +38,10 @@ FaceKit.ATTR_TALK = "FaceTalk"
 FaceKit.ATTR_HOST = "CaraEn"
 FaceKit.ATTR_BLOCK = "CaraBloque_"
 FaceKit.FOLDER = "EstiloBloque"
+-- Expresiones que NO alternan con la cara de hablar: la de hablar (Talk) tiene ojos y cejas tranquilos,
+-- así que con una cara triste, enfadada o asustada la expresión parpadeaba a cada sílaba. Con esas se
+-- queda quieta con su expresión mientras habla. (Cosme: solo Scared; Skeptic es su cara de hablar.)
+FaceKit.NO_TALK = { Sad = true, Angry = true, Scared = true }
 
 local function isDecal(d: Instance): boolean
 	return d:IsA("Decal") and not d:IsA("Texture")
@@ -135,8 +139,10 @@ function FaceKit.expressBlock(model: Model?, expression: string?): boolean
 	if not model or type(model:GetAttribute(FaceKit.ATTR_HOST)) ~= "string" then
 		return false
 	end
-	local image = model:GetAttribute(FaceKit.ATTR_BLOCK .. (expression or "Neutral"))
+	local shown = expression or "Neutral" -- (la expresión que de verdad se pone: si no la tiene, la neutra)
+	local image = model:GetAttribute(FaceKit.ATTR_BLOCK .. shown)
 	if type(image) ~= "string" then
+		shown = "Neutral"
 		image = model:GetAttribute(FaceKit.ATTR_BLOCK .. "Neutral")
 	end
 	if type(image) ~= "string" then
@@ -145,7 +151,7 @@ function FaceKit.expressBlock(model: Model?, expression: string?): boolean
 	if type(image) ~= "string" then
 		return false
 	end
-	local talk = model:GetAttribute(FaceKit.ATTR_BLOCK .. "Talk")
+	local talk = if not FaceKit.NO_TALK[shown] then model:GetAttribute(FaceKit.ATTR_BLOCK .. "Talk") else nil
 	return FaceKit.set(model, image, if type(talk) == "string" then talk else nil) ~= nil
 end
 

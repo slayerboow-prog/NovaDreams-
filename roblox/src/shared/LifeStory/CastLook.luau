@@ -530,7 +530,12 @@ local function setExpression(model: Model, expression: string): boolean
 		return false -- (nada subido: se queda la cara que tenía)
 	end
 	local FaceKit = require(script.Parent.Parent.FaceKit)
-	FaceKit.set(model, image, CastLook.textureId(CastLook.faceFile(key, "Talk")))
+	-- (la cara de hablar tiene los ojos y las cejas neutros: con Sad/Angry/Scared la cara parpadeaba
+	-- entre esa expresión y la neutra a cada sílaba. Ahí se queda quieta con su expresión.)
+	-- (si no tiene esa expresión, faceImage le pone la neutra: esa sí mueve la boca)
+	local shown = if table.find(faces, expression) and CastLook.textureId(CastLook.faceFile(key, expression)) then expression else "Neutral"
+	local talk = if not FaceKit.NO_TALK[shown] then CastLook.textureId(CastLook.faceFile(key, "Talk")) else nil
+	FaceKit.set(model, image, talk)
 	model:SetAttribute(CastLook.ATTR_FACE, expression)
 	return true
 end

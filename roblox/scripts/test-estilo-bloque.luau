@@ -403,6 +403,9 @@ for _, k in PILOT do
 		model:SetAttribute("Mood", "Sad")
 		CastLook.rest(model)
 		check(host.face.Texture == model:GetAttribute("CaraBloque_Sad"), "Mamá: CastLook (emoción Triste) pone su cara dibujada triste")
+		FaceKit.flap(model, true)
+		check(host.face.Texture == model:GetAttribute("CaraBloque_Sad"), "Mamá: triste y hablando, sigue con su cara triste (no parpadea a la de hablar)")
+		FaceKit.flap(model, false)
 		-- LOD del cliente
 		local rec = LOD.track(model)
 		check(rec ~= nil and #rec.Pairs >= 1, "el cliente encuentra las versiones lejanas")

@@ -271,6 +271,12 @@ for _, mode in { "dibujada", "imágenes" } do
 			local opened = d.Texture
 			CosmeLook.flap(rig, false)
 			check(opened == "rbxassetid://105" and d.Texture == "rbxassetid://102" and h:FindFirstChild("face") == d, label .. ": hablar abre la boca en el mismo Decal y al callar vuelve a su cara")
+			-- con miedo no se alterna con la cara de hablar (sus ojos son otros: parpadeaba a cada sílaba)
+			CosmeLook.setFace(rig, "Scared")
+			CosmeLook.flap(rig, true)
+			local scaredOpen = d.Texture
+			CosmeLook.flap(rig, false)
+			check(scaredOpen == "rbxassetid://104" and d.Texture == "rbxassetid://104", label .. ": con miedo, al hablar se queda con su cara (no parpadea)")
 		else
 			CosmeLook.setFace(rig, "Grin")
 			CosmeLook.flap(rig, true)

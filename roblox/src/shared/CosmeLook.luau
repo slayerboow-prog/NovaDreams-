@@ -673,7 +673,8 @@ function CosmeLook.setFace(model: Model, name: string)
 	FaceKit.cleanHead(head)
 	local id = CosmeLook.textureId(CosmeLook.FaceFiles[name])
 	if id then
-		FaceKit.set(model, id, CosmeLook.textureId(CosmeLook.FaceFiles[CosmeLook.TALK]))
+		-- (con cara de miedo no se alterna con la de hablar: parpadeaba a cada sílaba)
+		FaceKit.set(model, id, if not FaceKit.NO_TALK[name] then CosmeLook.textureId(CosmeLook.FaceFiles[CosmeLook.TALK]) else nil)
 		local gui = head:FindFirstChild("CosmeCara")
 		if gui and gui:IsA("SurfaceGui") then
 			gui.Enabled = false
@@ -708,6 +709,9 @@ function CosmeLook.flap(model: Model, open: boolean)
 		return
 	end
 	local current = model:GetAttribute("CosmeFace")
+	if open and type(current) == "string" and FaceKit.NO_TALK[current] then
+		return -- (con cara de miedo se queda con su cara: no parpadea)
+	end
 	local show = if open then CosmeLook.TALK elseif type(current) == "string" then current else "Grin"
 	for _, child in gui:GetChildren() do
 		if child:IsA("Frame") then
