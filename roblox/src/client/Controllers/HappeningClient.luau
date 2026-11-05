@@ -93,6 +93,7 @@ type ClientRun = {
 	ActorCache: { [string]: CFrame },
 	Impulses: { { [string]: any } },
 	Stopped: boolean,
+	PrevFov: number?, -- (el campo de visión de antes de la escena: startWait con Control = "Player")
 	Skipped: boolean,
 	SkyLayer: string?,
 	Waiting: { [string]: any }?,
@@ -1124,7 +1125,8 @@ local function startWait(run: ClientRun, w: { [string]: any })
 		run.Free = true
 		setControls(true)
 		pcall(function()
-			require(script.Parent.CineCamera).restore(nil)
+			-- (con tu campo de visión de antes de la escena: si no, andabas con el zoom del último plano)
+			require(script.Parent.CineCamera).restore(nil, { Fov = run.PrevFov })
 		end)
 		if ui and ui.Top then
 			TweenService:Create(ui.Top, TweenInfo.new(0.4), { Size = UDim2.fromScale(1, 0) }):Play()
@@ -1340,6 +1342,7 @@ local function play(payload: { [string]: any })
 	local cinematic = not run.Light and not run.Spectator
 	local camera = workspace.CurrentCamera
 	local previousFov = camera.FieldOfView
+	run.PrevFov = previousFov -- (para devolverlo cuando la escena te deja mandar un momento: startWait)
 	local previousCFrame = camera.CFrame
 	local restoreGuis: (() -> ())? = nil
 	local audio: any = nil
