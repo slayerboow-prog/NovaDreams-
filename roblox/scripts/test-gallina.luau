@@ -220,7 +220,9 @@ check(swing > 0.3 and steps >= 4, ("corriendo mueve las patas y da pasos que se 
 
 ---------------------------------------------------------------------
 print("\n▶ La misión «La gallina de seis metros» (Loco_N3_Pollo)")
-local Locations = load("src/shared/LifeStory/Locations.luau")
+-- (Locations pide con require a Cosmos/TefraCity, Cosmos/PlanetRegistry y Sea/Civ: se carga con
+-- scripts/lib/ModuleLoader, que da script.Parent y require como en Roblox)
+local Locations = require("./lib/ModuleLoader").load("src/shared/LifeStory/Locations")
 local Cast = load("src/shared/LifeStory/Cast.luau")
 local quests = load("src/shared/LifeStory/Misiones/Loco_Nino.luau")
 local N3
