@@ -1531,6 +1531,35 @@ do
 end
 
 do
+	-- Una escena del motor con cámara que empieza con una conversación YA abierta (Effects.Scene sin
+	-- parar la historia): la caja se aparta (la escena la esconde) y los toques no pasan frases que no
+	-- se ven; al acabar la escena, la conversación sigue donde estaba
+	show({ "Primera frase.", "Segunda frase.", "Tercera frase." })
+	waitUntil(function()
+		return DialogueUI.isOpen()
+	end, 3)
+	press() -- (la primera frase, entera)
+	task.wait(0.8)
+	local textBefore = DialogueUI._view().Text
+	local textDuring, stillOpen = nil, false
+	local seconds = playHappening("P10_ZoomCerca", function(run)
+		task.wait(0.6)
+		for _ = 1, 4 do
+			press() -- (despacio: más que TAP_GUARD, como alguien que toca la pantalla)
+			task.wait(0.7)
+		end
+		textDuring = DialogueUI._view().Text
+		stillOpen = DialogueUI.isOpen()
+		happeningRemote.OnClientEvent:Fire("Stop", { Run = run, Skipped = true })
+	end)
+	check(seconds > 0 and stillOpen and textDuring == textBefore,
+		("Escena con cámara sobre una conversación abierta: tocar no pasa las frases escondidas («%s» → «%s»)"):format(tostring(textBefore), tostring(textDuring)))
+	readUntilClosed(8)
+	task.wait(2)
+	restoredCheck("…y al acabar la escena y la conversación, todo vuelve")
+end
+
+do
 	-- Las escenas de verdad: empezar y saltar
 	local bad, count = {}, 0
 	for id in all do

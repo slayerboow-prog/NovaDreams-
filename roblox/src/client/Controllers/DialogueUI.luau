@@ -110,6 +110,17 @@ local lineSerial = 0
 local BUBBLE_DISTANCE = 55
 local open = false
 local savedCamera: { Type: Enum.CameraType, CFrame: CFrame?, Fov: number? }? = nil
+-- ¿Hay una escena moviendo la cámara (vieja o del motor)? Entonces la caja se aparta: ni cámara ni toques
+-- (con Cinematics.isOnScreen solo se veían las de siempre: HappeningClient.cameraOnScreen)
+local function sceneCamera(): boolean
+	if Cinematics.isOnScreen() then
+		return true
+	end
+	local ok, on = pcall(function()
+		return require(script.Parent.HappeningClient).cameraOnScreen()
+	end)
+	return ok and on == true
+end
 -- Cómo estaba la cámara antes de la conversación. Si aún es la de una escena (Scriptable: la escena
 -- acaba de parar y está recogiendo, o la dejó así), NO es «la de antes»: se guardaba el plano y el
 -- zoom de la escena y al cerrar se quedaban puestos para siempre. Entonces: detrás de ti, zoom normal.
@@ -186,7 +197,7 @@ local function startCameraLoop()
 		if not current then
 			return
 		end
-		if Cinematics.isOnScreen() then
+		if sceneCamera() then
 			pausedByScene = true -- (durante una escena de cámara manda la escena)
 			return
 		end
@@ -639,7 +650,7 @@ local function restoreCamera(smooth: boolean?)
 		savedCamera = nil
 		-- Si hay una escena de cámara en pantalla, ella devuelve la cámara al acabar. (Una que solo
 		-- espera turno en la cola aún no tiene la cámara: si se atasca —H4— nadie la devolvería.)
-		if Cinematics.isOnScreen() then
+		if sceneCamera() then
 			return
 		end
 		local ok = pcall(function()
@@ -1402,7 +1413,7 @@ local function ask(prompt: string?, options: { string }, staged: boolean?, by: {
 	ContextActionService:BindActionAtPriority("DialogueOptions", function(_, state, input)
 		if state == Enum.UserInputState.Begin then
 			local index = table.find(keys, input.KeyCode)
-			if index and index <= #options and not chosen and not Cinematics.isOnScreen() then
+			if index and index <= #options and not chosen and not sceneCamera() then
 				chosen = index
 				picked:Fire()
 			end
@@ -1768,7 +1779,7 @@ function DialogueUI.init()
 	end)
 	UserInputService.InputBegan:Connect(function(input, processed)
 		-- (durante una escena de cine la caja está escondida: no se pasan frases que no se ven)
-		if not open or optionsFrame.Visible or Cinematics.isOnScreen() then
+		if not open or optionsFrame.Visible or sceneCamera() then
 			return
 		end
 		-- (escribiendo en el chat: las teclas son para el chat, no para pasar frases)
@@ -1786,7 +1797,7 @@ function DialogueUI.init()
 	end)
 	-- Tocar la caja: si está escribiendo, termina la línea; si no, pasa a la siguiente
 	box.MouseButton1Down:Connect(function()
-		if optionsFrame.Visible or Cinematics.isOnScreen() then
+		if optionsFrame.Visible or sceneCamera() then
 			return
 		end
 		DialogueUI.tap()

@@ -94,6 +94,7 @@ type ClientRun = {
 	Impulses: { { [string]: any } },
 	Stopped: boolean,
 	PrevFov: number?, -- (el campo de visión de antes de la escena: startWait con Control = "Player")
+	CameraCounted: boolean?, -- (lleva la cámara en tu pantalla ahora: cuenta en onScreen)
 	Skipped: boolean,
 	SkyLayer: string?,
 	Waiting: { [string]: any }?,
@@ -1216,6 +1217,18 @@ end
 function HappeningClient.legacyOnScreen(): boolean
 	return legacyOnScreen > 0
 end
+-- ¿Hay AHORA una escena (vieja o del motor) moviendo la cámara de tu pantalla? (no cuentan las ligeras,
+-- las de espectador ni los ratos en que te deja mandar a ti). La caja de diálogo se aparta con esto:
+-- con Cinematics.isOnScreen solo veía las de siempre, y si una escena del motor empezaba con una
+-- conversación abierta, las dos movían la cámara a la vez y los toques pasaban frases escondidas.
+function HappeningClient.cameraOnScreen(): boolean
+	for _, run in runs do
+		if run.CameraCounted and not run.Stopped and not run.Free then
+			return true
+		end
+	end
+	return false
+end
 -- Salta las escenas de las de siempre que estén en pantalla (como el botón «Saltar»): el puente
 -- Controllers/Cinematics.interrupt
 function HappeningClient.skipLegacy(): boolean
@@ -1354,6 +1367,7 @@ local function play(payload: { [string]: any })
 	end
 	if cinematic then
 		onScreen += 1
+		run.CameraCounted = true -- (HappeningClient.cameraOnScreen)
 		if def.Legacy == true then
 			legacyOnScreen += 1
 			run.LegacyCounted = true
@@ -1706,6 +1720,7 @@ local function play(payload: { [string]: any })
 		if audio then
 			pcall(audio.cinematicEnd)
 		end
+		run.CameraCounted = nil
 		onScreen = math.max(0, onScreen - 1)
 		if run.LegacyCounted then
 			run.LegacyCounted = nil
