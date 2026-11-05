@@ -464,7 +464,7 @@ efecto) cortaba la escena entera.
 8. **Voces que llegan tarde (H1/H2).** Con el cupo de voces de Roblox (7 frases nuevas por minuto
    jugando solo) una voz podía sonar mucho después de su subtítulo. Ahora, si llega tarde, **no se dice**
    y el subtítulo sale igual: en una escena, si llega pasada la mitad del tiempo que la frase está en
-   pantalla (mínimo 1,2 s); en una conversación, si llega más de 6 s tarde (`StoryAudio.lateLimit`, pasado
+   pantalla (mínimo 1,2 s); en una conversación, sin tope: la frase sigue en la caja y al pasar la corta `Cancelled` (antes 6 s, que dejaba mudas frases en pantalla; `StoryAudio.lateLimit`, pasado
    a `Speech.say` como `MaxDelay`). La voz se queda generada: si la frase se repite, suena a tiempo. El
    texto **nunca** espera a la voz más de lo que ya esperaba (0,6 s).
 9. La vuelta suave de la cámara (`CineCamera.restore`) ya devolvía la cámara si fallaba; ahora además
@@ -484,7 +484,7 @@ efecto) cortaba la escena entera.
 |---|---|
 | `test-cinematic` sección 5 | Se hace fallar **a propósito** cada paso (`SceneReport.Inject`) y se comprueba que se avisa con su fuente, paso y tipo, que la escena termina (o sigue sin ese paso) y que **todo vuelve** (controles, cámara, campo de visión, HUD, `InCinematic`, `InDialogue`, nombres): cinemáticas viejas en Shot, Line, Title, Anim y Play; escenas del motor en Shot, Lines, Titles, Fx, Sound, Play y Compile; la espera que el servidor nunca acaba (Watchdog) y que una espera normal **no** se acaba antes; conversaciones en Line, Open y Ask (se avisa, se cierra y pide «Again»), que se retoma cuando el servidor la reenvía, que una frase rota se salta y la conversación sigue, que el plano roto no impide leerla; H4 con una cinemática atascada en cola; la vuelta suave de la cámara rota; la red de seguridad (devuelve cámara, controles, giro, interfaz y marcas sin escena, y no toca nada con una escena en pantalla); el límite de avisos; y que ningún aviso lleva el nombre ni el id del jugador |
 | `test-stagedirector` sección 8 y 11 | `DialogueService.again` (reenvía solo SU conversación, como mucho 2 veces); `SceneFaults` (limpia nombre, id, rutas y saltos de línea, corta sin romper letras, rechaza fuentes raras); `SceneErrorLog` (log `SCENE` sin datos del jugador, límite por jugador y por servidor, contadores, inválidos, sin DataStore) |
-| `test-storyaudio` | `StoryAudio.lateLimit` (mitad del tiempo en pantalla, mínimo 1,2 s; 6 s en conversación) y que llega a `Speech.say` |
+| `test-storyaudio` | `StoryAudio.lateLimit` (mitad del tiempo en pantalla, mínimo 1,2 s; sin tope en conversación) y que llega a `Speech.say` |
 
 Resultados de esta fase: ver «Pruebas de la fase 3» abajo.
 
