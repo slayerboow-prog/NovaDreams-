@@ -633,7 +633,8 @@ function ReefZone.placements(floorFn: (number, number) -> number?): { Placement 
 		put("RocaPorosa", b[1] + 5, b[2] - 4, 3 + hash(i, 2, 37) * 2, pick(P.Rock, hash(i, 3, 38)), "Jardin", "B", { From = -3, Sink = -0.8 })
 	end
 	-- praderas en manchas (no por todas partes) y vida pequeña en la arena
-	for i = 1, 8 do
+	-- (7 manchas y no 8: con las paredes más pobladas el respaldo pasaba del tope del móvil por 9 piezas)
+	for i = 1, 7 do
 		local x = 4262 + hash(i, 4, 39) * 100
 		local z = -360 + hash(i, 5, 40) * 120
 		for k = 1, 3 do
