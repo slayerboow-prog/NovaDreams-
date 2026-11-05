@@ -162,6 +162,7 @@ type Runtime = {
 	Busy: boolean, -- una conversación, un minijuego o una clase de la historia en marcha
 	Starting: boolean?, -- esperando a que el jugador aparezca para retomar la historia
 	ChoiceSentAt: { [string]: number }, -- misión -> cuándo se mandó su ventana de decisión (0 = volver a mandarla)
+	ChoiceWindow: { [string]: number }?, -- misión -> de qué paso es la última ventana de decisión que se le mandó
 	CaughtAt: number?, -- (Escape/Fight) la última vez que te atrapó un enemigo
 	CanonSpots: { [string]: any }?, -- dónde empieza cada misión canónica (para su marca en el mapa)
 	LastHit: number?, -- (Fight) último disparo (no se puede disparar más rápido que esto)
@@ -1197,6 +1198,11 @@ local function sendChoice(player: Player, questId: string, step: { [string]: any
 	local rt = runtime[player]
 	if rt then
 		rt.ChoiceSentAt[questId] = os.clock()
+		-- (de qué paso es la ventana: una decisión que se toma en el mundo solo se acepta por ventana
+		-- si se le mandó, en el plan B; si no, había que ir hasta el sitio o la persona)
+		local prog = data and storyOf(data).Active[questId]
+		rt.ChoiceWindow = rt.ChoiceWindow or {}
+		rt.ChoiceWindow[questId] = prog and prog.Step or nil
 	end
 	send(player, "Choice", { QuestId = questId, PromptKey = step.Prompt or step.PromptKey or step.Text or step.TextKey, Options = options })
 end
@@ -4948,6 +4954,13 @@ local function onRemote(player: Player, kind: any, questId: any, value: any)
 			task.spawn(becomeReady, player)
 		end
 	elseif kind == "Choose" and type(questId) == "string" and type(value) == "string" then
+		-- Una decisión que se toma en el mundo (sentarte en un sitio, ir con alguien) no se acepta por
+		-- ventana si no se le mandó la ventana de ESTE paso: si no, se elegía sin moverse
+		local prog = story.Active[questId]
+		local step = prog and Quests[questId] and stepsOf(questId, prog)[prog.Step]
+		if step and step.Type == "Choice" and worldChoice(step) and (rt.ChoiceWindow or {})[questId] ~= prog.Step then
+			return
+		end
 		if (busy(player) or not chooseOption(player, data, questId, value)) and story.Active[questId] then
 			rt.ChoiceSentAt[questId] = 0 -- rechazada (había una conversación…): la ventana vuelve a salir luego
 		end
