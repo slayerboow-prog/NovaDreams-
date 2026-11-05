@@ -472,8 +472,14 @@ function CastLook.textureId(name: string): string?
 	if type(id) ~= "string" or id == "" then
 		return nil
 	end
+	local Images = require(script.Parent.Parent.Images)
+	-- (el servidor aún no ha mirado si es un Decal: con ese id no se vería nada. Se espera; al acabar
+	-- la carga, Main pasa CastLook.refresh por todos y se pone la buena)
+	if Images.isPending(id) then
+		return nil
+	end
 	local ok, image = pcall(function()
-		return require(script.Parent.Parent.Images).of(id)
+		return Images.of(id)
 	end)
 	return if ok and type(image) == "string" and image ~= "" then image else id
 end

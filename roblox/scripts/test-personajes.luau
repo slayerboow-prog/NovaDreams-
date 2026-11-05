@@ -226,6 +226,22 @@ sec:SetAttribute("Mood", "Angry")
 CastLook.rest(sec)
 check(sec:GetAttribute("CastFace") == "Angry" and FaceKit.mouths(sec) == 1, "un secundario sin cara de enfado pone la neutra (1 boca)")
 check(sec:FindFirstChild("Head"):FindFirstChild("face").Texture == fake[CastLook.faceFile(CastLook.spec("Paco").Key, "Neutral")], "…que es su imagen Neutral")
+do
+	-- Al arrancar el servidor, los ids de las caras aún no se han mirado (Images.expect): quien sale
+	-- antes NO se queda con la cabeza vacía (el id del Decal no se ve); espera con la suya y, al acabar
+	-- la carga (clearPending + refresh, como Main), se le pone la buena
+	local Images = L.load("src/shared/Images")
+	Images.expect(fake)
+	local early = dressed("Lucia", nil, true)
+	local head = early:FindFirstChild("Head")
+	local waited = early:GetAttribute(CastLook.ATTR_FACE) == nil and head:FindFirstChildOfClass("FaceControls") ~= nil
+	Images.clearPending()
+	CastLook.refresh(early)
+	local face = head:FindFirstChild("face")
+	check(waited, "con las caras aún sin mirar, el personaje se queda con la cara que tenía (no una vacía)")
+	check(face ~= nil and face.Texture == fake[CastLook.faceFile(CastLook.spec("Lucia").Key, "Neutral")] and FaceKit.mouths(early) == 1,
+		"…y al acabar la carga se le pone su cara (1 boca)")
+end
 CastLook._setIds(nil)
 
 ---------------------------------------------------------------------

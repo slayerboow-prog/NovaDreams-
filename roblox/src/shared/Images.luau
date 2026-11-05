@@ -81,6 +81,31 @@ function Images.map(ids: { [string]: string }): { [string]: string }
 	return out
 end
 
+-- Ids que el servidor va a resolver en cuanto pueda (Images.expect, al arrancar) y aún no ha mirado.
+-- Mientras tanto, quien pone caras (CastLook, CosmeLook) espera: con el id del Decal no se ve nada y
+-- el personaje se quedaba con la cabeza vacía, sin ojos ni boca, hasta que acababa la carga.
+local expected: { [string]: boolean } = {}
+
+function Images.expect(ids: { [string]: string })
+	for _, value in ids do
+		local n = numberOf(value)
+		if n and not cache[n] then
+			expected[n] = true
+		end
+	end
+end
+
+-- ¿Este id está esperando a que el servidor mire si es un Decal? (false si nadie lo ha pedido)
+function Images.isPending(content: string): boolean
+	local n = numberOf(content)
+	return n ~= nil and expected[n] == true and not cache[n]
+end
+
+-- Ya no se espera nada (la carga acabó o falló: con lo que haya)
+function Images.clearPending()
+	table.clear(expected)
+end
+
 -- La imagen de un Decal (nil si no es un Decal o no se puede cargar)
 local function imageOfDecal(insert: any, n: string): string?
 	local ok, model = pcall(function()
@@ -141,6 +166,7 @@ function Images.resolve(ids: { [string]: string }): number
 				target:SetAttribute("i" .. n, image)
 				converted += 1
 			end
+			expected[n] = nil -- (ya mirado: era un Decal y ya va su imagen, o ya era una imagen)
 		end
 		running -= 1
 		if running == 0 then

@@ -115,6 +115,26 @@ task.spawn(function()
 		warn("[SkyLoader] " .. tostring(err))
 	end
 end)
+-- Las caras del reparto y de Cosme: hasta que se miren sus ids (abajo, en este mismo hilo), CastLook y
+-- CosmeLook no ponen una cara que no se vería (cabeza vacía, sin ojos ni boca): esperan con la de antes
+Boot.step("ExpectFaces", function()
+	local Shared = game:GetService("ReplicatedStorage").Shared
+	local Images = require(Shared.Images)
+	Images.expect(require(Shared.CosmeTextureIds))
+	Images.expect(require(Shared.PersonajesTextureIds))
+end)
+local function refreshFaces()
+	local Shared = game:GetService("ReplicatedStorage").Shared
+	local CollectionService = game:GetService("CollectionService")
+	local CosmeLook = require(Shared.CosmeLook)
+	for _, model in CollectionService:GetTagged(CosmeLook.TAG) do
+		pcall(CosmeLook.refresh, model)
+	end
+	local CastLook = require(Shared.LifeStory.CastLook)
+	for _, model in CollectionService:GetTagged(CastLook.TAG) do
+		pcall(CastLook.refresh, model)
+	end
+end
 task.spawn(function()
 	local ok, err = pcall(function()
 		local Shared = game:GetService("ReplicatedStorage").Shared
@@ -136,21 +156,13 @@ task.spawn(function()
 		pcall(function()
 			require(script.Parent.World.PlanetWorld).setupLooks()
 		end)
-		-- Las caras y la ropa de Cosme (scripts/upload-cosme.sh): igual; al que ya esté puesto se le cambian
-		if Images.resolve(require(Shared.CosmeTextureIds)) > 0 then
-			local CosmeLook = require(Shared.CosmeLook)
-			for _, model in game:GetService("CollectionService"):GetTagged(CosmeLook.TAG) do
-				pcall(CosmeLook.refresh, model)
-			end
-		end
-		-- Las caras, la ropa y el pelo del reparto (scripts/upload-personajes.sh): igual; a los que ya
-		-- estén en escena se les pone con la imagen buena
-		if Images.resolve(require(Shared.PersonajesTextureIds)) > 0 then
-			local CastLook = require(Shared.LifeStory.CastLook)
-			for _, model in game:GetService("CollectionService"):GetTagged(CastLook.TAG) do
-				pcall(CastLook.refresh, model)
-			end
-		end
+		-- Las caras y la ropa de Cosme (scripts/upload-cosme.sh) y las caras, la ropa y el pelo del
+		-- reparto (scripts/upload-personajes.sh): igual; a los que ya estén en escena se les pone la
+		-- imagen buena. SIEMPRE, aunque no se haya convertido ninguno: los que salieron antes esperaban.
+		Images.resolve(require(Shared.CosmeTextureIds))
+		Images.resolve(require(Shared.PersonajesTextureIds))
+		Images.clearPending()
+		refreshFaces()
 		if Images.resolve(require(Shared.OutfitIds)) > 0 then
 			-- la ropa que se puso antes de acabar
 			for _, item in workspace:GetDescendants() do
@@ -164,6 +176,11 @@ task.spawn(function()
 	end)
 	if not ok then
 		warn("[Images] " .. tostring(err))
+		-- (si algo de la carga falla, las caras no se quedan esperando para siempre: con lo que haya)
+		pcall(function()
+			require(game:GetService("ReplicatedStorage").Shared.Images).clearPending()
+			refreshFaces()
+		end)
 	end
 end)
 Boot.step("RemoveGroundPart", function()
