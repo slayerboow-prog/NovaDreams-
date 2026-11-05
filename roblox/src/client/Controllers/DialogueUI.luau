@@ -109,7 +109,16 @@ local bubbleOf: Instance? = nil -- quién tiene ahora el bocadillo de la convers
 local lineSerial = 0
 local BUBBLE_DISTANCE = 55
 local open = false
-local savedCamera: { Type: Enum.CameraType, CFrame: CFrame, Fov: number? }? = nil
+local savedCamera: { Type: Enum.CameraType, CFrame: CFrame?, Fov: number? }? = nil
+-- Cómo estaba la cámara antes de la conversación. Si aún es la de una escena (Scriptable: la escena
+-- acaba de parar y está recogiendo, o la dejó así), NO es «la de antes»: se guardaba el plano y el
+-- zoom de la escena y al cerrar se quedaban puestos para siempre. Entonces: detrás de ti, zoom normal.
+local function cameraBefore(camera: Camera): { Type: Enum.CameraType, CFrame: CFrame?, Fov: number? }
+	if camera.CameraType == Enum.CameraType.Scriptable then
+		return { Type = Enum.CameraType.Custom, CFrame = nil, Fov = (CameraShots and CameraShots.DEFAULT_FOV) or 70 }
+	end
+	return { Type = camera.CameraType, CFrame = camera.CFrame, Fov = camera.FieldOfView }
+end
 local lastActorId: string? = nil -- (el id de quien te hablaba: tus respuestas se encuadran con él)
 -- Trozos de conversación ya en cola o ya contestados ("token:seq"): si el servidor reenvía uno
 -- (por si se perdió), no se enseña dos veces
@@ -385,7 +394,7 @@ local function frameShot(spec: string?, line: { [string]: any }?, from: string?,
 		a = b
 	end
 	if not savedCamera then
-		savedCamera = { Type = camera.CameraType, CFrame = camera.CFrame, Fov = camera.FieldOfView }
+		savedCamera = cameraBefore(camera)
 	end
 	camera.CameraType = Enum.CameraType.Scriptable
 	-- La primera vez la cámara viaja desde donde estaba; luego, corte (o travelling si el plano lo es)
@@ -449,7 +458,7 @@ local function frame(line: { [string]: any })
 		end
 	end
 	if not savedCamera then
-		savedCamera = { Type = camera.CameraType, CFrame = camera.CFrame, Fov = camera.FieldOfView }
+		savedCamera = cameraBefore(camera)
 	end
 	camera.CameraType = Enum.CameraType.Scriptable
 	local flat = Vector3.new(them.X - me.X, 0, them.Z - me.Z)

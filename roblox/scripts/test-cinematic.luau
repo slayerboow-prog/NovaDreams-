@@ -1101,6 +1101,14 @@ all.P10_EscenaLarga = {
 		Camera = { { At = 0, Duration = 30, Orbit = "A", Radius = 10, Height = 4, FromAngle = 0, ToAngle = 90 } },
 	},
 }
+-- Una escena del motor nuevo con un plano cerrado (zoom 40): para ver que su zoom no se queda puesto
+all.P10_ZoomCerca = {
+	Duration = 20,
+	Anchors = { A = "Player" },
+	Tracks = {
+		Camera = { { At = 0, Duration = 20, From = { "A", V(6, 3, 6) }, To = { "A", V(6.5, 3, 6) }, Look = { "A", V(0, 1, 0) }, Fov = 40 } },
+	},
+}
 -- Una «de las de siempre» corta (como las de Capitulos: Legacy, Queue, rótulo, frase y gesto de Todos)
 all.P10_Corta = {
 	Duration = 1.4,
@@ -1503,6 +1511,23 @@ do
 	readUntilClosed(6)
 	check(seconds > 0, "Escena + conversación: la escena termina")
 	restoredCheck("…y al final todo vuelve (cámara, controles, InDialogue, InCinematic)")
+end
+
+do
+	-- La conversación que llega JUSTO al acabar una escena (el servidor manda Stop y enseguida Show):
+	-- se abría mientras la escena aún recogía y guardaba su plano y su zoom como «los de antes»; al
+	-- cerrarse los dejaba puestos para siempre
+	local before = camera.FieldOfView
+	local seconds = playHappening("P10_ZoomCerca", function(run)
+		task.wait(0.6)
+		happeningRemote.OnClientEvent:Fire("Stop", { Run = run, Skipped = true })
+		show({ "Justo detrás de la escena." })
+	end)
+	readUntilClosed(8)
+	task.wait(2)
+	check(seconds > 0 and math.abs(camera.FieldOfView - before) < 1 and camera.CameraType ~= Enum.CameraType.Scriptable,
+		("Escena con zoom y conversación justo detrás: al cerrar, vuelve tu zoom (%.0f, antes %.0f) y la cámara del juego"):format(camera.FieldOfView, before))
+	restoredCheck("…y todo lo demás vuelve")
 end
 
 do
