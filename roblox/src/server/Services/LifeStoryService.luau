@@ -3899,6 +3899,17 @@ local function tickPlayer(player: Player, data: Data)
 			end
 			continue
 		end
+		-- Misión de un planeta (Requires.Planet) y no estás en él (al volver a entrar se empieza en
+		-- Valmar): sus sitios solo existen con el planeta construido, así que el vigilante los daba por
+		-- inexistentes y pasaba los pasos solo ("Al final no hace falta ir…"). Espera a que vuelvas.
+		local needPlanet = Quests[questId] and Quests[questId].Requires and Quests[questId].Requires.Planet
+		if needPlanet and player:GetAttribute("Planeta") ~= needPlanet then
+			local rt = runtime[player]
+			if rt then
+				rt.StepStart[questId] = os.clock()
+			end
+			continue
+		end
 		if watchdog(player, data, questId, prog, step) then
 			continue -- el vigilante ha arreglado un atasco (el paso cambió)
 		end
