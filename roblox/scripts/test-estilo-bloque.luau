@@ -392,6 +392,14 @@ for _, k in PILOT do
 		FaceKit.flap(model, false)
 	end
 	check(okMouth, k .. ": UNA sola boca con cada expresión y hablando")
+	if host and host.Name == "CabezaBloque" and host.Color == roblox.Color3.new(1, 1, 1) then
+		-- (cabeza blanca con la piel en su textura: poner caras no se la quita, si no sale blanca)
+		local okT, tex = pcall(function()
+			return (host :: any).TextureID
+		end)
+		local skin = host:FindFirstChildOfClass("SurfaceAppearance") ~= nil or (okT and type(tex) == "string" and tex ~= "")
+		check(skin, k .. ": tras poner todas las caras, la cabeza de bloque sigue con su piel (no blanca)")
+	end
 	if k == "Cosme" then
 		CosmeLook.setFace(model, "Laugh")
 		check(host.face.Texture == model:GetAttribute("CaraBloque_Laugh"), "Cosme: CosmeLook.setFace pone su cara dibujada (riéndose)")

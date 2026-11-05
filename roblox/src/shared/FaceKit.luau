@@ -165,8 +165,16 @@ function FaceKit.set(model: Model, image: string, talk: string?): Decal?
 	if real and real ~= head then
 		FaceKit.cleanHead(real)
 		hideFaces(real) -- (estilo bloque: la Head del R15 no se ve ni lleva cara)
+		-- La cabeza de bloque es blanca y su piel va en su SurfaceAppearance (o TextureID): cleanHead se
+		-- la quitaba y la cabeza salía blanca. Aquí solo se quitan las caras de más (otros Decal).
+		for _, child in head:GetChildren() do
+			if isDecal(child) and child.Name ~= FaceKit.DECAL then
+				child:Destroy()
+			end
+		end
+	else
+		FaceKit.cleanHead(head)
 	end
-	FaceKit.cleanHead(head)
 	local d = FaceKit.decal(head)
 	d.Texture = image
 	d.Transparency = 0
