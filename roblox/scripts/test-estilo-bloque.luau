@@ -414,6 +414,26 @@ for _, k in PILOT do
 		FaceKit.flap(model, true)
 		check(host.face.Texture == model:GetAttribute("CaraBloque_Sad"), "Mamá: triste y hablando, sigue con su cara triste (no parpadea a la de hablar)")
 		FaceKit.flap(model, false)
+		-- Al acabar de cargar las imágenes del reparto, Main vuelve a pasar CastLook.refresh por todos:
+		-- en estilo bloque no le quita su ropa de bloque ni le pone mechones (con plantillas subidas)
+		local fakeIds = { [CastLook.HAIR_FILE] = "rbxassetid://61" }
+		for _, a in { "CastShirt", "CastPants" } do
+			local style = model:GetAttribute(a)
+			if type(style) == "string" then
+				fakeIds[if a == "CastShirt" then CastLook.shirtFile(style) else CastLook.pantsFile(style)] = "rbxassetid://62"
+			end
+		end
+		CastLook._setIds(fakeIds)
+		CastLook.refresh(model)
+		CastLook._setIds(nil)
+		local mechones = 0
+		for _, d in model:GetDescendants() do
+			if d.Name == "Mechones" then
+				mechones += 1
+			end
+		end
+		check(model:FindFirstChild("BloqueCamisa") ~= nil and model:FindFirstChild("BloquePantalon") ~= nil and model:FindFirstChild("CastShirt") == nil and mechones == 0,
+			("Mamá: CastLook.refresh no le quita la ropa de bloque ni le pone mechones (%d mechones)"):format(mechones))
 		-- LOD del cliente
 		local rec = LOD.track(model)
 		check(rec ~= nil and #rec.Pairs >= 1, "el cliente encuentra las versiones lejanas")

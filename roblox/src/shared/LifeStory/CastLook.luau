@@ -663,6 +663,14 @@ function CastLook.refresh(model: Model, look: { [string]: any }?): boolean
 	end
 	local l = look or {}
 	local changed = false
+	-- Estilo bloque (World/EstiloBloqueLoader): lleva su propia ropa (BloqueCamisa/BloquePantalon) y
+	-- su pelo de bloque. Volver a vestirlo aquí le quitaba esa ropa y le ponía mechones flotando
+	-- alrededor de la cabeza: solo se le pone la cara.
+	if type(model:GetAttribute(require(script.Parent.Parent.FaceKit).ATTR_HOST)) == "string" then
+		local face = model:GetAttribute(CastLook.ATTR_FACE)
+		local mood = model:GetAttribute("Mood")
+		return setExpression(model, if type(face) == "string" then face else CastLook.faceFor(nil, if type(mood) == "string" then mood else nil))
+	end
 	local shirtStyle = model:GetAttribute("CastShirt")
 	local pantsStyle = model:GetAttribute("CastPants")
 	local function colorOf(name: string, fallback: Color3?): Color3?
