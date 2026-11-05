@@ -242,6 +242,26 @@ do
 	check(face ~= nil and face.Texture == fake[CastLook.faceFile(CastLook.spec("Lucia").Key, "Neutral")] and FaceKit.mouths(early) == 1,
 		"…y al acabar la carga se le pone su cara (1 boca)")
 end
+do
+	-- Una frase contenta y, a mitad, la escena cambia el Mood (el servidor pone la cara triste encima):
+	-- la frase sigue con su cara hasta acabar y luego queda la del Mood
+	local task = require("@lune/task")
+	local talker = dressed("Nico", nil, true)
+	talker.Parent = L.Instance.new("Folder") -- (en escena: si no, la frase no «acaba»)
+	CastLook.express(talker, "Happy", 1)
+	task.wait(0.2)
+	-- el servidor: cambia el Mood y le pone la cara triste (su escucha del Mood llama a rest)
+	talker:SetAttribute("Mood", "Sad")
+	CastLook.rest(talker)
+	local overwritten = talker:GetAttribute(CastLook.ATTR_FACE) == "Sad"
+	-- tu pantalla: llega esa cara a mitad de frase (FaceImage/CastFace cambian → keepLine)
+	CastLook.keepLine(talker)
+	local during = if overwritten then talker:GetAttribute(CastLook.ATTR_FACE) else "(no se simuló)"
+	task.wait(1.5)
+	local after = talker:GetAttribute(CastLook.ATTR_FACE)
+	check(during == "Happy", ("si el Mood cambia a mitad de frase, la cara de la frase se queda hasta acabar (%s)"):format(tostring(during)))
+	check(after == "Sad" and FaceKit.mouths(talker) == 1, ("…y al acabar la frase queda la del Mood (%s, 1 boca)"):format(tostring(after)))
+end
 CastLook._setIds(nil)
 
 ---------------------------------------------------------------------

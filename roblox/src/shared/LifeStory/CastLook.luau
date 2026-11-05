@@ -551,16 +551,47 @@ function CastLook.rest(model: Model)
 	setExpression(model, CastLook.faceFor(nil, if type(mood) == "string" then mood else nil))
 end
 
+-- La expresión de la frase que dice cada uno ahora (en la pantalla de quien la llama: ActorLife)
+local lineFace: { [Model]: { Face: string, Token: number } } = setmetatable({}, { __mode = "k" }) :: any
+local watching: { [Model]: boolean } = setmetatable({}, { __mode = "k" }) :: any
+
+-- Si está diciendo una frase, vuelve a poner la cara de la frase (lo que hace la pantalla cuando llega
+-- otra cara del servidor a mitad de frase). Si ya está puesta, no cambia nada.
+function CastLook.keepLine(model: Model)
+	local now = lineFace[model]
+	if now and model.Parent and model:GetAttribute("CastFaceToken") == now.Token then
+		setExpression(model, now.Face)
+	end
+end
+
 function CastLook.express(model: Model?, emotion: string?, seconds: number?)
 	if not model or model:GetAttribute(CastLook.ATTR_FACE) == nil then
 		return
 	end
 	local mood = model:GetAttribute("Mood")
-	setExpression(model, CastLook.faceFor(emotion, if type(mood) == "string" then mood else nil))
+	local face = CastLook.faceFor(emotion, if type(mood) == "string" then mood else nil)
+	setExpression(model, face)
 	local token = (tonumber(model:GetAttribute("CastFaceToken")) or 0) + 1
 	model:SetAttribute("CastFaceToken", token)
+	lineFace[model] = { Face = face, Token = token }
+	-- La frase va en tu pantalla, pero el Mood de la escena lo cambia el servidor: si cambia a mitad de
+	-- frase, su cara (FaceImage) llegaba por encima y la expresión saltaba antes de acabar. Mientras
+	-- dura la frase, se vuelve a poner la suya; al acabar, rest pone la del Mood.
+	if not watching[model] then
+		watching[model] = true
+		local function keep()
+			-- (en diferido: la cara del servidor llega en varios cambios —FaceImage, CastFace, la imagen
+			-- del Decal— y se vuelve a poner la de la frase cuando ya han llegado todos)
+			task.defer(CastLook.keepLine, model)
+		end
+		pcall(function()
+			model:GetAttributeChangedSignal(require(script.Parent.Parent.FaceKit).ATTR_IMAGE):Connect(keep)
+			model:GetAttributeChangedSignal(CastLook.ATTR_FACE):Connect(keep)
+		end)
+	end
 	task.delay(math.max(1, seconds or 3) + 0.3, function()
 		if model.Parent and model:GetAttribute("CastFaceToken") == token then
+			lineFace[model] = nil
 			CastLook.rest(model)
 		end
 	end)
