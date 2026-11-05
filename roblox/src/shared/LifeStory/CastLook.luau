@@ -635,6 +635,11 @@ function CastLook.apply(model: Model, id: string, variant: string?, look: { [str
 		game:GetService("CollectionService"):AddTag(model, CastLook.TAG)
 	end)
 	local changed = CastLook.refresh(model, l)
+	-- (una sola vez por personaje: si se le vuelve a vestir, no se apilan escuchas del Mood)
+	if model:GetAttribute("CastMoodHooked") then
+		return changed
+	end
+	model:SetAttribute("CastMoodHooked", true)
 	pcall(function()
 		model:GetAttributeChangedSignal("Mood"):Connect(function()
 			if model:GetAttribute(CastLook.ATTR_FACE) ~= nil then
