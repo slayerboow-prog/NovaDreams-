@@ -158,6 +158,7 @@ type Runtime = {
 	StepStart: { [string]: number }, -- misión -> cuándo empezó su paso actual (os.clock)
 	NudgedAt: { [string]: number }, -- misión -> último "¡date prisa!"
 	Fallback: { [string]: boolean }, -- misión -> ya se lanzó el plan B de este paso
+	FallbackAt: { [string]: { Step: number, Clock: number } }?, -- (cuándo se vio el plan B de ese paso: si se cortó, se repite al minuto)
 	Busy: boolean, -- una conversación, un minijuego o una clase de la historia en marcha
 	Starting: boolean?, -- esperando a que el jugador aparezca para retomar la historia
 	ChoiceSentAt: { [string]: number }, -- misión -> cuándo se mandó su ventana de decisión (0 = volver a mandarla)
@@ -3605,6 +3606,23 @@ local function stepTimers(player: Player, data: Data, questId: string, prog: Pro
 		autoChoice(player, data, questId, step)
 	end
 	if rt.Fallback[questId] then
+		-- El plan B ya salió. Si se cortó (moriste, te detuvieron, la Cinemateca) o no llegó a empezar
+		-- (había otra conversación), nadie quitaba la marca y el paso se quedaba atascado para siempre:
+		-- pasado un minuto sin conversación abierta y en el mismo paso, se vuelve a intentar.
+		rt.FallbackAt = rt.FallbackAt or {}
+		local at = rt.FallbackAt[questId]
+		if not at or at.Step ~= prog.Step then
+			rt.FallbackAt[questId] = { Step = prog.Step, Clock = os.clock() }
+			return false
+		end
+		if rt.Busy or os.clock() - at.Clock < 60 then
+			if rt.Busy then
+				at.Clock = os.clock() -- (mientras dura la conversación del plan B no corre el minuto)
+			end
+			return false
+		end
+		rt.Fallback[questId] = nil
+		rt.FallbackAt[questId] = nil
 		return false
 	end
 	-- Planes B cuando el mapa no tiene el sitio del actor o del objeto
