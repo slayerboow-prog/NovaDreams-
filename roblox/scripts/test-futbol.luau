@@ -443,7 +443,10 @@ do
 	for _, file in fs.readDir("src/shared/LifeStory/Misiones") do
 		local text = fs.readFile("src/shared/LifeStory/Misiones/" .. file)
 		for line in text:gmatch("[^\n]+") do
-			if line:find('Type = "MiniGame"') and (line:find("⚽") or line:find("🥅") or line:find("penalti") or line:find("[Pp]ase")) then
+			-- Solo el icono y el título dicen si es fútbol (en la pista sale «cuando la aguja pase por el verde»)
+			local icon = line:match('Icon = "([^"]*)"') or ""
+			local title = line:match('Title = "([^"]*)"') or ""
+			if line:find('Type = "MiniGame"') and (icon:find("⚽") or icon:find("🥅") or title:find("[Pp]enalti") or title:find("[Pp]ase")) then
 				local game = line:match('Game = "(%w+)"')
 				table.insert(found, { File = file, Game = game, Line = line })
 			end
