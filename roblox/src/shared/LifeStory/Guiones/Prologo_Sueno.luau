@@ -127,7 +127,7 @@ return {
 					{ At = 21.01, Duration = 3.7, Cut = "Dip", Fixed = { "Yo", V(1.4, 2.2, 3.6), true }, Fov = 70, Look = { "Grieta" } },
 					{ At = 24.74, Duration = 2.5, Cut = "Dip", Fixed = { "Yo", V(-1.8, 3.4, 4.8), true }, Fov = 38, Look = { "Grieta" }, Shake = 0.15 },
 					{ At = 27.24, Duration = 2, Shot = "General:L_PrologoPuerta" },
-					{ At = 29.24, Duration = 2.5, Shot = "Hombro:Cosme>Yo" },
+					{ At = 29.24, Duration = 2.5, Shot = "Lateral:Cosme" },
 					{ At = 31.74, Duration = 2.8, Shot = "Reaccion:Cosme" },
 					{
 						At = 34.54,

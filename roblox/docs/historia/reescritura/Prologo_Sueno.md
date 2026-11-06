@@ -21,7 +21,7 @@ Narrador: Y hay algo que nadie debería haber visto.
 PLANO PrimerPlano -> La Grieta | La luz vibra durante un instante.
 Narrador: La Grieta.
 PLANO General -> Garaje de Cosme | Una pequeña luz permanece encendida en el garaje de un barrio.
-PLANO Hombro -> Cosme | Cosme observa la grieta desde la ventana de su taller.
+PLANO Lateral -> Cosme | Cosme observa la grieta desde la ventana de su taller (de perfil: se le ve la cara y la mano en la frente).
 Cosme: (se lleva la mano a la frente) Otra vez no…
 PLANO Reaccion -> Cosme | Cosme intenta sonreír, pero su expresión cambia al ver otro destello.
 Cosme: Esta vez sí que la he liado.
