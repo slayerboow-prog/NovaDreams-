@@ -250,7 +250,7 @@ local function fakeModel(k: string, skip: string?, retired: string?): any
 				local mp = L.Instance.new("MeshPart")
 				mp.Name = name
 				mp.MeshId = if name == retired then "rbxassetid://136955064198663" else "rbxassetid://5" .. tostring(idx[k]) .. #name
-				mp.Size = a.Size
+				mp.Size = a.Size * 100 -- (como llega de verdad la malla subida de Blender: en cm)
 				mp.Parent = model
 			end
 		end
@@ -271,6 +271,28 @@ for _ in tpl do
 	n += 1
 end
 check(n == #keys, ("con todo subido: %d plantillas"):format(n))
+do
+	-- Cada pieza a SU tamaño (EstiloBloque, en studs), no al de la malla subida (100 veces más grande):
+	-- antes el pelo de Cosme medía 288 studs y en las escenas tapaba la cámara
+	local wrong = {}
+	for key, folder in tpl do
+		local spec = Data.Models[key]
+		local sizes = {}
+		for _, a in spec.Accessories do
+			sizes[a.Name] = a.Size
+			if a.Lod then
+				sizes[a.Lod] = a.Size
+			end
+		end
+		for _, mp in folder:GetChildren() do
+			local want = sizes[mp.Name]
+			if want and (mp.Size - want).Magnitude > 0.01 then
+				table.insert(wrong, key .. "." .. mp.Name .. " " .. tostring(mp.Size))
+			end
+		end
+	end
+	check(#wrong == 0, "cada accesorio a su tamaño en studs (no al de la malla subida)" .. (if #wrong > 0 then ": " .. table.concat(wrong, ", ", 1, math.min(#wrong, 4)) else ""))
+end
 local t2, w2 = Loader.prepare(ids, function(id)
 	return download(id, if id == 900000 + idx.Cosme then "Gafas" else nil)
 end, Data)

@@ -163,6 +163,12 @@ local function dress(part: MeshPart, spec: any, model: any, textures: { [string]
 	part.CanQuery = false
 	part.CanTouch = false
 	part.Massless = true
+	-- Su tamaño de verdad (shared/EstiloBloque, en studs). La malla subida de Blender llega a su tamaño
+	-- de importación, 100 veces más grande (cm): sin esto el pelo de Cosme medía 288 studs, la cabeza
+	-- 126 y las gafas 150, y en las escenas tapaban la cámara con formas azules y blancas gigantes.
+	if typeof(spec.Size) == "Vector3" then
+		part.Size = spec.Size
+	end
 	part.CastShadow = (spec.Tris or 0) > 60 and not spec.Glow
 	if spec.Color then
 		-- pieza compartida sin textura (gente de la calle): se tiñe con su color
