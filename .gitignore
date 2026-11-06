@@ -1,2 +1,6 @@
 # impeccable engine binary (downloaded on first run by the skill launcher)
 .claude/skills/impeccable/scripts/bin/
+
+# Laboratorio de cine (archivo ligero solo para revisar escenas: scripts/build-lab.luau)
+roblox/LaboratorioCine.rbxl
+roblox/LaboratorioCine.rbxl.lock

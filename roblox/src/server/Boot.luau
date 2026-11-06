@@ -35,9 +35,22 @@ local function setAttr(key: string, value: any)
 	end)
 end
 
+-- ¿Se salta este paso? Solo en el laboratorio de cine (shared/Laboratorio: archivo ligero para revisar
+-- escenas en un PC modesto). En el juego de verdad no se salta nada.
+function Boot.skips(name: string): boolean
+	local ok, skip = pcall(function()
+		local Laboratorio = require(game:GetService("ReplicatedStorage").Shared.Laboratorio)
+		return Laboratorio.skips(name)
+	end)
+	return ok and skip == true
+end
+
 -- Ejecuta un paso del arranque. Nunca lanza error y nunca espera más de `timeout` segundos.
 -- Devuelve true si el paso terminó sin error (y a tiempo).
 function Boot.step(name: string, fn: () -> (), timeout: number?): boolean
+	if Boot.skips(name) then
+		return true
+	end
 	local limit = timeout or Boot.StepTimeout
 	local started = os.clock()
 	local done, ok, err = false, false, nil :: any
@@ -65,6 +78,20 @@ function Boot.step(name: string, fn: () -> (), timeout: number?): boolean
 		lastYield = os.clock()
 	end
 	return done and ok
+end
+
+-- Un extra del mundo en segundo plano (no se le espera): en su hilo y con pcall; si falla, solo avisa
+-- con «[name] error». En el laboratorio de cine, los de shared/Laboratorio ni arrancan.
+function Boot.extra(name: string, fn: () -> ())
+	if Boot.skips(name) then
+		return
+	end
+	task.spawn(function()
+		local ok, err = pcall(fn)
+		if not ok then
+			warn(("[%s] %s"):format(name, tostring(err)))
+		end
+	end)
 end
 
 -- El servidor ha terminado de arrancar (con o sin errores): lo ve el cliente (UI/LoadingGate)

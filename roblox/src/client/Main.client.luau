@@ -14,6 +14,8 @@ task.spawn(function()
 end)
 
 local Hud = require(script.Parent.UI.Hud)
+-- Laboratorio de cine (archivo ligero para revisar escenas en un PC modesto): se salta lo pesado
+local Laboratorio = require(ReplicatedStorage.Shared.Laboratorio)
 local Dialog = require(script.Parent.UI.Dialog)
 local Store = require(script.Parent.UI.Store)
 local SpeechBubbles = require(script.Parent.UI.SpeechBubbles)
@@ -115,6 +117,9 @@ local gui = Hud.init(function()
 end)
 -- (cada arranque protegido: si uno falla, los demás controladores siguen arrancando)
 local function safeInit(name: string, fn: () -> ())
+	if Laboratorio.skips(name) then
+		return
+	end
 	local ok, err = pcall(fn)
 	if not ok then
 		warn(("[Main] %s no ha arrancado: %s"):format(name, tostring(err)))
@@ -218,14 +223,14 @@ task.spawn(require(script.Parent.Controllers.Cucarachas).init) -- las cucarachas
 task.spawn(require(script.Parent.Controllers.Platillos).init) -- las naves aterrizan (polvo, luz, rampa) y zumban
 task.spawn(WetWorld.init) -- con lluvia: suelo que brilla, charcos, gente y cosas mojadas; con nieve, todo blanco
 task.spawn(StoneThrow.init) -- coger piedras del suelo y lanzarlas (tecla B o botón 🥌)
-task.spawn(Ambient.init) -- tráfico y peatones
+task.spawn(Laboratorio.unless("Ambient", Ambient.init)) -- tráfico y peatones
 task.spawn(Weather.init) -- estaciones y tiempo: lluvia, tormenta, nieve, hojas de otoño
 task.spawn(function() pcall(require(script.Parent.Controllers.ScreenRain).init) end) -- gotas de lluvia en la pantalla cuando te mojas
 task.spawn(function() pcall(require(script.Parent.Controllers.Relampagos).init) end) -- rayos de tormenta (los decide el servidor), fogonazo y trueno con el retraso de la distancia
 task.spawn(function() pcall(require(script.Parent.Controllers.SeasonDecor).init) end) -- estaciones: goteo de tejados y toldos, vapor tras la lluvia de verano, luces de fiesta en la plaza
 task.spawn(function() pcall(require(script.Parent.Controllers.SkyExtras).init) end) -- cielos especiales, luna 3D, brillo del sol, nubes de tormenta, estrellas fugaces, fuego, humo y agua
 task.spawn(function() pcall(require(script.Parent.Controllers.Footsteps).init) end) -- pasos según el suelo (tú, los demás y la gente)
-task.spawn(Wildlife.init) -- pájaros, palomas, mariposas, patos y gallinas
+task.spawn(Laboratorio.unless("Wildlife", Wildlife.init)) -- pájaros, palomas, mariposas, patos y gallinas
 task.spawn(PetLife.init) -- mascotas, vagabundos, gatos de casa, protectora, animales de granja y caballo montado
 task.spawn(Nudge.init) -- los NPC se apartan (con traspiés) si chocas con ellos o pasa tu coche
 task.spawn(Vehicles.init) -- bicis, monopatines, motos y coches
@@ -241,7 +246,7 @@ safeInit("GameSfx", function() -- efectos de respuesta: dinero, XP, nivel, misio
 	require(script.Parent.Controllers.GameSfx).init()
 end)
 task.spawn(BusUI.init) -- pasajeros del autobús: línea, próxima parada y "Bajar en la próxima"
-task.spawn(BusBoards.init) -- paneles ámbar de las paradas: cuánto falta para cada autobús
+task.spawn(Laboratorio.unless("BusBoards", BusBoards.init)) -- paneles ámbar de las paradas: cuánto falta para cada autobús
 task.spawn(SupermarketUI.init) -- supermercados: carrito, ticket, cajero y charcutería
 task.spawn(CafeUI.init) -- cafeterías: la carta y el panel del barista
 task.spawn(PostUI.init) -- Correos: el panel de la ruta del repartidor
@@ -256,8 +261,8 @@ task.spawn(PlayerMenuUI.init) -- al tocar a un jugador: invitar al grupo, chat y
 task.spawn(FishingUI.init) -- pesca: sedal y corcho, ¡tirar!, tienda de pesca
 task.spawn(MetroUI.init) -- metro: panel del tren, billetes, tiendas, encargos y escenario
 task.spawn(MetroMapUI.init) -- metro: plano de la red, trenes en vivo, estación más cercana y planificador (app 🚇 Metro)
-task.spawn(MetroTrains.init) -- metro: trenes fluidos en cada pantalla, ir de pie en el tren, megafonía y sonidos
-task.spawn(Flights.init) -- aeropuerto: aviones fluidos en cada pantalla, panel del vuelo, cámara y megafonía
+task.spawn(Laboratorio.unless("MetroTrains", MetroTrains.init)) -- metro: trenes fluidos en cada pantalla, ir de pie en el tren, megafonía y sonidos
+task.spawn(Laboratorio.unless("Flights", Flights.init)) -- aeropuerto: aviones fluidos en cada pantalla, panel del vuelo, cámara y megafonía
 task.spawn(require(script.Parent.Controllers.Flying).init) -- pilotar avionetas y el avión de línea (aeroclub)
 task.spawn(require(script.Parent.Controllers.AirCombatClient).init) -- combate aéreo y espacial: la nave de la arena del Modo pruebas (Saga 2)
 task.spawn(require(script.Parent.Controllers.SpaceClient).init) -- el espacio encima de Valmar: cielo por altura, estrellas, los 7 planetas, VALMAR / ATRACAR / VIAJAR y menús de las estaciones
@@ -269,12 +274,12 @@ task.spawn(RailUI.init) -- Cercanías: panel del viaje, billetes y pasos a nivel
 task.spawn(GymUI.init) -- gimnasio: recepción (entrada y abono) y la barra del ritmo al entrenar
 task.spawn(GymMotion.init) -- gimnasio: el cuerpo hace el ejercicio y la máquina se mueve (cinta, pesas, bici…)
 task.spawn(DivingUI.init) -- nadar, bucear (aire) y pesca submarina con fusil o arpón
-task.spawn(SeaBiome.init) -- el fondo del mar y la luz bajo el agua (solo cuando estás en el agua)
+task.spawn(Laboratorio.unless("SeaBiome", SeaBiome.init)) -- el fondo del mar y la luz bajo el agua (solo cuando estás en el agua)
 task.spawn(require(script.Parent.Controllers.TerrainPaletteClient).init) -- colores del terreno según dónde estás: Valmar (fondo del mar dorado) o un planeta (shared/TerrainPalette)
 task.spawn(require(script.Parent.Controllers.InvasionClient).init) -- Invasión de la Grieta: panel EVENTO GLOBAL, marcadores, efectos, cañón de la avioneta y la gente que huye (docs/invasion.md)
 task.spawn(require(script.Parent.Controllers.ReefZoneFx).init) -- el Cañón de Dorada (zona de referencia del mar v2): kelp y corales que se mecen, haces de luz y cáusticas
 task.spawn(require(script.Parent.Controllers.SeaV4Fx).init) -- (v4, solo con Config.Sea.V4) viñeta y color bajo el agua, nubecillas de arena y burbujas del Gran Veril
-task.spawn(SeaLife.init) -- la vida del mar hondo: bancos de peces, rayas, tortugas, medusas, delfines, abisales, megalodón y kraken
+task.spawn(Laboratorio.unless("SeaLife", SeaLife.init)) -- la vida del mar hondo: bancos de peces, rayas, tortugas, medusas, delfines, abisales, megalodón y kraken
 task.spawn(require(script.Parent.Controllers.NacaraLife).init) -- Nácara (plaza de prueba): la gente del mar se mece, peces de la ciudad y perlas de guía de la ruta
 task.spawn(require(script.Parent.Controllers.MerForm).init) -- Hondarios jugadores: la cola se mueve y el letrero «🐚 Hondario» con «Quedarme en forma humana»
 task.spawn(DiveHud.init) -- el HUD de buceo: profundidad, zona, temperatura, oxígeno, objetivo y botones

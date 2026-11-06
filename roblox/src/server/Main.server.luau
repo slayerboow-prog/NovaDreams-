@@ -17,29 +17,19 @@ Boot.step("TerrainBuilder", function()
 end, 120)
 -- 1b) El mar hondo alrededor de Valmar (World/OceanBuilder, docs/mar/diseno.md): en su hilo y poco a
 --     poco (no frena el arranque); solo toca el mar lejos de la costa, los puertos y las islas
-task.spawn(function()
-	local ok, err = pcall(function()
-		require(World.OceanBuilder).build()
-	end)
-	if not ok then
-		warn("[OceanBuilder] " .. tostring(err))
-	end
+Boot.extra("OceanBuilder", function()
+	require(World.OceanBuilder).build()
 end)
 
 -- 1c) El relieve natural fuera de la ciudad (colinas, sierras y acantilados; shared/Relief, horneado al
 --     construir el archivo en ServerStorage.ReliefMap: World/ReliefBake): en su hilo y trozo a trozo.
 --     Solo sube el terreno lejos de todo lo construido (no toca calles, edificios, puertos ni agua).
-task.spawn(function()
-	local ok, err = pcall(function()
-		local field = require(World.ReliefBake).load()
-		if field then
-			local voxels, seconds = require(World.TerrainBuilder).relief(field)
-			workspace:SetAttribute("ReliefReady", true)
-			print(("[Relief] Relieve escrito: %d vóxeles en %.1f s"):format(voxels, seconds))
-		end
-	end)
-	if not ok then
-		warn("[Relief] " .. tostring(err))
+Boot.extra("Relief", function()
+	local field = require(World.ReliefBake).load()
+	if field then
+		local voxels, seconds = require(World.TerrainBuilder).relief(field)
+		workspace:SetAttribute("ReliefReady", true)
+		print(("[Relief] Relieve escrito: %d vóxeles en %.1f s"):format(voxels, seconds))
 	end
 end)
 
@@ -63,10 +53,8 @@ Boot.step("Decor", function()
 end, 120)
 -- Índice de la decoración sin CanQuery (bancos, setos, muebles) para no poner actores de las escenas
 -- dentro de ella (World/SafeSpot.decorAt); se hace en segundo plano
-task.spawn(function()
-	pcall(function()
-		require(World.SafeSpot).indexDecor()
-	end)
+Boot.extra("SafeSpotIndex", function()
+	require(World.SafeSpot).indexDecor()
 end)
 -- Ciudad construida antes de los acabados (cristal de fachada con reflejo): se aplican ahora, una vez
 Boot.step("Polish", function()
@@ -92,16 +80,13 @@ end)
 -- Materiales PBR realistas que eligió el dueño en la Tienda de creadores (packs de MaterialVariant):
 -- sustituyen a los nuestros en asfalto, aceras, césped, fachadas, tejas, terreno… (World/UserMaterials,
 -- tabla en shared/UserMaterialChoice). Si no cargan, se queda todo como está.
-task.spawn(function()
-	local ok, err = pcall(function()
+Boot.extra("UserMaterials", function()
+	do
 		-- (y con ellos, cada tipo de calle con su asfalto, adoquín o baldosa, y las señales y tapas del
 		-- «Realistic road pack»: World/StreetDress, shared/StreetLook)
 		require(World.UserMaterials).start(nil, function(service, library, load, unpack)
 			require(World.StreetDress).start(service, library, load, unpack, nil, require(World.Region).Highways)
 		end)
-	end)
-	if not ok then
-		warn("[UserMaterials] " .. tostring(err))
 	end
 end)
 -- Cielo de fotos (skybox realista) de día y de noche (World/SkyLoader, ids en shared/SkyChoice):
@@ -206,70 +191,45 @@ end)
 -- 4b) Vegetación con modelos 3D de verdad (packs oficiales de Roblox, World/MeshLibrary): carga los
 --     packs una vez y cambia en tandas los árboles, arbustos y flores procedurales, primero los de
 --     cerca de las calles. Si la carga falla, se queda todo como está.
-task.spawn(function()
-	local ok, err = pcall(function()
-		require(World.MeshLibrary).start(segments)
-	end)
-	if not ok then
-		warn("[MeshLibrary] " .. tostring(err))
-	end
+Boot.extra("MeshLibrary", function()
+	require(World.MeshLibrary).start(segments)
 end)
 -- 4b1) Naturaleza de los packs de Sebastián (World/NatureAssets): rocas, piedras, peces y tiburones
-task.spawn(function() local ok, err = pcall(function() require(World.NatureAssets).start() end) if not ok then warn("[NatureAssets] " .. tostring(err)) end end)
+Boot.extra("NatureAssets", function() require(World.NatureAssets).start() end)
 -- 4b2) Talleres mecánicos con el «Realistic Autoservice Props Pack» (4ª tanda de Sebastián, revisado
 --      limpio: World/WorkshopProps): grúa de motor, gatos, caballetes, foco… en cada sala de taller.
 --      Si no carga, los talleres se quedan como estaban.
-task.spawn(function()
-	local ok, err = pcall(function()
-		require(World.WorkshopProps).start()
-	end)
-	if not ok then
-		warn("[WorkshopProps] " .. tostring(err))
-	end
+Boot.extra("WorkshopProps", function()
+	require(World.WorkshopProps).start()
 end)
 -- 4b2b) Armas, ejército y terror de Sebastián (World/UserArsenal): mallas en armerías, comisarías,
 --       cuartel, museo, teatro y feria; y los Pliegues de la Grieta (World/Kit/Pliegues). Si no cargan, nada cambia.
-task.spawn(function()
-	local ok, err = pcall(function()
-		require(World.UserArsenal).start()
-	end)
-	if not ok then
-		warn("[UserArsenal] " .. tostring(err))
-	end
+Boot.extra("UserArsenal", function()
+	require(World.UserArsenal).start()
 end)
 -- 4b3) Muebles, comida y objetos de la Tienda de creadores en casas, tiendas, bares, oficinas, naves,
 --      hospital y comisaría (World/InteriorProps). Si no cargan, todo se queda como estaba.
-task.spawn(function()
-	local ok, err = pcall(function()
-		require(World.InteriorProps).start()
-	end)
-	if not ok then
-		warn("[InteriorProps] " .. tostring(err))
-	end
+Boot.extra("InteriorProps", function()
+	require(World.InteriorProps).start()
 end)
 -- 4c) Bloques de pisos y rascacielos con edificios 3D de verdad (Modular Building Kit – Modern City,
 --     World/Buildings3D) y los MaterialVariant de Modern City en MaterialService. Espera a que
 --     InteriorService haya mirado los edificios. Si la carga falla, se quedan los bloques de siempre.
-task.spawn(function()
-	local ok, err = pcall(function()
-		require(World.Buildings3D).start(segments)
-	end)
-	if not ok then
-		warn("[Buildings3D] " .. tostring(err))
-	end
+Boot.extra("Buildings3D", function()
+	require(World.Buildings3D).start(segments)
 end)
 -- 4d) Calles, ciudad y edificios por fuera con los modelos de la Tienda de Sebastián (World/CityAssets)
-task.spawn(function() local ok, err = pcall(function() require(World.CityAssets).start() end) if not ok then warn("[CityAssets] " .. tostring(err)) end end)
+Boot.extra("CityAssets", function() require(World.CityAssets).start() end)
 -- 4f) La nave realista de malla «HX-7 Halcón» (World/NaveLoader; sin ids sigue la de piezas)
-task.spawn(function() local ok, err = pcall(function() require(World.NaveLoader).start() end) if not ok then warn("[Nave] " .. tostring(err)) end end)
+Boot.extra("Nave", function() require(World.NaveLoader).start() end)
 -- 4g) Mallas de Blender del Puerto de Valmar (World/PuertoMeshes; sin ids sigue el puerto de piezas)
-task.spawn(function() local ok, err = pcall(function() require(World.PuertoMeshes).start() end) if not ok then warn("[Puerto] " .. tostring(err)) end end)
+Boot.extra("Puerto", function() require(World.PuertoMeshes).start() end)
 -- 4g) Los alienígenas v2 de malla (World/AlienMeshLoader; sin ids siguen los de piezas de Kit/AlienModels)
-task.spawn(function() local ok, err = pcall(function() require(World.AlienMeshLoader).start() end) if not ok then warn("[Aliens] " .. tostring(err)) end end)
+Boot.extra("Aliens", function() require(World.AlienMeshLoader).start() end)
 -- 4g) Estilo bloque del reparto: accesorios propios, ropa y caras (World/EstiloBloqueLoader; sin ids, CastLook)
 task.spawn(function() local ok, err = pcall(function() require(World.EstiloBloqueLoader).start() end) if not ok then warn("[EstiloBloque] " .. tostring(err)) end end)
 -- 4e) Zonas de misión fuera de la ciudad (mina, lava, cueva alienígena, cráteres) con los materiales exóticos del dueño (World/MissionZones)
-task.spawn(function() local ok, err = pcall(function() require(World.MissionZones).start() end) if not ok then warn("[MissionZones] " .. tostring(err)) end end)
+Boot.extra("MissionZones", function() require(World.MissionZones).start() end)
 
 local order = {
 	"DataService",
