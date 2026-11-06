@@ -970,6 +970,25 @@ local function clearFace()
 	portraitView.Visible = false
 end
 
+-- La cara dibujada de quien habla (imagen), o nil si no tiene: Cosme (su sonrisa de siempre) o un
+-- personaje del reparto (su cara neutra)
+local SKIN = Color3.fromRGB(234, 196, 160)
+local function staticFace(line: { [string]: any }): string?
+	local id = line.Id
+	if type(id) ~= "string" or id == "" then
+		return nil
+	end
+	local ok, image = pcall(function(): string?
+		if id == "Cosme" then
+			local CosmeLook = require(ReplicatedStorage.Shared.CosmeLook)
+			return CosmeLook.textureId(CosmeLook.FaceFiles.Grin)
+		end
+		local CastLook = require(ReplicatedStorage.Shared.LifeStory.CastLook)
+		return CastLook.textureId(CastLook.faceFile(id, "Neutral"))
+	end)
+	return if ok and type(image) == "string" and image ~= "" then image else nil
+end
+
 -- Pone el retrato de la frase (o lo quita: el narrador, y una acotación entera, no llevan)
 local function setPortrait(line: { [string]: any }?)
 	local badge = if line then DialogueLook.badge(line, CastPeople, StageDirector.RemoteIcons) else nil
@@ -1017,9 +1036,16 @@ local function setPortrait(line: { [string]: any }?)
 	portraitView.Visible = face
 	-- Tú, sin tu personaje cerca: la foto de tu avatar de Roblox (si no carga, se ve la inicial debajo)
 	local headshot = not face and line.Me == true and player.UserId > 0
-	portraitImage.Image = if headshot then ("rbxthumb://type=AvatarHeadShot&id=%d&w=150&h=150"):format(player.UserId) else ""
-	portraitImage.Visible = headshot
-	portraitInitial.Visible = not face
+	-- Otro personaje que no está delante (o cuya copia no sale): su cara dibujada (las de Cosme y del
+	-- reparto, shared/CosmeLook y LifeStory/CastLook) sobre su color de piel. Antes salía su inicial
+	-- («C» en un círculo) y parecía un hueco sin terminar.
+	local drawn = if not face and not headshot then staticFace(line) else nil
+	portraitImage.Image = if headshot then ("rbxthumb://type=AvatarHeadShot&id=%d&w=150&h=150"):format(player.UserId) else (drawn or "")
+	portraitImage.Visible = headshot or drawn ~= nil
+	if drawn then
+		portrait.BackgroundColor3 = SKIN
+	end
+	portraitInitial.Visible = not face and drawn == nil
 end
 
 -- La velocidad elegida en el menú (atributo TextSpeed, que pone el servidor al entrar)
