@@ -176,14 +176,19 @@ local function piece(ctx: Ctx, attach: string, name: string, size: Vector3, offs
 	return p
 end
 
+CosmeLook.GLOW_RANGE = 2.5 -- studs como mucho de luz de sus aparatos
+CosmeLook.GLOW_SCALE = 0.3 -- y su brillo, a un tercio
 local function glow(p: BasePart?, color: Color3, range: number, brightness: number?)
 	if not p then
 		return
 	end
+	-- (un brillo pequeño y corto: la pieza ya brilla sola —Neon—. Con 5 luces de 4-6 studs y brillo 1
+	-- pegadas al cuerpo, de noche y de cerca le quemaban de blanco la bata, el pelo y la cara desde
+	-- abajo —el colgante, justo bajo la barbilla—: en los primeros planos no se le veía la cara)
 	local light = Instance.new("PointLight")
 	light.Color = color
-	light.Range = range
-	light.Brightness = brightness or 1.2
+	light.Range = math.min(range, CosmeLook.GLOW_RANGE)
+	light.Brightness = (brightness or 1.2) * CosmeLook.GLOW_SCALE
 	light.Shadows = false
 	light.Parent = p
 end
