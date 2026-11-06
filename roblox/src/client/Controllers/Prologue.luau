@@ -70,13 +70,26 @@ function Prologue.restore()
 	end)
 end
 
+-- ¿Hay en pantalla una escena o una conversación? (entonces la tarjeta no se ve)
+function Prologue.busy(): boolean
+	if Cinematics.isOnScreen() or player:GetAttribute("InCinematic") or player:GetAttribute("InDialogue") then
+		return true
+	end
+	local ok, camera = pcall(function()
+		return require(script.Parent.HappeningClient).cameraOnScreen()
+	end)
+	return ok and camera == true
+end
+
 local function render()
 	if not gui or not card then
 		return
 	end
 	local show = active() and tracked ~= nil and tracked.QuestId == "Prologo_Sueno"
-	-- (nunca encima de una escena de cine: antes la tarjeta del objetivo salía en mitad de ella)
-	gui.Enabled = active() and not Cinematics.isOnScreen() and not player:GetAttribute("InCinematic")
+	-- (nunca encima de una escena de cine: antes la tarjeta del objetivo salía en mitad de ella; ni de
+	-- una conversación ni de una escena del motor con cámara: en el móvil la tarjeta, abajo en el
+	-- centro, tapaba la caja del diálogo y la cara de quien habla)
+	gui.Enabled = active() and not Prologue.busy()
 	card.Visible = show
 	if not show or not tracked then
 		return
@@ -189,10 +202,12 @@ function Prologue.init()
 			render()
 		end
 	end)
-	player:GetAttributeChangedSignal("InCinematic"):Connect(function()
-		render()
-		task.delay(1.5, render) -- (cuando acaba de fundirse la escena)
-	end)
+	for _, attribute in { "InCinematic", "InDialogue", "InScene" } do
+		player:GetAttributeChangedSignal(attribute):Connect(function()
+			render()
+			task.delay(1.5, render) -- (cuando acaba de fundirse la escena)
+		end)
+	end
 	player:GetAttributeChangedSignal("InPrologue"):Connect(function()
 		local ok, err = pcall(onPrologueChanged)
 		if not ok then
