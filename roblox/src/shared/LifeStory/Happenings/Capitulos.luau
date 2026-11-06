@@ -484,9 +484,14 @@ Capitulos.Prologo_Apertura = escena({
 	Anchors = { Inicio = "Place:PrologoInicio", Puerta = "Place:PrologoPuerta" },
 	Tracks = {
 		Camera = planos({
+			-- (cada plano enseña lo que dice su frase: antes la frase de la Grieta caía en un plano bajo de
+			-- la puerta entre cajas y farolas, que tapaban la imagen, y la de Cosme en el que daba vueltas)
 			{ From = { "Inicio", V(-30, 45, 40) }, To = { "Inicio", V(40, 55, 34) }, Look = { "Puerta", V(-60, 70, 0) }, Duration = 10, Shake = 0.2 },
-			{ From = { "Puerta", V(-40, 12, 26) }, To = { "Puerta", V(-22, 8, 16) }, Look = { "Puerta", V(0, 3, 0) }, Duration = 7, Dip = true },
-			{ Orbit = "Inicio", Radius = 9, Height = 4, FromAngle = 200, ToAngle = 330, Duration = 9.5, Dip = true, LookHeight = 1.5 },
+			-- la Grieta: desde el borde de la isla, mirando al cielo
+			{ From = { "Inicio", V(10, 8, 30) }, To = { "Inicio", V(24, 10, 24) }, Look = { "Puerta", V(-60, 70, 0) }, Duration = 6.6, Dip = true, Shake = 0.15 },
+			-- Cosme: la puerta de su garaje, de frente y por el camino
+			{ From = { "Puerta", V(-15, 5, 0) }, To = { "Puerta", V(-9, 4.5, 0) }, Look = { "Puerta", V(0, 4, 0) }, Duration = 6, Dip = true },
+			{ Orbit = "Inicio", Radius = 9, Height = 4, FromAngle = 200, ToAngle = 290, Duration = 3.9, Dip = true, LookHeight = 1.5 },
 		}),
 		-- Rótulo primero y frase después, nunca a la vez (shared/LifeStory/SceneTiming); cada frase se lee
 		-- entera antes de la siguiente
