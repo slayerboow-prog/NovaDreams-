@@ -1964,6 +1964,7 @@ function VehicleService.init()
 		end
 		exitedAt[player] = nil
 		warnedAt[player] = nil
+		staleSince[player] = nil
 		leftModel[player] = nil
 		spawnedAt[player] = nil
 		rentedAt[player] = nil
