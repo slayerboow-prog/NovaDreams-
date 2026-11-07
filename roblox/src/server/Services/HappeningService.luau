@@ -1030,6 +1030,12 @@ local function applyDialogue(run: Run, line: { [string]: any })
 	run.SpeakerTo = lookTarget(run, to)
 	run.LastSpeaker = speaker
 	local atSpeaker = if speaker == "Yo" then "Player" elseif run.Actors[speaker] then "Key:" .. speaker else nil
+	-- Una frase dirigida a alguien (To) le devuelve la mirada a quien habla aunque antes mirase otra cosa
+	-- a propósito (Look): en Prologo_G1 Cosme seguía mirando la Grieta, arriba, mientras te decía «Esta
+	-- vez sí que la he liado», y su primer plano solo le veía la barbilla.
+	if line.To ~= nil and run.LookFixed[speaker] then
+		run.LookFixed[speaker] = nil
+	end
 	local A = deps.actors()
 	for key, entry in run.Actors do
 		if entry.Model and not run.LookFixed[key] then
