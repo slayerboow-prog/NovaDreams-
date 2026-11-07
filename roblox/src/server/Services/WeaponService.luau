@@ -461,7 +461,8 @@ local function scoreTarget(target: BasePart, position: Vector3, shooter: Player)
 	end
 end
 
-local lastPanic: { [Model]: number } = {}
+-- (claves débiles: los personajes que se borran no se quedan aquí para siempre)
+local lastPanic: { [Model]: number } = setmetatable({}, { __mode = "k" }) :: any
 local PANIC_LINES = { "😱 ¡Disparos!", "¡Al suelo!", "¡Socorro, policía!", "😨 ¡Cuidado!" }
 -- Los personajes del servidor que lo oyen se asustan (la gente de la calle la mueve cada cliente)
 local function scareNpcs(position: Vector3, shooter: Player)
