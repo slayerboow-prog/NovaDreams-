@@ -401,6 +401,10 @@ function NacaraLife.init()
 	local lifeOn = false
 	local markersOn = false
 	local frame = 0
+	-- (lo que deja de mecerse o se borra sale de la lista: si no, se quedaba en memoria para siempre)
+	CollectionService:GetInstanceRemovedSignal("NacaraSway"):Connect(function(o)
+		swayers[o] = nil
+	end)
 	RunService.RenderStepped:Connect(function()
 		frame += 1
 		local ok, err = pcall(function()
