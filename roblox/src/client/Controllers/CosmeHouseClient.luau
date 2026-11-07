@@ -178,7 +178,8 @@ end
 local fxParts: { BasePart } = {}
 local swirls: { ImageLabel } = {}
 local flickers: { Model } = {}
-local fxOn: { [BasePart]: boolean } = {}
+-- (claves débiles: las piezas que se borran no se quedan aquí para siempre)
+local fxOn: { [BasePart]: boolean } = setmetatable({}, { __mode = "k" }) :: any
 
 local function setEmitters(part: BasePart, on: boolean, mult: number?)
 	for _, e in part:GetChildren() do
