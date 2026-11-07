@@ -52,6 +52,7 @@ local CosmeLook = require(ReplicatedStorage.Shared.CosmeLook)
 local FaceKit = require(ReplicatedStorage.Shared.FaceKit)
 local CastLook = require(ReplicatedStorage.Shared.LifeStory.CastLook)
 local WorkAnim = require(script.Parent.WorkAnim)
+local PoseLayers = require(script.Parent.PoseLayers)
 local SimpleActing = require(script.Parent.SimpleActing) -- (cuerpos que no son R15: cuello y brazos)
 local SpeechBubbles = require(script.Parent.Parent.UI.SpeechBubbles)
 
@@ -728,13 +729,21 @@ local function listenGlance(rig: Rig, acting: ActorMoods.Acting, t: number): Vec
 	return nil
 end
 
+ActorLife.PERSON_DOWN = 14 -- (grados) lo más que baja la cabeza un actor de escena mirando a alguien
 local function lookTarget(rig: Rig, t: number): (number, number, boolean)
 	local talkingHere = inTalk(rig)
 	local forced = not rig.Me and not talkingHere and lookAtAttribute(rig)
 	if forced then
 		local yaw, pitch = aim(rig, forced)
 		if yaw then
-			return yaw, math.clamp(pitch :: number, -math.rad(35), math.rad(40)), true
+			-- Mirando a una persona (a ti o a otro del reparto) en una escena, la cabeza baja poco: los
+			-- ojos hacen el resto. Un adulto que miraba a un niño de cerca bajaba la cabeza 32° y su
+			-- primer plano (la cámara a la altura de sus ojos) le veía la coronilla y el pelo, no la cara
+			-- (Cosme en Prologo_G1, Laboratorio de cine). A la Grieta o a un sitio, como antes.
+			local at = rig.Model:GetAttribute("LookAt")
+			local person = at == "Player" or (type(at) == "string" and at ~= "Rift" and string.sub(at, 1, 6) ~= "Point:")
+			local down = if person then ActorLife.PERSON_DOWN else 35
+			return yaw, math.clamp(pitch :: number, -math.rad(down), math.rad(40)), true
 		end
 	end
 	local myHead = headPosition(player.Character)
@@ -796,7 +805,10 @@ local function lookTarget(rig: Rig, t: number): (number, number, boolean)
 						end
 					end
 				end
-				return yaw + yawMood, math.clamp((pitch :: number) + pitchMood, -math.rad(35), math.rad(30)), true
+				-- (un actor que habla o escucha a alguien muy bajo o muy cerca no baja la cabeza más de
+				-- PERSON_DOWN: los ojos hacen el resto; si no, su primer plano le ve el pelo, no la cara)
+				local base = if rig.Me then pitch :: number else math.max(pitch :: number, -math.rad(ActorLife.PERSON_DOWN))
+				return yaw + yawMood, math.clamp(base + pitchMood, -math.rad(35), math.rad(30)), true
 			end
 		end
 		return rig.BodyYaw, 0, true
@@ -1899,6 +1911,23 @@ function ActorLife.init()
 				end
 			end
 			active = nextActive
+		end
+	end)
+
+	-- La animación de estar de pie de Roblox gira el cuello del actor ±50° de un lado a otro cada pocos
+	-- segundos, encima de adonde quiere mirar (lo pone aquí, en su Neck C0): en su primer plano apartaba
+	-- la cara hacia un hombro mientras hablaba (Cosme en Prologo_G1, Laboratorio de cine). El giro de la
+	-- cabeza lo decide ActorLife: a la animación se le quita el giro (cabecear e inclinarse, sí).
+	PoseLayers.add("ActorNeck", 5, function()
+		for _, rig in active do
+			local neck = rig.Active and not rig.Me and rig.Joints and rig.Joints.Neck
+			if neck and rig.Model.Parent then
+				local cf = PoseLayers.read(neck)
+				local x, y, z = cf:ToOrientation()
+				if math.abs(y) > 0.01 then
+					PoseLayers.write(neck, CFrame.new(cf.Position) * CFrame.fromOrientation(x, 0, z))
+				end
+			end
 		end
 	end)
 
