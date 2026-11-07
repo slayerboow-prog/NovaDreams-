@@ -1438,3 +1438,36 @@ En la nube (`cloud-test.sh --version 134`):
 - `arranque`: ✅ 5 bien, 0 mal, 1 aviso (`[BodyPieceService] 4 pieza(s) de pelo/ropa sueltas … retiradas`, como en la
   v132 y la v133), 126 servicios, 434815 piezas en `workspace.Town`. **Sin errores en la consola**.
 - Falta que el dueño lo vea en el móvil: Palacio Real y Plaza Central de Nácara con texturas (capturas pedidas).
+
+## Verificación v135
+
+Publicada la **versión 135** (commit `b8fa785`, con `PUBLISH_BRANCH=publicar-v135 bash scripts/publish.sh`): los 50
+commits sobre la v134 (`5f63ae3`) hechos desde el PC del dueño probando en Studio. Aprobado por el dueño.
+
+Qué trae:
+- **Arranque**: `TerrainBuilder.build` suelta el hilo (adiós «Script timeout»); `DayLight` y `MaterialDetail` leen
+  `Lighting.Technology` y los mapas del variant con `pcall` (paraban el ciclo de día y el init).
+- **Nave y espacio**: los 44 Decal del espacio y las 13 texturas de la nave realista pasan a su imagen
+  (`TextureImageIds`); `NaveCasco` y la «HX-7 Halcón» ya no salen sin chapa. Los ids ya estaban en el repo: no hubo que subir nada.
+- **Caras (estilo bloque)**: sin cabeza blanca ni vacía, la cara de la frase se mantiene si cambia el Mood, sin
+  parpadeo a «hablar» con caras tristes, accesorios a su tamaño (el pelo de Cosme medía 288 studs), sin escuchas apiladas.
+- **Voces**: los ocho Hondarios de Nácara con voz propia, Bruma distinta de Pía, ya no se callan frases en pantalla.
+- **Prólogo y escenas**: cada frase con su plano, la tarjeta del objetivo y la caja de diálogo se apartan de las escenas,
+  retrato dibujado de quien no está, el zoom vuelve, la luz usa la hora del juego, los actores miran a quien hablan.
+- **Misiones**: decisiones solo en el sitio, las de planeta esperan a estar en su planeta, «Busca una casa libre» se da
+  por hecha si ya tienes una, el plan B de «Habla con…/Usa…» reintenta al minuto, la Cinemateca no cuenta como llegar.
+- **Fugas de memoria**: VehicleService, WeaponService, NacaraLife y CosmeHouseClient.
+- **Herramientas**: `publish.sh` en Windows (Git Bash) y con reintentos, `lab-refresh`, Laboratorio de cine ligero,
+  auditoría de sitios de historia; Polish sin parpadeo de bordillos; ReefZone bajo el tope del móvil.
+
+Pruebas (lune 0.10.5, rojo 7.7.0): pasaron `test-compile`, `test-clientboot`, `test-serverboot`, `test-hud`,
+`test-persistence`, `test-remotes`, `test-textos`, `test-lifestory` (~31 min), `test-reescritura`, `test-scenes`,
+`test-cinematic`, `test-cinemateca`, `test-personajes`, `test-estilo-bloque`, `test-voices`, `test-nacara`,
+`test-nacara-v2`, `test-mar`, `test-planetas`, `test-space` y `test-underground`. Con el lugar construido:
+`test-mapcoherence` **0 críticos**, 50 avisos, 9 info; `test-cineplanos` ✅ todo correcto.
+
+En la nube (`cloud-test.sh --version 135`):
+- `arranque`: ✅ 5 bien, 0 mal, 1 aviso (`[BodyPieceService] 4 pieza(s) de pelo/ropa sueltas … retiradas`, como en
+  las anteriores); servidor listo en 53 s (mundo 17 s, servicios 8 s), 501556 piezas en workspace.
+- `mar-v3-sonda`: ✅ 16 bien, 0 mal, 0 avisos, sin errores en la consola.
+- Falta que el dueño lo vea en el móvil: chapa de la nave, caras del reparto y el prólogo.
