@@ -186,6 +186,30 @@ local function characterCFrame(): CFrame?
 	return root and root.CFrame
 end
 
+-- Un actor que gira la cabeza (mira a la Grieta, a otro, a algo de la escena): los planos de su cara
+-- (Reaccion, PrimerPlano, PPP, Medio) se ponen delante de su CARA, no de su pecho. Antes, con la
+-- cabeza girada 50° (Cosme mirando la Grieta en Prologo_G1), la cámara le veía la oreja y el pelo de
+-- espaldas. Mismo sitio; solo el giro, el de la cabeza (la de bloque si la lleva), si se aparta
+-- más de FACE_TURN grados del cuerpo.
+local FACE_TURN = 25
+local function facingPivot(model: Model, pivot: CFrame): CFrame
+	local ok, head = pcall(function()
+		return require(ReplicatedStorage.Shared.FaceKit).host(model)
+	end)
+	if not ok or not head then
+		return pivot
+	end
+	local look = Vector3.new(head.CFrame.LookVector.X, 0, head.CFrame.LookVector.Z)
+	local body = Vector3.new(pivot.LookVector.X, 0, pivot.LookVector.Z)
+	if look.Magnitude < 1e-3 or body.Magnitude < 1e-3 then
+		return pivot
+	end
+	if math.deg(math.acos(math.clamp(look.Unit:Dot(body.Unit), -1, 1))) <= FACE_TURN then
+		return pivot
+	end
+	return CFrame.lookAt(pivot.Position, pivot.Position + look.Unit)
+end
+
 local function resolver(run: ClientRun): CameraShots.Resolver
 	return function(name: string): CFrame?
 		if name == "Player" then
@@ -199,6 +223,7 @@ local function resolver(run: ClientRun): CameraShots.Resolver
 					return model:GetPivot()
 				end)
 				if ok then
+					pivot = facingPivot(model, pivot)
 					run.ActorCache[value] = pivot
 					return pivot
 				end
