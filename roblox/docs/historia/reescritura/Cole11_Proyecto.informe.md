@@ -106,6 +106,7 @@ _Ninguno._
 - PASO 14 · OPCIÓN C · PRESENTARLA ROTA: El jugador observa la maqueta. / Omar respira profundamente. / Omar: Podemos contar la verdad. /  / Se rompió. / El jugador acepta. / Omar sonríe. / Entonces diremos que sobrevivió a un terremoto. /  / Un terremoto de cuatro años. / Efectos: / * humor +2 / * maqueta rota = true
 - PASO 19 · NOTA ALTA: Lucía: Un trabajo excelente.
 - PASO 19 · NOTA NORMAL: Lucía: La idea es muy buena.
+- PASO 19 · CONSECUENCIAS PERSISTENTES: 
 - PASO 19 · SISTEMA DE MEMORIA: Guardar:
 - PASO 19 · DIRECCIÓN DE ACTUACIÓN: La misión debe tener especial cuidado con el lenguaje corporal.
 

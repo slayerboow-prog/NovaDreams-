@@ -128,6 +128,7 @@ _Ninguno._
 - PASO 23 · OPCIÓN A · «El club»: 
 - PASO 23 · OPCIÓN B · «El cumpleaños de Nico»: 
 - PASO 23 · OPCIÓN C · «Intentar las dos»: 
+- PASO 29 · CONSECUENCIAS PERSISTENTES: Mantener las variables originales:
 - PASO 29 · DIRECCIÓN AAA: 
 
 ## Cómo se traduce el formato

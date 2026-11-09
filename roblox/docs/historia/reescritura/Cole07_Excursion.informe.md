@@ -114,6 +114,7 @@ _Ninguno._
 - PASO 4 · Opción C — Omar: Efecto: asiento_bus = Omar · Omar +5 / Omar levanta una bolsa. / Omar: Te he guardado medio bocadillo. /  / Omar: Bueno… / Mira la bolsa. / Omar: Un cuarto. / Tú: ¿Qué ha pasado con el otro cuarto? / Omar: Ha sido una emergencia.
 - PASO 4 · Opción D — Mateo: Efecto: asiento_bus = Mateo · Mateo +5 / Mateo mueve su mochila para hacerte sitio. / Mateo: Nunca he ido de excursión. /  / Mateo: En mi otro cole no íbamos. / Mira por la ventana. / Mateo: Estoy contento. /  / Mateo: Y un poco nervioso. / Tú: Yo también. / Mateo sonríe.
 - PASO 4 · Opción E — Hugo: Efecto: asiento_bus = Hugo · Hugo +6 / Hugo parece sorprendido. / Hugo: ¿Conmigo? / Tú: Sí. / Hugo sonríe. / Hugo: Antes siempre me sentaba donde decía Bruno. / Mira hacia la última fila. / Hugo: Esto está mejor. / Saca su libro. / Hugo: ¿Quieres que te enseñe una parte?
+- PASO 16 · CONSECUENCIAS PERSISTENTES: Guardar: / * Cole07_asiento_bus / * Cole07_rescate / * Cole07_encontro_mateo / * Cole07_encontro_omar / * Cole07_ayudo_directamente / * Cole07_avisó_a_lucia / * Cole07_ayudo_mateo / * Cole07_recuerdo_granja / * Cole07_foto_grupo / Relación con Mateo / Mateo +8 / Puede recordar: / «Aquel día detrás del granero pensé que nadie iba a encontrarme.» / «Y tú viniste conmigo.» / Relación con Omar / Omar +8 / Puede recordar: / «Todavía tengo el dibujo de Copito.» / Responsabilidad / responsabilidad +1 / Esto puede afectar futuras decisiones escolares donde Lucía confíe en el jugador. / Empatía / empatia +1
 
 ## Cómo se traduce el formato
 

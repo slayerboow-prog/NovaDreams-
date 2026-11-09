@@ -100,13 +100,6 @@ return {
 					Shot = "PrimerPlano:Yo",
 					If = { NotChoices = { Malotes = "Ignorar" } },
 				},
-				{
-					S = "Hugo",
-					T = "Aquella vez entendí que tenía que aprender a decir que no.",
-					To = "Yo",
-					A = "Nod",
-					If = { Choices = { Malotes = "Ignorar" }, NotChoices = { Malotes = "Ignorar" } },
-				},
 				{ S = "Narrador", T = "Crecer no consiste solo en aprender a defenderte.", Shot = "General", If = { NotChoices = { Malotes = "Ignorar" } } },
 			},
 		},
@@ -521,7 +514,7 @@ return {
 		},
 		Cole04_G22_Musica = { Light = true, Duration = 27.4, Anchors = { Yo = "Player" }, Tracks = { Music = { { At = 0, Intensity = "Tension" } } } },
 		Cole04_G23_Musica = { Light = true, Duration = 18, Anchors = { Yo = "Player" }, Tracks = { Music = { { At = 0, Intensity = "Intima" } } } },
-		Cole04_G24_Musica = { Light = true, Duration = 44.3, Anchors = { Yo = "Player" }, Tracks = { Music = { { At = 0, Intensity = "Intima" } } } },
+		Cole04_G24_Musica = { Light = true, Duration = 39.3, Anchors = { Yo = "Player" }, Tracks = { Music = { { At = 0, Intensity = "Intima" } } } },
 		Cole04_G3_Musica = { Light = true, Duration = 45.7, Anchors = { Yo = "Player" }, Tracks = { Music = { { At = 0, Intensity = "Tension" } } } },
 		Cole04_G4_Entra = {
 			Light = true,

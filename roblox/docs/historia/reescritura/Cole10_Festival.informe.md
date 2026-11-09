@@ -131,6 +131,7 @@ _Ninguno._
 - PASO 22 · OPCIÓN A · CANTAR: 
 - PASO 22 · OPCIÓN B · CHISTES CON NICO: 
 - PASO 22 · OPCIÓN C · ANIMAR DESDE ABAJO: 
+- PASO 25 · CONSECUENCIAS PERSISTENTES: En misiones futuras: / Bruno puede recordar: / «Tú me ayudaste con el puesto de limonada.» / No convertirlo automáticamente en amigo. / La relación debe evolucionar lentamente.
 - PASO 25 · DIRECCIÓN VISUAL DEL EVENTO: El festival debe tener una identidad visual completamente distinta al colegio normal.
 
 ## Cómo se traduce el formato

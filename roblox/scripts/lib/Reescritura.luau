@@ -290,7 +290,12 @@ local BLOCKS = {
 	{ "^flag de memoria", "Memoria" },
 	{ "^flags?$", "Memoria" },
 	{ "^sistema de memoria", "Memoria" },
+	-- (frases de ejemplo para OTRAS misiones: no son de esta escena. «CONSECUENCIAS DE LA HISTORIA», «PERSISTENTES»… no:
+	-- ahí las frases sí pueden ser de la misión, Saga_24 «Las cuentas del Consorcio, cerradas»)
 	{ "^consecuencias futuras", "Consecuencias" },
+	{ "^consecuencias para el futuro", "Consecuencias" },
+	{ "^consecuencias en ", "Consecuencias" }, -- («CONSECUENCIAS EN SAGA_23_FUSION»)
+	{ "^consecuencias persistentes", "Consecuencias" }, -- (marcas y «Ejemplo: …» para años después)
 	{ "^momento de biografia", "Momento" },
 	{ "^al terminar", "Momento" },
 	{ "^cierre del capitulo", "Cierre" },
@@ -529,6 +534,9 @@ function Reescritura.parse(source: string): Doc
 	local pendingPlano: Item? = nil
 	local inlineEnd: { [number]: number } = {}
 	local siAhead: { [number]: boolean } = {}
+	local sepAhead: { [number]: { Sep: number, ThenSi: boolean } } = {}
+	local prevSep: { [number]: boolean } = {}
+	local condLine = 0 -- (línea del «Si …:» abierto)
 	local effectList = false
 	local pendingBare = false
 	local pendingNotes = 0
@@ -559,6 +567,49 @@ function Reescritura.parse(source: string): Doc
 						break
 					end
 					seenLines += 1
+				end
+				j += 1
+			end
+		end
+		-- Bloques «Si …:» delimitados por separadores: «Si x:» + frases + PLANO + más frases + «⸻» + «Si y:» … Ahí
+		-- el «Si» va HASTA su separador, con sus planos dentro. Antes el primer plano lo cerraba y lo de después
+		-- salía en todas las ramas (Cole02 «Lucia_Final»: «Gracias por contármelo» y Bruno, que no está, aunque no
+		-- se lo hubieras dicho a la profe). Cuenta como delimitado si el separador va seguido de otro «Si» o si el
+		-- propio «Si» empieza justo tras un separador (el último bloque de la serie). Un «Si» suelto que acaba
+		-- en el «⸻» del final del PASO NO lo es: ahí un plano sí lo cierra (Cole02 «Deduccion»).
+		local function isSep(t: string): boolean
+			return t:match("^[⸻]+$") ~= nil or t:match("^%-%-%-+$") ~= nil
+		end
+		local function isSi(t: string): boolean
+			return t:match("^Si%s+.-:%s*$") ~= nil or t:match("^SI%s") ~= nil
+		end
+		for k = 1, #all do
+			local prev = k - 1
+			while prev >= 1 and all[prev] == "" do
+				prev -= 1
+			end
+			-- (también «⸻» + «SI FALTÓ ALGÚN OBJETO» + «Si el jugador olvidó algo…:»: un rótulo entre medias)
+			if prev >= 1 and not isSep(all[prev]) and all[prev]:match("^SI%s") and all[prev]:upper() == all[prev] then
+				prev -= 1
+				while prev >= 1 and all[prev] == "" do
+					prev -= 1
+				end
+			end
+			prevSep[k] = prev >= 1 and isSep(all[prev])
+			local j = k + 1
+			while j <= #all do
+				local t = all[j]
+				if isSep(t) then
+					local nxt = j + 1
+					while nxt <= #all and all[nxt] == "" do
+						nxt += 1
+					end
+					sepAhead[k] = { Sep = j, ThenSi = nxt <= #all and isSi(all[nxt]) }
+					break
+				end
+				local nt = norm(t)
+				if t:match("^PASO%s") or isSi(t) or isDecisionHead(nt) or nt:match("^opcion%s") then
+					break
 				end
 				j += 1
 			end
@@ -688,8 +739,10 @@ function Reescritura.parse(source: string): Doc
 				end
 				-- (la elección sigue abierta: a veces las opciones van separadas por líneas en blanco)
 				push({ K = "Blank" })
-				if block and block.Kind ~= "Rama" and #block.Items > 0 then
-					-- (un bloque acaba en la primera línea en blanco después de su contenido)
+				if block and block.Kind ~= "Rama" and #block.Items > 0 and (block.Kind ~= "Consecuencias" or s ~= "") then
+					-- (un bloque acaba en la primera línea en blanco después de su contenido; el de consecuencias, en
+					-- el separador: lleva frases de ejemplo para misiones futuras separadas por líneas en blanco, y
+					-- antes se colaban en la escena del paso — Nino_Recados: «¡Eh! Tú eres quien me ayudó aquel día.»)
 					block.Closed = true
 				end
 			end
@@ -805,7 +858,9 @@ function Reescritura.parse(source: string): Doc
 			subject = subject or prest
 			local a, b = subject:match("^(.-)%s*%->%s*(.*)$")
 			pendingSpeaker = nil
-			if cond and condLines > 0 and not siAhead[lineNo] then
+			local ahead = sepAhead[lineNo]
+			local delimited = ahead ~= nil and (ahead.ThenSi or prevSep[condLine] == true)
+			if cond and condLines > 0 and not siAhead[lineNo] and not delimited then
 				cond = nil -- (un plano nuevo después de las frases del «Si …:» lo cierra)
 			end
 			push({ K = "Plano", Kind = ptype, Subject = trim(a or subject), Subject2 = b and trim(b) or nil, Desc = desc or "" })
@@ -847,6 +902,7 @@ function Reescritura.parse(source: string): Doc
 			condNext = false
 			if not s:find("«", 1, true) and len(s) <= 60 then
 				cond = trim((s:gsub("[:%.]$", "")))
+				condLine = lineNo
 				condLines = 0
 			condAny = false
 				continue
@@ -1062,6 +1118,7 @@ function Reescritura.parse(source: string): Doc
 			if hasLines then
 				-- (a mitad del PASO: vale para lo que viene, como un «Si …:»)
 				cond = trim((condition:gsub("%.$", "")))
+				condLine = lineNo
 				condLines = 0
 			condAny = false
 			else
@@ -1106,6 +1163,7 @@ function Reescritura.parse(source: string): Doc
 				end
 			end
 			cond = ifc
+			condLine = lineNo
 			lastCond = ifc
 			condLines = 0
 			condAny = false

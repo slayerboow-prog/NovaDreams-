@@ -71,6 +71,7 @@ _Ninguna corrección._
 - PASO 2 · DIRECCIÓN: No deben estar esperando quietos.
 - PASO 8 · Objetivo:: Llega al parque antes de que llegue la policía.
 - PASO 11 · Objetivo:: Completa 3 turnos.
+- PASO 15 · CONSECUENCIAS PERSISTENTES: Guardar obligatoriamente: / plan / hurto / te_fuiste / pillado / escapaste / perdon_paco / rechazaste_pandilla / mentiste_familia / rebeldia / responsabilidad / empatia / valentia / Estas variables deben utilizarse posteriormente. / hurto = true / No borrar el recuerdo. / Debe poder aparecer en: / * conversaciones con Paco / * primer empleo / * conversaciones familiares / * evolución de Rayo / * conversaciones con Inés / Paco podrá recordar posteriormente: / Mamá/Papá: Al menos tuviste el valor de mirarme a los ojos. / Esto puede transformar una relación inicialmente negativa.
 - PASO 15 · DIRECCIÓN DE RAYO: Esta misión debe demostrar algo importante:
 - PASO 15 · DIRECCIÓN DE NEREA: Nerea debe convertirse progresivamente en uno de los personajes emocionalmente más importantes de esta etapa.
 - PASO 15 · DIRECCIÓN DE PACO: Paco no debe ser un NPC genérico.

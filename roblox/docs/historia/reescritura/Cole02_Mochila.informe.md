@@ -157,7 +157,7 @@ _Ninguno._
 - PASO 18 · OBJETIVO: «Revisa las mochilas del almacén»: 
 - PASO 20 · OBJETIVO: «Esconde la gorra de Rubén»: Rubén se agacha para atarse una zapatilla.
 - PASO 21 · SISTEMA DE MEMORIA AL TERMINAR: Registrar:
-- PASO 21 · CONSECUENCIAS FUTURAS: Rubén
+- PASO 21 · CONSECUENCIAS FUTURAS: Rubén / * Podrá empezar a separarse progresivamente de la influencia de Bruno. / * Más adelante podrá ayudar al protagonista. / * Rubén considerará al protagonista una rivalidad personal. / * La relación con los profesores aumenta. / * Bruno recordará que el protagonista contó lo sucedido. / * Rubén puede considerar al protagonista alguien capaz de devolverle sus bromas. / * La relación será más ambigua y juguetona. / Mateo / * Su confianza aumenta considerablemente. / * Recordará que el protagonista creyó en él. / * La relación se resiente. / Hugo / El libro encontrado en la mochila amarilla queda registrado como pista narrativa. / No debe resolverse inmediatamente. / La intención es que el jugador empiece a percibir que Hugo no encaja completamente con el grupo de Bruno. / Bruno / Bruno empieza a considerar al protagonista una persona que puede desafiar su posición. / Esto prepara Cole03_Grupo y las siguientes misiones.
 - PASO 21 · MOMENTO DE BIOGRAFÍA: «Recuperaste tu mochila»
 
 ## Cómo se traduce el formato

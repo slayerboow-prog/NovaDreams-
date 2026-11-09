@@ -57,6 +57,7 @@ _Ninguno._
 
 ## Notas del guion sin equivalente directo (bloques de dirección, minijuegos, memoria…)
 
+- PASO 4 · CONSECUENCIAS PERSISTENTES: Guardar: / Conservar: / perdona_cosme / enfado_con_cosme / según la elección. / Inventario: / Cinta_La_Noche
 - PASO 4 · DIRECCIÓN DE LA CINEMÁTICA «LA NOCHE»: No mostrar la cinta como una simple pantalla rectangular flotante.
 
 ## Cómo se traduce el formato

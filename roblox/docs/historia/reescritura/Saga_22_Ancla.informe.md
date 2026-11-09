@@ -23,7 +23,7 @@ _Ninguno._
 ## Aplicado
 
 - PASO 1 → paso 1 del juego (Talk «Oferta»): conversación «Oferta» con 19 frases nuevas
-- PASO 3 → paso 3 del juego (Scene «Respuesta»): conversación «Respuesta» con 11 frases nuevas
+- PASO 3 → paso 3 del juego (Scene «Respuesta»): conversación «Respuesta» con 10 frases nuevas
 
 ## Adaptado (y por qué)
 
@@ -56,6 +56,7 @@ _Ninguno._
 - PASO 2 · OPCIÓN A — «NO. ASÍ DE SIMPLE.»: La selección debe sentirse contundente. / No añadir un discurso enorme. / El jugador simplemente rechaza.
 - PASO 2 · OPCIÓN B — «FINGIR QUE ACEPTAS… PARA TENDERLE UNA TRAMPA EN EL MONTE.»: La expresión del jugador puede cambiar ligeramente. / Cósimo observa.
 - PASO 3 · Al terminar:: «Le dijiste que no a Cósimo»
+- PASO 3 · CONSECUENCIAS EN SAGA_23_FUSION: Cósimo sabe que el jugador viene a enfrentarse a él. / Su entrada en el Monte del Silencio debe ser más agresiva. / Cósimo cree inicialmente que ha ganado. / Su comportamiento inicial es más relajado. / Cuando ve al grupo de aliados: / Debe existir una reacción específica: / «Habías aceptado.» /  / «Y has traído un ejército.» / Entonces comprende: / Narrador: Entonces comprende: «Me has engañado.» / Esto enlaza directamente con el diálogo original de la Gran Fusión.
 - PASO 3 · DIRECCIÓN DE ACTUACIÓN — CÓSIMO: Esta misión depende principalmente de su actuación.
 - PASO 3 · DIRECCIÓN DE LA CASA: No congelar la casa durante la conversación.
 

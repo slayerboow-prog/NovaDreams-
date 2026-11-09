@@ -64,12 +64,6 @@ return {
 					A = "ThinkChin",
 					If = { Choices = { Trato = "Trampa" } },
 				},
-				{
-					S = "Narrador",
-					T = "Entonces comprende: «Me has engañado.»",
-					Pause = 0.9,
-					If = { Choices = { Trato = "Trampa" }, Flags = { "TrampaCosimo" } },
-				},
 				{ S = "Narrador", T = "No sabes si son un regalo, una amenaza o ambas cosas.", If = { Choices = { Trato = "Trampa" } } },
 			},
 		},

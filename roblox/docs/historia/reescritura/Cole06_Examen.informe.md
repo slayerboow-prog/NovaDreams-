@@ -114,6 +114,7 @@ _Ninguno._
 - PASO 16 · Objetivo: «El examen de Matemáticas»: Comienza el examen.
 - PASO 19 · Objetivo: «Devuelve los apuntes a Marisa»: 
 - PASO 20 · Objetivo: «Devuélvele los apuntes»: 
+- PASO 20 · CONSECUENCIAS PERSISTENTES: Al completar la misión, guardar: / * Cole06_nota / * Cole06_aprobado / * Cole06_sobresaliente / * Cole06_recuperacion / * Cole06_companero_estudio / * Cole06_estudiaste_mas / * Cole06_ayuda_abu / * Cole06_estudio_solo / * Cole06_confianza / * Cole06_relacion_sara / * Cole06_relacion_iker / * Cole06_relacion_mateo / Posibles callbacks posteriores / En futuras misiones académicas puede recordar: / «¿Te acuerdas de nuestro plan de veinte minutos?» / Iker puede utilizar posteriormente una versión cómica de: / «Dato curioso: ya te dije que estudiar acompañado funcionaba.» / Mateo puede recordar que aquella fue una de las primeras veces que consiguió aprobar gracias a tu ayuda. / En una misión posterior relacionada con números, compras o dinero: / «Esto me recuerda al truco que me enseñó Abu.» / La recuperación debe convertirse en una pequeña consecuencia jugable posterior, no simplemente en una frase. / La nota puede aparecer posteriormente en recuerdos, álbumes familiares o conversaciones sobre el colegio. / Si acusaste injustamente a Bruno en Cole05 / Bruno puede recordar que esta vez decidiste estudiar y esforzarte en lugar de señalar a alguien sin pruebas. / Esto crea continuidad entre ambas misiones.
 - PASO 20 · MOMENTO DE BIOGRAFÍA: «Tu primer examen de verdad»
 
 ## Cómo se traduce el formato

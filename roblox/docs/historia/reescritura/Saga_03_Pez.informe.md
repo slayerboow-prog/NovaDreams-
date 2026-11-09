@@ -71,6 +71,7 @@ _Ninguno._
 - PASO 3 · Objetivo:: 
 - PASO 4 · Objetivo:: * Cosme / * Pip / * Don Escamas
 - PASO 4 · SFX: Zumbido.
+- PASO 4 · CONSECUENCIAS PERSISTENTES: Registrar: / Objeto:
 - PASO 4 · DIRECCIÓN DE LOS AGENTES: Los agentes grises no deben actuar como villanos caricaturescos. / Su comportamiento debe ser demasiado coordinado. / * caminan sincronizados / * giran la cabeza simultáneamente / * sonríen al mismo tiempo / * nunca levantan la voz / * nunca corren innecesariamente / * hablan con educación excesiva / Cósimo: Eso los hará más inquietantes.
 - PASO 4 · DIRECCIÓN DE DON ESCAMAS: Don Escamas debe convertirse en un personaje recurrente.
 

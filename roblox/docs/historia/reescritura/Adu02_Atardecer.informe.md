@@ -98,7 +98,7 @@ _Ninguno._
 - PASO 6 · OPCIÓN B — AUTOBÚS: Texto: / Ir en autobús, como hacía Abu cuando era joven. / Estado: / Atributo: / empatia +1 / La elección representa: / “Quiero conocer una parte de tu vida.”
 - PASO 15 · Objetivo:: Busca una concha blanca.
 - PASO 17 · SISTEMA DE MEMORIA: Al finalizar:
-- PASO 17 · CONSECUENCIAS FUTURAS: La misión debe dejar información persistente.
+- PASO 17 · CONSECUENCIAS FUTURAS: La misión debe dejar información persistente. / Abu puede mencionar posteriormente: / “Todavía recuerdo el primer viaje que hicimos.” / Abu puede recordar: / “Ese día viajamos como cuando yo era joven.” / En futuras escenas: / “¿Y este año volveremos a Playa Dorada?” / Abu puede preguntar: / “¿Estás haciendo esas cosas bonitas que me prometiste?” / En reuniones familiares: / “Siempre has cuidado de los tuyos.”
 - PASO 17 · DIRECCIÓN DE ACTUACIÓN: Esta misión depende más de la actuación que de la cantidad de diálogo.
 - PASO 17 · DIRECCIÓN CINEMATOGRÁFICA: Evitar:
 

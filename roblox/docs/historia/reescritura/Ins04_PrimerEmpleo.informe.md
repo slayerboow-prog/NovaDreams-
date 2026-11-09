@@ -40,7 +40,7 @@ _Ninguno._
 - PASO 6 → paso 11 del juego (Scene «PrimerDia»): conversación «PrimerDia» con 2 frases nuevas
 - PASO 7+8+9 → paso 15 del juego (Scene «Imprevisto»): conversación «Imprevisto» con 6 frases nuevas
 - PASO 10+11 → paso 19 del juego (Scene «Sueldo»): conversación «Sueldo» con 0 frases nuevas
-- PASO 13+14+15+16 → paso 21 del juego (Scene «Cena»): conversación «Cena» con 11 frases nuevas (música Intima)
+- PASO 13+14+15+16 → paso 21 del juego (Scene «Cena»): conversación «Cena» con 9 frases nuevas (música Intima)
 - Conversación «PrimerDia»: se conservan delante 9 frases del juego que dependen de lo vivido
 - Conversación «Imprevisto»: se conservan delante 5 frases del juego que dependen de lo vivido
 - Conversación «Sueldo»: se conservan delante 3 frases del juego que dependen de lo vivido
@@ -84,6 +84,7 @@ _Ninguno._
 - PASO 6 · MINIJUEGO: Irene: Organizar conos.
 - PASO 6 · MINIJUEGO: Marcos: Encontrar productos.
 - PASO 6 · MINIJUEGO: Sofía: Clasificar materiales.
+- PASO 16 · CONSECUENCIAS PERSISTENTES: Guardar: / primer_empleo / trabajo_elegido / primer_sueldo / dinero_guardado / dinero_gastado / ayudo_familia / responsabilidad / independencia / Interes_Medicina / Interes_Ingenieria / Interes_Derecho / Interes_Economia / Interes_Oficio / Interes_Cocina / Interes_Deporte / Interes_Audiovisual / El trabajo_elegido debe poder reaparecer años después. / Ejemplo: / familia: ¿Te acuerdas de cuando empezaste cargando trípodes? / familia: Aquel motor fue tu primer trabajo de verdad. / familia: Quemaste tres tostadas el primer día. / familia: Estas referencias hacen que el mundo tenga memoria.
 - PASO 16 · DIRECCIÓN AAA: El trabajo debe tener:
 - PASO 16 · Dirección:: Primer día:
 

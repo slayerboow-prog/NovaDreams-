@@ -144,6 +144,7 @@ _Ninguna corrección._
 - PASO 10 · Minijuego:: El jugador debe soltar cuando la aguja esté en verde.
 - PASO 12 · Minijuego:: El jugador debe:
 - PASO 22 · Minijuego:: El jugador debe iniciar el relevo cuando la aguja esté en verde.
+- PASO 38 · CONSECUENCIAS PERSISTENTES: Guardar: / * Cole08_deporte / * Cole08_capitan / * Cole08_estrategia / * Cole08_buen_entreno / * Cole08_clasificacion_ganada / * Cole08_torneo_ganado / * Cole08_torneo_perdido / * Cole08_pre_final / * Cole08_tras_final / * Cole08_deportividad / * Cole08_medalla / * Cole08_premio_deportividad / * Cole08_foto_torneo
 - PASO 38 · MOMENTO DE BIOGRAFÍA: 🏆 «Tu primer torneo»
 
 ## Cómo se traduce el formato

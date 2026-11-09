@@ -55,6 +55,7 @@ _Ninguno._
 
 ## Notas del guion sin equivalente directo (bloques de dirección, minijuegos, memoria…)
 
+- PASO 4 · CONSECUENCIAS PERSISTENTES: Guardar: / enseñaste_credencial = true
 - PASO 4 · DIRECCIÓN DE MEGAVERSO: MegaVerso no debe parecer una empresa malvada típica.
 
 ## Cómo se traduce el formato

@@ -71,6 +71,7 @@ _Ninguno._
 - PASO 2.2 · Objetivo:: El jugador encuentra una bobina metálica dentro de un helado.
 - PASO 2.3 · Objetivo:: El jugador encuentra a Bigotes en el colegio.
 - PASO 3 · Objetivo:: Al acercarse al garaje, el jugador escucha a Cosme hablando solo.
+- PASO 4 · CONSECUENCIAS PERSISTENTES: Al completar la misión: / Relación / * Cosme +5/+3/+5 según elección. / * relacion_cosme_desde_infancia = true / Memorias / Registrar: / * conocio_cosme / * grieta_vista / * tornillo_brillante / * tornillo_reacciona / * bigotes_habla / * pistola_burbujas / Registrar: / * secreto_cosme = true / Cosme deberá recordar esta decisión en futuras conversaciones. / Cosme no debe tratar al jugador como enemigo. / En cambio, deberá existir una consecuencia más sutil: / Cosme puede pensar: / «No sabe guardar secretos… pero al menos no miente.» / Esto permitirá que futuras relaciones no sean binarias.
 - PASO 4 · DIRECCIÓN DE ACTUACIÓN: Cosme debe tener dos capas. / Cosme: Capa exterior
 - PASO 4 · DIRECCIÓN DE SONIDO: Garaje
 - PASO 4 · DIRECCIÓN DE ILUMINACIÓN: Durante la vida normal:

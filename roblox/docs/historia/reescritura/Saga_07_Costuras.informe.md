@@ -59,6 +59,7 @@ _Ninguna corrección._
 ## Notas del guion sin equivalente directo (bloques de dirección, minijuegos, memoria…)
 
 - PASO 3 · OBJETIVO: ENROLLA LAS HILACHAS ANTES DE QUE LO ENREDEN TODO
+- PASO 4 · CONSECUENCIAS PERSISTENTES: Guardar: / Mantener relaciones: / cosme_relationship / pip_relationship
 - PASO 4 · DIRECCIÓN CINEMATOGRÁFICA: 
 
 ## Cómo se traduce el formato

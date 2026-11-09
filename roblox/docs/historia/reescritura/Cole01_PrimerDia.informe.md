@@ -170,7 +170,7 @@ _Ninguno._
 - PASO 25 · FLAG:: 
 - PASO 27 · OBJETIVO: Vuelve a casa.: El protagonista camina hacia casa.
 - PASO 28 · SISTEMA DE MEMORIA AL TERMINAR: Registrar:
-- PASO 28 · CONSECUENCIAS FUTURAS: Las decisiones de esta misión NO deben quedarse únicamente en estadísticas.
+- PASO 28 · CONSECUENCIAS FUTURAS: Las decisiones de esta misión NO deben quedarse únicamente en estadísticas. / El sistema narrativo podrá reutilizarlas posteriormente: / * Mateo recordará si el protagonista le ayudó o lo ignoró. / * Nico recordará si el protagonista mostró interés por el deporte. / * Sara recordará si compartieron intereses científicos. / * Omar y Vega recordarán la primera conexión artística. / * Álex recordará la apuesta. / * Mamá/Papá recordará si el protagonista pidió compañía o quiso ir solo. / * Abu podrá recuperar su consejo sobre ayudar a los demás en momentos posteriores. / * El cromo de la suerte podrá reaparecer durante otras etapas de la vida. / * La primera ropa elegida podrá aparecer en fotografías antiguas. / * El primer asiento podrá influir en recuerdos y relaciones. / * La frase «El que ayuda nunca está solo» queda registrada como recuerdo familiar.
 - PASO 28 · MOMENTO DE BIOGRAFÍA: «Tu primer día de colegio»
 - PASO 28 · CIERRE DEL CAPÍTULO: EL COLEGIO
 

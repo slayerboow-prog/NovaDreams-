@@ -83,7 +83,7 @@ _Ninguno._
 - PASO 21 → paso 21 del juego (Reach): 8 frases al empezar el paso (escena ligera «Cole04_G21_Entra», la lanza el paso 20 al cumplirse; el jugador no pierde el control)
 - PASO 22 → paso 22 del juego (Talk «Rama_Grupo»): conversación «Rama_Grupo» con 8 frases nuevas (música Tension)
 - PASO 23 → paso 23 del juego (Scene «Rama_Ignorar»): conversación «Rama_Ignorar» con 5 frases nuevas (música Intima)
-- PASO 24 → paso 24 del juego (Scene «Cierre»): conversación «Cierre» con 13 frases nuevas (música Intima)
+- PASO 24 → paso 24 del juego (Scene «Cierre»): conversación «Cierre» con 12 frases nuevas (música Intima)
 - Momento de la biografía: «Recuperaste lo que era tuyo… y conociste de verdad a Hugo.»
 
 ## Adaptado (y por qué)
@@ -155,7 +155,7 @@ _Ninguno._
 - PASO 20 · OBJETIVO: «Habla con Bruno»: Bruno espera junto a Rubén.
 - PASO 21 · OBJETIVO: «Ve a buscar a tu grupo»: Corre hacia el banco.
 - PASO 24 · SISTEMA DE MEMORIA: Guardar obligatoriamente:
-- PASO 24 · CONSECUENCIAS FUTURAS: Hugo recordará que el protagonista tuvo el valor de acudir a un adulto.
+- PASO 24 · CONSECUENCIAS FUTURAS: Hugo recordará que el protagonista tuvo el valor de acudir a un adulto. / Bruno recordará que el protagonista habló con él sin insultarlo ni humillarlo. / El grupo queda definido como una unidad. / Esto deberá reaparecer cuando el grupo tenga que enfrentarse a otro conflicto. / Hugo conservará una relación más distante con el protagonista. / Puede aparecer posteriormente una frase como: / Hugo: Aquella vez entendí que tenía que aprender a decir que no.
 - PASO 24 · MOMENTO DE BIOGRAFÍA: «Recuperaste lo que era tuyo… y conociste de verdad a Hugo.»
 
 ## Cómo se traduce el formato

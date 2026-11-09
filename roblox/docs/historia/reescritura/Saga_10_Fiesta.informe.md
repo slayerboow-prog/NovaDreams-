@@ -60,6 +60,7 @@ _Ninguno._
 - PASO 1 · OBJETIVO: Aparece:
 - PASO 1 · OBJETIVO: Averigua qué está preparando MegaVerso.
 - PASO 3 · Objetivo:: 
+- PASO 4 · CONSECUENCIAS PERSISTENTES: Guardar: / Mantener:
 - PASO 4 · DIRECCIÓN DE LA FIESTA: La primera mitad debe ser luminosa y divertida.
 
 ## Cómo se traduce el formato

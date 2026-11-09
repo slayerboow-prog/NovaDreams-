@@ -79,6 +79,7 @@ _Ninguno._
 - PASO 3.3 · Objetivo:: Esta vez no hay humor inmediato.
 - PASO 4 · Objetivo:: Lugar: Patio del colegio.
 - PASO 5 · Objetivo:: El jugador regresa con Pip.
+- PASO 6 · CONSECUENCIAS PERSISTENTES: Registrar: / Objetos: / calcetin_dimensional / paraguas_invertido / moneda_66B / La moneda 66-B debe permanecer en el inventario/colección narrativa. / No puede desaparecer.
 - PASO 6 · DIRECCIÓN DE ACTUACIÓN: Primera mitad: / * energía / * humor / * movimientos rápidos / * gestos grandes / Después de la moneda: / * hombros ligeramente caídos / * habla más despacio / * evita mirar al jugador / * manos quietas / * silencios más largos / El jugador debe poder entender que Cósimo le da miedo a Cosme sin que nadie tenga que decirlo. / Primero: / * mayordomo elegante / * humor seco / Después de la moneda: / * postura más rígida / * menos bromas / * mirada hacia Cosme / * preocupación / Debe parecer gracioso hasta que menciona la voz. / En ese momento: / * deja de moverse / * mira directamente al jugador / * baja ligeramente la cabeza / * habla más despacio / Esto hará que el jugador entienda: / Bigotes: Vale. Hasta el gato sabe que algo va mal.
 - PASO 6 · DIRECCIÓN MUSICAL: Utilizar exclusivamente:
 - PASO 6 · DIRECCIÓN VISUAL: La Grieta nunca debe parecer una simple textura colocada en el cielo.

@@ -456,6 +456,39 @@ local function hasLine(lines: { any }, text: string): boolean
 end
 check(hasLine(sueno, "En los sueños nunca se sabe.") and hasLine(sueno, "Se llama la Grieta.") and hasLine(sueno, "Bastante."), "prólogo: Cosme dice las frases nuevas del guion")
 check(not hasLine(sueno, "Soy Cosme. Inventor. Genio. Vecino."), "prólogo: ya no dice las de antes")
+
+-- (v135) Un «Si x:» con planos dentro va hasta su «⸻»: lo de después del plano sigue en su rama
+local function lineOf(lines: { any }, text: string): any
+	for _, line in lines do
+		if line.T == text then
+			return line
+		end
+	end
+	return nil
+end
+local lucia = Quests.Cole02_Mochila.Dialogues.Lucia_Final.Lines
+local gracias, bruno = lineOf(lucia, "Gracias por contármelo. Hablaré con los dos."), lineOf(lucia, "Yo solo…")
+check(gracias and gracias.If and gracias.If.Choices and gracias.If.Choices.MochilaRuben == "Profe", "Cole02 Lucia_Final: «Gracias por contármelo» solo si se lo contaste a la profe (tras un plano dentro del «Si»)")
+check(bruno and bruno.If and bruno.If.Choices and bruno.If.Choices.MochilaRuben == "Profe", "Cole02 Lucia_Final: Bruno solo habla en esa rama")
+local deduccion = Quests.Cole02_Mochila.Dialogues.Deduccion.Lines
+local apunta = lineOf(deduccion, "Todo apunta al gimnasio.")
+check(apunta and apunta.If == nil, "Cole02 Deduccion: un «Si» suelto sí lo cierra el plano (la conclusión sale siempre)")
+-- (v135) Las «CONSECUENCIAS FUTURAS / PERSISTENTES / EN <misión>» son ejemplos de otras misiones: no se dicen aquí
+local function sceneSays(id: string, text: string): boolean
+	local scene = GuionOverlay.scenes()[id]
+	for _, d in (scene and scene.Tracks and scene.Tracks.Dialogue) or {} do
+		if d.T == text then
+			return true
+		end
+	end
+	return false
+end
+check(not sceneSays("Nino_Recados_G3_Entra", "Vecino: «¡Eh! Tú eres quien me ayudó aquel día.»") and not sceneSays("Nino_Recados_G3_Entra", "¡Lo sabía!"), "Nino_Recados: al volver no salen las frases de las consecuencias ni la rama de «olvidaste algo»")
+local said = false
+for _, dialogue in Quests.Ins04_PrimerEmpleo.Dialogues do
+	said = said or hasLine(dialogue.Lines or {}, "Estas referencias hacen que el mundo tenga memoria.")
+end
+check(not said, "Ins04: la nota de diseño «Estas referencias hacen que el mundo tenga memoria» no la dice nadie")
 check(hasLine(sueno, "¿Tú quieres ayudarme? Eso sí que no me lo esperaba.") and hasLine(sueno, "¿Peligroso? Bueno… depende de cuánto te guste estar entero."), "prólogo: cada respuesta tiene su réplica nueva")
 check(prologue.Steps[1].Id ~= "Prologo_Apertura" and H.loadModule(ROOT .. "/shared/LifeStory/HappeningIndex").has(prologue.Steps[1].Id), "prólogo: la apertura es la cinemática nueva (escena del motor)")
 check(hasLine(prologue.Dialogues.Tornillo.Lines, "No. Eso no estaba previsto."), "prólogo: al coger el tornillo, la reacción nueva de Cosme")

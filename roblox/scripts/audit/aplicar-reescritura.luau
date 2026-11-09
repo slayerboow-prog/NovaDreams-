@@ -225,7 +225,7 @@ end
 -- La lista de GuionOverlay
 ---------------------------------------------------------------------
 local function updateList(id: string, add: boolean)
-	local source = fs.readFile(OVERLAY)
+	local source = (fs.readFile(OVERLAY):gsub("\r\n", "\n")) -- (en Windows git lo deja con CRLF)
 	local head, body, tail = source:match("^(.-GuionOverlay%.List = {\n)(.-)(}\n%-%- END GUIONES.*)$")
 	if not head then
 		error("GuionOverlay.luau: no encuentro la lista entre BEGIN/END GUIONES")
