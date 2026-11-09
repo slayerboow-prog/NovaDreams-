@@ -24,6 +24,40 @@ local log = BodyPieces.Log("BodyPieceService")
 local far: { [BasePart]: boolean } = setmetatable({}, { __mode = "k" }) :: any
 BodyPieceService._log = log -- (pruebas)
 
+-- De dónde vienen las que se quitan (v135: salían cientos por arranque sin saber de quién): «motivo pieza < modelo»
+-- con su cuenta, para el aviso. El modelo es el más cercano por encima de la pieza (el NPC, la carpeta de ropa…).
+local origins: { [string]: number } = {}
+BodyPieceService._origins = origins -- (pruebas)
+
+function BodyPieceService.originOf(piece: Instance, verdict: string): string
+	local holder = piece.Parent
+	while holder and holder ~= workspace and not holder:IsA("Model") do
+		holder = holder.Parent
+	end
+	local where = if holder and holder ~= workspace then holder.Name else if piece.Parent then piece.Parent.Name else "?"
+	return ("%s %s < %s"):format(verdict, piece.Name, where)
+end
+
+-- Las 3 más repetidas («2× NoWeld Flequillo < Cliente»), y se vacía la cuenta
+function BodyPieceService.topOrigins(): string?
+	local list = {}
+	for key, n in origins do
+		table.insert(list, { Key = key, N = n })
+	end
+	table.clear(origins)
+	if #list == 0 then
+		return nil
+	end
+	table.sort(list, function(a, b)
+		return a.N > b.N or (a.N == b.N and a.Key < b.Key)
+	end)
+	local out = {}
+	for i = 1, math.min(3, #list) do
+		table.insert(out, ("%d× %s"):format(list[i].N, list[i].Key))
+	end
+	return table.concat(out, ", ")
+end
+
 -- Un vistazo a una lista de piezas. Devuelve cuántas se han quitado. world: workspace (o el de la prueba)
 function BodyPieceService.sweep(pieces: { Instance }, world: Instance, wait: (() -> ())?): number
 	local removed = 0
@@ -49,6 +83,8 @@ function BodyPieceService.sweep(pieces: { Instance }, world: Instance, wait: (()
 		end
 		if BodyPieces.orphan(verdict) then
 			removed += 1
+			local key = BodyPieceService.originOf(piece, verdict)
+			origins[key] = (origins[key] or 0) + 1
 			far[piece :: BasePart] = nil
 			pcall(piece.Destroy, piece)
 		elseif verdict == "Anchored" then
@@ -69,7 +105,8 @@ function BodyPieceService.init()
 				BodyPieceService.sweep(CollectionService:GetTagged(BodyPieces.TAG), workspace, task.wait)
 				local text = log.flush(os.clock())
 				if text then
-					warn(text)
+					local top = BodyPieceService.topOrigins()
+					warn(if top then text .. " · sobre todo: " .. top else text)
 				end
 			end)
 			if not ok then

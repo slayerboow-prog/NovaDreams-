@@ -353,6 +353,11 @@ do
 	local later = log.flush(161)
 	check(later ~= nil and later:find("6 pieza", 1, true) ~= nil and later:find("total 9", 1, true) ~= nil, "al minuto, lo acumulado y el total: " .. tostring(later))
 	check(BodyPieceService._log.Total >= first + second, "el barrendero lleva la cuenta (" .. BodyPieceService._log.Total .. ")")
+
+	-- De dónde venían (para el aviso): «motivo pieza < modelo», las más repetidas primero
+	local top = BodyPieceService.topOrigins()
+	check(top ~= nil and top:find("NoCharacter HairBack < PlazaMayor", 1, true) ~= nil and top:find("Far Hair <", 1, true) ~= nil, "el aviso dice de dónde venían: " .. tostring(top))
+	check(BodyPieceService.topOrigins() == nil, "y la cuenta de orígenes se vacía tras avisar")
 end
 
 ---------------------------------------------------------------------
