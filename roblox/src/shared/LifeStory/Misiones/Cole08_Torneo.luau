@@ -82,6 +82,9 @@ local function rival1B(place: string): { any }
 	return {
 		{ Npc = "Alumno1", Place = place, Offset = V(8, 0, -6), Bark = "¡4.º B! ¡4.º B!" },
 		{ Npc = "Alumno2", Place = place, Offset = V(11, 0, -4) },
+		-- (los dos que también hablan en la clasificación: antes no estaban en el campo)
+		{ Npc = "Alumno3", Place = place, Offset = V(13, 0, -7) },
+		{ Npc = "Alumno4", Place = place, Offset = V(9, 0, -9) },
 	}
 end
 local function con(list: { any }, extra: { any }): { any }

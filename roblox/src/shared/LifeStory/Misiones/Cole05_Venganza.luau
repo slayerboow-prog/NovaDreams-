@@ -49,7 +49,7 @@ return {
 	Steps = {
 		{ Type = "Transition", Text = "Un mes después…", Seconds = 3 },
 		{ Type = "Reach", Place = "AulaA", Text = "Ve a clase", Actors = { { Npc = "Lucia", Place = "PizarraA", Look = V(1, 0, 0) } } },
-		{ Type = "Scene", Dialogue = "Revuelo", Actors = { { Npc = "Lucia", Place = "PizarraA", Look = V(1, 0, 0) }, { Npc = "Bruno", Place = "AulaA", Offset = V(4, 0, 2) } } },
+		{ Type = "Scene", Dialogue = "Revuelo", Actors = { { Npc = "Lucia", Place = "PizarraA", Look = V(1, 0, 0) }, { Npc = "Bruno", Place = "AulaA", Offset = V(4, 0, 2) }, { Npc = "Alex", Place = "AulaA", Offset = V(-4, 0, 2) }, { Npc = "Vega", Place = "AulaA", Offset = V(-1, 0, 4) } } },
 
 		-- Las víctimas
 		{ Type = "Group", Text = "Habla con quienes sufrieron las bromas",
@@ -82,7 +82,7 @@ return {
 				{ Id = "Iker", Npc = "Iker", Text = "Iker", Dialogue = "Acusa_Iker", Effects = { Traits = { Curiosidad = 2 } } },
 			},
 			Actors = SOSPECHOSOS },
-		{ Type = "Scene", Dialogue = "Confesion", Actors = SOSPECHOSOS },
+		{ Type = "Scene", Dialogue = "Confesion", Actors = { SOSPECHOSOS[1], SOSPECHOSOS[2], SOSPECHOSOS[3], SOSPECHOSOS[4], { Npc = "Vega", Place = "PasilloColegio", Offset = V(8, 0, 2) } } },
 		{ Type = "Scene", Dialogue = "Final", Actors = { { Npc = "Iker", Place = "PasilloColegio", Offset = V(5, 0, 3) }, { Npc = "Lucia", Place = "PasilloColegio", Offset = V(0, 0, 6) }, { Npc = "Bruno", Place = "PasilloColegio", Offset = V(-4, 0, 3) } } },
 	},
 

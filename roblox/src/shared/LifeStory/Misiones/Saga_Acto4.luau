@@ -165,7 +165,15 @@ return {
 					{ Type = "Talk", Npc = "Gnomo1", Dialogue = "Gnomos", Text = "Rigoberto y los gnomos (tu jardín)", If = { Completed = { "Loco_D4_Gnomos" } } },
 					{ Type = "Talk", Npc = "TuMalvado", Dialogue = "Malvado", Text = "Tu yo malvado (la plaza)", If = { Flags = { "ConoceTuMalvado" } } },
 				} },
-			{ Type = "Scene", Dialogue = "Reunion", Actors = { COSME, PIP, ESCAMAS } },
+			-- (los aliados que has ido a buscar, en el garaje: «Vaya. De verdad vinieron». Antes hablaban sin estar)
+			{ Type = "Scene", Dialogue = "Reunion", Actors = { COSME, PIP, ESCAMAS,
+				{ Npc = "Ivan", Place = "GarajeCosme", Offset = V(-6, 0, 6) },
+				{ Npc = "Candela", Place = "GarajeCosme", Offset = V(6, 0, 6) },
+				{ Npc = "CazadorTiempo", Place = "GarajeCosme", Offset = V(-9, 0, 3), If = { Flags = { "CronosAliado" } } },
+				{ Npc = "Bigotes", Place = "GarajeCosme", Offset = V(9, 0, 3), If = { Completed = { "Loco_N2_Bigotes" } } },
+				{ Npc = "Rex", Place = "GarajeCosme", Offset = V(-10, 0, 9), If = { Flags = { "RexSeQueda" } } },
+				{ Npc = "TuMalvado", Place = "GarajeCosme", Offset = V(10, 0, 9), If = { Flags = { "ConoceTuMalvado" } } },
+			} },
 		},
 		Dialogues = {
 			Lista = { Lines = {

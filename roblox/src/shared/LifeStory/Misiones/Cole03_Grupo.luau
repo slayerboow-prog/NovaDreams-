@@ -138,7 +138,7 @@ return {
 			Actors = { { Npc = "Sara", Mode = "Follow" } }, Effects = { Traits = { Curiosidad = 2 }, Rel = { Sara = 6 } } },
 
 		-- Todo acaba en el partido
-		{ Type = "Scene", Dialogue = "FaltanJugadores", Actors = { { Npc = "Nico", Mode = "Follow" }, { Npc = "Sara", Mode = "Follow" }, { Npc = "Omar", Mode = "Follow" } } },
+		{ Type = "Scene", Dialogue = "FaltanJugadores", Actors = { { Npc = "Nico", Mode = "Follow" }, { Npc = "Sara", Mode = "Follow" }, { Npc = "Omar", Mode = "Follow" }, { Npc = "Mateo", Mode = "Follow", If = MATEO_AMIGO } } },
 		{ Type = "Reach", Place = "CampoColegio", Text = "Ve al campo de fútbol", Actors = CAMPO },
 		{ Type = "Scene", Dialogue = "PrePartido", Actors = CAMPO },
 		-- (partido de verdad: tus amigos y el equipo de Bruno los juega el partido; Andrés arbitra desde la banda)

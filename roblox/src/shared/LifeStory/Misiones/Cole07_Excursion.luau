@@ -120,7 +120,7 @@ return {
 		-- Vuelta y foto
 		{ Type = "Scene", Dialogue = "Reunion", Actors = GRANJA },
 		{ Type = "Cinematic", Id = "Cole07_Foto", Actors = GRANJA },
-		{ Type = "Scene", Dialogue = "Vuelta", Actors = GRANJA, Effects = { Teleport = "AutobusCole" } },
+		{ Type = "Scene", Dialogue = "Vuelta", Actors = { GRANJA[1], GRANJA[2], GRANJA[3], GRANJA[4], GRANJA[5], GRANJA[6], GRANJA[7], { Npc = "Andres", Place = "Granja", Offset = V(3, 0, 4) } }, Effects = { Teleport = "AutobusCole" } },
 	},
 
 	Dialogues = {

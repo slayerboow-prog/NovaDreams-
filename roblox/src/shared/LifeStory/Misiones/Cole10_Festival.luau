@@ -30,6 +30,9 @@ local CLASE = {
 	{ Npc = "Iker", Place = "AulaA", Offset = V(6, 0, -1), If = CON_IKER },
 	{ Npc = "Mateo", Place = "AulaA", Offset = V(1, 0, 5), If = AMIGO_MATEO },
 }
+-- (el anuncio: Marisa entra al oír «libros»)
+local CLASE_MARISA = table.clone(CLASE)
+table.insert(CLASE_MARISA, { Npc = "Marisa", Place = "PizarraA", Offset = V(0, 0, -4), Look = V(1, 0, 0) })
 
 -- El día del festival: el patio lleno de gente
 local FESTIVAL = {
@@ -50,6 +53,9 @@ local FESTIVAL = {
 	{ Npc = "Alumno2", Place = "Patio", Offset = V(-14, 0, -8), Mode = "Idle" },
 	{ Npc = "Alumno1", Place = "Patio", Offset = V(10, 0, 14), Mode = "Wander", Radius = 8 },
 	{ Npc = "Alumno3", Place = "Patio", Offset = V(-8, 0, 14), Mode = "Wander", Radius = 8 },
+	-- (Marisa en el puesto de libros e Iker si va contigo: los dos hablan en el festival)
+	{ Npc = "Marisa", Place = "Patio", Offset = V(9, 0, 6) },
+	{ Npc = "Iker", Place = "Patio", Offset = V(-1, 0, 4), If = CON_IKER },
 }
 
 return {
@@ -91,7 +97,7 @@ return {
 	Steps = {
 		{ Type = "Transition", Text = "Llega la primavera a Valmar…", Seconds = 3 },
 		{ Type = "Reach", Place = "AulaA", Text = "Ve a clase", Actors = CLASE },
-		{ Type = "Scene", Dialogue = "Anuncio", Actors = CLASE },
+		{ Type = "Scene", Dialogue = "Anuncio", Actors = CLASE_MARISA },
 		{ Type = "Choice", Key = "Festival", Text = "¿De qué te encargas en el festival? (habla con quien lo organiza)",
 			Options = {
 				{ Id = "Decoracion", Npc = "Vega", Text = "Decoración, con Vega", Dialogue = "Elige_Decoracion", Effects = { Rel = { Vega = 5 } } },

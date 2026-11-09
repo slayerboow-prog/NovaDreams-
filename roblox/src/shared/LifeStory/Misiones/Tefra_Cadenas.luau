@@ -138,7 +138,7 @@ return {
 				{ S = "Narrador", T = "Brasa cruza la puerta corriendo entre la ceniza. Las sirenas suenan a lo lejos. Nadie las oye." },
 				{ S = "GaloPadre", T = "Has crecido. Y estás más sucia. Y más guapa.", To = "Brasa" },
 				{ S = "Brasa", T = "Me quedo en el Mercado. Madre Hollín me da un puesto. Y a ti te hago descuento. Siempre.", To = "Yo", A = "Happy" },
-				{ S = "SargentoMurria", T = "(Murria os mira desde lejos. Luego se da la vuelta y se va solo, despacio.)", If = { Choices = { TefraMurria = "Sacar" } } },
+				{ S = "Narrador", T = "Murria os mira desde lejos. Luego se da la vuelta y se va solo, despacio.", If = { Choices = { TefraMurria = "Sacar" } } },
 			} },
 		},
 	},

@@ -147,7 +147,8 @@ return {
 		{ Type = "Use", Prop = "GorraRuben", Text = "Esconde la gorra de Rubén", If = { Choices = { MochilaRuben = "Broma" } },
 			Actors = { RUBEN_ALMACEN }, Props = { "TuMochila" } },
 
-		{ Type = "Scene", Dialogue = "Lucia_Final", Actors = { RUBEN_ALMACEN, LUCIA_ALMACEN }, Props = { "TuMochila" },
+		-- (Bruno asoma en la puerta si se lo contaste a la profe: «Yo solo…»; antes hablaba sin estar)
+		{ Type = "Scene", Dialogue = "Lucia_Final", Actors = { RUBEN_ALMACEN, LUCIA_ALMACEN, { Npc = "Bruno", Place = "AlmacenColegio", Offset = V(3, 0, 5), If = { Choices = { MochilaRuben = "Profe" } } } }, Props = { "TuMochila" },
 			Effects = { Items = { MochilaCole = 1 } } },
 	},
 
