@@ -159,5 +159,10 @@ if okSet then
 	check(L.workspace.FallenPartsDestroyHeight == OceanBuilder.DestroyHeight, "OceanBuilder.setDestroyHeight la baja al arrancar el mar")
 end
 check(string.find(fs.readFile("src/server/World/OceanBuilder.luau"), "\tOceanBuilder.setDestroyHeight()", 1, true) ~= nil, "OceanBuilder.build la llama")
+-- (v134) En un servidor de verdad no se puede escribir («lacking capability PluginOrOpenCloud»): la trae el archivo
+local serde = require("@lune/serde")
+local project = serde.decode("json", fs.readFile("default.project.json"))
+local fileHeight = project.tree.Workspace["$properties"].FallenPartsDestroyHeight
+check(type(fileHeight) == "number" and fileHeight <= OceanBuilder.DestroyHeight, ("default.project.json deja Workspace.FallenPartsDestroyHeight en %s (≤ %d): el servidor no puede bajarla"):format(tostring(fileHeight), OceanBuilder.DestroyHeight))
 
 L.finish("Valmar Hundida (bug v129: me devuelve a Nácara)")

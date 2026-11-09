@@ -294,6 +294,7 @@
     },
     "Workspace": {
       "$properties": {
+        "FallenPartsDestroyHeight": -800,
         "StreamingEnabled": true,
         "StreamingTargetRadius": 768,
         "StreamingMinRadius": 96,

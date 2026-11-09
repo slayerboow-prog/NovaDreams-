@@ -1149,8 +1149,9 @@ end
 
 -- (v130) El mar más hondo (la Sima del Kraken, ~−563; la guarida a −500) está por debajo de la altura a la que
 -- Roblox BORRA las piezas que caen (Workspace.FallenPartsDestroyHeight, −500 en el archivo): quien bajara al fondo
--- de la sima desaparecía. Se baja al arrancar el mar (los scripts del servidor pueden escribirla: Security Write =
--- None en el API dump; solo los scripts con permisos limitados no). Lo comprueba test-valmar-hundida.
+-- de la sima desaparecía. El servidor NO puede escribirla (v134: «lacking capability PluginOrOpenCloud»), así que
+-- la deja puesta el archivo (default.project.json, Workspace.FallenPartsDestroyHeight = −800) y aquí solo se baja si
+-- aún no lo está (Studio con un archivo viejo). Lo comprueba test-valmar-hundida.
 OceanBuilder.DestroyHeight = -800
 function OceanBuilder.setDestroyHeight(): boolean
 	local ok, err = pcall(function()
