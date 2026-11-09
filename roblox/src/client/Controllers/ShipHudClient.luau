@@ -286,9 +286,7 @@ local function rows(a: any): { { [string]: any } }
 			})
 		end
 	end
-	if #out < 2 then
-		table.insert(out, { Kind = "SECUNDARIA", Title = "Sin misiones del tablón", Step = "Atraca en una estación para coger misiones", Right = "" })
-	end
+	-- (sin misión del tablón no se pone una fila de relleno: menos ruido en pantalla, v135)
 	if a.World == "Cosmos" then
 		table.insert(out, ShipHudClient.eventRow(serverTime()))
 	elseif nav and type(nav.Event) == "string" then
@@ -340,6 +338,12 @@ function ShipHudClient.update(view: AirCombatHud.View, a: any, list: { any }, dt
 	clocks.Fast += dt
 	clocks.Slow += dt
 	local root = a.Root
+	-- Horizonte con CIELO / SUELO (cada fotograma, va con la cámara): sobre Valmar y en los planetas; en el
+	-- espacio no hay arriba ni abajo. Aviso si bajas casi al suelo de las naves.
+	local pos = root.Position
+	local withGround = (a.World == "Cosmos" and pos.Y < Layers.SpaceY) or a.World == "Planet"
+	local ground = if a.World == "Cosmos" then pos.Y - Layers.floorAt(pos) else nil
+	AirCombatHud.setHorizon(view, if withGround and not a.Down then workspace.CurrentCamera else nil, ground)
 	if clocks.Compass >= 1 / 30 then
 		clocks.Compass = 0
 		local _, dest = ShipHudClient.destination(a)

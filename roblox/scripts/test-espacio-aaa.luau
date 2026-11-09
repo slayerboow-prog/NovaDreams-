@@ -2362,6 +2362,16 @@ do
 	local Layers = L.load("src/shared/Cosmos/Layers")
 	check(Layers.clearWeight(true, 100) == 0 and Layers.clearWeight(true, 1100) == 1 and Layers.clearWeight(false, 1100) == 0, "pilotando sobre Valmar, menos bruma desde arriba (y a ras de suelo, la de siempre)")
 	check(Layers.FlightClear.Density < 0.2, "la bruma del vuelo deja ver la ciudad (densidad " .. Layers.FlightClear.Density .. ")")
+	-- (el horizonte de la mira: recto, en el centro; mirando arriba, por debajo; de lado, girado; en picado, arriba)
+	local vp = Vector2.new(1000, 600)
+	local c0, r0 = Hud.horizonPose(CFrame.new(0, 500, 0), 70, vp)
+	check(math.abs(c0.X - 500) < 1 and math.abs(c0.Y - 300) < 1 and math.abs(r0) < 0.5, "horizonte: con la cámara recta, en el centro y sin girar")
+	local cUp = Hud.horizonPose(CFrame.new(0, 500, 0) * CFrame.Angles(math.rad(20), 0, 0), 70, vp)
+	check(cUp.Y > 380, ("horizonte: mirando hacia arriba queda por debajo (y = %.0f)"):format(cUp.Y))
+	local _, rRoll = Hud.horizonPose(CFrame.new(0, 500, 0) * CFrame.Angles(0, 0, math.rad(30)), 70, vp)
+	check(math.abs(math.abs(rRoll) - 30) < 1, ("horizonte: con la nave de lado, la línea va girada (%.0f°)"):format(rRoll))
+	local cDown, _, edge = Hud.horizonPose(CFrame.new(0, 500, 0) * CFrame.Angles(math.rad(-80), 0, 0), 70, vp)
+	check(edge == "Up" and cDown.Y <= 41, "horizonte: en picado se queda pegado arriba (se ve que el suelo está delante)")
 end
 
 if failures > 0 then

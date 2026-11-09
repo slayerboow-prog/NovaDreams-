@@ -145,6 +145,8 @@ export type View = {
 	HintNames: { [string]: string }?, -- títulos propios de las dos listas de teclas (setHintLists)
 	PlaneLabeled: boolean?, -- (aviones) los rótulos ya están cambiados (setPlane)
 	PathMarker: Frame?, -- (aviones) el marcador de trayectoria (setReticle "Vuelo")
+	Horizon: Frame?, -- (v135) la línea del horizonte con CIELO / SUELO (setHorizon)
+	GroundWarn: TextLabel?, -- (v135) «⚠ SUELO A 40 m»
 	Art: { [string]: any }, -- los sprites puestos (UI/HudArt; vacío sin ids: el aspecto de siempre)
 	Gauges: { [string]: number }, -- lo que enseñan ahora los arcos (se acercan al valor: relleno animado)
 	GaugeClock: number?,
@@ -1130,6 +1132,18 @@ function AirCombatHud.new(parent: Instance, touch: boolean, vehicle: string?): V
 	local flash = create("Frame", { Name = "Flash", Size = UDim2.fromScale(1, 1), BackgroundTransparency = 1, BorderSizePixel = 0, Parent = overlay })
 	local flashStroke = create("UIStroke", { Name = "Edge", Color = rgb(80, 200, 255), Thickness = 24, Transparency = 1, Parent = flash })
 	flashStroke:SetAttribute("Edge", true)
+	-- Horizonte (v135, «no sé dónde está arriba ni abajo»): una línea fina sobre el horizonte de verdad, que
+	-- gira y sube o baja con la cámara, con «▲ CIELO» encima y «▼ SUELO» debajo; y el aviso de suelo cerca.
+	-- No toca la mira ni los indicadores: va por detrás de ellos (ZIndex 0) y es semitransparente.
+	local horizon = create("Frame", { Name = "Horizonte", AnchorPoint = Vector2.new(0.5, 0.5), Size = UDim2.fromOffset(if touch then 300 else 420, 2), BackgroundColor3 = K.White, BackgroundTransparency = 0.45, BorderSizePixel = 0, ZIndex = 0, Visible = false, Parent = overlay })
+	for _, side in { -1, 1 } do
+		-- (las puntas, un poco más gruesas: se ve la inclinación aunque la línea sea fina)
+		create("Frame", { Name = "Punta", AnchorPoint = Vector2.new(if side < 0 then 0 else 1, 0.5), Position = UDim2.fromScale(if side < 0 then 0 else 1, 0.5), Size = UDim2.fromOffset(26, 4), BackgroundColor3 = K.White, BackgroundTransparency = 0.25, BorderSizePixel = 0, ZIndex = 0, Parent = horizon })
+	end
+	label({ Name = "Cielo", AnchorPoint = Vector2.new(0.5, 1), Position = UDim2.new(0.5, 0, 0, -6), Size = UDim2.fromOffset(120, 16), Text = "▲ CIELO", TextSize = 13, TextColor3 = rgb(170, 220, 255), TextTransparency = 0.25, TextXAlignment = Enum.TextXAlignment.Center, ZIndex = 0, Parent = horizon })
+	label({ Name = "Suelo", AnchorPoint = Vector2.new(0.5, 0), Position = UDim2.new(0.5, 0, 1, 6), Size = UDim2.fromOffset(120, 16), Text = "▼ SUELO", TextSize = 13, TextColor3 = rgb(150, 230, 160), TextTransparency = 0.25, TextXAlignment = Enum.TextXAlignment.Center, ZIndex = 0, Parent = horizon })
+	view.Horizon = horizon
+	view.GroundWarn = label({ Name = "SueloCerca", AnchorPoint = Vector2.new(0.5, 0), Position = UDim2.new(0.5, 0, 0.45, 70), Size = UDim2.fromOffset(240, 22), Text = "", TextSize = 18, TextColor3 = rgb(255, 190, 70), TextXAlignment = Enum.TextXAlignment.Center, TextStrokeTransparency = 0.3, Visible = false, Parent = overlay })
 	view.Overlay = overlay
 	view.Cross = cross
 	view.PathMarker = path
@@ -1183,6 +1197,66 @@ function AirCombatHud.setReticle(view: View, mode: string?, point: Vector2?)
 end
 
 -- Qué mirilla toca (puro): con el arma lista, la mira; si no, el marcador de trayectoria
+-- Dónde está el horizonte en la pantalla (cuentas puras): el punto del horizonte que queda delante de la
+-- cámara, proyectado, y el giro de la línea. camCF/fov de la cámara, viewport en píxeles. Si el horizonte
+-- se sale de la pantalla (mirando en picado o al cielo) se queda en el borde, para que siempre se vea de
+-- qué lado está el suelo. Devuelve centro, giro en grados y "Up"/"Down"/nil (pegado a un borde).
+function AirCombatHud.horizonPose(camCF: CFrame, fov: number, viewport: Vector2): (Vector2, number, string?)
+	local look = camCF.LookVector
+	local right = camCF.RightVector
+	local up = camCF.UpVector
+	-- (giro: con la derecha de la cámara levantada, la línea va inclinada hacia la izquierda)
+	local roll = math.deg(math.atan2(right.Y, up.Y))
+	-- (cuánto queda el horizonte por debajo del centro: el ángulo del morro sobre el horizonte)
+	local pitch = math.asin(math.clamp(look.Y, -1, 1))
+	local halfV = math.rad(math.clamp(fov, 1, 120)) / 2
+	local px = math.tan(math.clamp(pitch, -1.45, 1.45)) / math.tan(halfV) * (viewport.Y / 2)
+	-- (perpendicular a la línea, en pantalla: «abajo» de la cámara girado con el roll)
+	local r = math.rad(roll)
+	local offset = Vector2.new(-math.sin(r), math.cos(r)) * px
+	local center = viewport / 2 + offset
+	local margin = 40
+	local edge: string? = nil
+	if center.Y < margin then
+		center = Vector2.new(center.X, margin)
+		edge = "Up"
+	elseif center.Y > viewport.Y - margin then
+		center = Vector2.new(center.X, viewport.Y - margin)
+		edge = "Down"
+	end
+	center = Vector2.new(math.clamp(center.X, margin, viewport.X - margin), center.Y)
+	return center, roll, edge
+end
+
+-- La línea del horizonte y el aviso de suelo. ground: altura sobre el suelo de las naves en studs (nil
+-- = sin aviso). Mirando en picado, el horizonte se queda arriba y «SUELO» se ve más.
+AirCombatHud.GroundWarnStuds = 60 -- (por encima del suelo de las naves: casi en el mínimo)
+function AirCombatHud.setHorizon(view: View, camera: Camera?, ground: number?)
+	local h = view.Horizon
+	if not h then
+		return
+	end
+	if not camera then
+		put(view, h, "Visible", false)
+		if view.GroundWarn then
+			put(view, view.GroundWarn, "Visible", false)
+		end
+		return
+	end
+	local center, roll = AirCombatHud.horizonPose(camera.CFrame, camera.FieldOfView, camera.ViewportSize)
+	put(view, h, "Visible", true)
+	put(view, h, "Position", UDim2.fromOffset(math.floor(center.X + 0.5), math.floor(center.Y + 0.5)))
+	put(view, h, "Rotation", math.floor(roll * 2 + 0.5) / 2)
+	local warn = view.GroundWarn
+	if warn then
+		local near = type(ground) == "number" and ground < AirCombatHud.GroundWarnStuds
+		put(view, warn, "Visible", near)
+		if near then
+			put(view, warn, "Text", "⚠ MUY BAJO · SUBE")
+		end
+	end
+end
+
 function AirCombatHud.reticleMode(piloting: boolean, armed: boolean): string?
 	if not piloting then
 		return nil
@@ -1835,6 +1909,11 @@ function AirCombatHud.setTarget(view: View, t: { [string]: any }?)
 	end
 	local on = t ~= nil
 	put(view, T.Empty, "Visible", not on)
+	-- (sin blanco, la tarjeta entera fuera: «Sin objetivo» solo era ruido; sale en cuanto fijas uno, v135)
+	local card = T.Empty.Parent
+	if card and card:IsA("GuiObject") and card.Name ~= "AirCombatHud" then
+		put(view, card, "Visible", on)
+	end
 	for _, o in { T.Name, T.Level, T.Dist, T.Dot } do
 		put(view, o, "Visible", on)
 	end
