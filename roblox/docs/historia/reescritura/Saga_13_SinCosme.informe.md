@@ -65,6 +65,7 @@ _Ninguno._
 - PASO 4 · OBJETIVO: Investiga el lugar donde comenzó todo.
 - PASO 5 · OBJETIVO: Encuentra la costura oculta.
 - PASO 5 · FLAGS: Opcional:
+- PASO 5 · CONSECUENCIA: A partir de esta misión:
 - PASO 5 · DIRECCIÓN CINEMATOGRÁFICA: Esta misión debe tener un ritmo deliberadamente diferente.
 
 ## Cómo se traduce el formato

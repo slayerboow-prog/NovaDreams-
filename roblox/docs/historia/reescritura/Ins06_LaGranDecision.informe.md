@@ -68,7 +68,6 @@ _Ninguno._
 - PASO 7 → paso 7 del juego (Scene «PuertasAbiertas»): conversación «PuertasAbiertas» con 4 frases nuevas
 - PASO 9 → paso 9 del juego (Scene «Nervios»): conversación «Nervios» con 4 frases nuevas
 - PASO 17 → paso 17 del juego (Class): 2 frases al empezar el paso (escena ligera «Ins06_G17_Entra», la lanza el paso 16 al cumplirse; el jugador no pierde el control)
-- PASO 23 → paso 23 del juego (Choice): 1 frases al empezar el paso (escena ligera «Ins06_G23_Entra», la lanza el paso 22 al cumplirse; el jugador no pierde el control)
 - PASO 24 → paso 24 del juego (Scene «Decidido»): conversación «Decidido» con 13 frases nuevas
 
 ## Adaptado (y por qué)
@@ -108,6 +107,7 @@ _Ninguno._
 - PASO 20: el guion lo escribe como [] y en el juego es transición (Transition): se conserva el tipo del juego y su mecánica
 - PASO 20 → paso 20 del juego (Transition): solo trae planos (sin frases): en un paso jugable no se quita el control, así que no se aplican
 - PASO 21 → paso 21 del juego (Transition): solo trae planos (sin frases): en un paso jugable no se quita el control, así que no se aplican
+- PASO 23: la ELECCION del guion se toma en el mundo (paso Choice «Futuro»): se conservan las opciones del juego y sus efectos
 - PASO 25 → paso 25 del juego (Reach): solo trae planos (sin frases): en un paso jugable no se quita el control, así que no se aplican
 
 ## Género ({o/a}) corregido en frases dirigidas al jugador
@@ -120,7 +120,7 @@ _Ninguno._
 - PASO 12 (línea 1471): «Ingeniería» no está en el reparto del juego: sus frases no se aplican (si es alguien, ponlo en Hablantes del mapa)
 - PASO 12 (línea 1472): «Derecho» no está en el reparto del juego: sus frases no se aplican (si es alguien, ponlo en Hablantes del mapa)
 - PASO 12 (línea 1473): «Economía» no está en el reparto del juego: sus frases no se aplican (si es alguien, ponlo en Hablantes del mapa)
-- PASO 23 (línea 2152): «Disponible únicamente si» no está en el reparto del juego: sus frases no se aplican (si es alguien, ponlo en Hablantes del mapa)
+- PASO 23 · respuesta A: «Disponible únicamente si» no está en el reparto del juego: sus frases no se aplican (si es alguien, ponlo en Hablantes del mapa)
 
 ## Notas del guion sin equivalente directo (bloques de dirección, minijuegos, memoria…)
 

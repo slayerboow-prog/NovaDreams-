@@ -114,7 +114,7 @@ return {
 							Effects = { Choice = { Malotes = "Lucia" }, Rel = { Hugo = -2, Lucia = 3 }, Traits = { Responsabilidad = 2 } },
 							Then = {
 								{ S = "Hugo", T = "Vale. Iré contigo. Si voy yo también…", To = "Yo" },
-								{ S = "Hugo", T = "quizá no se enfade tanto conmigo.", To = "Yo", Shot = "Reaccion:Hugo" },
+								{ S = "Hugo", T = "…quizá no se enfade tanto conmigo.", To = "Yo", Shot = "Reaccion:Hugo" },
 							},
 						},
 						{
@@ -212,7 +212,7 @@ return {
 				{ S = "Lucia", T = "¿Te han quitado algo? Uf.", To = "Yo", Shot = "Reaccion:Lucia", A = "Ask" },
 				{ S = "Lucia", T = "Sin pruebas no puedo acusar a nadie.", To = "Yo" },
 				{ S = "Lucia", T = "Pero te creo. Si lo encuentras…", To = "Yo", Shot = "PrimerPlano:Lucia" },
-				{ S = "Lucia", T = "vienes y me lo cuentas.", To = "Yo" },
+				{ S = "Lucia", T = "…vienes y me lo cuentas.", To = "Yo" },
 				{ S = "Lucia", T = "Y nada de correr por los pasillos.", To = "Yo" },
 				{ S = "Lucia", T = "¿Entendido?", To = "Yo", Shot = "Reaccion:Yo" },
 				{ S = "Yo", T = "Sí.", A = "Nod" },
@@ -236,13 +236,8 @@ return {
 		},
 		Pista_Nico = {
 			Lines = {
-				{
-					S = "Nico",
-					T = "¡Sabía que Bruno tramaba algo! Al salir del recreo… iban los tres juntos. Bruno, Rubén y Hugo.",
-					To = "Yo",
-					Shot = "Medio:Nico",
-					A = "Shrug",
-				},
+				{ S = "Nico", T = "¡Sabía que Bruno tramaba algo! Al salir del recreo…", To = "Yo", Shot = "Medio:Nico", A = "Shrug" },
+				{ S = "Nico", T = "…iban los tres juntos. Bruno, Rubén y Hugo.", To = "Yo", Pause = 0.9 },
 				{ S = "Nico", T = "Se fueron hacia el pasillo.", To = "Yo" },
 				{ S = "Yo", T = "¿Los viste?" },
 				{ S = "Nico", T = "Sí. Si quieres les reto a una carrera.", To = "Yo", A = "Nod" },
@@ -360,7 +355,7 @@ return {
 				{ S = "Narrador", T = "Podías haberte ido. Y te fuiste.", Shot = "General", Pause = 1.8, If = { Choices = { Malotes = "Ignorar" } } },
 				{ S = "Narrador", T = "Pero viste algo que antes no habías visto.", Shot = "PrimerPlano:Hugo", If = { Choices = { Malotes = "Ignorar" } } },
 				{ S = "Narrador", T = "Que alguien puede estar haciendo algo mal…", Pause = 0.9, If = { Choices = { Malotes = "Ignorar" } } },
-				{ S = "Narrador", T = "y aun así necesitar ayuda.", If = { Choices = { Malotes = "Ignorar" } } },
+				{ S = "Narrador", T = "…y aun así necesitar ayuda.", If = { Choices = { Malotes = "Ignorar" } } },
 			},
 		},
 		Rama_Lucia = {
@@ -513,7 +508,7 @@ return {
 			},
 		},
 		Cole04_G22_Musica = { Light = true, Duration = 27.4, Anchors = { Yo = "Player" }, Tracks = { Music = { { At = 0, Intensity = "Tension" } } } },
-		Cole04_G23_Musica = { Light = true, Duration = 18, Anchors = { Yo = "Player" }, Tracks = { Music = { { At = 0, Intensity = "Intima" } } } },
+		Cole04_G23_Musica = { Light = true, Duration = 18.1, Anchors = { Yo = "Player" }, Tracks = { Music = { { At = 0, Intensity = "Intima" } } } },
 		Cole04_G24_Musica = { Light = true, Duration = 39.3, Anchors = { Yo = "Player" }, Tracks = { Music = { { At = 0, Intensity = "Intima" } } } },
 		Cole04_G3_Musica = { Light = true, Duration = 45.7, Anchors = { Yo = "Player" }, Tracks = { Music = { { At = 0, Intensity = "Tension" } } } },
 		Cole04_G4_Entra = {

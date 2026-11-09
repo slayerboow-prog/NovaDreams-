@@ -1750,7 +1750,7 @@ No presentar:
 
 «ROBAR = OPCIÓN MALA»
 
-(pensativo) con una interfaz moral.
+(con una interfaz moral)
 
 No utilizar:
 

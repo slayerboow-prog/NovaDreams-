@@ -2131,7 +2131,7 @@ No existen.
 
 ⸻
 
-PREGUNTA
+DECISIÓN
 
 Tienes 18 años y todo el futuro por delante.
 

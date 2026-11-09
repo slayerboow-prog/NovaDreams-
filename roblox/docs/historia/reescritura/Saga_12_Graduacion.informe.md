@@ -67,6 +67,7 @@ _Ninguno._
 - PASO 3 · OBJETIVO: Protege la graduación.
 - PASO 4 · OBJETIVO: Protege a tus amigos.
 - PASO 5 · FLAGS: 
+- PASO 5 · Consecuencia:: Cosme ha desaparecido.
 - PASO 5 · DIRECCIÓN DE ACTUACIÓN: Durante el comienzo: / * Nervioso. / * Intentando fingir normalidad. / * Feliz por la graduación. / Cuando aparece la grieta: / * Miedo real. / * Protección. / * Determinación. / Durante el secuestro: / * No debe parecer derrotado. / * Debe intentar proteger al protagonista hasta el último segundo. / La frase: / COSME: No sueltes el Ancla
 - PASO 5 · OBJETIVO:: Habla con Pip.
 

@@ -161,7 +161,7 @@ return {
 				},
 				{ S = "Yo", T = "Lo siento.", A = "Sad", If = { Flags = { "AcusasteABruno" } } },
 				{ S = "Bruno", T = "Vale. Pero la próxima…", To = "Yo", A = "Nod", If = { Flags = { "AcusasteABruno" } } },
-				{ S = "Bruno", T = "pregunta primero.", To = "Yo", Shot = "Reaccion:Bruno", If = { Flags = { "AcusasteABruno" } } },
+				{ S = "Bruno", T = "…pregunta primero.", To = "Yo", Shot = "Reaccion:Bruno", If = { Flags = { "AcusasteABruno" } } },
 				{ S = "Yo", T = "Trato hecho.", A = "Nod", If = { Flags = { "AcusasteABruno" } } },
 				{
 					S = "Bruno",
@@ -268,7 +268,7 @@ return {
 				},
 				{ S = "Narrador", T = "Algunas amistades necesitan tiempo.", Shot = "General", If = { Choices = { IkerFinal = "Lucia" } } },
 				{ S = "Narrador", T = "A veces quieres descubrir la verdad. Y a veces…", Shot = "PrimerPlano:Yo" },
-				{ S = "Narrador", T = "descubrirla cambia la forma en que miras a alguien.", Shot = "General" },
+				{ S = "Narrador", T = "…descubrirla cambia la forma en que miras a alguien.", Shot = "General" },
 				{ S = "Narrador", T = "Hoy aprendiste otra cosa.", Shot = "General" },
 				{ S = "Narrador", T = "Antes de señalar a alguien… busca las pistas.", Pause = 0.9 },
 				{ S = "Narrador", T = "Todavía faltaban muchos años para que entendieras a las personas.", Shot = "General" },
@@ -328,7 +328,7 @@ return {
 			Lines = {
 				{ S = "Alex", T = "Mis guantes de portera. Desaparecidos.", To = "Yo", Shot = "General", A = "ThinkChin" },
 				{ S = "Alex", T = "Y después aparecieron…", To = "Yo", Pause = 0.9 },
-				{ S = "Alex", T = "en la biblioteca.", To = "Yo", Shot = "General" },
+				{ S = "Alex", T = "…en la biblioteca.", To = "Yo", Shot = "General" },
 				{ S = "Alex", T = "Bruno no ha pisado la biblioteca en su vida.", To = "Yo", Shot = "Reaccion:Alex" },
 			},
 		},
@@ -356,24 +356,24 @@ return {
 	Scenes = {
 		Cole05_G1_Fin = {
 			Light = true,
-			Duration = 17.5,
+			Duration = 17.6,
 			Anchors = { Sitio = "Player", Yo = "Player" },
 			Tracks = {
 				Dialogue = {
 					{ At = 3.8, S = "Narrador", T = "Después de lo ocurrido con Bruno…" },
-					{ At = 7.9, S = "Narrador", T = "las cosas estuvieron tranquilas." },
-					{ At = 10.9, S = "Narrador", T = "Durante un tiempo." },
-					{ At = 14.3, S = "Narrador", T = "Algo ha pasado." },
+					{ At = 7.9, S = "Narrador", T = "…las cosas estuvieron tranquilas." },
+					{ At = 11, S = "Narrador", T = "Durante un tiempo." },
+					{ At = 14.4, S = "Narrador", T = "Algo ha pasado." },
 				},
-				Music = { { At = 0, Intensity = "Descubrimiento" }, { At = 8.4, Intensity = "Tension" } },
+				Music = { { At = 0, Intensity = "Descubrimiento" }, { At = 8.5, Intensity = "Tension" } },
 				Titles = { { At = 0.4, Duration = 3.2, Text = "Un mes después…" } },
 			},
 		},
 		Cole05_G21_22_23_24_Musica = {
 			Light = true,
-			Duration = 97.3,
+			Duration = 97.4,
 			Anchors = { Yo = "Player" },
-			Tracks = { Music = { { At = 0, Intensity = "Intima" }, { At = 32.4, Intensity = "Descubrimiento" }, { At = 64.9, Intensity = "Intima" } } },
+			Tracks = { Music = { { At = 0, Intensity = "Intima" }, { At = 32.5, Intensity = "Descubrimiento" }, { At = 64.9, Intensity = "Intima" } } },
 		},
 		Cole05_G3_Musica = { Light = true, Duration = 51.5, Anchors = { Yo = "Player" }, Tracks = { Music = { { At = 0, Intensity = "Tension" } } } },
 		Cole05_G6_Musica = { Light = true, Duration = 23.5, Anchors = { Yo = "Player" }, Tracks = { Music = { { At = 0, Intensity = "Tension" } } } },

@@ -116,7 +116,7 @@ return {
 		Periodico = {
 			Lines = {
 				{ S = "Hugo", T = "Cada lunes aparece uno nuevo. Pájaros. Otra. Frases. Otra. Colores.", To = "Yo", A = "Nod" },
-				{ S = "Hugo", T = "El director está entre enfadado… …y encantado.", To = "Yo" },
+				{ S = "Hugo", T = "El director está entre enfadado… y encantado.", To = "Yo" },
 			},
 		},
 		Pregunta_Delegada = {

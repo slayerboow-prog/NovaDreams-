@@ -219,12 +219,6 @@ return {
 				},
 			},
 		},
-		Ins06_G23_Entra = {
-			Light = true,
-			Duration = 10,
-			Anchors = { Sitio = "Player", Yo = "Player" },
-			Tracks = { Dialogue = { { At = 0.4, S = "Yo", T = "Ir a la universidad Empezar a trabajar ya" } } },
-		},
 		Ins06_G2_Entra = {
 			Light = true,
 			Duration = 10,
@@ -247,7 +241,6 @@ return {
 	Steps = {
 		["1"] = { Effects = { Scene = "Ins06_G2_Entra" } },
 		["16"] = { Effects = { Scene = "Ins06_G17_Entra" } },
-		["22"] = { Effects = { Scene = "Ins06_G23_Entra" } },
 		["3"] = { Effects = { Scene = "Ins06_G4_Entra" } },
 	},
 }

@@ -77,7 +77,7 @@ _Ninguno._
 - PASO 19 → paso 19 del juego (Scene «Apertura»): conversación «Apertura» con 4 frases nuevas (música Intima)
 - PASO 20.1 → paso 20.1 del juego (Use): lo que pasa al usarlo va en la conversación del objeto «Imp_Farolillos» (1 frases)
 - PASO 20.2 → paso 20.2 del juego (Talk «Imp_Altavoz»): conversación «Imp_Altavoz» con 3 frases nuevas
-- PASO 20.3 → paso 20.3 del juego (Talk «Imp_Perdida»): conversación «Imp_Perdida» con 4 frases nuevas
+- PASO 20.3 → paso 20.3 del juego (Talk «Imp_Perdida»): conversación «Imp_Perdida» con 3 frases nuevas
 - PASO 20.4 → paso 20.4 del juego (Talk «Imp_Bruno»): conversación «Imp_Bruno» con 3 frases nuevas
 - PASO 21 → paso 21 del juego (Scene «TuParte»): conversación «TuParte» con 11 frases nuevas
 - PASO 22 → paso 22 del juego (Scene «Talentos»): conversación «Talentos» con 6 frases nuevas (música Intima)
@@ -119,9 +119,9 @@ _Ninguno._
 
 ## Avisos
 
-- PASO 25 (línea 1511): «Duración» no está en el reparto del juego: sus frases no se aplican (si es alguien, ponlo en Hablantes del mapa)
-- PASO 25 (línea 1741): «Algunos NPCs deben» no está en el reparto del juego: sus frases no se aplican (si es alguien, ponlo en Hablantes del mapa)
-- PASO 25 (línea 1747): «Recuerdo» no está en el reparto del juego: sus frases no se aplican (si es alguien, ponlo en Hablantes del mapa)
+- PASO 25 (línea 1509): «Duración» no está en el reparto del juego: sus frases no se aplican (si es alguien, ponlo en Hablantes del mapa)
+- PASO 25 (línea 1739): «Algunos NPCs deben» no está en el reparto del juego: sus frases no se aplican (si es alguien, ponlo en Hablantes del mapa)
+- PASO 25 (línea 1745): «Recuerdo» no está en el reparto del juego: sus frases no se aplican (si es alguien, ponlo en Hablantes del mapa)
 
 ## Notas del guion sin equivalente directo (bloques de dirección, minijuegos, memoria…)
 

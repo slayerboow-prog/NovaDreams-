@@ -46,7 +46,7 @@ return {
 				{ S = "Narrador", T = "Huele a goma. A polvo. Y a secretos.", Shot = "General", Effects = { Scene = "Cole02_Mochila_G17_Musica" } },
 				{ S = "Yo", T = "Ahí.", Shot = "Reaccion:Yo", G = "Point" },
 				{ S = "Narrador", T = "Hay varias. Pero una de ellas…", Shot = "General" },
-				{ S = "Narrador", T = "es la tuya.", Shot = "General" },
+				{ S = "Narrador", T = "…es la tuya.", Shot = "General" },
 			},
 		},
 		Almacen_Gris = {
@@ -214,7 +214,7 @@ return {
 			Lines = {
 				{ S = "Narrador", T = "Chicle de fresa. Huele a fresa.", Shot = "General" },
 				{ S = "Narrador", T = "Y no demuestra absolutamente nada. A veces una pista…", Pause = 0.9 },
-				{ S = "Narrador", T = "es simplemente basura." },
+				{ S = "Narrador", T = "…es simplemente basura." },
 			},
 		},
 		Pista_Huella = {
@@ -322,7 +322,7 @@ return {
 				{ S = "Iker", T = "Y después se rieron.", To = "Yo", Shot = "Reaccion:Yo" },
 				{ S = "Iker", T = "Dato curioso. El sitio de siempre suele ser donde nadie mira.", To = "Yo", Shot = "PPP:Iker" },
 				{ S = "Nico", T = "¡Qué fuerte! Si pillo al que ha sido…", To = "Yo", Shot = "Reaccion:Nico", A = "Happy" },
-				{ S = "Nico", T = "le reto a una carrera. Y le gano.", To = "Yo" },
+				{ S = "Nico", T = "…le reto a una carrera. Y le gano.", To = "Yo" },
 			},
 		},
 		Testigo_Mateo = {
@@ -432,7 +432,7 @@ return {
 		Cole02_Mochila_G9_1_Musica = { Light = true, Duration = 13.7, Anchors = { Yo = "Player" }, Tracks = { Music = { { At = 0, Intensity = "Tension" } } } },
 		Cole02_Mochila_G9_2_Musica = { Light = true, Duration = 17.4, Anchors = { Yo = "Player" }, Tracks = { Music = { { At = 0, Intensity = "Tension" } } } },
 		Cole02_Mochila_G9_3_Musica = { Light = true, Duration = 18.9, Anchors = { Yo = "Player" }, Tracks = { Music = { { At = 0, Intensity = "Tension" } } } },
-		Cole02_Mochila_G9_4_Musica = { Light = true, Duration = 22.5, Anchors = { Yo = "Player" }, Tracks = { Music = { { At = 0, Intensity = "Tension" } } } },
+		Cole02_Mochila_G9_4_Musica = { Light = true, Duration = 22.6, Anchors = { Yo = "Player" }, Tracks = { Music = { { At = 0, Intensity = "Tension" } } } },
 	},
 	Steps = {
 		["1"] = { Effects = { Scene = "Cole02_Mochila_G1_Fin" } },

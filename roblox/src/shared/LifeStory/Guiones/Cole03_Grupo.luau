@@ -91,7 +91,7 @@ return {
 			Lines = {
 				{ S = "Sara", T = "Ahí.", To = "Yo", Shot = "General", G = "Point", If = { Choices = { Invitacion = "Sara" } } },
 				{ S = "Sara", T = "Fíjate. Cuando le da el sol…", To = "Yo", Shot = "General", If = { Choices = { Invitacion = "Sara" } } },
-				{ S = "Sara", T = "cambia de color. Es iridiscente.", To = "Yo", Shot = "General", If = { Choices = { Invitacion = "Sara" } } },
+				{ S = "Sara", T = "…cambia de color. Es iridiscente.", To = "Yo", Shot = "General", If = { Choices = { Invitacion = "Sara" } } },
 				{
 					Ask = "¿Qué dices?",
 					Options = {
@@ -225,7 +225,7 @@ return {
 		Parque_Canasta = {
 			Lines = {
 				{ S = "Nico", T = "Reto. El que meta desde más lejos…", To = "Yo", G = "Point" },
-				{ S = "Nico", T = "elige el helado de todos.", To = "Yo", Pause = 0.9 },
+				{ S = "Nico", T = "…elige el helado de todos.", To = "Yo", Pause = 0.9 },
 				{
 					Ask = "¿Cómo tiras?",
 					Options = {
@@ -247,11 +247,11 @@ return {
 			Lines = {
 				{ S = "Omar", T = "Mira.", To = "Yo", G = "Point" },
 				{ S = "Omar", T = "Cuando subes muy alto…", To = "Yo", Shot = "General" },
-				{ S = "Omar", T = "las nubes parecen dibujos.", To = "Yo", Shot = "General" },
+				{ S = "Omar", T = "…las nubes parecen dibujos.", To = "Yo", Shot = "General" },
 				{ S = "Omar", T = "Esa es un dragón. Comiéndose un bocadillo.", To = "Yo", Shot = "General" },
 				{ S = "Yo", T = "Tú ves bocadillos en todas partes." },
 				{ S = "Omar", T = "Y tú…", To = "Yo", A = "ThinkChin" },
-				{ S = "Omar", T = "cuando te conozca más, también.", To = "Yo", Shot = "PrimerPlano:Omar" },
+				{ S = "Omar", T = "…cuando te conozca más, también.", To = "Yo", Shot = "PrimerPlano:Omar" },
 			},
 		},
 		Parque_Estanque = {
@@ -442,7 +442,7 @@ return {
 								{ S = "Nico", T = "¡En mi equipo! ¡Fichado!", To = "Yo", If = { Flags = { "AyudasteAMateo" } } },
 								{ S = "Narrador", T = "Ninguno de vosotros lo sabe todavía.", Shot = "General" },
 								{ S = "Narrador", T = "Pero dentro de muchos años…", Pause = 0.9 },
-								{ S = "Narrador", T = "recordarás esta conversación.", Shot = "PrimerPlano:Yo" },
+								{ S = "Narrador", T = "…recordarás esta conversación.", Shot = "PrimerPlano:Yo" },
 							},
 						},
 					},
@@ -523,9 +523,9 @@ return {
 				Dialogue = {
 					{ At = 3.8, S = "Narrador", T = "Una semana puede parecer poco." },
 					{ At = 6.7, S = "Narrador", T = "Pero a los siete años…" },
-					{ At = 10.1, S = "Narrador", T = "una semana es tiempo suficiente para empezar a sentir que un lugar es tuyo." },
-					{ At = 16.3, S = "Lucia", T = "Muy bien. Hoy vamos a hablar de algo que estáis viendo todos los días.", To = "Yo", A = "Nod" },
-					{ At = 22.1, S = "Lucia", T = "Las plantas.", To = "Yo" },
+					{ At = 10.1, S = "Narrador", T = "…una semana es tiempo suficiente para empezar a sentir que un lugar es tuyo." },
+					{ At = 16.4, S = "Lucia", T = "Muy bien. Hoy vamos a hablar de algo que estáis viendo todos los días.", To = "Yo", A = "Nod" },
+					{ At = 22.2, S = "Lucia", T = "Las plantas.", To = "Yo" },
 				},
 				Music = { { At = 0, Intensity = "Descubrimiento" }, { At = 12.3, Intensity = "Descubrimiento" } },
 				Titles = { { At = 0.4, Duration = 3.2, Text = "Una semana después…" } },
@@ -559,7 +559,7 @@ return {
 		Cole03_G26_Musica = { Light = true, Duration = 22.7, Anchors = { Yo = "Player" }, Tracks = { Music = { { At = 0, Intensity = "Intima" } } } },
 		Cole03_G27 = {
 			Skippable = true,
-			Duration = 64,
+			Duration = 64.1,
 			Anchors = {
 				Grieta = "Rift",
 				L_SpotGrupoDeportistas = "Place:SpotGrupoDeportistas",
@@ -621,7 +621,7 @@ return {
 					{ At = 38.3, S = "Omar", T = "Todavía tengo el dibujo.", To = "Yo", A = "HandsOnHips" },
 					{ At = 40.8, S = "Sara", T = "Técnicamente seguimos siendo los Imparables.", To = "Yo", A = "Nod" },
 					{ At = 50.8, S = "Narrador", T = "Algunas amistades duran un verano. Otras duran años. Y algunas…" },
-					{ At = 56.1, S = "Narrador", T = "aunque cambien… nunca desaparecen del todo." },
+					{ At = 56.1, S = "Narrador", T = "…aunque cambien… nunca desaparecen del todo." },
 				},
 				Music = { { At = 0, Intensity = "Intima" } },
 				Titles = { { At = 16.9, Duration = 3.2, Text = "📸 ¡Patata!" }, { At = 60, Duration = 3.2, Text = "EL GRUPO — COMPLETADA" } },
@@ -675,7 +675,7 @@ return {
 		},
 		Cole03_G6_Entra = {
 			Light = true,
-			Duration = 60.5,
+			Duration = 60.6,
 			Anchors = { Sitio = "Player", Yo = "Player" },
 			Tracks = {
 				Actors = {
@@ -706,8 +706,8 @@ return {
 					{ At = 43.9, S = "Sara", T = "Verde. Brillante. Y no aparece en mi libro.", To = "Yo" },
 					{ At = 47.8, S = "Sara", T = "Puede ser una especie nueva.", To = "Yo" },
 					{ At = 51.5, S = "Sara", T = "Si lo descubrimos nosotros…", To = "Yo" },
-					{ At = 54.2, S = "Sara", T = "le ponemos nuestro nombre.", To = "Yo" },
-					{ At = 56.9, S = "Sara", T = "«Escarabajus Sara-y-{nombre}».", To = "Yo" },
+					{ At = 54.2, S = "Sara", T = "…le ponemos nuestro nombre.", To = "Yo" },
+					{ At = 57, S = "Sara", T = "«Escarabajus Sara-y-{nombre}».", To = "Yo" },
 				},
 				Music = { { At = 0, Intensity = "Descubrimiento" } },
 			},

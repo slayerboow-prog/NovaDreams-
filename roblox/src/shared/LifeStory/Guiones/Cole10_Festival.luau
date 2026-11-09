@@ -121,7 +121,6 @@ return {
 				{ S = "Alumno4", T = "No encuentro a mi mamá.", To = "Yo", A = "No" },
 				{ S = "Yo", T = "La buscamos juntos. Llevarla con Lucía." },
 				{ S = "Lucia", T = "Has hecho bien en traerla.", To = "Yo", A = "Nod" },
-				{ S = "Lucia", T = "empatia +2 o responsabilidad +2.", To = "Yo" },
 				{
 					Ask = "¿Qué haces?",
 					Options = {

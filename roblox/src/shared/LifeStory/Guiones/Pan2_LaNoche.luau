@@ -110,7 +110,6 @@ return {
 				{ S = "Nerea", T = "En su casa no hay nadie nunca. No sé qué va a pasar.", To = "Yo" },
 				{ S = "Nerea", T = "Supongo que crecer es esto. Hacer cosas.", To = "Yo" },
 				{ S = "Nerea", T = "Y descubrir cuáles no quieres volver a hacer.", To = "Yo", Pause = 0.9 },
-				{ S = "Nerea", T = "con una interfaz moral.", To = "Yo", A = "ThinkChin" },
 			},
 		},
 		Mensajes = {

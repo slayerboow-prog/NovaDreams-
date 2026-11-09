@@ -10,7 +10,7 @@ return {
 	Dialogues = {
 		Final = {
 			Lines = {
-				{ S = "Cosimo", T = "Ya está. Ya no eres un Ancla. Eres… …una persona. Qué aburrido. Qué bien.", To = "Yo", A = "Happy" },
+				{ S = "Cosimo", T = "Ya está. Ya no eres un Ancla. Eres… una persona. Qué aburrido. Qué bien.", To = "Yo", A = "Happy" },
 				{ S = "Cosme", T = "Criatura.", To = "Yo", A = "HandsOnHips" },
 				{
 					S = "Cosme",

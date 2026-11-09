@@ -52,6 +52,7 @@ _Ninguno._
 
 - PASO 1 · OBJETIVO: Cuando el jugador llega a la zona restringida:
 - PASO 1 · FLAG: Esto permite una ruta más sencilla.
+- PASO 3 · CONSECUENCIA: La pantalla principal cambia:
 - PASO 3 · DIRECCIÓN DE ACTUACIÓN: Debe sentirse como el cerebro de la operación. / * analiza; / * observa; / * anticipa; / * no celebra demasiado; / * entiende inmediatamente la gravedad. / Iván: Es el contraste emocional.
 
 ## Cómo se traduce el formato

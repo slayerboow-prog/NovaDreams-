@@ -40,7 +40,7 @@ _Ninguno._
 - PASO 6 → paso 11 del juego (Event): 3 frases al empezar el paso (escena ligera «Pan2_G6_Entra», la lanza el paso 10 al cumplirse; el jugador no pierde el control)
 - PASO 7 → paso 12 del juego (Scene «Servicio»): conversación «Servicio» con 3 frases nuevas (música Tension)
 - PASO 9 → paso 14 del juego (Scene «Mensajes»): conversación «Mensajes» con 2 frases nuevas
-- PASO 10+11+12+13+14+15 → paso 15 del juego (Scene «Lunes»): conversación «Lunes» con 41 frases nuevas
+- PASO 10+11+12+13+14+15 → paso 15 del juego (Scene «Lunes»): conversación «Lunes» con 40 frases nuevas
 
 ## Adaptado (y por qué)
 
@@ -51,6 +51,7 @@ _Ninguno._
 - PASO 7: el guion lo escribe como [Cinematic] y en el juego es conversación (Scene): se conserva el tipo del juego y su mecánica
 - PASO 8: el guion lo escribe como [] y en el juego es transición (Transition): se conserva el tipo del juego y su mecánica
 - PASO 8 → paso 13 del juego (Transition): solo trae planos (sin frases): en un paso jugable no se quita el control, así que no se aplican
+- frase quitada (es una acotación, no se dice): «(con una interfaz moral)»
 - PASO 11: el guion lo escribe como [] y en el juego es conversación (Scene): se conserva el tipo del juego y su mecánica
 - PASO 13: el guion lo escribe como [Transition] y en el juego es conversación (Scene): se conserva el tipo del juego y su mecánica
 - PASO 14: el guion lo escribe como [] y en el juego es conversación (Scene): se conserva el tipo del juego y su mecánica
@@ -76,6 +77,7 @@ _Ninguna corrección._
 - PASO 15 · DIRECCIÓN DE NEREA: Nerea debe convertirse progresivamente en uno de los personajes emocionalmente más importantes de esta etapa.
 - PASO 15 · DIRECCIÓN DE PACO: Paco no debe ser un NPC genérico.
 - PASO 15 · DIRECCIÓN DE LA FAMILIA: La familia debe reaccionar de forma proporcional.
+- PASO 15 · REGLA DE DISEÑO: No presentar:
 
 ## Cómo se traduce el formato
 

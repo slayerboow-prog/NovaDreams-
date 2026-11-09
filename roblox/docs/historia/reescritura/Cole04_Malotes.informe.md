@@ -59,7 +59,7 @@ _Ninguno._
 - PASO 6 → paso 6 del juego (Scene «SinFoto»): conversación «SinFoto» con 3 frases nuevas (música Tension)
 - PASO 7 → paso 7 del juego (Group): objetivo «Averigua qué ha pasado»
 - PASO 7.1 → paso 7.1 del juego (Talk «Pista_Mateo»): conversación «Pista_Mateo» con 5 frases nuevas
-- PASO 7.2 → paso 7.2 del juego (Talk «Pista_Nico»): conversación «Pista_Nico» con 5 frases nuevas
+- PASO 7.2 → paso 7.2 del juego (Talk «Pista_Nico»): conversación «Pista_Nico» con 6 frases nuevas
 - PASO 7.3 → paso 7.3 del juego (Talk «Pista_Sara»): conversación «Pista_Sara» con 6 frases nuevas
 - PASO 7.4 → paso 7.4 del juego (Talk «Pista_Omar»): conversación «Pista_Omar» con 5 frases nuevas
 - PASO 7.5 → paso 7.5 del juego (Talk «Pista_Lucia»): conversación «Pista_Lucia» con 8 frases nuevas

@@ -303,6 +303,10 @@ local BLOCKS = {
 	{ "^direccion", "Direccion" },
 	{ "^opcion [a-z] ", "Rama" },
 	{ "^notas?", "Nota" },
+	-- («Consecuencia» + «empatia +2 o responsabilidad +2.»: Cole10 se lo hacía decir a Lucía; «REGLA DE DISEÑO» + «No
+	-- presentar: …», Pan2 a Nerea. La regla va hasta el separador, como las consecuencias)
+	{ "^consecuencia$", "Nota" },
+	{ "^regla de diseno", "Consecuencias" },
 }
 
 local function blockOf(head: string): string?
@@ -1453,6 +1457,42 @@ function Reescritura.parse(source: string): Doc
 	end
 	if not doc.Id then
 		table.insert(doc.Problems, "falta la línea «MISION: <Id> — <Título>»")
+	end
+	-- Una frase cortada con una pausa o un plano («Pero una de ellas…» + PLANO + «es la tuya.»): la segunda mitad
+	-- sale en otro bocadillo y en minúscula parecía un trozo roto. Empieza con «…», como las demás continuaciones.
+	local function continueCut(items: { any })
+		local last: { [string]: any } = {}
+		for _, item in items do
+			if type(item) == "table" then
+				if item.K == "Line" and type(item.T) == "string" then
+					local prevLine = last[item.S or ""]
+					local first2 = item.T:sub(1, 2)
+					local lower = item.T:match("^[a-z]") ~= nil or first2 == "á" or first2 == "é" or first2 == "í" or first2 == "ó" or first2 == "ú" or first2 == "ñ"
+					if lower and prevLine and type(prevLine.T) == "string" and prevLine.T:match("…%s*$") then
+						item.T = "…" .. item.T
+					end
+					last[item.S or ""] = item
+				end
+				for _, key in { "Items", "Then" } do
+					if type(item[key]) == "table" then
+						continueCut(item[key])
+					end
+				end
+				for _, option in (type(item.Options) == "table" and item.Options) or {} do
+					for _, key in { "Items", "Then" } do
+						if type(option) == "table" and type(option[key]) == "table" then
+							continueCut(option[key])
+						end
+					end
+				end
+				if type(item.Lead) == "table" then
+					continueCut(item.Lead)
+				end
+			end
+		end
+	end
+	for _, step in doc.Steps do
+		continueCut(step.Items)
 	end
 	return doc
 end
@@ -2701,7 +2741,9 @@ function Reescritura.build(doc: Doc, game: Game, mapa: { [string]: any }?): ({ [
 			and l.Shot == nil and l.A == nil and l.G == nil and l.Effects == nil and l.Ask == nil and (l.Pause or 0) <= 1
 			and not prev.T:match("^%(") and not l.T:match("^%(")
 			and ((len(l.T) < 22 and len(prev.T) + len(l.T) + 1 <= 100) or (len(prev.T) < 22 and len(prev.T) + len(l.T) + 1 <= 90)) then
-			prev.T = prev.T .. " " .. l.T
+			-- («Y ahí fuera…» + «…hay todo un mundo»: en el mismo bocadillo, sin los puntos de la continuación)
+			local nextText = if prev.T:match("…%s*$") and l.T:sub(1, #"…") == "…" then l.T:sub(#"…" + 1) else l.T
+			prev.T = prev.T .. " " .. nextText
 			return
 		end
 		-- (la misma frase dos veces seguidas: las variantes «o» del guion que quedan iguales, p. ej. con {grupo})

@@ -62,7 +62,7 @@ return {
 	Scenes = {
 		Prologo_G1 = {
 			Skippable = true,
-			Duration = 41.6,
+			Duration = 41.7,
 			FadeIn = true,
 			Anchors = {
 				A_Cosme = "Place:PrologoCosme",
@@ -131,7 +131,7 @@ return {
 					{ At = 31.74, Duration = 2.8, Shot = "Reaccion:Cosme" },
 					{
 						At = 34.54,
-						Duration = 6.4,
+						Duration = 6.5,
 						To = { "L_PrologoInicio", V(25, 64, 44) },
 						Cut = "Dip",
 						From = { "L_PrologoInicio", V(-45, 60, 50) },
@@ -148,7 +148,7 @@ return {
 					{ At = 29.2, S = "Cosme", T = "Otra vez no…", To = "Yo", A = "Facepalm" },
 					{ At = 31.7, S = "Cosme", T = "Esta vez sí que la he liado.", To = "Yo", A = "Nervous", Mood = "Nervous" },
 					{ At = 34.5, S = "Narrador", T = "Pero antes de que empiece tu vida…" },
-					{ At = 37.8, S = "Narrador", T = "alguien lleva tiempo esperándote." },
+					{ At = 37.8, S = "Narrador", T = "…alguien lleva tiempo esperándote." },
 				},
 				Music = { { At = 0, Intensity = "Descubrimiento" } },
 				Sky = {
@@ -207,7 +207,7 @@ return {
 				Dialogue = {
 					{ At = 0.4, S = "Narrador", T = "Algo te dice que debes abrirla." },
 					{ At = 3.4, S = "Narrador", T = "Y aunque todavía no lo sabes…" },
-					{ At = 6.3, S = "Narrador", T = "acabas de dar tu primer paso." },
+					{ At = 6.3, S = "Narrador", T = "…acabas de dar tu primer paso." },
 				},
 				Music = { { At = 0, Intensity = "Intima" } },
 				Sky = { { At = 6.29, Rift = "Flare", Seconds = 2, Strength = 0.6 } },

@@ -1035,9 +1035,7 @@ Lucía:
 
 La niña sonríe.
 
-Consecuencia
-
-empatia +2 o responsabilidad +2.
+Efecto: empatia +2 · responsabilidad +2
 
 ⸻
 
