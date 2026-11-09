@@ -529,6 +529,24 @@ end
 ---------------------------------------------------------------------
 -- Cada fotograma
 ---------------------------------------------------------------------
+-- Aire limpio al pilotar sobre Valmar: con la bruma de la hora (y la de la lluvia) la ciudad y el mar se
+-- lavaban al azul a pocos cientos de studs y no se sabía dónde estaba arriba ni abajo (vídeo del dueño, v135).
+-- Entra al subir de ClearFrom y está entera desde ClearFull; a ras de suelo, la luz de siempre.
+-- (las cuentas, en shared/Cosmos/Layers: FlightClear y clearWeight)
+local clearOn = false
+local function setFlightClear(w: number)
+	pcall(function()
+		local DayLight = require(script.Parent.DayLight)
+		if w > 0.01 then
+			DayLight.pushLayer("VueloClaro", Layers.FlightClear, 1, w)
+			clearOn = true
+		elseif clearOn then
+			DayLight.popLayer("VueloClaro", 1)
+			clearOn = false
+		end
+	end)
+end
+
 local function step(_dt: number)
 	local camera = workspace.CurrentCamera
 	if not camera then
@@ -556,6 +574,7 @@ local function step(_dt: number)
 	local cosmos = cur ~= nil and cur.World == "Cosmos" and not cur.Down
 	local inCosmos = cur ~= nil and cur.World == "Cosmos"
 	local onPlanet = cur ~= nil and cur.World == "Planet"
+	setFlightClear(Layers.clearWeight(cosmos and overValmar, camPos.Y))
 	bindKeys(inCosmos or onPlanet)
 	local label = if inCosmos then "Aterrizar" elseif onPlanet then "BAJAR" else "Salir"
 	if label ~= lastCosmos then

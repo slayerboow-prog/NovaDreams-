@@ -1560,9 +1560,42 @@ function AirCombatHud.blips(view: View, list: { Blip })
 	AirCombatHud.radar(view, out)
 end
 
+-- Cada cosa se queda en SU punto (por su Key): antes el punto i era el i-ésimo más cercano y, al cambiar
+-- las distancias, los puntos saltaban de una cosa a otra cambiando de color y de sitio («parpadean y
+-- cambian de sitio todo el rato», el dueño en v135).
+function AirCombatHud.radarSlots(previous: { [string]: number }, list: { ShipHudLayout.Blip }, count: number): ({ [number]: ShipHudLayout.Blip }, { [string]: number })
+	local bySlot: { [number]: ShipHudLayout.Blip } = {}
+	local slots: { [string]: number } = {}
+	local pending = {}
+	for i, b in list do
+		local key = b.Key or (b.Kind .. "#" .. i)
+		local slot = previous[key]
+		if slot and slot <= count and bySlot[slot] == nil then
+			bySlot[slot] = b
+			slots[key] = slot
+		else
+			table.insert(pending, { Key = key, Blip = b })
+		end
+	end
+	local free = 1
+	for _, p in pending do
+		while free <= count and bySlot[free] ~= nil do
+			free += 1
+		end
+		if free > count then
+			break
+		end
+		bySlot[free] = p.Blip
+		slots[p.Key] = free
+	end
+	return bySlot, slots
+end
+
 function AirCombatHud.radar(view: View, list: { ShipHudLayout.Blip }, range: number?, heading: number?)
+	local bySlot, slots = AirCombatHud.radarSlots((view :: any).BlipSlots or {}, list, #view.Blips)
+	;(view :: any).BlipSlots = slots
 	for i, frame in view.Blips do
-		local b = list[i]
+		local b = bySlot[i]
 		put(view, frame, "Visible", b ~= nil)
 		if b then
 			local kind = ShipHudLayout.Kinds[b.Kind] or ShipHudLayout.Kinds.Enemigo

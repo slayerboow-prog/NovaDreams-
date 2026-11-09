@@ -311,7 +311,7 @@ ShipHudLayout.Kinds = {
 -- Edge: si está más lejos que el radar, sale en su borde hacia donde queda (planetas, estaciones, el
 -- destino del salto: para orientarse en el espacio)
 export type Contact = { Kind: string, Pos: Vector3, Id: string?, Radius: number?, Edge: boolean?, Color: Color3? }
-export type Blip = { Kind: string, Point: Vector2, Distance: number, Above: number, Id: string?, Edge: boolean?, Color: Color3? }
+export type Blip = { Kind: string, Point: Vector2, Distance: number, Above: number, Id: string?, Edge: boolean?, Color: Color3?, Key: string? }
 
 function ShipHudLayout.radarPoint(ship: CFrame, pos: Vector3, range: number): Vector2
 	local rel = ship:PointToObjectSpace(pos)
@@ -325,11 +325,17 @@ end
 -- Los puntos del radar: solo lo que está a menos de `range` (si tiene radio, contando su borde)
 function ShipHudLayout.blips(ship: CFrame, contacts: { Contact }, range: number, max: number?): { Blip }
 	local out = {}
+	local seen: { [string]: number } = {}
 	for _, c in contacts do
 		local dist = (c.Pos - ship.Position).Magnitude - (c.Radius or 0)
 		if dist <= range or c.Edge then
 			local rel = ship:PointToObjectSpace(c.Pos)
-			table.insert(out, { Kind = c.Kind, Point = ShipHudLayout.radarPoint(ship, c.Pos, range), Distance = math.max(0, dist), Above = rel.Y, Id = c.Id, Edge = dist > range, Color = c.Color })
+			-- Key: quién es (para que cada cosa se quede en su punto del radar: AirCombatHud.radar). Sin Id,
+			-- su tipo y su orden entre los de ese tipo (la lista de contactos llega siempre en el mismo orden)
+			local base = c.Id or c.Kind
+			seen[base] = (seen[base] or 0) + 1
+			local key = if seen[base] > 1 then base .. "#" .. seen[base] else base
+			table.insert(out, { Kind = c.Kind, Point = ShipHudLayout.radarPoint(ship, c.Pos, range), Distance = math.max(0, dist), Above = rel.Y, Id = c.Id, Edge = dist > range, Color = c.Color, Key = key })
 		end
 	end
 	-- (lo más importante primero: enemigos y fijado, luego lo más cercano)

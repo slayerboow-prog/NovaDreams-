@@ -2332,6 +2332,38 @@ do
 	check(string.find(dsrc, "AsteroidBuild.make", 1, true) ~= nil and string.find(dsrc, "CanQuery = false", 1, true) ~= nil and string.find(fs.readFile("src/client/Main.client.luau"), "Controllers.SpaceDebris", 1, true) ~= nil, "con el mismo constructor que los asteroides, sin choque ni consultas, y arrancado en Main")
 end
 
+---------------------------------------------------------------------
+print("\n▶ v135 · el radar no parpadea y el cielo de Valmar se ve desde la nave")
+---------------------------------------------------------------------
+do
+	local Layout = L.load("src/client/UI/ShipHudLayout")
+	local Hud = L.load("src/client/UI/AirCombatHud")
+	local ship = CFrame.new(0, 500, 0)
+	local function contactsAt(dEnemy: number, dStation: number)
+		return {
+			{ Kind = "Enemigo", Pos = Vector3.new(0, 500, -dEnemy), Id = "E1" },
+			{ Kind = "Estacion", Pos = Vector3.new(dStation, 500, 0), Id = "Alba" },
+			{ Kind = "Mision", Pos = Vector3.new(-dStation, 500, 0) },
+		}
+	end
+	-- (el enemigo pasa de lejos a cerca: el orden por distancia cambia, pero cada uno sigue en su punto)
+	local a1 = Layout.blips(ship, contactsAt(900, 300), 1500, 8)
+	local slots1, keys1 = Hud.radarSlots({}, a1, 8)
+	local a2 = Layout.blips(ship, contactsAt(100, 300), 1500, 8)
+	local slots2, keys2 = Hud.radarSlots(keys1, a2, 8)
+	check(keys1.E1 == keys2.E1 and keys1.Alba == keys2.Alba and keys1.Mision == keys2.Mision, "radar: cada cosa se queda en su punto aunque cambien las distancias (antes saltaban de color y de sitio)")
+	check(slots2[keys2.E1].Kind == "Enemigo" and slots2[keys2.Alba].Kind == "Estacion", "radar: el punto de cada uno sigue siendo de su tipo")
+	-- (con la nave de lado o mirando abajo, lo que está delante sigue arriba en el radar)
+	local Client = L.load("src/client/Controllers/ShipHudClient")
+	local rolled = CFrame.new(0, 500, 0) * CFrame.Angles(-0.6, 0, 1.2)
+	local p = Layout.radarPoint(Client.radarFrame(rolled), Vector3.new(0, 500, -400), 1000)
+	check(math.abs(p.X) < 0.05 and p.Y < -0.3, ("radar: inclinada o de lado, lo de delante sigue delante (%.2f, %.2f)"):format(p.X, p.Y))
+	-- (aire limpio al pilotar sobre Valmar: entero desde 500 studs, nada a ras de suelo ni sin nave)
+	local Layers = L.load("src/shared/Cosmos/Layers")
+	check(Layers.clearWeight(true, 100) == 0 and Layers.clearWeight(true, 1100) == 1 and Layers.clearWeight(false, 1100) == 0, "pilotando sobre Valmar, menos bruma desde arriba (y a ras de suelo, la de siempre)")
+	check(Layers.FlightClear.Density < 0.2, "la bruma del vuelo deja ver la ciudad (densidad " .. Layers.FlightClear.Density .. ")")
+end
+
 if failures > 0 then
 	print(("❌ test-espacio-aaa: %d fallos"):format(failures))
 	process.exit(1)

@@ -868,18 +868,18 @@ do
 	check(#Panic.cordon(Vector3.zero, 90, 6) == 6, "cordón policial")
 end
 
-print("\n🚀 Las naves en el cielo de la ciudad SOLO durante una invasión")
+print("\n🚀 Las naves vuelan por toda la ciudad, por encima de los tejados (v135), con invasión o sin ella")
 do
 	local low = Vector3.new(0, 200, 0)
 	Layers.setCityOpen(false)
-	local back = Zone.bounds(low)
-	check(back ~= nil and back.Y > 0.5 and Layers.floorAt(low) == Layers.FloorY, "sin invasión: a 200 studs la nave vuelve a subir (suelo 260)")
+	check(Zone.bounds(low) == nil and Layers.floorAt(low) == Layers.FloorY and Layers.FloorY == Layers.CityFloorY, "sin invasión: a 200 studs la nave puede seguir sobre la ciudad (suelo " .. Layers.FloorY .. ")")
+	check(Zone.bounds(Vector3.new(0, 100, 0)) ~= nil, "sin invasión tampoco baja de los tejados")
 	Layers.setCityOpen(true)
 	check(Zone.bounds(low) == nil and Layers.floorAt(low) == Layers.CityFloorY and Layers.CityFloorY == Rules.CityShipFloor, "con invasión: puede bajar hasta " .. Layers.CityFloorY)
 	check(Zone.bounds(Vector3.new(0, 100, 0)) ~= nil, "pero nunca por debajo de los tejados")
 	check(Layers.CityFloorY < Layers.PlaneCeiling and Rules.AirBand.Max < Layers.PlaneCeiling, "el combate de la ciudad cabe en el cielo de los aviones")
 	Layers.setCityOpen(false)
-	check(Zone.bounds(low) ~= nil, "y al acabar, las normas de siempre")
+	check(Zone.bounds(low) == nil and Zone.bounds(Vector3.new(0, 100, 0)) ~= nil, "y al acabar, las normas de siempre")
 	check(Zone.bounds(Access.Port + Vector3.new(0, 40, 0)) == nil, "(junto al puerto espacial, como siempre)")
 end
 

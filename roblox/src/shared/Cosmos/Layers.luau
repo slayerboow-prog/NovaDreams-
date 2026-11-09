@@ -10,7 +10,7 @@
 --   1400 ┼ techo de los aviones (shared/Flight.Bounds.Ceiling; AviationService corta en 1700)
 --        │  CIELO DE LOS AVIONES: combate aéreo con aviones sobre la ciudad. Las naves lo cruzan, pero
 --        │  aquí no sale ningún enemigo del espacio ni nada que estorbe.
---    260 ┼ suelo de las naves (más abajo solo junto al puerto espacial, para despegar y aterrizar)
+--    140 ┼ suelo de las naves: por encima de los tejados (más abajo solo junto al puerto espacial)
 --      0 ┴ el suelo de Valmar
 --
 -- En planta, el espacio ocupa la columna de ±7000 studs alrededor de Valmar (14 000 de lado; la ciudad
@@ -29,7 +29,9 @@ Layers.ModeY = 2800 -- la nave pasa a modo espacio (sin gravedad)
 Layers.SpaceY = 3400 -- empieza el espacio
 Layers.AIMinY = 3700 -- (enemigos solo desde aquí: nunca bajan al cielo de los aviones)
 Layers.TopY = 9000 -- techo del espacio
-Layers.FloorY = 260 -- suelo de las naves (lejos del puerto espacial)
+-- (v135, el dueño: «se debe poder volar por toda la ciudad»): el suelo de las naves es siempre el de las
+-- invasiones, por encima de los tejados (CityFloorY). Antes era 260 fuera de una invasión.
+Layers.FloorY = 140 -- suelo de las naves (lejos del puerto espacial)
 Layers.LandY = 900 -- por debajo de esto puedes aterrizar (bajarte de la nave)
 Layers.Half = 7000 -- medio lado de la columna del espacio (X y Z, alrededor de Valmar)
 Layers.Center = Vector3.new(0, 0, 0)
@@ -37,7 +39,7 @@ Layers.Center = Vector3.new(0, 0, 0)
 -- hasta CityFloorY (por encima de los tejados) para pelear; el resto del tiempo, su suelo es FloorY.
 -- Lo enciende InvasionService (servidor) y Controllers/InvasionClient (cliente, con el atributo
 -- InvasionActive de workspace): así la predicción del vuelo y la comprobación del servidor coinciden.
-Layers.CityFloorY = 140
+Layers.CityFloorY = 140 -- (= FloorY desde v135)
 local cityOpen = false
 
 function Layers.setCityOpen(on: boolean)
@@ -51,6 +53,19 @@ end
 -- El suelo de las naves ahora (lejos del puerto espacial)
 function Layers.floorAt(_pos: Vector3?): number
 	return if cityOpen then Layers.CityFloorY else Layers.FloorY
+end
+
+-- Aire limpio al pilotar una nave sobre Valmar (capa «VueloClaro» de Controllers/SpaceClient): con la bruma
+-- de la hora y la de la lluvia, la ciudad y el mar se lavaban al azul a pocos cientos de studs y no se sabía
+-- dónde estaba arriba ni abajo (vídeo del dueño, v135). Entra al subir de ClearFrom y está entera en ClearFull.
+Layers.FlightClear = { Density = 0.1, Haze = 0.3, Offset = 0.05 }
+Layers.ClearFrom = 150
+Layers.ClearFull = 500
+function Layers.clearWeight(piloting: boolean, y: number): number
+	if not piloting or y >= Layers.TransitionY then
+		return 0
+	end
+	return math.clamp((y - Layers.ClearFrom) / (Layers.ClearFull - Layers.ClearFrom), 0, 1)
 end
 
 -- Nombre de la capa en esa altura

@@ -297,6 +297,17 @@ local function rows(a: any): { { [string]: any } }
 	return out
 end
 
+-- El radar va con el rumbo de la nave, sin su cabeceo ni su alabeo (mirando en vertical, el de antes)
+local lastYaw = 0
+function ShipHudClient.radarFrame(cf: CFrame): CFrame
+	local look = cf.LookVector
+	local flat = Vector3.new(look.X, 0, look.Z)
+	if flat.Magnitude > 0.05 then
+		lastYaw = math.atan2(-flat.X, -flat.Z)
+	end
+	return CFrame.new(cf.Position) * CFrame.Angles(0, lastYaw, 0)
+end
+
 local function heading(a: any): number
 	return NavInfo.heading(a.Root.CFrame.LookVector)
 end
@@ -409,7 +420,9 @@ function ShipHudClient.update(view: AirCombatHud.View, a: any, list: { any }, dt
 				range = math.max(range, ShipHudLayout.RadarRange.Explore)
 			end
 		end
-		AirCombatHud.radar(view, ShipHudLayout.blips(root.CFrame, ShipHudClient.contacts(a, list), range, AirCombatHud.MaxBlips), range, heading(a))
+		-- (con el rumbo y nada más, como el de los aviones: con la nave inclinada o de lado los puntos ya no giran
+		-- solos por el radar)
+		AirCombatHud.radar(view, ShipHudLayout.blips(ShipHudClient.radarFrame(root.CFrame), ShipHudClient.contacts(a, list), range, AirCombatHud.MaxBlips), range, heading(a))
 		-- Letrero de la habilidad en marcha
 		local now = os.clock()
 		if a.Quantum then
