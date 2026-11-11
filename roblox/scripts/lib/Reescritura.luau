@@ -1466,12 +1466,23 @@ function Reescritura.parse(source: string): Doc
 			if type(item) == "table" then
 				if item.K == "Line" and type(item.T) == "string" then
 					local prevLine = last[item.S or ""]
-					local first2 = item.T:sub(1, 2)
-					local lower = item.T:match("^[a-z]") ~= nil or first2 == "á" or first2 == "é" or first2 == "í" or first2 == "ó" or first2 == "ú" or first2 == "ñ"
+					-- («¿me dibujé…?» también es una continuación: se mira tras el «¿» o el «¡»)
+					local body = item.T
+					for _, open in { "¿", "¡" } do
+						if body:sub(1, #open) == open then
+							body = body:sub(#open + 1)
+						end
+					end
+					local first2 = body:sub(1, 2)
+					local lower = body:match("^[a-z]") ~= nil or first2 == "á" or first2 == "é" or first2 == "í" or first2 == "ó" or first2 == "ú" or first2 == "ñ"
 					if lower and prevLine and type(prevLine.T) == "string" and prevLine.T:match("…%s*$") then
 						item.T = "…" .. item.T
 					end
-					last[item.S or ""] = item
+					-- (dos variantes seguidas de la misma continuación, cada una con su «Si»: las dos cuelgan de la
+					-- frase de antes, así que una continuación no pasa a ser «la anterior»)
+					if not lower then
+						last[item.S or ""] = item
+					end
 				end
 				for _, key in { "Items", "Then" } do
 					if type(item[key]) == "table" then
