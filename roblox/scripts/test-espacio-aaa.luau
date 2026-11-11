@@ -229,7 +229,7 @@ do
 	ShipKeys.remap("Mode", { "T" })
 	check(ShipKeys.label("Boost") == "Shift" and ShipKeys.label("Boost", "Gamepad") == "LB" and #ShipKeys.hints("Keyboard") >= 10, "pistas de teclas (ordenador) y botones (mando)")
 	-- La nave no coge teclas mientras escribes en el chat
-	local src = fs.readFile("src/client/Controllers/AirCombatClient.luau")
+	local src = (fs.readFile("src/client/Controllers/AirCombatClient.luau"):gsub("\r\n", "\n")) -- (en Windows git lo deja con CRLF)
 	local onKey = string.match(src, "local function onKey%(.-\nend\n") or ""
 	local readIn = string.match(src, "local function readInput%(.-\nend\n") or ""
 	check(string.find(onKey, "if typing() then", 1, true) ~= nil and string.find(onKey, "ContextActionResult.Pass", 1, true) ~= nil, "escribiendo en el chat, las teclas pasan al chat (onKey)")

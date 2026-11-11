@@ -3494,7 +3494,7 @@ do
 	TopStack._reset()
 
 	-- El código: cada letrero de arriba va en la columna y el marcador se quita al acabar el juego
-	local football = fs.readFile("src/client/Controllers/FootballClient.luau")
+	local football = (fs.readFile("src/client/Controllers/FootballClient.luau"):gsub("\r\n", "\n")) -- (en Windows git lo deja con CRLF)
 	local dropAt = football:find("local function dropView", 1, true)
 	local dropEnd = dropAt and football:find("\nend\n", dropAt, true)
 	local drop = if dropAt and dropEnd then football:sub(dropAt, dropEnd) else ""
