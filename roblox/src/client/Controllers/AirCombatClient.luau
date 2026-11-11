@@ -768,12 +768,15 @@ local envForRef: (string) -> ShipFlight.Env = function(_w: string): ShipFlight.E
 	return {}
 end
 
+local probing = false -- (barriendo por delante para la hipervelocidad: worldHit no cuenta)
+
 -- Lo que hay delante a velocidad de hipervelocidad (estaciones, atmósferas, rocas, el borde)
 local function hyperObstacle(a: Active): string?
 	local env = envForRef(a.World)
 	local cf = a.Root.CFrame
 	local collide = env.collide
-	return (Hyperspeed.sweep(cf.Position, cf.LookVector, Hyperspeed.stopDistance(), 30, function(p, r)
+	probing = true
+	local found = (Hyperspeed.sweep(cf.Position, cf.LookVector, Hyperspeed.stopDistance(), 30, function(p, r)
 		local hit = if collide then collide(p, r) else nil
 		if hit then
 			return hit
@@ -788,6 +791,8 @@ local function hyperObstacle(a: Active): string?
 	end, function(p)
 		return a.World ~= "Cosmos" or Zone.contains(p, 0)
 	end, 60))
+	probing = false
+	return found
 end
 
 local function hyperLocalCheck(a: Active): (boolean, string?)
@@ -1114,14 +1119,70 @@ function AirCombatClient.onRelocate(fn: (string, string?) -> ())
 end
 
 -- (Cosmos) un asteroide no destruye la nave de golpe: rebota y el servidor quita escudo según la velocidad
+-- (v135) y un edificio o una loma tampoco: desde que la nave vuela por toda la ciudad a ras de tejados
 local function softAsteroid(hit: string): boolean
-	return hit == "un asteroide"
+	return hit == "un asteroide" or hit == "un edificio" or hit == "una loma"
 end
+
+-- Choque con el mundo de verdad sobre Valmar (v135): Zone.collide solo sabe del mar, los planetas, las
+-- estaciones y los asteroides, y la nave atravesaba los rascacielos y las lomas al volar bajo. Por debajo de
+-- WorldHitBelow se barre una esfera desde el punto anterior hasta este contra lo que haya cargado (edificios
+-- y terreno; no el agua, ni la gente, ni lo que no choca).
+local WorldHitBelow = 700
+local WorldHitFloor = 140 -- (= Layers.FloorY)
+local lastProbe: Vector3? = nil
+local function worldHit(p: Vector3, radius: number): string?
+	if probing then
+		return nil -- (el barrido de la hipervelocidad mira lejos por delante: no es el camino de la nave)
+	end
+	local from = lastProbe
+	lastProbe = p
+	-- (por debajo del suelo de las naves solo se está junto al puerto, aterrizando: ahí no se mira)
+	if p.Y > WorldHitBelow or p.Y < WorldHitFloor or not from then
+		return nil
+	end
+	local move = p - from
+	if move.Magnitude < 0.05 or move.Magnitude > 400 then
+		return nil -- (parada, o un salto: recolocada por el servidor)
+	end
+	local a = active
+	local ok, hit = pcall(function()
+		local params = RaycastParams.new()
+		params.FilterType = Enum.RaycastFilterType.Exclude
+		params.FilterDescendantsInstances = { (a and a.Root and (a.Root.Parent or a.Root)) :: Instance, (Players.LocalPlayer.Character or workspace.CurrentCamera) :: Instance }
+		params.IgnoreWater = true
+		params.RespectCanCollide = true
+		return workspace:Spherecast(from, math.max(radius * 0.6, 1), move, params)
+	end)
+	if not ok or not hit then
+		return nil
+	end
+	local inst = hit.Instance
+	if inst:IsA("Terrain") then
+		return "una loma"
+	end
+	local model = inst:FindFirstAncestorOfClass("Model")
+	if model and model:FindFirstChildOfClass("Humanoid") then
+		return nil -- (gente y animales: no paran una nave)
+	end
+	if inst.Size.Magnitude < 12 then
+		return nil -- (farolas, cables, señales: tampoco)
+	end
+	return "un edificio"
+end
+local wrapped: { [any]: boolean } = setmetatable({}, { __mode = "k" }) :: any
 
 local function envFor(world: string): ShipFlight.Env
 	local env = customEnv[world] or ENVS[world] or ENVS.Arena
 	if world == "Cosmos" and env.soft == nil then
 		env.soft = softAsteroid
+	end
+	if world == "Cosmos" and not wrapped[env] then
+		wrapped[env] = true
+		local base = env.collide
+		env.collide = function(pos: Vector3, radius: number): string?
+			return (if base then base(pos, radius) else nil) or worldHit(pos, radius)
+		end
 	end
 	return env
 end
