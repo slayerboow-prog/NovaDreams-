@@ -40,8 +40,11 @@ StageSets.Defs = {
 		Scope = "Player",
 		Builder = "Crater",
 		Place = "FuenteParque",
-		Offset = V(-3, 0, 3),
-		Params = { Radius = 3.4, Seed = 3 },
+		-- (en el césped, a 12 studs de la fuente: revisado en el laboratorio, el cráter se metía dentro
+		-- del pilón y la fuente seguía entera)
+		Offset = V(-12, 0, 10),
+		-- Clear: lo que rompió el impacto (StoryFxCatalog.MeteorImpact.Shatter.Radius) se queda roto
+		Params = { Radius = 4.6, Seed = 3, Clear = 9 },
 		StateFor = {
 			{ If = { World = { ["Cielo.Crater.Parque"] = "Humeante" } }, State = "Humeante" },
 			{ If = { World = { ["Cielo.Crater.Parque"] = "Frio" } }, State = "Frio" },
@@ -54,7 +57,7 @@ StageSets.Defs = {
 		Builder = "Crater",
 		Place = "JuegosColegio",
 		Offset = V(3, 0, 3),
-		Params = { Radius = 3, Seed = 5 },
+		Params = { Radius = 4.2, Seed = 5, Clear = 9 }, -- (los columpios que rompe la estrella se quedan rotos)
 		StateFor = {
 			{ If = { World = { ["Cielo.Crater.Patio"] = "Humeante" } }, State = "Humeante" },
 			{ If = { World = { ["Cielo.Crater.Patio"] = "Frio" } }, State = "Frio" },
@@ -67,7 +70,7 @@ StageSets.Defs = {
 		Builder = "Crater",
 		Place = "CaminoAlCole",
 		Offset = V(2, 0, 2),
-		Params = { Radius = 2.8, Seed = 9 },
+		Params = { Radius = 4, Seed = 9, Clear = 9 }, -- (la señal de la calle que había en medio cae)
 		StateFor = {
 			{ If = { World = { ["Cielo.Crater.Camino"] = "Humeante" } }, State = "Humeante" },
 			{ If = { World = { ["Cielo.Crater.Camino"] = "Frio" } }, State = "Frio" },
@@ -81,7 +84,7 @@ StageSets.Defs = {
 		Scope = "Player",
 		Builder = "Resident",
 		Place = "FuenteParque",
-		Offset = V(-3, 0, 3),
+		Offset = V(-12, 0, 10), -- (en su cráter: CraterParque)
 		Params = { Creature = "Chispa", Routine = { { 2.2, 0 }, { 0, 2.4 }, { -2.2, 0.4 }, { -0.4, -2.3 } }, Pause = 1.6 },
 		StateFor = {
 			{ If = { World = { ["Cielo.Chispa"] = "Parque" } }, State = "Vive" },

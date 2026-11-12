@@ -49,11 +49,77 @@ function ReadingTime.pauseOf(line: any): number
 	return math.clamp(seconds, 0, ReadingTime.MAX_PAUSE)
 end
 
--- Segundos que tiene que quedarse una frase para leerla (más `pause` segundos, si se pasa)
+---------------------------------------------------------------------
+-- Silencios dentro de una frase: «¡Agáchate! …Bueno. Ya da igual.»
+---------------------------------------------------------------------
+-- Una frase con «…» DESPUÉS de acabar otra (un punto, una exclamación o una interrogación y luego
+-- «…») es un silencio del personaje: primero dice una cosa, se calla y luego sigue. Los subtítulos de
+-- las escenas la enseñan a trozos (Controllers/HappeningClient) con BEAT segundos de silencio entre
+-- uno y otro, como ya hacía la caja de las conversaciones (DialogueUI se para en «…»). Antes salía todo
+-- de golpe y no parecía que nadie hablase así.
+ReadingTime.BEAT = 0.9 -- el silencio de cada «…» en mitad de una frase
+ReadingTime.MAX_BEATS = 3
+
+-- Los trozos que se van enseñando, ACUMULADOS (el último es la frase entera):
+--   «¡Agáchate! …Bueno. Ya da igual.» -> { "¡Agáchate!", "¡Agáchate! …Bueno. Ya da igual." }
+-- Una frase sin silencios devuelve { frase }. «Pues… no sé» (sin punto antes) no es un silencio.
+function ReadingTime.beats(text: any): { string }
+	if type(text) ~= "string" or text == "" then
+		return { if type(text) == "string" then text else "" }
+	end
+	local parts = {}
+	local from = 1
+	while #parts < ReadingTime.MAX_BEATS do
+		-- (fin de frase —. ! ? o una comilla de cierre— y espacios, y entonces «…». Las comillas « » y ” son
+		-- de varios bytes: se buscan aparte, no dentro de un conjunto [ ])
+		local s, e, cut = nil, nil, nil
+		for _, pattern in { "[%.!%?\"]%s+…", "»%s+…", "”%s+…" } do
+			local a, b = text:find(pattern, from)
+			if a and (not s or a < s) then
+				s, e = a, b
+				local closer = text:sub(a):match("^([^%s]+)%s") or ""
+				cut = a + #closer - 1
+			end
+		end
+		if not s or not cut then
+			break
+		end
+		local head = text:sub(1, cut):gsub("%s+$", "")
+		if head ~= "" then
+			table.insert(parts, head)
+		end
+		from = e + 1
+	end
+	table.insert(parts, text)
+	return parts
+end
+
+-- Segundos que tiene que quedarse una frase para leerla (más `pause` segundos, si se pasa). Cada
+-- silencio de la frase (ReadingTime.beats) suma BEAT: también hay que esperarlo.
 function ReadingTime.seconds(text: any, pause: number?): number
 	local n = ReadingTime.chars(text)
 	local read = math.clamp(ReadingTime.BASE + n / ReadingTime.CHARS_PER_SECOND, ReadingTime.MIN, ReadingTime.MAX)
-	return read + math.clamp(tonumber(pause) or 0, 0, ReadingTime.MAX_PAUSE)
+	local parts = ReadingTime.beats(text)
+	local total = read + (#parts - 1) * ReadingTime.BEAT
+	if #parts > 1 then
+		-- (y que dé tiempo a leer el último trozo después de que salga)
+		local times = ReadingTime.beatTimes(parts)
+		local tail = math.max(0, n - ReadingTime.chars(parts[#parts - 1]))
+		total = math.max(total, times[#times] + ReadingTime.BASE * 0.5 + tail / ReadingTime.CHARS_PER_SECOND + 0.6)
+	end
+	return total + math.clamp(tonumber(pause) or 0, 0, ReadingTime.MAX_PAUSE)
+end
+
+-- Cuándo sale cada trozo de la frase, en segundos desde que aparece el primero: lo que se tarda en leer
+-- lo de antes y el silencio
+function ReadingTime.beatTimes(parts: { string }): { number }
+	local times = { 0 }
+	for i = 2, #parts do
+		-- (lo de antes ya está escrito: se tarda en leerlo y luego llega el silencio de cada «…»)
+		local before = ReadingTime.chars(parts[i - 1])
+		table.insert(times, ReadingTime.BASE * 0.5 + before / ReadingTime.CHARS_PER_SECOND + (i - 1) * ReadingTime.BEAT)
+	end
+	return times
 end
 
 -- Lo mismo para una línea { T | Text, Pause? }

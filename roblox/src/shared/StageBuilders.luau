@@ -47,6 +47,44 @@ Builders.Crater = function(parent, cf, params, tier)
 		Tier = tier,
 		Seed = params.Seed,
 	})
+	-- Lo que rompió el impacto se queda roto (Params.Clear = radio): las piezas del mapa que estaban de
+	-- pie ahí (StoryFxBuild.breakables, la misma regla que el impacto) se esconden en tu pantalla mientras
+	-- esté el cráter. El mapa llega por trozos y se recarga al alejarte, así que se repasa cada poco.
+	-- Al quitar el cráter (otro estado, otro nivel gráfico) vuelven.
+	-- (solo en la pantalla del jugador: en el servidor quitar el choque se lo quitaría a todos)
+	local okClient, isClient = pcall(function()
+		return game:GetService("RunService"):IsClient()
+	end)
+	if okClient and isClient and type(params.Clear) == "number" and params.Clear > 0 then
+		local hidden: { [BasePart]: boolean } = {}
+		local alive = true
+		local function sweep()
+			for _, part in StoryFxBuild.breakables(cf.Position, params.Clear, { MaxSize = params.ClearMaxSize, GroundY = cf.Position.Y, Skip = { model } }) do
+				if not hidden[part] then
+					hidden[part] = true
+					StoryFxBuild.hidePart(part, true)
+				end
+			end
+		end
+		pcall(sweep)
+		pcall(function()
+			model.Destroying:Connect(function()
+				alive = false
+				for part in hidden do
+					StoryFxBuild.hidePart(part, false)
+				end
+				table.clear(hidden)
+			end)
+			task.spawn(function()
+				while alive do
+					task.wait(3)
+					if alive and model.Parent then
+						pcall(sweep)
+					end
+				end
+			end)
+		end)
+	end
 	return { Model = model }
 end
 

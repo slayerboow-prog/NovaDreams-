@@ -107,7 +107,7 @@ require("@lune/task").wait(0.01)
 check(#changes == 2, "avisa de cada cambio")
 check(type(ana.Attributes.WorldState) == "string" and ana.Attributes.WorldState:find("Humeante", 1, true) ~= nil, "réplica: WorldState (JSON) en el jugador")
 local sets = serde.decode("json", ana.Attributes.StageSets)
-check(sets.CraterParque and sets.CraterParque.S == "Humeante" and sets.CraterParque.P[1] == 297, "réplica: el cráter del parque, humeante y en su sitio (con el desplazamiento del objeto)")
+check(sets.CraterParque and sets.CraterParque.S == "Humeante" and sets.CraterParque.P[1] == 288, "réplica: el cráter del parque, humeante y en su sitio (con el desplazamiento del objeto)")
 check(sets.CraterCamino == nil, "el del camino aún no (no ha caído)")
 local before = ana.Attributes.StageSets
 ana.Attributes.StageSets = "x"

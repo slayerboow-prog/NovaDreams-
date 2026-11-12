@@ -70,6 +70,10 @@ StoryFxCatalog.Recipes = {
 		Sound = "Whoosh",
 		Impact = "MeteorImpact",
 		Arc = 0.12, -- curva de la caída (0 = recta)
+		-- Cae de lo alto (revisado en el laboratorio: desde la Grieta lejana cruzaba la ciudad casi en
+		-- horizontal y la estela era un láser verde de lado a lado de la pantalla)
+		Entry = { Angle = 62, Distance = 420 },
+		TrailSeconds = 0.09,
 	},
 	-- Impacto: destello, onda expansiva, humo, fuego, escombros con física, temblor y estruendo. Deja
 	-- una mancha quemada temporal (el cráter que se QUEDA lo pone la memoria del mundo: StageSets).
@@ -77,9 +81,19 @@ StoryFxCatalog.Recipes = {
 		Kind = "Impact",
 		Seconds = 6,
 		Radius = 7,
-		Flash = { Color = rgb(220, 255, 230), Range = 60, Brightness = 10, Seconds = 0.35 },
-		Shock = { Color = rgb(200, 255, 220), From = 2, To = 34, Seconds = 0.7 },
-		Fireball = { Color = rgb(255, 170, 60), Size = 9, Seconds = 0.6 },
+		-- (el destello: la luz es la que alumbra todo; la bola se queda pequeña y transparente —antes una
+		-- cúpula blanca de 10 studs tapaba el impacto—)
+		Flash = { Color = rgb(220, 255, 230), Range = 60, Brightness = 10, Seconds = 0.3, Grow = 2.4, Transparency = 0.45 },
+		-- (revisado en el laboratorio: la onda era un disco blanco macizo y la bola de fuego una esfera
+		-- amarilla lisa; ahora la onda es un anillo casi transparente, la bola un fogonazo breve y lo que se
+		-- ve son las llamas y el polvo que salen de golpe —Burst—)
+		Shock = { Color = rgb(225, 255, 235), From = 2, To = 34, Seconds = 0.6, Transparency = 0.86 },
+		Fireball = { Color = rgb(255, 200, 110), Size = 7, Seconds = 0.35, Transparency = 0.4 },
+		-- (medido en el laboratorio: con 36 nubes de 12 studs a 44 de velocidad el polvo llenaba la
+		-- pantalla entera en el plano del impacto; ahora se queda alrededor del cráter)
+		Burst = { Flames = 18, FlameSize = 7, Dust = 22, DustSize = 7, DustColor = rgb(118, 108, 94), DustSpeed = { 12, 22 } },
+		-- Lo que hay de pie cerca se rompe en trozos (columpios, farolas, señales, bancos…)
+		Shatter = { Radius = 9, MaxSize = 12, Chunks = 40, Speed = 38, Life = 4.6 },
 		Smoke = { Color = rgb(70, 74, 70), Rate = 70, Seconds = 4.5, Size = 6 },
 		Fire = { Color = rgb(255, 140, 40), Rate = 45, Seconds = 3 },
 		Sparks = { Color = rgb(170, 255, 190), Rate = 80, Seconds = 1 },

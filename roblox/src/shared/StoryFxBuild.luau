@@ -193,6 +193,153 @@ local function handle(b: Build, update: (dt: number, t: number) -> boolean, stop
 end
 
 ---------------------------------------------------------------------
+-- Lo que rompe un impacto (y lo que deja roto el cráter que se queda)
+---------------------------------------------------------------------
+-- Carpetas de la historia que un impacto nunca rompe (actores, objetos de las misiones, efectos y
+-- decorados: los dibuja la historia, no el mapa)
+local NEVER_BREAK = { StoryScenes = true, StoryFx = true, MisDecorados = true, StageSets = true }
+
+-- Etiquetas de la partida que nunca se rompen: los sitios de la historia, las zonas y los puntos de
+-- aparición (con ellos se colocan misiones y jugadores). Las del mobiliario —Swing, asientos…— sí:
+-- revisado en el laboratorio, los asientos de los columpios (etiqueta Swing) se quedaban colgando.
+local function protectedTag(inst: Instance): boolean
+	for _, tag in inst:GetTags() do
+		if tag:find("Story") or tag:find("Spot") or tag:find("Spawn") or tag:find("Zone") or tag:find("Mission") then
+			return true
+		end
+	end
+	return false
+end
+
+-- Mitad de la altura de una pieza en el mundo (girada o no)
+local function halfHeight(part: BasePart): number
+	local cf, s = part.CFrame, part.Size * 0.5
+	return math.abs(cf.RightVector.Y) * s.X + math.abs(cf.UpVector.Y) * s.Y + math.abs(cf.LookVector.Y) * s.Z
+end
+
+-- ¿Es una pieza del mapa que un impacto puede romper? De pie sobre el suelo (no el suelo, ni calzadas,
+-- aceras o bordillos: lo que apenas sobresale), pequeña (nada mayor que maxSize: los edificios no),
+-- anclada, visible, sin etiquetas ni botones (lo jugable no se rompe) y sin el atributo Unbreakable.
+local function breakable(part: BasePart, groundY: number, maxSize: number, skip: { [Instance]: boolean }): boolean
+	if not part:IsA("BasePart") or part:IsA("Terrain") or not part.Anchored or part.Transparency >= 0.95 then
+		return false
+	end
+	local size = part.Size
+	if math.max(size.X, size.Y, size.Z) > maxSize then
+		return false
+	end
+	local half = halfHeight(part)
+	local top, bottom = part.Position.Y + half, part.Position.Y - half
+	-- (lo que sobresale del suelo o cuelga encima, como el asiento de un columpio; no lo que está tumbado
+	-- en el suelo y apenas se levanta, como un bordillo)
+	if top < groundY + 0.9 or bottom > groundY + 12 then
+		return false
+	end
+	if top - bottom <= 1.3 and bottom <= groundY + 0.4 then
+		return false
+	end
+	-- (un asiento de columpio o un banco con su botón de sentarse SÍ se rompen: el botón se apaga mientras
+	-- esté roto —hidePart—; lo que lleva etiqueta es de la partida y no se toca)
+	if part:GetAttribute("Unbreakable") == true or protectedTag(part) then
+		return false
+	end
+	local node: Instance? = part.Parent
+	local depth = 0
+	while node and node ~= workspace do
+		if skip[node] or NEVER_BREAK[node.Name] then
+			return false
+		end
+		if node:IsA("Model") and node:FindFirstChildOfClass("Humanoid") then
+			return false
+		end
+		-- (el modelo pequeño que la contiene: un objeto con etiqueta tampoco se rompe)
+		if depth == 0 and node:IsA("Model") and #node:GetChildren() <= 30 and protectedTag(node) then
+			return false
+		end
+		node = node.Parent
+		depth += 1
+	end
+	return true
+end
+
+-- Las piezas del mapa que rompe un impacto en `origin` (opts: MaxSize, GroundY, Skip = { instancias }).
+-- Fuera del juego (las pruebas) no hay mundo: devuelve una lista vacía.
+function StoryFxBuild.breakables(origin: Vector3, radius: number, opts: { [string]: any }?): { BasePart }
+	local o = opts or {}
+	local ok, parts = pcall(function()
+		return (workspace :: any):GetPartBoundsInRadius(origin, radius)
+	end)
+	if not ok or type(parts) ~= "table" then
+		return {}
+	end
+	local skip = {}
+	for _, inst in o.Skip or {} do
+		skip[inst] = true
+	end
+	local groundY = o.GroundY or origin.Y
+	local maxSize = o.MaxSize or 12
+	local out = {}
+	for _, part in parts do
+		local flat = (part.Position - origin) * V(1, 0, 1)
+		if flat.Magnitude <= radius then
+			local okPart, yes = pcall(breakable, part, groundY, maxSize, skip)
+			if okPart and yes then
+				table.insert(out, part)
+			end
+		end
+	end
+	return out
+end
+
+-- Esconde (o vuelve a enseñar) una pieza del mapa SOLO en esta pantalla: invisible, sin choque y sin que
+-- la vean los rayos de la cámara. Lleva la cuenta: el impacto y el cráter pueden esconder la misma pieza
+-- y solo vuelve cuando ninguno de los dos la quiere escondida.
+function StoryFxBuild.hidePart(part: BasePart, on: boolean)
+	pcall(function()
+		local count = (part:GetAttribute("StoryBroken") :: number?) or 0
+		if on then
+			if count == 0 then
+				part:SetAttribute("StoryBrokenCC", part.CanCollide)
+				part:SetAttribute("StoryBrokenCQ", part.CanQuery)
+				part:SetAttribute("StoryBrokenCT", part.CanTouch)
+				part.LocalTransparencyModifier = 1
+				part.CanCollide = false
+				part.CanQuery = false
+				part.CanTouch = false -- (un asiento roto no te sienta al rozarlo)
+				for _, d in part:GetDescendants() do
+					if d:IsA("Decal") or d:IsA("Texture") then
+						d.LocalTransparencyModifier = 1
+					elseif d:IsA("ProximityPrompt") then
+						-- (roto no se puede usar: el botón se apaga y vuelve como estaba)
+						d:SetAttribute("StoryBrokenOn", d.Enabled)
+						d.Enabled = false
+					end
+				end
+			end
+			part:SetAttribute("StoryBroken", count + 1)
+		elseif count > 0 then
+			if count == 1 then
+				part.LocalTransparencyModifier = 0
+				part.CanCollide = part:GetAttribute("StoryBrokenCC") ~= false
+				part.CanQuery = part:GetAttribute("StoryBrokenCQ") ~= false
+				part.CanTouch = part:GetAttribute("StoryBrokenCT") ~= false
+				for _, d in part:GetDescendants() do
+					if d:IsA("Decal") or d:IsA("Texture") then
+						d.LocalTransparencyModifier = 0
+					elseif d:IsA("ProximityPrompt") and d:GetAttribute("StoryBrokenOn") ~= nil then
+						d.Enabled = d:GetAttribute("StoryBrokenOn") == true
+						d:SetAttribute("StoryBrokenOn", nil)
+					end
+				end
+				part:SetAttribute("StoryBroken", nil)
+			else
+				part:SetAttribute("StoryBroken", count - 1)
+			end
+		end
+	end)
+end
+
+---------------------------------------------------------------------
 -- Cráter (también para los decorados que se quedan: StageSets)
 ---------------------------------------------------------------------
 -- opts: Radius, Depth, Rim, Floor, Glow (Color3 o nil), Smoke (bool), Tier, Seed, Name
@@ -299,6 +446,21 @@ Kinds.Meteor = function(b: Build): Handle
 	local r, ctx = b.Recipe, b.Ctx
 	local start = (ctx.CFrame :: CFrame).Position
 	local finish = if ctx.To then (ctx.To :: CFrame).Position else start + V(0, -120, 0)
+	-- Entrada: un meteorito CAE del cielo. Si sale de muy lejos o casi de lado (la Grieta está a 2 km y a
+	-- 300 de alto: cruzaba la ciudad en horizontal como un láser), sale desde lo alto en la MISMA
+	-- dirección, con una caída empinada (Entry.Angle grados) y a Entry.Distance studs del destino.
+	if r.Entry then
+		local d = start - finish
+		local flat = V(d.X, 0, d.Z)
+		local angle = math.deg(math.atan2(d.Y, math.max(flat.Magnitude, 0.001)))
+		local minAngle = r.Entry.Angle or 60
+		local distance = (r.Entry.Distance or 420) * b.Scale
+		if angle < minAngle - 1 or d.Magnitude > distance * 1.5 then
+			local dir = if flat.Magnitude > 0.5 then flat.Unit else V(1, 0, 0)
+			local a = math.rad(minAngle)
+			start = finish + dir * (math.cos(a) * distance) + V(0, math.sin(a) * distance, 0)
+		end
+	end
 	local seconds = math.max(ctx.Seconds or r.Seconds or 2.5, 0.2)
 	local size = (r.Size or 2) * b.Scale
 	-- Curva: el punto de control se levanta y se aparta un poco (no cae en línea recta)
@@ -312,12 +474,14 @@ Kinds.Meteor = function(b: Build): Handle
 		Color = r.Core,
 		Material = Enum.Material.Neon,
 	})
-	local a0 = new("Attachment", { Position = V(0, size * 0.35, 0) }, core)
-	local a1 = new("Attachment", { Position = V(0, -size * 0.35, 0) }, core)
+	local a0 = new("Attachment", { Position = V(0, size * 0.5, 0) }, core)
+	local a1 = new("Attachment", { Position = V(0, -size * 0.5, 0) }, core)
+	-- (estela CORTA: a la velocidad de caída, 0,9 s eran 150 studs de rayo recto; ahora una cola de
+	-- fuego que se afila. El humo que se queda en el aire lo pone el emisor de humo)
 	new("Trail", {
 		Attachment0 = a0,
 		Attachment1 = a1,
-		Lifetime = if b.Budget.Extras then 0.9 else 0.5,
+		Lifetime = r.TrailSeconds or (if b.Budget.Extras then 0.9 else 0.5),
 		Color = colors(r.Trail, r.Fire[2]),
 		Transparency = seq(0.05, 1),
 		WidthScale = seq(1, 0.1),
@@ -404,18 +568,23 @@ Kinds.Impact = function(b: Build): Handle
 		CFrame = CFrame.new(origin + V(0, 1, 0)),
 		Color = r.Flash.Color,
 		Material = Enum.Material.Neon,
-		Transparency = 0,
+		Transparency = r.Flash.Transparency or 0,
 	})
 	local flashLight = light(flash, { Color = r.Flash.Color, Range = r.Flash.Range * math.min(s, 2), Brightness = r.Flash.Brightness }, b.Budget.Shadows) :: PointLight
+	-- Onda expansiva: un anillo de aire que se ve pasar (antes, un disco blanco macizo que tapaba el suelo)
+	local shockFrom = r.Shock.Transparency or 0.2
 	local shock = piece(b.Folder, {
 		Name = "Onda",
 		Shape = Enum.PartType.Cylinder,
 		Size = V(0.3, r.Shock.From * s, r.Shock.From * s),
 		CFrame = CFrame.new(origin + V(0, 0.4, 0)) * CFrame.Angles(0, 0, math.rad(90)),
 		Color = r.Shock.Color,
-		Material = Enum.Material.Neon,
-		Transparency = 0.2,
+		Material = r.Shock.Material or Enum.Material.Neon,
+		Transparency = shockFrom,
 	})
+	-- Bola de fuego: un núcleo breve y, sobre todo, una nube de llamas (partículas grandes de un golpe)
+	-- en vez de una esfera lisa de color, que era lo que se veía
+	local fireballFrom = r.Fireball.Transparency or 0.1
 	local fireball = piece(b.Folder, {
 		Name = "BolaDeFuego",
 		Shape = Enum.PartType.Ball,
@@ -423,7 +592,7 @@ Kinds.Impact = function(b: Build): Handle
 		CFrame = CFrame.new(origin + V(0, 1.5, 0)),
 		Color = r.Fireball.Color,
 		Material = Enum.Material.Neon,
-		Transparency = 0.1,
+		Transparency = fireballFrom,
 	})
 	-- Emisores (un soporte invisible en el suelo)
 	local base = piece(b.Folder, { Name = "Base", Size = V(r.Radius * s, 0.2, r.Radius * s), CFrame = CFrame.new(origin + V(0, 0.3, 0)), Transparency = 1 })
@@ -470,6 +639,101 @@ Kinds.Impact = function(b: Build): Handle
 		Acceleration = V(0, -40, 0),
 		LightEmission = 1,
 	})
+	-- De un golpe, al chocar: la nube de llamas que crece y sube, y el polvo que sale rodando por el suelo
+	-- (la onda que se VE). Las cantidades van con el presupuesto, como el resto.
+	local bursts: { { Emitter: ParticleEmitter, Count: number } } = {}
+	if r.Burst then
+		local scale = b.Budget.Particles * (b.Ctx.Squeeze or 1)
+		local flames = emitter(base, {
+			Name = "Llamarada",
+			Texture = TEX.Fire,
+			Rate = 0,
+			Lifetime = NumberRange.new(0.5, 0.9),
+			Speed = NumberRange.new(5, 11),
+			SpreadAngle = Vector2.new(80, 80),
+			EmissionDirection = Enum.NormalId.Top,
+			Size = seq(3 * s, r.Burst.FlameSize * s, 2 * s),
+			Color = colors(Color3.fromRGB(255, 240, 190), r.Fire.Color),
+			Transparency = seq(0.05, 0.25, 1),
+			LightEmission = 1,
+			Drag = 2.5,
+			Acceleration = V(0, 6, 0),
+			RotSpeed = NumberRange.new(-90, 90),
+			Rotation = NumberRange.new(0, 360),
+		})
+		table.insert(bursts, { Emitter = flames, Count = math.max(4, math.floor(r.Burst.Flames * scale + 0.5)) })
+		local dust = emitter(base, {
+			Name = "Polvo",
+			Texture = TEX.Smoke,
+			Rate = 0,
+			Lifetime = NumberRange.new(1.4, 2.6),
+			Speed = NumberRange.new((r.Burst.DustSpeed or { 26, 44 })[1], (r.Burst.DustSpeed or { 26, 44 })[2]),
+			SpreadAngle = Vector2.new(84, 84),
+			EmissionDirection = Enum.NormalId.Top,
+			Size = seq(3 * s, r.Burst.DustSize * s),
+			Color = colors(r.Burst.DustColor),
+			Transparency = seq(0.35, 1),
+			LightEmission = 0,
+			Drag = 3.2,
+			Acceleration = V(0, -2, 0),
+			RotSpeed = NumberRange.new(-40, 40),
+			Rotation = NumberRange.new(0, 360),
+		})
+		table.insert(bursts, { Emitter = dust, Count = math.max(6, math.floor(r.Burst.Dust * scale + 0.5)) })
+		-- (cuentan en el gasto del efecto, con el mismo presupuesto)
+		for _, e in bursts do
+			b.Rate += e.Count
+		end
+	end
+	-- Lo que había de pie donde cae se ROMPE: cada pieza (columpios, farolas, señales, vallas, bancos…)
+	-- se esconde y salta en trozos de su mismo color y material, despedidos hacia fuera. Lo que se queda
+	-- roto para siempre lo esconde el cráter de la memoria del mundo (StageBuilders.Crater, Clear), así
+	-- que al acabar el efecto solo vuelve lo que ese cráter no tapa.
+	local broken: { BasePart } = {}
+	local chunks: { BasePart } = {}
+	if r.Shatter and ctx.Shatter ~= false then
+		local radius = r.Shatter.Radius * s
+		-- (trozos con física según el nivel gráfico: Bajo ~14, Medio ~28, Alto 40; cada pieza rota echa
+		-- al menos uno aunque se llegue al tope, para que nada desaparezca sin más)
+		local cap = math.max(1, math.floor(r.Shatter.Chunks * b.Budget.Particles + 0.5))
+		for _, part in StoryFxBuild.breakables(origin, radius, { MaxSize = r.Shatter.MaxSize, GroundY = origin.Y }) do
+			StoryFxBuild.hidePart(part, true)
+			table.insert(broken, part)
+			local size = part.Size
+			local n = V(if size.X > 2.2 then 2 else 1, if size.Y > 2.2 then 2 else 1, if size.Z > 2.2 then 2 else 1)
+			for ix = 1, n.X do
+				for iy = 1, n.Y do
+					for iz = 1, n.Z do
+						if #chunks >= cap and not (ix == 1 and iy == 1 and iz == 1) then
+							continue
+						end
+						local offset = V((ix - 0.5) / n.X - 0.5, (iy - 0.5) / n.Y - 0.5, (iz - 0.5) / n.Z - 0.5) * size
+						local cf = part.CFrame * CFrame.new(offset)
+						local chunk = piece(b.Folder, {
+							Name = "Trozo",
+							Size = V(size.X / n.X, size.Y / n.Y, size.Z / n.Z) * b.Rng:NextNumber(0.78, 0.95),
+							CFrame = cf * CFrame.Angles(b.Rng:NextNumber(-0.3, 0.3), b.Rng:NextNumber(-0.3, 0.3), b.Rng:NextNumber(-0.3, 0.3)),
+							Color = part.Color,
+							Material = part.Material,
+							Anchored = false,
+							CanCollide = true,
+							CastShadow = b.Budget.Shadows,
+						})
+						local away = cf.Position - origin
+						local flat = V(away.X, 0, away.Z)
+						local dir = if flat.Magnitude > 0.2 then flat.Unit else V(b.Rng:NextNumber(-1, 1), 0, b.Rng:NextNumber(-1, 1)).Unit
+						local near = math.clamp(1 - flat.Magnitude / math.max(radius, 1) * 0.6, 0.35, 1)
+						local speed = r.Shatter.Speed * near * b.Rng:NextNumber(0.6, 1.1)
+						pcall(function()
+							chunk.AssemblyLinearVelocity = dir * speed + V(0, speed * b.Rng:NextNumber(0.45, 0.85), 0)
+							chunk.AssemblyAngularVelocity = V(b.Rng:NextNumber(-10, 10), b.Rng:NextNumber(-10, 10), b.Rng:NextNumber(-10, 10))
+						end)
+						table.insert(chunks, chunk)
+					end
+				end
+			end
+		end
+	end
 	-- Mancha quemada (temporal)
 	local scorch = piece(b.Folder, {
 		Name = "Quemado",
@@ -504,21 +768,53 @@ Kinds.Impact = function(b: Build): Handle
 	emit(b, "Sound", r.Sound, origin)
 	emit(b, "Shake", r.Shake.Strength * math.min(s, 1.5), r.Shake.Seconds, origin, r.Shake.Radius)
 	emit(b, "Flash", 0.35, r.Flash.Color, r.Flash.Seconds + 0.25, origin)
+	local burst = false
+	local restored = false
+	-- Lo roto vuelve al acabar o al quitar el efecto (si el cráter que se queda no lo sigue tapando)
+	local function restore()
+		if restored then
+			return
+		end
+		restored = true
+		for _, part in broken do
+			StoryFxBuild.hidePart(part, false)
+		end
+	end
+	pcall(function()
+		b.Folder.Destroying:Connect(restore)
+	end)
 	return handle(b, function(_dt: number, t: number): boolean
+		if not burst then
+			burst = true
+			for _, e in bursts do
+				pcall(function()
+					e.Emitter:Emit(e.Count)
+				end)
+			end
+		end
 		-- Destello
 		local f = clamp01(t / r.Flash.Seconds)
-		flash.Size = V(2, 2, 2) * lerp(1, 5 * s, f)
-		flash.Transparency = f
+		flash.Size = V(2, 2, 2) * lerp(1, (r.Flash.Grow or 5) * s, f)
+		flash.Transparency = lerp(r.Flash.Transparency or 0, 1, f)
 		flashLight.Brightness = r.Flash.Brightness * (1 - f) * (1 - f)
 		-- Onda expansiva
 		local w = clamp01(t / r.Shock.Seconds)
 		local d = lerp(r.Shock.From, r.Shock.To, 1 - (1 - w) * (1 - w)) * s
 		shock.Size = V(0.3, d, d)
-		shock.Transparency = lerp(0.2, 1, w)
+		shock.Transparency = lerp(shockFrom, 1, w)
 		-- Bola de fuego
 		local g = clamp01(t / r.Fireball.Seconds)
 		fireball.Size = V(1, 1, 1) * lerp(1, r.Fireball.Size * s, math.sqrt(g))
-		fireball.Transparency = lerp(0.1, 1, g * g)
+		fireball.Transparency = lerp(fireballFrom, 1, math.sqrt(g))
+		-- Los trozos de lo roto ruedan y, al final, se desvanecen
+		for _, chunk in chunks do
+			if t > (r.Shatter and r.Shatter.Life or 5) then
+				chunk.Transparency = clamp01((t - (r.Shatter and r.Shatter.Life or 5)) / 0.8)
+			end
+		end
+		if t >= seconds then
+			restore()
+		end
 		-- Humo, fuego y chispas se apagan cada uno a su tiempo
 		smoke.Enabled = t < r.Smoke.Seconds
 		fire.Enabled = t < r.Fire.Seconds

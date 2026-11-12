@@ -77,7 +77,10 @@ return {
 			Garaje = "Place:GarajeCosme",
 			Yo = "Player",
 			Grieta = "Rift",
-			Parque = { Place = "FuenteParque", Offset = V(-3, 0, 3), Ground = true },
+			-- (en el césped, a 12 studs de la fuente: con -3, 3 el cráter se metía en el pilón y la fuente
+			-- seguía entera. El mismo sitio que el cráter que se queda —StageSets.CraterParque— y el objeto
+			-- que hay que recoger —Saga_Acto1, Calcetin—)
+			Parque = { Place = "FuenteParque", Offset = V(-12, 0, 10), Ground = true },
 			Patio = { Place = "JuegosColegio", Offset = V(3, 0, 3), Ground = true },
 			Camino = { Place = "CaminoAlCole", Offset = V(2, 0, 2), Ground = true },
 		},
@@ -85,29 +88,36 @@ return {
 			Camera = {
 				-- 1-2 · Del garaje al cielo que se pone verde
 				{ At = 0, Duration = 1.6, From = { "Garaje", V(6, 3, 8) }, To = { "Garaje", V(5, 2.6, 7) }, Look = { "Garaje", V(0, 3, 0) }, LookTo = { "Grieta" }, Fov = { 62, 55 } },
-				-- 4 · Junto a ti, mirando a la Grieta («¡Cúbrete!»)
-				{ At = 1.6, Duration = 1, Fixed = { "Yo", V(3, 2, 5) }, Look = { "Grieta" }, Fov = { 60, 45 }, Shake = 0.4, Cut = "Cut" },
+				-- 4 · Mirando a la Grieta («¡Cúbrete!»). Revisado en el laboratorio: junto a ti (Yo + 3, 2, 5) la
+				-- cámara se quedaba debajo de un árbol, y desde el garaje la Grieta queda DETRÁS de la casa de
+				-- Cosme. Desde la calle de delante (medido con rayos) se ve el cielo entero.
+				{ At = 1.6, Duration = 1, Fixed = { "Garaje", V(24, 5, -18) }, Look = { "Grieta", V(0, -230, 0) }, Fov = { 40, 24 }, Shake = 0.4, Cut = "Cut" },
 				-- 3 · La primera estela: la cámara la sigue
 				{ At = 2.6, Duration = 2, Follow = "Fx:M1", Offset = V(0, 12, 30), Fov = 60, Shake = 0.25, Cut = "Flash" },
 				-- 5 · Impacto 1 (parque), plano fijo: llega la estrella, el destello y la onda
-				{ At = 4.6, Duration = 1.6, Fixed = { "Parque", V(12, 4, 14) }, Look = { "Parque", V(0, 1, 0) }, Fov = { 55, 48 }, Cut = "Cut" },
+				{ At = 4.6, Duration = 1.6, Fixed = { "Parque", V(12, 6, 14) }, Look = { "Parque", V(0, 1.8, 0) }, Fov = { 55, 48 }, Cut = "Cut" },
 				-- 5 · Impacto 2 (patio del cole): la valla salta
 				{ At = 6.2, Duration = 1.2, Fixed = { "Patio", V(-10, 4, 11) }, Look = { "Patio", V(0, 1, 0) }, Fov = 52, Shake = 0.3, Cut = "Cut" },
 				-- 5 · Impacto 3 (camino al cole), más lejos: el humo sube entre los árboles
 				{ At = 7.4, Duration = 1.2, Fixed = { "Camino", V(16, 7, -14) }, Look = { "Camino", V(0, 1.5, 0) }, Fov = 50, Cut = "Cut" },
 				-- 8 · SILENCIO: el cráter del parque, el humo, nadie habla (un acercamiento muy lento)
-				{ At = 8.6, Duration = 3.4, From = { "Parque", V(9, 3, 10) }, To = { "Parque", V(7, 2.6, 8) }, Look = { "Parque", V(0, 0.6, 0) }, Fov = { 50, 46 }, Cut = "Dip" },
+				-- (más alto que el borde de rocas del cráter: si no, la cámara chocaba con ellas y se metía dentro)
+				{ At = 8.6, Duration = 3.4, From = { "Parque", V(9, 4.4, 10) }, To = { "Parque", V(7, 3.8, 8) }, Look = { "Parque", V(0, 1.2, 0) }, Fov = { 50, 46 }, Cut = "Dip" },
 				-- 9 · Algo sale del cráter y huye; un vecino vuelve a ver si todos están bien
 				-- (revisión con test-cineplanos: una órbita aquí cruzaba la valla del cole y pasaba por encima
 				-- de Chispa; desde el sitio del impacto se ve todo y Chispa huye alejándose de la cámara)
-				{ At = 12, Duration = 3, Fixed = { "Parque", V(12, 4, 14) }, Look = { "Parque", V(1, 1, -1) }, Fov = { 50, 46 }, Cut = "Cut" },
+				{ At = 12, Duration = 3, Fixed = { "Parque", V(12, 6, 14) }, Look = { "Parque", V(1, 2, -1) }, Fov = { 50, 46 }, Cut = "Cut" },
 				{ At = 15, Duration = 3, Shot = "Medio:VecinoParque", Cut = "Cut" },
 				-- 9 · En el garaje: la cara de Cosme mientras lo cuenta el narrador; Pip; Cosme
+				-- (Cosme y Pip se giran hacia ti ANTES de este plano —17,4 s—: revisado en el laboratorio, se
+				-- giraban en el mismo instante en que la cámara elegía su sitio y a veces salía su nuca)
 				{ At = 18, Duration = 5.6, Shot = "Reaccion:Cosme", Cut = "Dip" },
-				{ At = 23.6, Duration = 2.9, Fixed = { "Garaje", V(-5, 3.5, 7) }, Look = { "Actor:Pip", V(0, 1.2, 0) }, Fov = 50, Cut = "Cut" },
+				{ At = 23.6, Duration = 2.9, Shot = "Medio:Pip", Cut = "Cut" },
 				{ At = 26.5, Duration = 3, Shot = "Medio:Cosme", Cut = "Cut" },
 				-- 10 · Te alejas: la búsqueda empieza
-				{ At = 29.5, Duration = 5.5, From = { "Yo", V(4, 2, 6) }, To = { "Yo", V(10, 14, 18) }, Look = { "Yo", V(0, 2, 0) }, LookTo = { "Grieta" }, Easing = "In" },
+				-- (sube desde la calle de delante del garaje, donde se ve el cielo: subiendo desde Yo atravesaba
+				-- la copa de un árbol —revisado en el laboratorio—)
+				{ At = 29.5, Duration = 5.5, From = { "Garaje", V(18, 5, -12) }, To = { "Garaje", V(30, 15, -26) }, Look = { "Yo", V(0, 2, 0) }, LookTo = { "Grieta" }, Easing = "In" },
 			},
 			Shake = {
 				-- 1 · el primer aviso: un temblor pequeño antes de que se vea nada
@@ -156,21 +166,24 @@ return {
 				{ At = 1, Mood = { Key = "Cosme", Mood = "Surprise" } },
 				{ At = 1.3, Gesture = { Key = "Cosme", Play = "Point" } },
 				-- Dos vecinos en el parque (se ven en el plano del impacto): huyen al caer la estrella
-				{ At = 0, Spawn = { Key = "VecinoParque", Npc = "Vecino", Anchor = "Parque", Offset = V(6, 0, -5), Face = { "Parque" } } },
+				-- (en el césped, lejos del pilón de la fuente: antes salía de pie encima de él)
+				{ At = 0, Spawn = { Key = "VecinoParque", Npc = "Vecino", Anchor = "Parque", Offset = V(4, 0, 6), Face = { "Parque" } } },
 				{ At = 0, Spawn = { Key = "MadreParque", Npc = "Madre", Anchor = "Parque", Offset = V(-6, 0, -4), Face = { "Parque" } } },
 				{ At = 4.4, Look = { Key = "VecinoParque", At = "Grieta" } },
 				{ At = 4.5, Look = { Key = "MadreParque", At = "Grieta" } },
 				{ At = 4.9, Mood = { Key = "MadreParque", Mood = "Fear" } },
 				{ At = 4.9, Mood = { Key = "VecinoParque", Mood = "Fear" } },
 				{ At = 5, Move = { Key = "MadreParque", To = { "Parque", V(-15, 0, -12) }, Run = true } },
-				{ At = 5.1, Move = { Key = "VecinoParque", To = { "Parque", V(13, 0, -11) }, Run = true } },
+				-- (huye hacia la calle sin pasar por la fuente, que ahora queda a su lado)
+				{ At = 5.1, Move = { Key = "VecinoParque", To = { "Parque", V(18, 0, -6) }, Run = true } },
 				-- Lo que trajo la estrella del parque: sale del cráter cuando ya no se oye nada
 				{ At = 11.4, Spawn = { Key = "Chispa", Creature = "Chispa", Anchor = "Parque", Mood = "Fear" } },
 				{ At = 11.8, Look = { Key = "Chispa", At = "Parque" } },
 				-- 9 · el vecino vuelve a ver si alguien se ha hecho daño (ayuda); la madre se queda lejos
 				{ At = 12.2, Mood = { Key = "VecinoParque", Mood = "Nervous" } },
-				{ At = 12.3, Move = { Key = "VecinoParque", To = { "Parque", V(5, 0, -3) } } },
-				{ At = 12.8, Move = { Key = "Chispa", To = { "Parque", V(9, 0, -7) }, Run = true } },
+				-- (vuelve por el lado contrario a la cámara: antes pasaba por delante del objetivo)
+				{ At = 12.3, Move = { Key = "VecinoParque", To = { "Parque", V(7, 0, -2) } } },
+				{ At = 12.8, Move = { Key = "Chispa", To = { "Parque", V(-8, 0, -9) }, Run = true } },
 				{ At = 13.4, Look = { Key = "VecinoParque", At = "Chispa" } },
 				{ At = 13.6, Mood = { Key = "VecinoParque", Mood = "Surprise" } },
 				{ At = 14.4, Despawn = { Key = "Chispa" } },
@@ -179,8 +192,8 @@ return {
 				{ At = 18, Despawn = { Key = "VecinoParque" } },
 				{ At = 18, Despawn = { Key = "MadreParque" } },
 				{ At = 18, Mood = { Key = "Cosme", Mood = "Calm" } },
-				{ At = 18, Look = { Key = "Pip", At = "Yo" } },
-				{ At = 18.2, Look = { Key = "Cosme", At = "Yo" } },
+				{ At = 17.3, Look = { Key = "Pip", At = "Yo" } },
+				{ At = 17.4, Look = { Key = "Cosme", At = "Yo" } },
 				{ At = 26.7, Gesture = { Key = "Cosme", Play = "Point" } },
 			},
 			Wait = {

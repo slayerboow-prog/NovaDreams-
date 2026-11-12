@@ -485,7 +485,7 @@ advance(0.05)
 local playA = messages(A, "Play")[1]
 check(playA ~= nil, "el jugador recibe la escena (Play)")
 check(playA and playA.StartAt > 1000 and playA.Anchors.Parque ~= nil, "con la hora de empezar y sus anclas (su parque)")
-check(playA and playA.Anchors.Parque.Position.X == 297, "el ancla del parque lleva el desplazamiento del objeto de la misión")
+check(playA and playA.Anchors.Parque.Position.X == 288, "el ancla del parque lleva el desplazamiento del objeto de la misión")
 check(playA and playA.Names.Pip ~= nil and playA.Names.Chispa == "Chispa" and playA.Voices.Pip ~= nil, "nombres y voces de quien habla (Pip, Chispa)")
 check(messages(B, "Play")[1] == nil, "el otro jugador NO recibe la escena de Ana")
 check(#seen == 1, "la historia sabe que la escena se está viendo")

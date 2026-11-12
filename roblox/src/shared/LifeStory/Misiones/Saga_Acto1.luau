@@ -39,7 +39,7 @@ return {
 		-- Chispa (lo que trajo la estrella del parque) se queda a vivir en su cráter: memoria del mundo
 		Rewards = { Items = { MonedaPerilla = 1 }, Flags = { "SabeDeCosimo" }, World = { ["Cielo.Chispa"] = "Parque" } },
 		Props = {
-			Calcetin = { Kind = "Moco", Name = "Un calcetín que brilla… y habla", Prompt = "Coger el calcetín", Place = "FuenteParque", Offset = V(-3, 0, 3), Color = Color3.fromRGB(120, 255, 160), Dialogue = "Calcetin", Once = true },
+			Calcetin = { Kind = "Moco", Name = "Un calcetín que brilla… y habla", Prompt = "Coger el calcetín", Place = "FuenteParque", Offset = V(-12, 0, 10), Color = Color3.fromRGB(120, 255, 160), Dialogue = "Calcetin", Once = true },
 			Paraguas = { Kind = "Cristal", Name = "Un paraguas que llueve hacia arriba", Prompt = "Cerrar el paraguas", Place = "JuegosColegio", Offset = V(3, 0, 3), Color = Color3.fromRGB(150, 200, 255), Dialogue = "Paraguas", Once = true },
 			Moneda = { Kind = "Pegatina", Name = "Una moneda caliente", Prompt = "Recoger la moneda", Place = "CaminoAlCole", Offset = V(2, 0, 2), Color = Color3.fromRGB(255, 200, 60), Dialogue = "Moneda", Once = true },
 			Medidor = { Kind = "Maquina", Name = "El medidor de rarezas", Place = "GarajeCosme", Offset = V(-3, 0, 0), Prompt = false },

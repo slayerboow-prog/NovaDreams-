@@ -776,8 +776,26 @@ local function showLine(run: ClientRun, line: { [string]: any })
 		run.CaptionLocated = located
 		local shownUi = run.Ui
 		if shownUi then
-			local shown = if whole then ("<i>%s</i>"):format(text) else text
-			shownUi.Caption.Text = if name and name ~= "" and not whole then ('<font color="#FFC43C"><b>%s:</b></font> %s'):format(name, shown) else shown
+			local function caption(piece: string): string
+				local shown = if whole then ("<i>%s</i>"):format(piece) else piece
+				return if name and name ~= "" and not whole then ('<font color="#FFC43C"><b>%s:</b></font> %s'):format(name, shown) else shown
+			end
+			-- Con silencios dentro («¡Agáchate! …Bueno. Ya da igual.»): primero un trozo, se calla y luego
+			-- el resto (ReadingTime.beats). El tiempo en pantalla ya cuenta esos silencios.
+			local parts = ReadingTime.beats(text)
+			shownUi.Caption.Text = caption(parts[1])
+			if #parts > 1 then
+				local serial = run.LineSerial
+				for i, at in ReadingTime.beatTimes(parts) do
+					if i > 1 then
+						task.delay(at, function()
+							if run.Ui == shownUi and run.LineSerial == serial and not run.Stopped then
+								shownUi.Caption.Text = caption(parts[i])
+							end
+						end)
+					end
+				end
+			end
 			fadeText(shownUi.Caption, true, 0.25)
 			if shownUi.TapHint then
 				fadeText(shownUi.TapHint, true, 0.25)
