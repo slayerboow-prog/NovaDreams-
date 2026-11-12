@@ -279,12 +279,32 @@ function StoryFxBuild.breakables(origin: Vector3, radius: number, opts: { [strin
 	local groundY = o.GroundY or origin.Y
 	local maxSize = o.MaxSize or 12
 	local out = {}
-	for _, part in parts do
+	local seen: { [Instance]: boolean } = {}
+	local function consider(part: BasePart)
+		if seen[part] then
+			return
+		end
+		seen[part] = true
 		local flat = (part.Position - origin) * V(1, 0, 1)
 		if flat.Magnitude <= radius then
 			local okPart, yes = pcall(breakable, part, groundY, maxSize, skip)
 			if okPart and yes then
 				table.insert(out, part)
+			end
+		end
+	end
+	for _, part in parts do
+		consider(part)
+	end
+	-- Las piezas del mismo objeto que los rayos no ven (CanQuery = false: las cuerdas de los columpios)
+	-- también se rompen si están cerca; si no, se quedaban colgando de la nada
+	for _, part in table.clone(out) do
+		local holder = part.Parent
+		if holder and holder ~= workspace and holder:IsA("Model") and #holder:GetChildren() <= 30 then
+			for _, sibling in holder:GetChildren() do
+				if sibling:IsA("BasePart") and not sibling.CanQuery then
+					consider(sibling)
+				end
 			end
 		end
 	end
@@ -294,6 +314,31 @@ end
 -- Esconde (o vuelve a enseñar) una pieza del mapa SOLO en esta pantalla: invisible, sin choque y sin que
 -- la vean los rayos de la cámara. Lleva la cuenta: el impacto y el cráter pueden esconder la misma pieza
 -- y solo vuelve cuando ninguno de los dos la quiere escondida.
+local function setHangers(part: BasePart, hidden: boolean)
+	local holder = part.Parent
+	if not holder or holder == workspace or #holder:GetChildren() > 60 then
+		return
+	end
+	for _, d in holder:GetDescendants() do
+		if d:IsA("RopeConstraint") or d:IsA("RodConstraint") or d:IsA("SpringConstraint") or d:IsA("Beam") then
+			local a0, a1 = (d :: any).Attachment0, (d :: any).Attachment1
+			if (a0 and a0.Parent == part) or (a1 and a1.Parent == part) then
+				-- (un Beam se apaga con Enabled; las cuerdas, con Visible)
+				local prop = if d:IsA("Beam") then "Enabled" else "Visible"
+				if hidden then
+					if d:GetAttribute("StoryBrokenOn") == nil then
+						d:SetAttribute("StoryBrokenOn", (d :: any)[prop] ~= false)
+					end
+					(d :: any)[prop] = false
+				elseif d:GetAttribute("StoryBrokenOn") ~= nil then
+					(d :: any)[prop] = d:GetAttribute("StoryBrokenOn") == true
+					d:SetAttribute("StoryBrokenOn", nil)
+				end
+			end
+		end
+	end
+end
+
 function StoryFxBuild.hidePart(part: BasePart, on: boolean)
 	pcall(function()
 		local count = (part:GetAttribute("StoryBroken") :: number?) or 0
@@ -317,6 +362,9 @@ function StoryFxBuild.hidePart(part: BasePart, on: boolean)
 				end
 			end
 			part:SetAttribute("StoryBroken", count + 1)
+			-- (las cuerdas y cadenas que cuelgan de ella —los columpios: RopeConstraint/Beam entre la barra y
+			-- el asiento— también: si no, se quedaban dos cuerdas colgando de la nada)
+			setHangers(part, true)
 		elseif count > 0 then
 			if count == 1 then
 				part.LocalTransparencyModifier = 0
@@ -332,6 +380,7 @@ function StoryFxBuild.hidePart(part: BasePart, on: boolean)
 					end
 				end
 				part:SetAttribute("StoryBroken", nil)
+				setHangers(part, false)
 			else
 				part:SetAttribute("StoryBroken", count - 1)
 			end

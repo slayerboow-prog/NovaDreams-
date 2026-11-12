@@ -175,14 +175,15 @@ return {
 				{ At = 4.9, Mood = { Key = "VecinoParque", Mood = "Fear" } },
 				{ At = 5, Move = { Key = "MadreParque", To = { "Parque", V(-15, 0, -12) }, Run = true } },
 				-- (huye hacia la calle sin pasar por la fuente, que ahora queda a su lado)
-				{ At = 5.1, Move = { Key = "VecinoParque", To = { "Parque", V(18, 0, -6) }, Run = true } },
+				{ At = 5.1, Move = { Key = "VecinoParque", To = { "Parque", V(24, 0, 4) }, Run = true } },
 				-- Lo que trajo la estrella del parque: sale del cráter cuando ya no se oye nada
 				{ At = 11.4, Spawn = { Key = "Chispa", Creature = "Chispa", Anchor = "Parque", Mood = "Fear" } },
 				{ At = 11.8, Look = { Key = "Chispa", At = "Parque" } },
 				-- 9 · el vecino vuelve a ver si alguien se ha hecho daño (ayuda); la madre se queda lejos
 				{ At = 12.2, Mood = { Key = "VecinoParque", Mood = "Nervous" } },
-				-- (vuelve por el lado contrario a la cámara: antes pasaba por delante del objetivo)
-				{ At = 12.3, Move = { Key = "VecinoParque", To = { "Parque", V(7, 0, -2) } } },
+				-- (vuelve por detrás del cráter, fuera del pilón de la fuente —radio 8— y sin cruzar por delante de
+				-- la cámara: revisado en el laboratorio)
+				{ At = 12.3, Move = { Key = "VecinoParque", To = { "Parque", V(6, 0, 0) } } },
 				{ At = 12.8, Move = { Key = "Chispa", To = { "Parque", V(-8, 0, -9) }, Run = true } },
 				{ At = 13.4, Look = { Key = "VecinoParque", At = "Chispa" } },
 				{ At = 13.6, Mood = { Key = "VecinoParque", Mood = "Surprise" } },
