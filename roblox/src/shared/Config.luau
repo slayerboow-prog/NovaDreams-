@@ -120,7 +120,7 @@ Config.Debug = {
 -- Modo pruebas (TesterService, panel «Modo pruebas» con /pruebas): dinero infinito, todas las armas,
 -- todos los oficios sin requisitos… Ya lo tienen Studio, el creador del juego y el dueño del grupo;
 -- aquí se añaden otros UserId de confianza.
-Config.Testers = { 8103097978 } :: { number } -- Sibuastian (el dueño)
+Config.Testers = { 8103097978, 11714575032 } :: { number } -- Sibuastian (el dueño) y TheSibuastian (su cuenta, la creadora del juego)
 -- …y nombres de usuario de Roblox (sin @; da igual mayúsculas). El número de usuario es más seguro
 -- (el nombre se puede cambiar), pero con esto basta mientras no lo tengamos.
 Config.TesterNames = {} :: { string }
