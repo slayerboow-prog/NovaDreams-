@@ -298,7 +298,8 @@
         "StreamingEnabled": true,
         "StreamingTargetRadius": 768,
         "StreamingMinRadius": 96,
-        "StreamingIntegrityMode": "MinimumRadiusPause"
+        "StreamingIntegrityMode": "MinimumRadiusPause",
+        "StreamOutBehavior": "Opportunistic"
       },
       "Terrain": {
         "$className": "Terrain",

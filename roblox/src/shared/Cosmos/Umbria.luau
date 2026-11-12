@@ -113,16 +113,18 @@ S.Env = {
 	Sky = { "EspacioProfundo", "Original" },
 	Clouds = false,
 	Mood = {
-		Brightness = 1.15,
-		Exposure = 0.06,
-		Ambient = rgb(38, 56, 40),
-		Outdoor = rgb(70, 98, 62),
+		-- (v135: con 1,15 y el ambiente casi negro, bajo las copas no se veía nada, ni de día: más luz y menos
+		-- niebla, la misma penumbra verde)
+		Brightness = 1.8,
+		Exposure = 0.28,
+		Ambient = rgb(82, 108, 84),
+		Outdoor = rgb(118, 146, 108),
 		EnvDiffuse = 0.6,
 		EnvSpecular = 0.6,
 		Shadow = 0.45,
 		SunTint = rgb(76, 62, 22), -- (la luz dorada que se cuela entre las hojas)
 		ShadeTint = rgb(8, 28, 18),
-		Density = 0.52,
+		Density = 0.4,
 		Offset = 0.22,
 		AtmColor = rgb(72, 108, 78),
 		Decay = rgb(36, 66, 48),

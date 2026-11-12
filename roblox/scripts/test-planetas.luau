@@ -2239,6 +2239,24 @@ if process.args[1] ~= "rapido" then
 	L.failures += H.failures or 0
 end
 
+-- (v135) Siroco, «sigue a Rafa a su taller»: el taller tiene planta de garaje y sus portones macizos no
+-- dejaban entrar al sitio de dentro. Los edificios con un sitio Inside de la historia van con el portón abierto.
+do
+	local PCB = L.load("src/server/World/PlanetCityBuilder")
+	local SirocoCity = L.load("src/shared/Cosmos/SirocoCity")
+	check(PCB.entered(SirocoCity, "TallerRafa") and not PCB.entered(SirocoCity, "BoxHierro"), "Siroco: el taller de Rafa es un edificio en el que se entra (portón abierto); los demás, no")
+	local Siroco = L.load("src/shared/Cosmos/Siroco")
+	local hasStorm, hasHeat = false, false
+	for _, f in Siroco.Fx do
+		hasStorm = hasStorm or f.Mode == "Tormenta"
+		hasHeat = hasHeat or f.Mode == "HoraRoja"
+	end
+	check(hasStorm and hasHeat, "Siroco: la tormenta de arena y la hora roja se VEN (partículas por momento)")
+	check(Siroco.StoryModes.Siroco_01_HoraRoja == "HoraRoja", "Siroco: la misión de llegada fuerza la hora roja aunque el reloj diga otra cosa")
+	local ctx = Siroco.hazardContext(Siroco.Origin, { Clock = 9, Mode = "HoraRoja" })
+	check(ctx.Near.HoraRoja == 0, "Siroco: con la hora roja forzada, el medidor de sed la nota")
+end
+
 L.finish("test-planetas")
 -- (los bucles de la historia siguen vivos: se sale a mano)
 process.exit(if L.failures > 0 then 1 else 0)

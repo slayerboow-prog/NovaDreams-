@@ -94,11 +94,21 @@ function PlanetHazardService.planetOf(player: Player): (string?, any)
 	return id, S
 end
 
+-- El momento del planeta para ESTE jugador: el de la misión que sigue (S.StoryModes) o el de la hora
+function PlanetHazardService.modeFor(S: any, player: Player?, position: Vector3): string?
+	local focus = player and player:GetAttribute("StoryFocus")
+	local forced = S.StoryModes and type(focus) == "string" and S.StoryModes[focus] or nil
+	if forced then
+		return forced
+	end
+	return if S.moment then S.moment(GameClock.hour(), position) else nil
+end
+
 -- El contexto del medidor para un jugador (lo que lee Hazard.rate)
 function PlanetHazardService.context(S: any, player: Player?, position: Vector3, data: { [string]: any }?, st: State?): { [string]: any }
 	local H = S.Hazard
 	local clock = GameClock.hour()
-	local info = { Clock = clock, Day = clock >= 9 and clock < 19, Items = data and data.Items, Player = player }
+	local info = { Clock = clock, Day = clock >= 9 and clock < 19, Items = data and data.Items, Player = player, Mode = PlanetHazardService.modeFor(S, player, position) }
 	local ctx: { [string]: any } = if S.hazardContext then S.hazardContext(position, info) else {}
 	local lx, lz = S.toLocal(position)
 	local City = S.City
@@ -221,7 +231,7 @@ local function stepPlayer(player: Player, dt: number)
 	player:SetAttribute("PeligroFase", phase)
 	player:SetAttribute("PeligroId", H.Id)
 	-- El momento del planeta (tormenta de arena, marea de niebla…): para el sonido
-	local mode = if S.moment then S.moment(GameClock.hour(), root.Position) else nil
+	local mode = PlanetHazardService.modeFor(S, player, root.Position)
 	if mode ~= s.Mode then
 		s.Mode = mode
 		player:SetAttribute("PlanetaModo", mode)

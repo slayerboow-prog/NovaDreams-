@@ -133,6 +133,17 @@ local function defaultLamp(ctx: Ctx, parent: Instance, cf: CFrame)
 	return m
 end
 
+-- ¿Hay un sitio de la historia DENTRO de este edificio? (StorySpots con Inside = "<KeyPrefix><Id>")
+function PlanetCityBuilder.entered(City: any, id: string): boolean
+	local key = (City.KeyPrefix or "") .. id
+	for _, s in City.StorySpots or {} do
+		if s.Inside == key then
+			return true
+		end
+	end
+	return false
+end
+
 -- Un edificio Box (Kit/Building) con su cartel; el kit puede añadirle lo suyo (kit.dressBox)
 local function boxBuilding(ctx: Ctx, parent: Instance, b: { [string]: any }): Model
 	local yaw = YAW[b.Face or "N"]
@@ -162,6 +173,16 @@ local function boxBuilding(ctx: Ctx, parent: Instance, b: { [string]: any }): Mo
 	local entrance = model:FindFirstChild("ShopEntrance")
 	if entrance then
 		entrance:SetAttribute("NoHeist", true) -- (allí no hay policía de Valmar que te persiga)
+	end
+	-- Edificios en los que la historia te hace entrar (un sitio con Inside = "<Planeta>_<Id>"): con planta de
+	-- garaje, los portones salían bajados y macizos y no se podía pasar (v135: Siroco, «sigue a Rafa a su
+	-- taller», el marcador a 3 m al otro lado del portón). Ahí el portón está abierto: el hueco con su marco.
+	if PlanetCityBuilder.entered(ctx.City, b.Id) then
+		for _, d in model:GetDescendants() do
+			if d:IsA("BasePart") and (d.Name == "GarageDoor" or d.Name == "Slat") then
+				d:Destroy()
+			end
+		end
 	end
 	if ctx.Kit.dressBox then
 		ctx.Kit.dressBox(ctx, model, b, cf, info2)

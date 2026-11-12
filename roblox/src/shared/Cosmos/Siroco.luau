@@ -132,6 +132,9 @@ S.Env = {
 -- Lo que vuela: polvo rojo fino
 S.Fx = {
 	{ Name = "Polvo", Color = rgb(220, 150, 100), Size = 0.3, Rate = 0.6, Alpha = 0.4, Speed = 4, Direction = Enum.NormalId.Left, Acceleration = Vector3.new(6, -0.2, 1) },
+	-- (la tormenta de arena: ráfagas espesas de lado; la hora roja: calima naranja que tiembla)
+	{ Name = "Arena", Mode = "Tormenta", Color = rgb(214, 158, 96), Size = 1.1, Rate = 3.2, Speed = 26, Alpha = 0.05, Acceleration = Vector3.new(46, -2, 14), Direction = Enum.NormalId.Left },
+	{ Name = "Calima", Mode = "HoraRoja", Color = rgb(255, 130, 60), Size = 0.9, Rate = 1.4, Speed = 2, Alpha = 0.2, Acceleration = Vector3.new(2, 1.2, 1) },
 }
 
 S.CrowdLines = {
@@ -178,6 +181,9 @@ S.HazardToasts = {
 S.KnockText = "💧 El calor y la sed te han tumbado."
 S.CounterText = "💧 Agua fresca: la sed baja de golpe y durante un rato casi no sube"
 
+-- Misiones que pasan en un momento concreto (la llegada es EN la hora roja, sea la hora que sea)
+S.StoryModes = { Siroco_01_HoraRoja = "HoraRoja" }
+
 -- La hora roja (mediodía) y las tormentas de arena (hora de Siroco)
 function S.moment(clock: number, _pos: Vector3?): string?
 	if clock >= 13 and clock < 14 then
@@ -191,7 +197,7 @@ end
 function S.hazardContext(pos: Vector3, info: { [string]: any }): { [string]: any }
 	local lx, lz = S.toLocal(pos)
 	local near: { [string]: any } = {}
-	local mode = S.moment(info.Clock or 10, pos)
+	local mode = info.Mode or S.moment(info.Clock or 10, pos)
 	if mode == "HoraRoja" then
 		near.HoraRoja = 0
 	elseif mode == "Tormenta" then
