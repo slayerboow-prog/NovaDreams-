@@ -529,24 +529,6 @@ end
 ---------------------------------------------------------------------
 -- Cada fotograma
 ---------------------------------------------------------------------
--- Aire limpio al pilotar sobre Valmar: con la bruma de la hora (y la de la lluvia) la ciudad y el mar se
--- lavaban al azul a pocos cientos de studs y no se sabía dónde estaba arriba ni abajo (vídeo del dueño, v135).
--- Entra al subir de ClearFrom y está entera desde ClearFull; a ras de suelo, la luz de siempre.
--- (las cuentas, en shared/Cosmos/Layers: FlightClear y clearWeight)
-local clearOn = false
-local function setFlightClear(w: number)
-	pcall(function()
-		local DayLight = require(script.Parent.DayLight)
-		if w > 0.01 then
-			DayLight.pushLayer("VueloClaro", Layers.FlightClear, 1, w)
-			clearOn = true
-		elseif clearOn then
-			DayLight.popLayer("VueloClaro", 1)
-			clearOn = false
-		end
-	end)
-end
-
 local function step(_dt: number)
 	local camera = workspace.CurrentCamera
 	if not camera then
@@ -574,7 +556,6 @@ local function step(_dt: number)
 	local cosmos = cur ~= nil and cur.World == "Cosmos" and not cur.Down
 	local inCosmos = cur ~= nil and cur.World == "Cosmos"
 	local onPlanet = cur ~= nil and cur.World == "Planet"
-	setFlightClear(Layers.clearWeight(cosmos and overValmar, camPos.Y))
 	bindKeys(inCosmos or onPlanet)
 	local label = if inCosmos then "Aterrizar" elseif onPlanet then "BAJAR" else "Salir"
 	if label ~= lastCosmos then
@@ -657,15 +638,18 @@ local function onEvent(kind: string, p: any)
 end
 
 function SpaceClient.init()
-	remote = ReplicatedStorage:WaitForChild("Remotes"):WaitForChild("Space", 10) :: RemoteEvent?
-	if remote then
-		remote.OnClientEvent:Connect(function(kind, payload)
+	-- (el canal «Space» lo crea el servidor al arrancar, que tarda: antes se esperaba 10 s y, si llegaba
+	-- después, este cliente se quedaba sin canal para siempre. Ahora se espera en otro hilo; v135)
+	task.spawn(function()
+		local found = ReplicatedStorage:WaitForChild("Remotes"):WaitForChild("Space") :: RemoteEvent
+		found.OnClientEvent:Connect(function(kind, payload)
 			local ok, err = pcall(onEvent, kind, payload)
 			if not ok then
 				warn("[SpaceClient] " .. tostring(err))
 			end
 		end)
-	end
+		remote = found
+	end)
 	TouchLayout.register({
 		Id = "NaveValmar",
 		Icon = "casa",

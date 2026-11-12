@@ -1110,15 +1110,21 @@ end
 PlanetClient._onEvent = onEvent
 
 function PlanetClient.init()
-	remote = ReplicatedStorage:WaitForChild("Remotes"):WaitForChild("Planet", 10) :: RemoteEvent?
-	if remote then
-		remote.OnClientEvent:Connect(function(kind, payload)
+	-- El canal «Planet» lo crea Services/PlanetService al arrancar, y el servidor tarda: antes se esperaba 10 s
+	-- y, si llegaba más tarde, el cliente se quedaba sin canal para siempre: nunca sabía qué planetas estaban
+	-- abiertos y todos apartaban la nave con «LÍMITE» (v135, «no me deja entrar a ningún planeta"). Ahora se
+	-- espera en otro hilo lo que haga falta, y en cuanto llega se pide el estado.
+	task.spawn(function()
+		local found = ReplicatedStorage:WaitForChild("Remotes"):WaitForChild("Planet") :: RemoteEvent
+		found.OnClientEvent:Connect(function(kind, payload)
 			local ok, err = pcall(onEvent, kind, payload)
 			if not ok then
 				warn("[PlanetClient] " .. tostring(err))
 			end
 		end)
-	end
+		remote = found
+		fire("Status")
+	end)
 	AirCombatClient.setEnv("Cosmos", { mode = Zone.modeAt, collide = Zone.collide, bounds = cosmosBounds })
 	-- (cada planeta, su geometría: la del que tiene dentro la nave)
 	AirCombatClient.setEnv("Planet", {

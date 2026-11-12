@@ -118,7 +118,6 @@ type Session = {
 	ObjectiveFn: (() -> string?)?,
 	OnExit: ((Player) -> ())?,
 	SafeToastAt: number?,
-	GroundStreamAt: number?, -- (última vez que se pidió el suelo de debajo: streamGround)
 	-- (Espacio AAA: Services/ShipSystems) energía, habilidades y arma
 	Abil: any?,
 	Weapon: string?,
@@ -935,37 +934,6 @@ local function stepSession(s: Session, dt: number)
 	end
 end
 
--- La ciudad bajo la nave. Con StreamingEnabled el mapa solo llega alrededor del personaje (radio 768): a
--- 300 m de altura (unos 1100 studs) la ciudad quedaba fuera y se veía todo azul, sin suelo ni horizonte
--- (vídeo del dueño, v135). En el cielo de Valmar se pide cada poco el suelo de debajo y el de delante.
-AirCombatService.GroundStreamEvery = 2.5
-local function streamGround(s: Session)
-	if s.World ~= "Cosmos" or not s.Root or not s.Root.Parent then
-		return
-	end
-	local pos = s.Root.Position
-	if pos.Y > Layers.TransitionY then
-		return -- (en la alta atmósfera y el espacio ya no se ve la ciudad)
-	end
-	local t = now()
-	if s.GroundStreamAt and t - s.GroundStreamAt < AirCombatService.GroundStreamEvery then
-		return
-	end
-	s.GroundStreamAt = t
-	local flat = s.Root.CFrame.LookVector * Vector3.new(1, 0, 1)
-	local ahead = if flat.Magnitude > 0.1 then flat.Unit * 500 else Vector3.zero
-	local player = s.Player
-	task.spawn(function()
-		pcall(function()
-			player:RequestStreamAroundAsync(Vector3.new(pos.X, 20, pos.Z), 1)
-		end)
-		pcall(function()
-			player:RequestStreamAroundAsync(Vector3.new(pos.X + ahead.X, 20, pos.Z + ahead.Z), 1)
-		end)
-	end)
-end
-AirCombatService._streamGround = streamGround -- (pruebas)
-
 local function ensureLoop()
 	if loop then
 		return
@@ -983,7 +951,6 @@ local function ensureLoop()
 			if not ok then
 				warn("[AirCombatService] " .. tostring(err))
 			end
-			pcall(streamGround, s)
 		end
 		if next(sessions) == nil and loop then
 			loop:Disconnect()

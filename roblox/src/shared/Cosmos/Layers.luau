@@ -55,19 +55,6 @@ function Layers.floorAt(_pos: Vector3?): number
 	return if cityOpen then Layers.CityFloorY else Layers.FloorY
 end
 
--- Aire limpio al pilotar una nave sobre Valmar (capa «VueloClaro» de Controllers/SpaceClient): con la bruma
--- de la hora y la de la lluvia, la ciudad y el mar se lavaban al azul a pocos cientos de studs y no se sabía
--- dónde estaba arriba ni abajo (vídeo del dueño, v135). Entra al subir de ClearFrom y está entera en ClearFull.
-Layers.FlightClear = { Density = 0.1, Haze = 0.3, Offset = 0.05 }
-Layers.ClearFrom = 150
-Layers.ClearFull = 500
-function Layers.clearWeight(piloting: boolean, y: number): number
-	if not piloting or y >= Layers.TransitionY then
-		return 0
-	end
-	return math.clamp((y - Layers.ClearFrom) / (Layers.ClearFull - Layers.ClearFrom), 0, 1)
-end
-
 -- Nombre de la capa en esa altura
 function Layers.layerAt(y: number): string
 	if y < Layers.PlaneBandTop then

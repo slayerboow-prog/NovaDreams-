@@ -98,7 +98,9 @@ local C = {
 	GalaxyArm = Color3.fromRGB(170, 120, 255),
 	Planet = Color3.fromRGB(40, 60, 140),
 	PlanetLit = Color3.fromRGB(120, 160, 240),
-	Rock = Color3.fromRGB(36, 34, 46),
+	-- (v135: casi negras, en el móvil se veían como «nubes negras redondas muy feas»; ahora piedra gris
+	-- violácea que coge el sol y la luz de la grieta, y se ve que son rocas)
+	Rock = Color3.fromRGB(104, 96, 126),
 	RockEdge = Color3.fromRGB(120, 200, 255),
 }
 
@@ -482,7 +484,7 @@ local function buildRocks(n: number, st: Rift.Stage)
 	local cap = math.min(width, Rift.Placement.Sky.Distance * Rift.drawScale() * 1.4)
 	for i, spec in Rift.rocks(n, 9157 + shownStage) do
 		local r = Rift.rng(spec.Seed)
-		local size = spec.Size * cap * math.min(st.RockScale, 1.3)
+		local size = spec.Size * cap * math.min(st.RockScale, 0.9) -- (v135: tope más bajo, ya no son manchones)
 		local function part(className: string, name: string, s: Vector3): BasePart
 			return make(className, {
 				Name = name,

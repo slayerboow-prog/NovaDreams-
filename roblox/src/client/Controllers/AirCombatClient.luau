@@ -89,6 +89,7 @@ type Active = {
 	Gun: ShipWeapons.Gun,
 	Lock: Lock.State,
 	CamPos: Vector3?,
+	CamUp: Vector3?, -- (la vertical de la cámara, suavizada: updateCamera)
 	Engine: Sound?,
 	Down: boolean,
 	Mode: string,
@@ -1009,10 +1010,25 @@ local function updateCamera(a: Active, dt: number)
 	camera.CameraType = Enum.CameraType.Scriptable
 	local cf = a.Root.CFrame
 	local look = cf.LookVector
-	local up = if a.Mode == "Space" then cf.UpVector else (cf.UpVector * 0.35 + Vector3.new(0, 1, 0) * 0.65).Unit
+	-- En la atmósfera la cámara mezcla la vertical de la nave con la del mundo (el horizonte no da vueltas).
+	-- En un looping o un tonel (v135, «la cámara no sigue la nave»), la nave pasa por la vertical y boca
+	-- abajo: con esa mezcla la cámara se quedaba atrás o saltaba. Durante la acrobacia va con la nave, como
+	-- en el espacio, y la vertical cambia suave (CamUp) para no dar un tirón al empezar ni al acabar.
+	local maneuvering = a.Sim.Maneuver ~= nil
+	local wantUp = if a.Mode == "Space" or maneuvering then cf.UpVector else (cf.UpVector * 0.35 + Vector3.new(0, 1, 0) * 0.65).Unit
+	local up = a.CamUp or wantUp
+	up = up:Lerp(wantUp, 1 - math.exp(-(if maneuvering then 14 else 6) * dt))
+	if up.Magnitude < 1e-3 then
+		up = cf.UpVector
+	end
+	up = up.Unit
+	if math.abs(up:Dot(look)) > 0.97 then
+		up = cf.UpVector -- (mirando justo hacia arriba o abajo: la mezcla no sirve de vertical)
+	end
+	a.CamUp = up
 	local want = cf.Position - look * 30 + up * 9
 	local pos = a.CamPos or want
-	pos = pos:Lerp(want, 1 - math.exp(-9 * dt))
+	pos = pos:Lerp(want, 1 - math.exp(-(if maneuvering then 16 else 9) * dt))
 	a.CamPos = pos
 	local target = cf.Position + look * 60 + up * 3
 	camera.CFrame = CFrame.lookAt(pos, target, up)

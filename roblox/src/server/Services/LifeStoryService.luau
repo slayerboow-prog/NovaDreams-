@@ -3264,6 +3264,9 @@ function LifeStoryService.errandBlock(player: Player): string?
 	if busy(player) or held(player) or player:GetAttribute("InDialogue") or player:GetAttribute("InPrologue") then
 		return "Busy"
 	end
+	if player:GetAttribute("AirCombatWorld") ~= nil then
+		return "Busy" -- (pilotando una nave: ningún vecino te pide un favor desde el espacio)
+	end
 	if rt and rt.PendingOffer then
 		return "Busy"
 	end
@@ -3283,6 +3286,11 @@ local function offer(player: Player, questId: string)
 	local quest = Quests[questId]
 	if RideState.inVehicle(player) then
 		return -- (conduciendo no sale ninguna tarjeta con botones: se ofrecerá cuando vayas a pie)
+	end
+	-- (pilotando una nave o en la arena del combate aéreo, tampoco: la oferta de una misión de Valmar salía
+	-- en mitad del espacio, encima del panel de la nave; v135. Se ofrecerá al bajarte)
+	if player:GetAttribute("AirCombatWorld") ~= nil then
+		return
 	end
 	rt.PendingOffer = questId
 	rt.OfferedAt = os.clock()

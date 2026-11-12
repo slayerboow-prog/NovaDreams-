@@ -1234,12 +1234,16 @@ function CityAssets.skyline(ctx: Ctx): number
 		(m :: any).ModelStreamingMode = Enum.ModelStreamingMode.Persistent
 	end)
 	local cfg = CityAssets.Skyline
+	-- La tierra de la costa (v135): antes era una franja gris de 900 studs a ras del agua y, desde la nave,
+	-- los rascacielos parecían plantados en medio del mar («muchos edificios dentro del agua sin sentido»).
+	-- Ahora es tierra de verdad, más alta, de hierba, con una playa delante, y llega más allá de donde puede
+	-- volar la nave (la columna del espacio acaba en Z = 7000).
 	local land = Instance.new("Part")
 	land.Name = "Costa"
-	land.Size = Vector3.new(cfg.To - cfg.From + 1200, 4, 900)
-	land.CFrame = CFrame.new((cfg.From + cfg.To) / 2, CityAssets.SeaLevel - 1, cfg.Z + 250)
-	land.Color = Color3.fromRGB(120, 124, 116)
-	land.Material = Enum.Material.Concrete
+	land.Size = Vector3.new(cfg.To - cfg.From + 2400, 10, 2400)
+	land.CFrame = CFrame.new((cfg.From + cfg.To) / 2, CityAssets.SeaLevel - 3, cfg.Z + 900)
+	land.Color = Color3.fromRGB(96, 128, 82)
+	land.Material = Enum.Material.Grass
 	land.Anchored = true
 	land.CanCollide = false
 	land.CanQuery = false
@@ -1247,6 +1251,13 @@ function CityAssets.skyline(ctx: Ctx): number
 	land.CastShadow = false
 	land:AddTag(Kit.HeavyTag)
 	land.Parent = m
+	local beach = land:Clone()
+	beach.Name = "Playa"
+	beach.Size = Vector3.new(land.Size.X, 8, 160)
+	beach.CFrame = CFrame.new(land.Position.X, CityAssets.SeaLevel - 3.5, land.Position.Z - land.Size.Z / 2 - 60)
+	beach.Color = Color3.fromRGB(214, 200, 156)
+	beach.Material = Enum.Material.Sand
+	beach.Parent = m
 	local x, i, n = cfg.From, 0, 0
 	-- En medio, la ciudad grande de una malla (16524471626, con ventanas que brillan de noche)
 	local gap0, gap1 = math.huge, -math.huge

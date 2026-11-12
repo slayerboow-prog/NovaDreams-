@@ -445,10 +445,10 @@ local biggest, darkOpaque = 0, true
 for _, d in (model and model:GetDescendants() or {}) do
 	if d.ClassName == "Part" or d.ClassName == "WedgePart" then
 		biggest = math.max(biggest, d.Size.X, d.Size.Y, d.Size.Z)
-		darkOpaque = darkOpaque and d.Transparency == 0 and d.Color.R < 0.25
+		darkOpaque = darkOpaque and d.Transparency == 0 and d.Color.R < 0.5 and d.Color.R > 0.3 -- (v135: piedra gris violácea, ya no casi negra: en el móvil eran manchas negras)
 	end
 end
-check(darkOpaque, "rocas oscuras y opacas")
+check(darkOpaque, "rocas opacas de piedra gris violácea (ni negras ni claras)")
 check(biggest < 90, ("rocas de tamaño razonable (la mayor, %d studs)"):format(math.floor(biggest)))
 local rock = model and model:FindFirstChild("Roca1")
 local rockCF = rock and rock.CFrame
