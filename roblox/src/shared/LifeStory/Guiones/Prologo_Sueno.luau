@@ -39,6 +39,22 @@ return {
 						},
 					},
 				},
+				{ S = "Cosme", T = "Por cierto… ¿tú quién eres? No me lo has dicho.", To = "Yo", Shot = "Reaccion:Cosme" },
+				{
+					Ask = "¿Qué dices?",
+					Options = {
+						{
+							T = "«Soy un chico.»",
+							Effects = { Choice = { Genero = "Chico" } },
+							Then = { { S = "Cosme", T = "Un chico. Apuntado.", To = "Yo", Shot = "PrimerPlano:Cosme", A = "Nod" } },
+						},
+						{
+							T = "«Soy una chica.»",
+							Effects = { Choice = { Genero = "Chica" } },
+							Then = { { S = "Cosme", T = "Una chica. Apuntada.", To = "Yo", Shot = "PrimerPlano:Cosme", A = "Nod" } },
+						},
+					},
+				},
 				{ S = "Cosme", T = "Tranquil{o/a}. Todavía no tienes que preocuparte. Todavía.", To = "Yo", Shot = "Reaccion:Cosme", A = "Happy" },
 				{ S = "Cosme", T = "Antes de despertar, necesito que hagas una cosa.", To = "Yo", Shot = "General" },
 				{ S = "Cosme", T = "Coge ese tornillo.", To = "Yo", Shot = "General" },
@@ -62,7 +78,7 @@ return {
 	Scenes = {
 		Prologo_G1 = {
 			Skippable = true,
-			Duration = 41.7,
+			Duration = 42.2,
 			FadeIn = true,
 			Anchors = {
 				A_Cosme = "Place:PrologoCosme",
@@ -75,8 +91,8 @@ return {
 			Tracks = {
 				Actors = {
 					{ At = 0, Use = { Anchor = "A_Cosme", Key = "Cosme", Npc = "Cosme" } },
-					{ At = 29.44, Look = { At = "Grieta", Key = "Cosme" } },
-					{ At = 31.84, Mood = { Mood = "Nervous", Key = "Cosme" } },
+					{ At = 30.01, Look = { At = "Grieta", Key = "Cosme" } },
+					{ At = 32.41, Mood = { Mood = "Nervous", Key = "Cosme" } },
 				},
 				Camera = {
 					{
@@ -109,7 +125,7 @@ return {
 					{ At = 8.4, Duration = 2, Cut = "Dip", Fixed = { "Yo", V(1.4, 2.2, 3.6), true }, Fov = 30, Look = { "Grieta" }, Shake = 0.15 },
 					{
 						At = 10.4,
-						Duration = 5.7,
+						Duration = 6.2,
 						To = { "L_PrologoInicio", V(25, 64, 44) },
 						Cut = "Dip",
 						From = { "L_PrologoInicio", V(-45, 60, 50) },
@@ -117,20 +133,20 @@ return {
 						Shake = 0.15,
 					},
 					{
-						At = 16.07,
+						At = 16.64,
 						Duration = 4.9,
 						To = { "L_PrologoInicio", V(-36, 52, 38) },
 						Cut = "Dip",
 						From = { "L_PrologoInicio", V(-60, 75, 60) },
 						Look = { "L_PrologoInicio", V(0, 2, 0) },
 					},
-					{ At = 21.01, Duration = 3.7, Cut = "Dip", Fixed = { "Yo", V(1.4, 2.2, 3.6), true }, Fov = 70, Look = { "Grieta" } },
-					{ At = 24.74, Duration = 2.5, Cut = "Dip", Fixed = { "Yo", V(-1.8, 3.4, 4.8), true }, Fov = 38, Look = { "Grieta" }, Shake = 0.15 },
-					{ At = 27.24, Duration = 2, Shot = "General:L_PrologoPuerta" },
-					{ At = 29.24, Duration = 2.5, Shot = "Lateral:Cosme" },
-					{ At = 31.74, Duration = 2.8, Shot = "Reaccion:Cosme" },
+					{ At = 21.59, Duration = 3.7, Cut = "Dip", Fixed = { "Yo", V(1.4, 2.2, 3.6), true }, Fov = 70, Look = { "Grieta" } },
+					{ At = 25.31, Duration = 2.5, Cut = "Dip", Fixed = { "Yo", V(-1.8, 3.4, 4.8), true }, Fov = 38, Look = { "Grieta" }, Shake = 0.15 },
+					{ At = 27.81, Duration = 2, Shot = "General:L_PrologoPuerta" },
+					{ At = 29.81, Duration = 2.5, Shot = "Lateral:Cosme" },
+					{ At = 32.31, Duration = 2.8, Shot = "Reaccion:Cosme" },
 					{
-						At = 34.54,
+						At = 35.11,
 						Duration = 6.5,
 						To = { "L_PrologoInicio", V(25, 64, 44) },
 						Cut = "Dip",
@@ -140,21 +156,21 @@ return {
 					},
 				},
 				Dialogue = {
-					{ At = 10.4, S = "Narrador", T = "Bienvenid{o/a} a Valmar." },
-					{ At = 12.9, S = "Narrador", T = "Aquí vas a vivir una vida entera." },
-					{ At = 16.1, S = "Narrador", T = "Habrá días fáciles. Y otros en los que tendrás que pelear." },
-					{ At = 21, S = "Narrador", T = "Y hay algo que nadie debería haber visto." },
-					{ At = 24.7, S = "Narrador", T = "La Grieta." },
-					{ At = 29.2, S = "Cosme", T = "Otra vez no…", To = "Yo", A = "Facepalm" },
-					{ At = 31.7, S = "Cosme", T = "Esta vez sí que la he liado.", To = "Yo", A = "Nervous", Mood = "Nervous" },
-					{ At = 34.5, S = "Narrador", T = "Pero antes de que empiece tu vida…" },
-					{ At = 37.8, S = "Narrador", T = "…alguien lleva tiempo esperándote." },
+					{ At = 10.4, S = "Narrador", T = "Te damos la bienvenida a Valmar." },
+					{ At = 13.5, S = "Narrador", T = "Aquí vas a vivir una vida entera." },
+					{ At = 16.6, S = "Narrador", T = "Habrá días fáciles. Y otros en los que tendrás que pelear." },
+					{ At = 21.6, S = "Narrador", T = "Y hay algo que nadie debería haber visto." },
+					{ At = 25.3, S = "Narrador", T = "La Grieta." },
+					{ At = 29.8, S = "Cosme", T = "Otra vez no…", To = "Yo", A = "Facepalm" },
+					{ At = 32.3, S = "Cosme", T = "Esta vez sí que la he liado.", To = "Yo", A = "Nervous", Mood = "Nervous" },
+					{ At = 35.1, S = "Narrador", T = "Pero antes de que empiece tu vida…" },
+					{ At = 38.3, S = "Narrador", T = "…alguien lleva tiempo esperándote." },
 				},
 				Music = { { At = 0, Intensity = "Descubrimiento" } },
 				Sky = {
 					{ At = 8.7, Rift = "Flare", Seconds = 2.2, Strength = 0.8 },
-					{ At = 21.31, Rift = "Flare", Seconds = 2.2, Strength = 0.8 },
-					{ At = 25.04, Rift = "Flare", Seconds = 2.2, Strength = 0.8 },
+					{ At = 21.89, Rift = "Flare", Seconds = 2.2, Strength = 0.8 },
+					{ At = 25.61, Rift = "Flare", Seconds = 2.2, Strength = 0.8 },
 				},
 			},
 		},
@@ -182,7 +198,7 @@ return {
 				Dialogue = { { At = 0.4, S = "Cosme", T = "Vaya. Has llegado.", To = "Yo", A = "Surprised", Mood = "Surprise" } },
 			},
 		},
-		Prologo_G5_Musica = { Light = true, Duration = 68, Anchors = { Yo = "Player" }, Tracks = { Music = { { At = 0, Intensity = "Tension" } } } },
+		Prologo_G5_Musica = { Light = true, Duration = 72.1, Anchors = { Yo = "Player" }, Tracks = { Music = { { At = 0, Intensity = "Tension" } } } },
 		Prologo_G7_Entra = {
 			Light = true,
 			Duration = 14.4,

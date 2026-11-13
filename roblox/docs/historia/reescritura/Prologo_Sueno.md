@@ -11,7 +11,7 @@ PLANO Tilt -> Cielo | La cámara sube desde los tejados hasta las estrellas.
 PLANO General -> La Grieta | Una enorme grieta de luz atraviesa el cielo. No parece fuego. Parece que el cielo se hubiera abierto.
 PLANO Inserto -> La Grieta | Un pequeño destello cae desde la grieta y desaparece entre las calles.
 PLANO General -> Valmar | Todo vuelve a parecer normal.
-Narrador: Bienvenid{o/a} a Valmar.
+Narrador: Te damos la bienvenida a Valmar.
 Narrador: Aquí vas a vivir una vida entera.
 PLANO Dolly -> Ciudad | La cámara recorre lugares que el jugador conocerá durante su vida.
 Narrador: Habrá días fáciles.
@@ -103,6 +103,19 @@ Cosme: Eso sí que no me lo esperaba.
 
 Cosme: ¿Peligroso?
 Cosme: Bueno… depende de cuánto te guste estar entero.
+
+PLANO Reaccion -> Cosme | Cosme se da cuenta de que no sabe nada del jugador.
+Cosme: Por cierto… ¿tú quién eres? No me lo has dicho.
+
+ELECCION:
+A) “Soy un chico.” -> decisión genero = Chico; continúa a la respuesta de Cosme.
+B) “Soy una chica.” -> decisión genero = Chica; continúa a la respuesta de Cosme.
+
+PLANO PrimerPlano -> Cosme | Asiente, como si lo apuntara en una libreta invisible.
+
+Cosme: Un chico. Apuntado.
+
+Cosme: Una chica. Apuntada.
 
 PLANO Reaccion -> Cosme | Cosme sonríe para tranquilizar al jugador.
 Cosme: Tranquil{o/a}.

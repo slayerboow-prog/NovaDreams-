@@ -723,6 +723,18 @@ function LifeStory.hasDialog(): boolean
 	return false
 end
 
+-- Quien quiera saber cuándo sale o se quita una decisión/ofrecimiento (Guide: la tarjeta de los primeros
+-- pasos se aparta en ese momento, no al rato; antes el «¿Aceptas la misión?» salía encima de ella)
+local dialogListeners: { () -> () } = {}
+function LifeStory.onDialogChanged(fn: () -> ())
+	table.insert(dialogListeners, fn)
+end
+local function dialogChanged()
+	for _, fn in dialogListeners do
+		task.spawn(fn)
+	end
+end
+
 local function closeDialog(slot: string, panel: Frame)
 	if openDialogs[slot] == panel then
 		openDialogs[slot] = nil
@@ -732,6 +744,7 @@ local function closeDialog(slot: string, panel: Frame)
 	end
 	panel:Destroy()
 	layoutDialogs()
+	dialogChanged()
 end
 
 -- extra: líneas de contexto entre el mensaje y las opciones ({ Text, Color?, Size? })
@@ -800,6 +813,7 @@ local function dialog(slot: string, title: string?, message: string, options: { 
 	end
 	-- (el tamaño final se sabe un momento después)
 	task.defer(layoutDialogs)
+	dialogChanged()
 	if slot == "Choice" then
 		panel:GetPropertyChangedSignal("AbsoluteSize"):Connect(layoutDialogs)
 	end

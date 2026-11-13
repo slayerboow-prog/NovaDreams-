@@ -182,6 +182,7 @@ task.spawn(Guide.init, {
 		return StoryJournal.isOpen() -- (las conversaciones: InDialogue)
 	end,
 })
+LifeStory.onDialogChanged(Guide.refresh) -- (un «¿Aceptas la misión?»: la tarjeta se aparta enseguida)
 -- Abrir el ❓ y usar «Llévame» también son pasos del tutorial
 HelpUI.onOpen(function()
 	Guide.mark("Ayuda")

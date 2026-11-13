@@ -28,11 +28,11 @@ _Ninguno._
 
 ## Aplicado
 
-- PASO 1 → paso 1 del juego (Cinematic «Prologo_Apertura»): cinemática nueva «Prologo_G1» (13 planos, 9 frases, 41.7 s, música Descubrimiento) en lugar de «Prologo_Apertura»
+- PASO 1 → paso 1 del juego (Cinematic «Prologo_Apertura»): cinemática nueva «Prologo_G1» (13 planos, 9 frases, 42.2 s, música Descubrimiento) en lugar de «Prologo_Apertura»
 - PASO 2 → paso 2 del juego (Reach): 1 frases al empezar el paso (escena ligera «Prologo_G2_Entra», la lanza el paso 1 al cumplirse; el jugador no pierde el control)
 - PASO 3 → paso 3 del juego (Event): 1 frases al empezar el paso (escena ligera «Prologo_G3_Entra», la lanza el paso 2 al cumplirse; el jugador no pierde el control)
 - PASO 4 → paso 4 del juego (Reach): 1 frases al cumplirlo (escena ligera «Prologo_G4_Fin», sin quitar el control)
-- PASO 5 → paso 5 del juego (Talk «Sueno»): conversación «Sueno» con 25 frases nuevas (música Tension)
+- PASO 5 → paso 5 del juego (Talk «Sueno»): conversación «Sueno» con 29 frases nuevas (música Tension)
 - PASO 6 → paso 6 del juego (Use): lo que pasa al usarlo va en la conversación del objeto «Tornillo» (5 frases)
 - PASO 7 → paso 7 del juego (Reach): 5 frases al empezar el paso (escena ligera «Prologo_G7_Entra», la lanza el paso 6 al cumplirse; el jugador no pierde el control)
 - PASO 8 → paso 8 del juego (Event): 3 frases al empezar el paso (escena ligera «Prologo_G8_Entra», la lanza el paso 7 al cumplirse; el jugador no pierde el control)
@@ -45,6 +45,8 @@ _Ninguno._
 - PASO 2: 3 PLANO de un paso jugable (Reach) no se convierten en cámara para no quitar el control; se usan para colocar las frases (antes/después de la acción) y los destellos de la Grieta
 - PASO 3: 4 PLANO de un paso jugable (Event) no se convierten en cámara para no quitar el control; se usan para colocar las frases (antes/después de la acción) y los destellos de la Grieta
 - PASO 4: 4 PLANO de un paso jugable (Reach) no se convierten en cámara para no quitar el control; se usan para colocar las frases (antes/después de la acción) y los destellos de la Grieta
+- PASO 5 · opción A: decisión nueva «Genero» (decisión genero = Chico)
+- PASO 5 · opción B: decisión nueva «Genero» (decisión genero = Chica)
 - PASO 5: el guion lo escribe como [Cinematic] y en el juego es conversación (Talk): se conserva el tipo del juego y su mecánica
 - PASO 6: 9 PLANO de un paso jugable (Use) no se convierten en cámara para no quitar el control; se usan para colocar las frases (antes/después de la acción) y los destellos de la Grieta
 - PASO 7: 6 PLANO de un paso jugable (Reach) no se convierten en cámara para no quitar el control; se usan para colocar las frases (antes/después de la acción) y los destellos de la Grieta

@@ -605,6 +605,17 @@ local function roomFor(player: Player, id: string): number
 	return math.max(0, item.Stack - InventoryService.count(player, id))
 end
 
+-- Chico o chica (lo dice el jugador en el sueño del prólogo): el atributo Gender que usan las frases
+-- con «{o/a}» (Bienvenid{o/a}…) y la voz de «tú». Sin decirlo, las frases salen «Bienvenido/a».
+function LifeStoryService.applyGender(player: Player, data: Data)
+	local choice = (storyOf(data).Choices or {}).Genero
+	local value = if type(choice) == "table" then choice.V else choice
+	local gender = if value == "Chico" then "M" elseif value == "Chica" then "F" else nil
+	if gender then
+		player:SetAttribute("Gender", gender)
+	end
+end
+
 local function applyEffects(player: Player, data: Data, effects: { [string]: any }?, questId: string?)
 	if type(effects) ~= "table" then
 		return
@@ -665,6 +676,9 @@ local function applyEffects(player: Player, data: Data, effects: { [string]: any
 	end
 	for key, value in effects.Choice or {} do
 		story.Choices[key] = { V = value, D = lifeDay(player) }
+	end
+	if effects.Choice and effects.Choice.Genero then
+		LifeStoryService.applyGender(player, data)
 	end
 	if effects.Gesture then
 		SceneService.gesture(player, effects.Gesture.Npc, effects.Gesture.Anim or "Wave")
@@ -4854,6 +4868,7 @@ local function becomeReady(player: Player)
 	rt.ReadyAt = os.clock()
 	rt.Starting = false
 	if data then
+		pcall(LifeStoryService.applyGender, player, data)
 		-- Personaje nuevo: primero el prólogo (el sueño). Quien vuelve: «Anteriormente en tu vida…»
 		-- (antes de retomar las escenas, para que el resumen salga antes que cualquier conversación)
 		local dreaming = false
