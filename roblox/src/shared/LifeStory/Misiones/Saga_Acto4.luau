@@ -166,7 +166,7 @@ return {
 					{ Type = "Talk", Npc = "TuMalvado", Dialogue = "Malvado", Text = "Tu yo malvado (la plaza)", If = { Flags = { "ConoceTuMalvado" } } },
 				} },
 			-- (los aliados que has ido a buscar, en el garaje: «Vaya. De verdad vinieron». Antes hablaban sin estar)
-			{ Type = "Scene", Dialogue = "Reunion", Actors = { COSME, PIP, ESCAMAS,
+			{ Type = "Scene", Dialogue = "Reunion", Actors = { COSME, PIP, { Npc = "DonEscamas", Place = "GarajeCosme", Offset = V(-2, 0, 6), Scale = 0.35 },
 				{ Npc = "Ivan", Place = "GarajeCosme", Offset = V(-6, 0, 6) },
 				{ Npc = "Candela", Place = "GarajeCosme", Offset = V(6, 0, 6) },
 				{ Npc = "CazadorTiempo", Place = "GarajeCosme", Offset = V(-9, 0, 3), If = { Flags = { "CronosAliado" } } },

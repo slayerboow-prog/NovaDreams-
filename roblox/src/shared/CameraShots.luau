@@ -1288,6 +1288,19 @@ function CameraShots.sane(cf: CFrame, focus: Vector3, probe: Probe, opts: { [str
 		return harm(candidate) <= base + 1e-3
 	end
 	local out = cf
+	-- (v125.7) Rodear la cara: solo por delante de quien sale (opts.Front, a menos de 60°) y sin dejar a
+	-- nadie cortado en un borde (ni lo que el ajuste toleraba): mejor quedarse como estaba que ver una nuca
+	local baseCut = CameraShots.edgeCut(cf, bodies, tanHalf, allowed)
+	local function around(flatDir: Vector3, candidate: CFrame): boolean
+		-- (sin Front: no más de 60° del lado desde donde ya miraba la cámara)
+		local f = if typeof(o.Front) == "Vector3" then Vector3.new(o.Front.X, 0, o.Front.Z) else Vector3.new(cf.Position.X - focus.X, 0, cf.Position.Z - focus.Z)
+		local need = if typeof(o.Front) == "Vector3" then -0.35 else 0.5
+		if f.Magnitude < 0.05 or flatDir:Dot(f.Unit) < need then
+			return false
+		end
+		local worst = CameraShots.edgeCut(candidate, bodies, tanHalf, allowed)
+		return worst <= math.max(CameraShots.EDGE_MAX * 0.75, baseCut) and better(candidate)
+	end
 	-- 1. Sin cenitales
 	local pitch = CameraShots.pitchOver(cf, focus)
 	if math.abs(pitch) > CameraShots.PITCH_MAX then
@@ -1315,6 +1328,32 @@ function CameraShots.sane(cf: CFrame, focus: Vector3, probe: Probe, opts: { [str
 				end
 			end
 		end
+		-- (v125.7: si por ese lado no se puede bajar sin que alguien estorbe —un corrillo apretado: Don
+		-- Escamas en la reunión del garaje—, se rodea la cara: el mismo plano desde otro giro, lo más cerca
+		-- posible de por delante de quien sale, a PITCH_MAX)
+		if math.abs(CameraShots.pitchOver(out, focus)) > CameraShots.PITCH_HARD - 1 then
+			local front = if typeof(o.Front) == "Vector3" then Vector3.new(o.Front.X, 0, o.Front.Z) else horizontal
+			if front.Magnitude < 0.05 then
+				front = horizontal
+			end
+			local baseYaw = math.atan2(front.X, front.Z)
+			local sign = if pitch > 0 then 1 else -1
+			local a = math.rad(CameraShots.PITCH_MAX * sign)
+			for _, step in { 0, 20, -20, 40, -40, 60, -60, 80, -80, 100, -100 } do
+				local yaw = baseYaw + math.rad(step)
+				local flatDir = Vector3.new(math.sin(yaw), 0, math.cos(yaw))
+				local direction = flatDir * math.cos(a) + Vector3.new(0, math.sin(a), 0)
+				local free = room(focus, direction * distance, probe)
+				local reach = if free then math.min(distance, free) else distance
+				if reach >= math.max(CameraShots.FIT_MIN, math.min(o.Min or CameraShots.FIT_MIN, distance)) then
+					local candidate = CameraShots.lookAt(focus + direction * reach, focus)
+					if around(flatDir, candidate) then
+						out = candidate
+						break
+					end
+				end
+			end
+		end
 	end
 	-- 2. Distancia mínima del plano
 	local minimum = if type(o.Min) == "number" then o.Min else CameraShots.FIT_MIN
@@ -1327,6 +1366,33 @@ function CameraShots.sane(cf: CFrame, focus: Vector3, probe: Probe, opts: { [str
 			local candidate = CFrame.new(focus + direction * reach) * out.Rotation
 			if better(candidate) then
 				out = candidate
+			end
+		end
+	end
+	-- (v125.7: si por esa línea no cabe —alguien justo detrás de la cámara: Nico en el primer plano de
+	-- Sara en la vuelta de la excursión—, se rodea la cara: la distancia del plano desde otro giro, lo
+	-- más cerca posible de por delante de quien sale)
+	now = (out.Position - focus).Magnitude
+	if now < minimum * 0.8 and now > 0.05 then
+		local flatNow = Vector3.new(out.Position.X - focus.X, 0, out.Position.Z - focus.Z)
+		local front = if typeof(o.Front) == "Vector3" then Vector3.new(o.Front.X, 0, o.Front.Z) else flatNow
+		if front.Magnitude < 0.05 then
+			front = Vector3.new(0, 0, 1)
+		end
+		local baseYaw = math.atan2(front.X, front.Z)
+		local a = math.rad(math.clamp(CameraShots.pitchOver(out, focus), -CameraShots.PITCH_MAX, CameraShots.PITCH_MAX))
+		for _, step in { 0, 20, -20, 40, -40, 60, -60, 80, -80, 100, -100 } do
+			local yaw = baseYaw + math.rad(step)
+			local flatDir = Vector3.new(math.sin(yaw), 0, math.cos(yaw))
+			local direction = flatDir * math.cos(a) + Vector3.new(0, math.sin(a), 0)
+			local free = room(focus, direction * minimum, probe)
+			local reach = if free then math.min(minimum, free) else minimum
+			if reach >= minimum * 0.9 then
+				local candidate = CameraShots.lookAt(focus + direction * reach, focus)
+				if around(flatDir, candidate) then
+					out = candidate
+					break
+				end
 			end
 		end
 	end

@@ -235,7 +235,7 @@ return {
 				Actors = { { Npc = "Funcionaria", Place = "Correos", Offset = V(0, 0, 3) } } },
 			-- (el guion nuevo cierra la ventanilla aquí: llegan Cosme y Pip, que antes hablaban sin estar)
 			{ Type = "Talk", Npc = "Funcionaria", Dialogue = "Ventanilla2", Text = "Ventanilla 2: ve al banco (¿la misma señora otra vez?)",
-				Actors = { { Npc = "Funcionaria", Place = "Banco", Offset = V(0, 0, 3) }, { Npc = "Cosme", Place = "Banco", Offset = V(-4, 0, 5) }, { Npc = "Pip", Place = "Banco", Offset = V(-6, 0, 3) } } },
+				Actors = { { Npc = "Funcionaria", Place = "Banco", Offset = V(0, 0, 6) }, { Npc = "Cosme", Place = "Banco", Offset = V(-4, 0, 8) }, { Npc = "Pip", Place = "Banco", Offset = V(-7, 0, 9) } } },
 			{ Type = "Talk", Npc = "Ines", Dialogue = "Ventanilla3", Text = "Ventanilla 3: la comisaría (necesitas un sello de la policía)",
 				Actors = { { Npc = "Ines", Place = "Policia", Offset = V(0, 0, 4) }, { Npc = "Funcionaria", Place = "Policia", Offset = V(4, 0, 4) } } },
 			{ Type = "Talk", Npc = "CazadorTiempo", Dialogue = "Sello", Text = "Vuelve al garaje con el formulario sellado",
