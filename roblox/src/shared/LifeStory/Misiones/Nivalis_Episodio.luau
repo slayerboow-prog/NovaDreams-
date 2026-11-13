@@ -64,7 +64,7 @@ return {
 		},
 		Dialogues = {
 			Tila = { Lines = {
-				{ S = "Tila", T = "Eh. Tú. El de la nave. Ven a la hoguera antes de que se te caigan las orejas.", To = "Yo", Shot = "Medio:Tila" },
+				{ S = "Tila", T = "Eh. Tú. {El/La} de la nave. Ven a la hoguera antes de que se te caigan las orejas.", To = "Yo", Shot = "Medio:Tila" },
 				{ S = "Tila", T = "Has salido de la muralla sin abrigo. Aquí eso no lo hace ni el Regente. Y el Regente no tiene corazón.", A = "ArmsCrossed" },
 				{ S = "Tila", T = "Mira tu medidor. Fuera, el frío sube siempre. Junto a una hoguera, en las Termas o en casa, baja.", G = "Point" },
 				{ S = "Tila", T = "Toma: un abrigo de lana de lanudo y dos sopas de Brisa. Bébete una ya. No me mires así: bébetela.", Effects = { Items = { AbrigoLana = 1, SopaAlbor = 2 } } },

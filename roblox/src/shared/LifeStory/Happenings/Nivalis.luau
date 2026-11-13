@@ -62,7 +62,7 @@ return {
 	--   ¿Qué quiero que sienta el jugador? Que acaba de empezar algo grande.
 	---------------------------------------------------------------------
 	Nivalis_Princesa = {
-		Duration = 19,
+		Duration = 21,
 		Skippable = true,
 		FadeIn = true,
 		Anchors = {
@@ -75,7 +75,7 @@ return {
 				{ At = 0, Duration = 4, Fixed = { "Pasadizo", V(6, 3, 10) }, Look = { "Pasadizo" }, Fov = 50, Cut = "Fade" },
 				{ At = 4, Duration = 3.4, Shot = "Medio:PrincesaIlse", Cut = "Cut" },
 				{ At = 7.4, Duration = 3.2, Shot = "Reaccion:Tila", Cut = "Cut" },
-				{ At = 10.6, Duration = 8.4, Fixed = { "Pasadizo", V(-4, 2, 8) }, Look = { "Cielo" }, Fov = 58, Cut = "Cut" },
+				{ At = 10.6, Duration = 10.4, Fixed = { "Pasadizo", V(-4, 2, 8) }, Look = { "Cielo" }, Fov = 58, Cut = "Cut" },
 			},
 			Fx = {
 				{ At = 11, Play = "Flash", Anchor = "Cielo" },
@@ -96,7 +96,7 @@ return {
 				{ At = 1, S = "Narrador", T = "Una capa blanca sale de la sombra del pasadizo. Sin farol. Sin ruido." },
 				{ At = 4.4, S = "PrincesaIlse", T = "Hola, Tila. Tus faroles se ven desde las Minas.", To = "Tila" },
 				{ At = 7.8, S = "Tila", T = "…Princesa Ilse. Usted está muerta. Lo dijo el Regente.", To = "PrincesaIlse" },
-				{ At = 11.2, S = "Narrador", T = "Por un instante, la aurora se asoma sobre la Muralla Vieja. Como si alguien la hubiera llamado." },
+				{ At = 13, S = "Narrador", T = "Por un instante, la aurora se asoma sobre la Muralla Vieja. Como si alguien la hubiera llamado." },
 			},
 		},
 	},

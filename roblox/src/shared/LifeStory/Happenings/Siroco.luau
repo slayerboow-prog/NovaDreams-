@@ -49,8 +49,8 @@ return {
 				{ At = 10, Look = { Key = "RafaQuiroga", At = "Yo" } },
 			},
 			Dialogue = {
-				{ At = 4.6, S = "Narrador", T = "El sol de Siroco ocupa un cuarto del cielo. Y cada año, un poco más." },
-				{ At = 10.3, S = "RafaQuiroga", T = "¡La hora roja! ¡Todo el mundo abajo! ¡Tú también, el de la nave!", To = "Yo" },
+				{ At = 6.2, S = "Narrador", T = "El sol de Siroco ocupa un cuarto del cielo. Y cada año, un poco más." },
+				{ At = 10.3, S = "RafaQuiroga", T = "¡La hora roja! ¡Todo el mundo abajo! ¡Tú también, {el/la} de la nave!", To = "Yo" },
 			},
 			Titles = {
 				{ At = 0.8, Text = "🌞 Siroco · Puerto Calcina", Sub = "Saga 2 · Episodio 2: «El último Gran Premio»", Duration = 3 },

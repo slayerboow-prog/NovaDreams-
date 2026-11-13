@@ -58,7 +58,7 @@ return {
 			},
 			Dialogue = {
 				{ At = 4.4, S = "Narrador", T = "Debajo de los discos, la niebla. Verde, lenta, sin fondo." },
-				{ At = 10.8, S = "MaraSolis", T = "¡Bienvenido al último Anclaje, forastero! Agáchate, que pica.", To = "Yo" },
+				{ At = 10.8, S = "MaraSolis", T = "¡Bienvenid{o/a} al último Anclaje, foraster{o/a}! Agáchate, que pica.", To = "Yo" },
 			},
 			Titles = {
 				{ At = 0.8, Text = "🌫 Miasma · Anclaje Siete", Sub = "Saga 2 · Episodio 6: «Guerra en el cielo»", Duration = 3 },

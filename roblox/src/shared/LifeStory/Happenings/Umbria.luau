@@ -15,7 +15,7 @@ return {
 	--   ¿Qué quiero que sienta el jugador? Que es pequeño, que esto es precioso y que está en peligro.
 	---------------------------------------------------------------------
 	Umbria_Llegada = {
-		Duration = 21,
+		Duration = 25,
 		Skippable = true,
 		FadeIn = true,
 		Sting = "Momento",
@@ -28,29 +28,29 @@ return {
 		},
 		Tracks = {
 			Camera = {
-				{ At = 0, Duration = 5, From = { "Base", V(0, 10, 120) }, To = { "Base", V(0, 30, 160) }, Look = { "Tronco" }, Fov = { 70, 58 }, Cut = "Fade" },
-				{ At = 5, Duration = 4, From = { "Plaza", V(-24, 12, 0) }, To = { "Plaza", V(-10, 6, 10) }, Look = { "Plaza" }, Fov = 50, Cut = "Cut" },
-				{ At = 9, Duration = 3.6, Shot = "Reaccion:Garza", Cut = "Cut" },
-				{ At = 12.6, Duration = 8.4, Shot = "Medio:Garza", Cut = "Cut" },
+				{ At = 0, Duration = 8.6, From = { "Base", V(0, 10, 120) }, To = { "Base", V(0, 30, 160) }, Look = { "Tronco" }, Fov = { 70, 58 }, Cut = "Fade" },
+				{ At = 8.6, Duration = 4.4, From = { "Plaza", V(-24, 12, 0) }, To = { "Plaza", V(-10, 6, 10) }, Look = { "Plaza" }, Fov = 50, Cut = "Cut" },
+				{ At = 13, Duration = 3.6, Shot = "Reaccion:Garza", Cut = "Cut" },
+				{ At = 16.6, Duration = 8.4, Shot = "Medio:Garza", Cut = "Cut" },
 			},
 			Sound = {
 				{ At = 0.4, Play = "Hum", Pitch = 0.6, Volume = 0.4 },
-				{ At = 6, Play = "Hum", Pitch = 1.6, Volume = 0.25 },
+				{ At = 9.6, Play = "Hum", Pitch = 1.6, Volume = 0.25 },
 			},
 			Music = {
 				{ At = 0, Intensity = "Descubrimiento" },
-				{ At = 9, Intensity = "Tension" },
+				{ At = 13, Intensity = "Tension" },
 			},
 			Actors = {
 				{ At = 0, Use = { Key = "Garza", Npc = "Garza", Anchor = "Claro", Offset = V(3, 0, 2) } },
 				{ At = 0.4, Look = { Key = "Garza", At = "Tronco" } },
-				{ At = 9.2, Mood = { Key = "Garza", Mood = "Sad" } },
-				{ At = 12.6, Look = { Key = "Garza", At = "Yo" } },
+				{ At = 13.2, Mood = { Key = "Garza", Mood = "Sad" } },
+				{ At = 16.6, Look = { Key = "Garza", At = "Yo" } },
 			},
 			Dialogue = {
-				{ At = 1, S = "Narrador", T = "Un árbol tan alto que la copa se pierde en la niebla. Lo llaman el Árbol Madre." },
-				{ At = 5.4, S = "Narrador", T = "A sus pies, una ciudad tallada en las raíces. Setas que brillan. Y, lejos, un zumbido." },
-				{ At = 13, S = "Garza", T = "Veinte años. Y lo primero que oigo al volver es eso. El zumbido.", To = "Yo" },
+				{ At = 4, S = "Narrador", T = "Un árbol tan alto que la copa se pierde en la niebla. Lo llaman el Árbol Madre." },
+				{ At = 9, S = "Narrador", T = "A sus pies, una ciudad tallada en las raíces. Setas que brillan. Y, lejos, un zumbido." },
+				{ At = 17, S = "Garza", T = "Veinte años. Y lo primero que oigo al volver es eso. El zumbido.", To = "Yo" },
 			},
 			Titles = {
 				{ At = 0.8, Text = "🌳 Umbría · Raíz Honda", Sub = "Saga 2 · Episodio 5: «El Enjambre»", Duration = 3 },
@@ -100,7 +100,7 @@ return {
 				{ At = 8.6, Mood = { Key = "Garza", Mood = "Fear" } },
 			},
 			Dialogue = {
-				{ At = 1, S = "Narrador", T = "La pieza de la baliza se enciende. Sobre la plaza, en rojo, la cara de una mujer." },
+				{ At = 2.6, S = "Narrador", T = "La pieza de la baliza se enciende. Sobre la plaza, en rojo, la cara de una mujer." },
 				{ At = 4.4, S = "VesnaTorca", T = "Garza. Viejo socio. Has abierto mi baliza: ahora sé dónde estás.", To = "Garza" },
 				{ At = 8.8, S = "Garza", T = "Vesna. Sigues mandando máquinas a hacer tu trabajo.", To = "VesnaTorca" },
 				{ At = 12.4, S = "VesnaTorca", T = "Te ofrezco la mitad del negocio. Vete esta noche y no estés aquí cuando llegue la Reina.", To = "Garza" },

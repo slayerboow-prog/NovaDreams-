@@ -63,7 +63,7 @@ return {
 		},
 		Dialogues = {
 			Llegada = { Lines = {
-				{ S = "MaraSolis", T = "¡Eh, tú! ¡El de la nave bonita! ¿Has aterrizado en mitad de un asedio a propósito?", To = "Yo", A = "Surprised" },
+				{ S = "MaraSolis", T = "¡Eh, tú! ¡{El/La} de la nave bonita! ¿Has aterrizado en mitad de un asedio a propósito?", To = "Yo", A = "Surprised" },
 				{ S = "MaraSolis", T = "Mara Solís. Contrabandista. No lo digas muy alto, que aquí la Defensa tiene oídos hasta en los globos.", Shot = "Medio:MaraSolis" },
 				{ S = "MaraSolis", T = "Esas luces de arriba son la flota del Dominio Talar. Quieren nuestro gas. Llevan tres semanas esperando.", Beat = "Mira" },
 				{ S = "MaraSolis", T = "Y lo de abajo es la niebla. Si caes, no hay suelo. Hay veneno. Ven, que te enseño a respirar aquí.", To = "Yo" },

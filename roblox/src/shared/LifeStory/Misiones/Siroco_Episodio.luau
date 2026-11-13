@@ -62,7 +62,7 @@ return {
 		},
 		Dialogues = {
 			Llegada = { Lines = {
-				{ S = "RafaQuiroga", T = "¡Eh! ¡Tú, el de la nave! ¿No ves la hora que es? ¡Es la hora roja, criatura del espacio!", To = "Yo", A = "Surprised" },
+				{ S = "RafaQuiroga", T = "¡Eh! ¡Tú, {el/la} de la nave! ¿No ves la hora que es? ¡Es la hora roja, criatura del espacio!", To = "Yo", A = "Surprised" },
 				{ S = "RafaQuiroga", T = "Rafa Quiroga. El Zorro. Campeón de la Gran Vuelta. Bueno, lo fui. ¡Corre, que se te derriten las botas!", Shot = "Medio:RafaQuiroga" },
 				{ S = "RafaQuiroga", T = "Al taller. Por la sombra de los toldos. ¡Y no te pares a mirar el sol, que te deja ciego!", G = "Point" },
 			} },
