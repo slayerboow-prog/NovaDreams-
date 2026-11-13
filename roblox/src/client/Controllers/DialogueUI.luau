@@ -1329,8 +1329,9 @@ end
 local function ask(prompt: string?, options: { string }, staged: boolean?, by: { [string]: any }?): number
 	lineSerial += 1 -- (la frase de antes ya no mueve la caja)
 	if staged and stage.Last then
-		-- Te toca contestar: plano de reacción sobre ti, desde quien te ha hablado
-		pcall(frameShot, "Reaccion:Yo", nil, stage.Last)
+		-- Te toca contestar: plano medio sobre ti, desde quien te ha hablado (antes un plano de reacción,
+		-- tan cerca que tu cara llenaba la pantalla mientras elegías)
+		pcall(frameShot, "Medio:Yo", nil, stage.Last)
 	end
 	setCompact(false) -- las respuestas van en la caja entera
 	for _, child in optionsFrame:GetChildren() do
@@ -1339,6 +1340,12 @@ local function ask(prompt: string?, options: { string }, staged: boolean?, by: {
 		end
 	end
 	local speaker = if type(by) == "table" and not by.Narrator and type(by.Name) == "string" then by else nil
+	if not speaker then
+		-- Una pregunta para ti siempre dice que hay que elegir (antes solo «¿Qué dices?» y no quedaba
+		-- claro que tocaba contestar; si la dice alguien, es su frase y no se le añade nada)
+		local choose = "Elige una respuesta"
+		prompt = if prompt ~= nil and prompt ~= "" then prompt .. "  ·  " .. choose else choose
+	end
 	local hasPrompt = prompt ~= nil and prompt ~= ""
 	if hasPrompt then
 		setTextShown(true)
