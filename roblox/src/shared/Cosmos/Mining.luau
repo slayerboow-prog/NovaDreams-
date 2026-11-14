@@ -114,14 +114,15 @@ function Mining.newRate(): Rate
 end
 
 -- ¿Se le puede dar esta unidad? (y la apunta). why: "Rate", "Cargo", "Far", "Safe" o nil
-function Mining.allow(rate: Rate, now: number, cargo: number, shipPos: Vector3, rockPos: Vector3, safe: boolean): (boolean, string?)
+-- (cap: la bodega de ESA nave —clase y módulo «Bodega»—; sin él, CargoMax)
+function Mining.allow(rate: Rate, now: number, cargo: number, shipPos: Vector3, rockPos: Vector3, safe: boolean, cap: number?): (boolean, string?)
 	if safe then
 		return false, "Safe"
 	end
 	if (shipPos - rockPos).Magnitude > Mining.Reach then
 		return false, "Far"
 	end
-	if cargo >= Mining.CargoMax then
+	if cargo >= (cap or Mining.CargoMax) then
 		return false, "Cargo"
 	end
 	if now - rate.Last < Mining.MinGap then

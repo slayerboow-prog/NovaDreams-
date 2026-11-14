@@ -163,6 +163,10 @@ local DEFAULT_DATA = {
 		Upgrades = {}, -- (Espacio AAA) mejoras de la nave compradas en el taller: { Blindaje = n, Baterias = n, Bengalas = n }
 		Drones = {}, -- (Espacio AAA) drones desbloqueados: { Exploracion = os.time(), … }
 		Blueprints = {}, -- (Invasión de la Grieta) planos y piezas de naves alienígenas para el astillero: { PlanoNave = n, PiezaMotor = n, … }
+		-- (La Deriva, fase 1) la nave: clase elegida, clases compradas y módulos apagados (los niveles de
+		-- los módulos siguen en Upgrades): { Class = "Caza", Owned = { Caza = os.time() }, Off = { Radar = true } }
+		Ship = { Class = "Caza", Owned = {}, Off = {} },
+		Mats = {}, -- (La Deriva) materiales: { Componentes = n, Datos = n }
 	},
 	-- La Invasión de la Grieta (InvasionService, docs/invasion.md): misiones (Book = { Active, Done }),
 	-- la Xenobodega (lo que no cupo en la mochila), los objetos de otras galaxias conseguidos y contadores

@@ -139,7 +139,12 @@ function GalaxyMapService.snapshot(player: Player): { [string]: any }
 		SideMissions = side,
 		Chispas = if sp then math.floor(tonumber(sp.Chispas) or 0) else 0,
 		Cargo = Mining.cargo(ore),
-		CargoMax = Mining.CargoMax,
+		CargoMax = (function()
+			local ok, n = pcall(function()
+				return Space.cargoMax(player)
+			end)
+			return if ok and type(n) == "number" then n else Mining.CargoMax
+		end)(),
 		Crystals = math.floor(tonumber(ore.Cristal) or 0),
 		Invasion = invasion,
 	}

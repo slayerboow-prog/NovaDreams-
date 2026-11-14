@@ -568,7 +568,13 @@ function ShipSystems.scan(s: any, ctx: Ctx, t: number, radius: number?): boolean
 		return false
 	end
 	s.ScanAt = t
-	local r = radius or ShipCombat.Scan.Radius
+	-- (La Deriva) el radar de la clase (Explorador) y el módulo «Radar» alargan el pulso
+	local radarMult = 1
+	pcall(function()
+		local ShipClasses = require(game:GetService("ReplicatedStorage").Shared.AirCombat.ShipClasses)
+		radarMult = ShipClasses.def(s.Class).Radar + ((s.Bonus and s.Bonus.Radar) or 0)
+	end)
+	local r = (radius or ShipCombat.Scan.Radius) * radarMult
 	local found = if ctx.discover then ctx.discover(pos(s), r) else {}
 	ctx.send("Scan", { Pos = pos(s), Radius = r, Found = found })
 	return true

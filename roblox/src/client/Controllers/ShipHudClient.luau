@@ -423,6 +423,8 @@ function ShipHudClient.update(view: AirCombatHud.View, a: any, list: { any }, dt
 			if type(s.Drone) == "table" and s.Drone.Kind == "Exploracion" then
 				range = math.max(range, ShipHudLayout.RadarRange.Explore)
 			end
+			-- (La Deriva) radar de la clase (Explorador) y módulo «Radar»
+			range *= math.clamp(tonumber(a.RadarMult) or 1, 1, 3)
 		end
 		-- (con el rumbo y nada más, como el de los aviones: con la nave inclinada o de lado los puntos ya no giran
 		-- solos por el radar)

@@ -43,6 +43,7 @@ local NavInfo = require(Cosmos.NavInfo)
 local SpaceEvents = require(Cosmos.SpaceEvents)
 local Waves = require(ReplicatedStorage.Shared.AirCombat.Waves)
 local ShipWeapons = require(ReplicatedStorage.Shared.AirCombat.ShipWeapons)
+local ShipClasses = require(ReplicatedStorage.Shared.AirCombat.ShipClasses)
 local ShipCombat = require(ReplicatedStorage.Shared.AirCombat.ShipCombat)
 local Shields = require(ReplicatedStorage.Shared.AirCombat.Shields)
 
@@ -158,9 +159,52 @@ local function spaceData(player: Player): { [string]: any }?
 	if type(sp.DroneKind) ~= "string" or not sp.Drones[sp.DroneKind] then
 		sp.DroneKind = nil
 	end
+	-- (La Deriva, fase 1) la nave (clase, compradas, módulos apagados) y los materiales
+	if type(sp.Ship) ~= "table" then
+		sp.Ship = {}
+	end
+	if type(sp.Ship.Owned) ~= "table" then
+		sp.Ship.Owned = {}
+	end
+	if type(sp.Ship.Off) ~= "table" then
+		sp.Ship.Off = {}
+	end
+	sp.Ship.Owned[ShipClasses.Default] = sp.Ship.Owned[ShipClasses.Default] or 0
+	if not ShipClasses.valid(sp.Ship.Class) or not sp.Ship.Owned[sp.Ship.Class] then
+		sp.Ship.Class = ShipClasses.Default
+	end
+	if type(sp.Mats) ~= "table" then
+		sp.Mats = {}
+	end
 	return sp
 end
 SpaceService.spaceData = spaceData
+
+-- Los módulos encendidos de esa partida y lo que dan
+local function shipBonus(sp: { [string]: any }): { [string]: number }
+	return ShipCombat.bonuses(ShipCombat.installed(sp.Upgrades, sp.Ship and sp.Ship.Off))
+end
+
+-- La bodega de la nave de ese jugador (clase × CargoMax + módulo «Bodega»)
+function SpaceService.cargoMax(player: Player): number
+	local sp = spaceData(player)
+	if not sp then
+		return Mining.CargoMax
+	end
+	return math.floor(Mining.CargoMax * ShipClasses.def(sp.Ship.Class).Cargo + shipBonus(sp).Cargo)
+end
+
+-- Materiales de la Deriva
+function SpaceService.addMat(player: Player, id: string, n: number)
+	local sp = spaceData(player)
+	if not sp or n == 0 then
+		return
+	end
+	sp.Mats[id] = math.max(0, math.floor((tonumber(sp.Mats[id]) or 0) + n))
+end
+local function mat(sp: { [string]: any }, id: string): number
+	return math.floor(tonumber(sp.Mats[id]) or 0)
+end
 
 local function isTester(player: Player): boolean
 	local ok, yes = pcall(function()
@@ -545,6 +589,40 @@ end
 SpaceService.reward = reward
 SpaceService.toast = toast
 
+-- (La Deriva, fase 1) Materiales: Componentes al derribar (más en enemigos grandes) y Datos con el escáner.
+-- Con tope por hora para que no se puedan granjear.
+SpaceService.Mats = {
+	KillChance = 0.4, -- probabilidad de soltar Componentes por derribo
+	KillAmount = { Pesada = 3, Caza = 2, Interceptor = 1, Dron = 1, Torreta = 2 },
+	DiscoverDatos = 5, -- por cada sitio nuevo descubierto
+	PulseDatos = 1, -- por pulso del escáner dentro de un campo o sector
+	HourCap = { Componentes = 30, Datos = 40 },
+}
+
+-- Da materiales respetando el tope por hora; devuelve lo que ha dado de verdad
+local function grantMat(player: Player, id: string, n: number): number
+	local ps = stateOf(player)
+	ps.MatLog = ps.MatLog or {}
+	local log = ps.MatLog[id] or {}
+	local t = now()
+	local keep, used = {}, 0
+	for _, e in log do
+		if t - e[1] < 3600 then
+			table.insert(keep, e)
+			used += e[2]
+		end
+	end
+	local cap = SpaceService.Mats.HourCap[id] or math.huge
+	local give = math.max(0, math.min(n, cap - used))
+	if give > 0 then
+		table.insert(keep, { t, give })
+		SpaceService.addMat(player, id, give)
+	end
+	ps.MatLog[id] = keep
+	return give
+end
+SpaceService._grantMat = grantMat
+
 local function onKill(player: Player, data: { [string]: any })
 	local kind = data and data.Kind
 	if type(kind) ~= "string" then
@@ -570,6 +648,12 @@ local function onKill(player: Player, data: { [string]: any })
 		chispas += 1
 	end
 	reward(player, SpaceService.KillReward[kind] or 0, chispas)
+	if math.random() < SpaceService.Mats.KillChance then
+		local got = grantMat(player, "Componentes", SpaceService.Mats.KillAmount[kind] or 1)
+		if got > 0 then
+			toast(player, "Info", ("⚙ +%d Componentes (restos de la nave derribada)"):format(got))
+		end
+	end
 	SpaceService.event(player, { Type = "Kill", Kind = kind, Id = if type(data.Id) == "string" then data.Id else nil })
 end
 
@@ -750,7 +834,7 @@ function SpaceService.onRock(player: Player, data: { [string]: any }): string?
 		return nil
 	end
 	local ps = stateOf(player)
-	local ok, why = Mining.allow(ps.Rate, t, Mining.cargo(sp.Ore), ship, rock.Center, Zone.safeAt(ship))
+	local ok, why = Mining.allow(ps.Rate, t, Mining.cargo(sp.Ore), ship, rock.Center, Zone.safeAt(ship), SpaceService.cargoMax(player))
 	if not ok and why ~= "Cargo" then
 		-- (no se da: demasiado rápido, desde lejos o en zona segura; el asteroide no la pierde)
 		r.Units += 1
@@ -761,7 +845,7 @@ function SpaceService.onRock(player: Player, data: { [string]: any }): string?
 		sp.Ore[rock.Ore] = (tonumber(sp.Ore[rock.Ore]) or 0) + 1
 		sp.Mined += 1
 		-- (evento global «Tormenta de asteroides» en este campo: una unidad más si cabe)
-		if SpaceEvents.mineBonus(SpaceService.eventClock(), rock.Field) and Mining.cargo(sp.Ore) < Mining.CargoMax then
+		if SpaceEvents.mineBonus(SpaceService.eventClock(), rock.Field) and Mining.cargo(sp.Ore) < SpaceService.cargoMax(player) then
 			sp.Ore[rock.Ore] += 1
 			sp.Mined += 1
 		end
@@ -810,7 +894,7 @@ function SpaceService.shop(player: Player, stationId: string)
 		return
 	end
 	local ps = stateOf(player)
-	local maxHull = Shields.Specs.Caza.Hull + ShipCombat.bonuses(sp.Upgrades).Hull
+	local maxHull = ShipClasses.shieldSpec(sp.Ship.Class).Hull + shipBonus(sp).Hull
 	local hull = ps.Ship.Hull or maxHull
 	local missiles = ps.Ship.Missiles or ShipWeapons.Missile.Ammo
 	local money, chispas, units = Mining.sellValue(sp.Ore)
@@ -855,7 +939,7 @@ function SpaceService.shop(player: Player, stationId: string)
 		SpaceService.workshop(player, stationId)
 	end })
 	table.insert(options, { Text = "Cerrar" })
-	local body = ("Bodega %d/%d · ✨ %d Chispas · Casco %d/%d · Misiles %d/%d"):format(units, Mining.CargoMax, sp.Chispas, math.floor(hull + 0.5), maxHull, missiles, ShipWeapons.Missile.Ammo)
+	local body = ("Bodega %d/%d · ✨ %d Chispas · Casco %d/%d · Misiles %d/%d"):format(units, SpaceService.cargoMax(player), sp.Chispas, math.floor(hull + 0.5), maxHull, missiles, ShipWeapons.Missile.Ammo)
 	menu(player, "🛒 Tienda · " .. station.Name, body, options)
 end
 
@@ -875,12 +959,85 @@ function SpaceService.buyUpgrade(player: Player, id: string): (boolean, string?)
 	if sp.Chispas < price.Chispas then
 		return false, "Chispas"
 	end
+	if mat(sp, "Componentes") < price.Componentes then
+		return false, "Componentes"
+	end
 	if not DataService.spend(player, price.Money) then
 		return false, "Dinero"
 	end
 	sp.Chispas -= price.Chispas
+	SpaceService.addMat(player, "Componentes", -price.Componentes)
 	sp.Upgrades[id] = level + 1
+	-- (un nivel más ENCENDIDO tiene que caber en la potencia de la clase; si no, queda apagado)
+	if not sp.Ship.Off[id] and ShipCombat.power(ShipCombat.installed(sp.Upgrades, sp.Ship.Off)) > ShipClasses.def(sp.Ship.Class).Power then
+		sp.Ship.Off[id] = true
+		return true, "Apagado"
+	end
 	return true, nil
+end
+
+-- Encender o apagar un módulo (tiene que caber en la potencia de la clase)
+function SpaceService.toggleModule(player: Player, id: string): (boolean, string?)
+	local sp = spaceData(player)
+	local u = ShipCombat.Upgrades[id]
+	if not sp or not u or (tonumber(sp.Upgrades[id]) or 0) <= 0 then
+		return false, "Desconocido"
+	end
+	if sp.Ship.Off[id] then
+		sp.Ship.Off[id] = nil
+		if ShipCombat.power(ShipCombat.installed(sp.Upgrades, sp.Ship.Off)) > ShipClasses.def(sp.Ship.Class).Power then
+			sp.Ship.Off[id] = true
+			return false, "Potencia"
+		end
+		return true, "Encendido"
+	end
+	sp.Ship.Off[id] = true
+	return true, "ApagadoAMano"
+end
+
+-- Comprar o elegir una clase de nave (astillero). Al cambiar a una clase con menos potencia, se apagan
+-- módulos (del último al primero) hasta que quepan.
+function SpaceService.chooseClass(player: Player, id: string): (boolean, string?)
+	local sp = spaceData(player)
+	if not sp or not ShipClasses.valid(id) then
+		return false, "Desconocido"
+	end
+	local def = ShipClasses.Defs[id]
+	if not sp.Ship.Owned[id] then
+		local price = def.Price
+		if not price then
+			return false, "Desconocido"
+		end
+		if sp.Chispas < price.Chispas then
+			return false, "Chispas"
+		end
+		if mat(sp, "Componentes") < (price.Componentes or 0) then
+			return false, "Componentes"
+		end
+		if mat(sp, "Datos") < (price.Datos or 0) then
+			return false, "Datos"
+		end
+		if not DataService.spend(player, price.Money) then
+			return false, "Dinero"
+		end
+		sp.Chispas -= price.Chispas
+		SpaceService.addMat(player, "Componentes", -(price.Componentes or 0))
+		SpaceService.addMat(player, "Datos", -(price.Datos or 0))
+		sp.Ship.Owned[id] = os.time()
+	end
+	sp.Ship.Class = id
+	local turnedOff = false
+	for i = #ShipCombat.UpgradeOrder, 1, -1 do
+		if ShipCombat.power(ShipCombat.installed(sp.Upgrades, sp.Ship.Off)) <= def.Power then
+			break
+		end
+		local mid = ShipCombat.UpgradeOrder[i]
+		if (tonumber(sp.Upgrades[mid]) or 0) > 0 and not sp.Ship.Off[mid] then
+			sp.Ship.Off[mid] = true
+			turnedOff = true
+		end
+	end
+	return true, if turnedOff then "Apagados" else nil
 end
 
 function SpaceService.buyDrone(player: Player, kind: string): (boolean, string?)
@@ -905,44 +1062,150 @@ function SpaceService.buyDrone(player: Player, kind: string): (boolean, string?)
 	return true, nil
 end
 
-local BUY_TEXT = { Chispas = "Te faltan Chispas de estrella", Dinero = "No tienes dinero suficiente", Maximo = "Ya está al máximo" }
+local BUY_TEXT = {
+	Chispas = "Te faltan Chispas de estrella",
+	Dinero = "No tienes dinero suficiente",
+	Maximo = "Ya está al máximo",
+	Componentes = "Te faltan Componentes (se consiguen derribando enemigos en el espacio)",
+	Datos = "Te faltan Datos (se consiguen descubriendo sitios con el escáner)",
+	Potencia = "No cabe: la potencia de tu nave no da para más módulos encendidos. Apaga otro",
+}
+
+local function priceText(p: { [string]: any }): string
+	local parts = { ("$%d"):format(p.Money), ("✨ %d"):format(p.Chispas) }
+	if (p.Componentes or 0) > 0 then
+		table.insert(parts, ("⚙ %d"):format(p.Componentes))
+	end
+	if (p.Datos or 0) > 0 then
+		table.insert(parts, ("📡 %d"):format(p.Datos))
+	end
+	return table.concat(parts, " · ")
+end
+
+local function wallet(sp: { [string]: any }): string
+	return ("✨ %d Chispas · ⚙ %d Componentes · 📡 %d Datos"):format(sp.Chispas, mat(sp, "Componentes"), mat(sp, "Datos"))
+end
+
+-- Módulos: subir de nivel, encender y apagar (cada nivel encendido gasta 1 de potencia)
+function SpaceService.modulesMenu(player: Player, stationId: string)
+	local sp = spaceData(player)
+	if not sp or not Stations.ById[stationId] then
+		return
+	end
+	local def = ShipClasses.def(sp.Ship.Class)
+	local used = ShipCombat.power(ShipCombat.installed(sp.Upgrades, sp.Ship.Off))
+	local options = {}
+	for _, id in ShipCombat.UpgradeOrder do
+		local u = ShipCombat.Upgrades[id]
+		local level = math.floor(tonumber(sp.Upgrades[id]) or 0)
+		local price = ShipCombat.upgradePrice(id, level)
+		if price then
+			table.insert(options, {
+				Text = ("⬆ %s (%s) %d/%d · %s: %s"):format(u.Name, u.Slot, level, u.Levels, u.Text, priceText(price)),
+				Do = function()
+					if not inStation(player, stationId) then
+						return
+					end
+					local ok, why = SpaceService.buyUpgrade(player, id)
+					local text = if not ok then (BUY_TEXT[why or ""] or "No se puede")
+						elseif why == "Apagado" then ("🛠 %s mejorado, pero APAGADO: no cabe en la potencia de tu nave"):format(u.Name)
+						else ("🛠 %s mejorado: se nota al subir a la nave"):format(u.Name)
+					toast(player, if ok then "Success" else "Error", text)
+					SpaceService.modulesMenu(player, stationId)
+				end,
+			})
+		else
+			table.insert(options, { Text = ("✅ %s (%s) al máximo (%d/%d)"):format(u.Name, u.Slot, level, u.Levels) })
+		end
+		if level > 0 then
+			local on = not sp.Ship.Off[id]
+			table.insert(options, {
+				Text = if on then ("🔌 Apagar %s (libera %d de potencia)"):format(u.Name, level) else ("🔋 Encender %s (gasta %d de potencia)"):format(u.Name, level),
+				Do = function()
+					if not inStation(player, stationId) then
+						return
+					end
+					local ok, why = SpaceService.toggleModule(player, id)
+					if not ok then
+						toast(player, "Error", BUY_TEXT[why or ""] or "No se puede")
+					end
+					SpaceService.modulesMenu(player, stationId)
+				end,
+			})
+		end
+	end
+	table.insert(options, { Text = "Volver", Do = function()
+		SpaceService.workshop(player, stationId)
+	end })
+	menu(player, ("⬆ Módulos · potencia %d/%d (%s)"):format(used, def.Power, def.Name), wallet(sp), options)
+end
+
+-- Astillero: las clases de nave (cada una se pilota distinto)
+function SpaceService.shipyardMenu(player: Player, stationId: string)
+	local sp = spaceData(player)
+	if not sp or not Stations.ById[stationId] then
+		return
+	end
+	local options = {}
+	for _, id in ShipClasses.Order do
+		local def = ShipClasses.Defs[id]
+		if sp.Ship.Class == id then
+			table.insert(options, { Text = ("🚀 %s (la tuya) · %s · potencia %d"):format(def.Name, def.Text, def.Power) })
+		else
+			local text = if sp.Ship.Owned[id] then ("🚀 Pilotar %s · %s · potencia %d"):format(def.Name, def.Text, def.Power)
+				else ("🔓 %s · %s · potencia %d: %s"):format(def.Name, def.Text, def.Power, priceText(def.Price :: any))
+			table.insert(options, {
+				Text = text,
+				Do = function()
+					if not inStation(player, stationId) then
+						return
+					end
+					local ok, why = SpaceService.chooseClass(player, id)
+					local msg = if not ok then (BUY_TEXT[why or ""] or "No se puede")
+						elseif why == "Apagados" then ("🚀 Ahora pilotas el %s. Algunos módulos se han apagado: no cabían en su potencia"):format(def.Name)
+						else ("🚀 Ahora pilotas el %s: se nota al subir a la nave"):format(def.Name)
+					toast(player, if ok then "Success" else "Error", msg)
+					SpaceService.shipyardMenu(player, stationId)
+				end,
+			})
+		end
+	end
+	table.insert(options, { Text = "Volver", Do = function()
+		SpaceService.workshop(player, stationId)
+	end })
+	menu(player, "🚀 Astillero", wallet(sp), options)
+end
 
 function SpaceService.workshop(player: Player, stationId: string)
 	local sp = spaceData(player)
 	if not sp or not Stations.ById[stationId] then
 		return
 	end
-	local options = {}
-	for _, id in ShipCombat.UpgradeOrder do
-		local u = ShipCombat.Upgrades[id]
-		local level = math.floor(tonumber(sp.Upgrades[id]) or 0)
-		local price = ShipCombat.upgradePrice(id, level)
-		local text = if price
-			then ("⬆ %s %d/%d (%s): $%d · ✨ %d"):format(u.Name, level, u.Levels, u.Text, price.Money, price.Chispas)
-			else ("✅ %s al máximo (%d/%d)"):format(u.Name, level, u.Levels)
-		table.insert(options, { Text = text, Do = function()
-			if not inStation(player, stationId) then
-				return
-			end
-			local ok, why = SpaceService.buyUpgrade(player, id)
-			toast(player, if ok then "Success" else "Error", if ok then ("🛠 %s mejorado: se nota al subir a la nave"):format(u.Name) else (BUY_TEXT[why or ""] or "No se puede"))
-		end })
-	end
+	local def = ShipClasses.def(sp.Ship.Class)
+	local used = ShipCombat.power(ShipCombat.installed(sp.Upgrades, sp.Ship.Off))
+	local options = {
+		{ Text = ("⬆ Módulos de la nave (potencia %d/%d)"):format(used, def.Power), Do = function()
+			SpaceService.modulesMenu(player, stationId)
+		end },
+		{ Text = ("🚀 Astillero: clases de nave (pilotas el %s)"):format(def.Name), Do = function()
+			SpaceService.shipyardMenu(player, stationId)
+		end },
+	}
 	for _, kind in ShipCombat.DroneOrder do
-		local def = ShipCombat.Drones[kind]
-		local text = if sp.DroneKind == kind then ("🛰 %s (equipado)"):format(def.Name)
-			elseif sp.Drones[kind] then ("🛰 Equipar %s"):format(def.Name)
-			else ("🔓 %s: $%d · ✨ %d"):format(def.Name, def.Price.Money, def.Price.Chispas)
+		local d = ShipCombat.Drones[kind]
+		local text = if sp.DroneKind == kind then ("🛰 %s (equipado)"):format(d.Name)
+			elseif sp.Drones[kind] then ("🛰 Equipar %s"):format(d.Name)
+			else ("🔓 %s: $%d · ✨ %d"):format(d.Name, d.Price.Money, d.Price.Chispas)
 		table.insert(options, { Text = text, Do = function()
 			if not inStation(player, stationId) then
 				return
 			end
 			local ok, why = SpaceService.buyDrone(player, kind)
-			toast(player, if ok then "Success" else "Error", if ok then ("🛰 %s listo: ranura 8 de la nave"):format(def.Name) else (BUY_TEXT[why or ""] or "No se puede"))
+			toast(player, if ok then "Success" else "Error", if ok then ("🛰 %s listo: ranura 8 de la nave"):format(d.Name) else (BUY_TEXT[why or ""] or "No se puede"))
 		end })
 	end
 	table.insert(options, { Text = "Cerrar" })
-	menu(player, "🛠 Taller de la nave", ("✨ %d Chispas · se paga con Chispas de estrella y dinero de Valmar"):format(sp.Chispas), options)
+	menu(player, "🛠 Taller de la nave", wallet(sp), options)
 end
 
 -- Lo que lleva tu nave (mejoras y drones) al subir (AirCombatService.LoadoutProvider)
@@ -951,7 +1214,8 @@ function SpaceService.loadoutFor(player: Player): { [string]: any }?
 	if not sp then
 		return nil
 	end
-	return { Upgrades = sp.Upgrades, Drones = sp.Drones, DroneKind = sp.DroneKind }
+	-- (La Deriva, fase 1) solo los módulos encendidos, y la clase de nave
+	return { Upgrades = ShipCombat.installed(sp.Upgrades, sp.Ship.Off), Drones = sp.Drones, DroneKind = sp.DroneKind, Class = sp.Ship.Class }
 end
 
 -- Pulso del escáner (modo exploración, dron explorador): lo que descubre a `radius` de `at`
@@ -968,7 +1232,11 @@ function SpaceService.scanFor(player: Player, at: Vector3, radius: number): { st
 		end
 	end
 	if #out > 0 then
-		toast(player, "Success", ("📡 Escáner: %s descubierto. Ya puedes ir con el salto cuántico (X)."):format(table.concat(out, ", ")))
+		local datos = grantMat(player, "Datos", SpaceService.Mats.DiscoverDatos * #out)
+		toast(player, "Success", ("📡 Escáner: %s descubierto. Ya puedes ir con el salto cuántico (X).%s"):format(table.concat(out, ", "), if datos > 0 then (" 📡 +%d Datos"):format(datos) else ""))
+	elseif Zone.fieldAt(at) or Zone.sectorAt(at) then
+		-- (escanear un campo o un sector conocido también da Datos, poco a poco)
+		grantMat(player, "Datos", SpaceService.Mats.PulseDatos)
 	end
 	return out
 end
@@ -1103,7 +1371,8 @@ local function discover(player: Player, pos: Vector3)
 	end
 	for _, poi in NavInfo.discoverAt(pos, sp.Found) do
 		sp.Found[poi.Id] = os.time()
-		toast(player, "Success", ("📡 Descubierto: %s. Ya puedes ir con el salto cuántico (X)."):format(poi.Name))
+		local datos = grantMat(player, "Datos", SpaceService.Mats.DiscoverDatos)
+		toast(player, "Success", ("📡 Descubierto: %s. Ya puedes ir con el salto cuántico (X).%s"):format(poi.Name, if datos > 0 then (" 📡 +%d Datos"):format(datos) else ""))
 	end
 end
 SpaceService._discover = discover
@@ -1492,7 +1761,7 @@ function SpaceService.infoFor(player: Player): { [string]: any }?
 		Event = event,
 		Found = found,
 		CargoUnits = Mining.cargo(sp.Ore),
-		CargoMax = Mining.CargoMax,
+		CargoMax = SpaceService.cargoMax(player),
 		Crystals = math.floor(tonumber(sp.Ore.Cristal) or 0),
 	}
 end

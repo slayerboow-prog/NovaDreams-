@@ -1,4 +1,4 @@
-# Heroes of History · Expansión espacial «El Mar de Retales» (15 horas)
+# Heroes of History · Expansión espacial «La Deriva» (15 horas)
 
 Documento de diseño para que el dueño lo apruebe **antes de programar nada**. Encargo: el «súper prompt» del
 14-11-2026 (expansión espacial AAA de 15 horas, sin repetir lo de los planetas).
@@ -46,28 +46,32 @@ tu personaje. Lo que haces aquí no lo haces en los planetas:
 | En los planetas | En el espacio (solo aquí) |
 |---|---|
 | Caminar, hablar, trabajos de ciudad, peligros del terreno | Pilotar, combatir naves, abordar pecios gigantes |
-| Una crisis por planeta | Un **misterio que une el universo** (Varkun y los retales) |
+| Una crisis por planeta | Un **misterio que une el universo** (Varkun, la Deriva y una traición) |
 | Progresas tú (nivel, dinero) | Progresa **tu nave** (clase, módulos, aspecto) |
-| Mapas fijos | **Sectores que cambian** (anomalías, mareas de retales, eventos) |
+| Mapas fijos | **Sectores que cambian** (anomalías, mareas de la Deriva, eventos) |
 
-**La idea central: los retales.** Varkun deshila universos que se acaban y sus restos (los **retales**)
-quedan flotando cosidos al borde del Sistema Valmar. Cada retal es un **trozo de otro universo** con su luz,
-su física y sus ruinas. Esto justifica dentro de la historia lo que pide el encargo:
+**La idea central: la Deriva.** Cuando un universo se acaba, sus restos no desaparecen: caen por los
+desgarros y van a parar a una región sin estrellas propias más allá del Sistema Valmar, **la Deriva**. Allí
+flotan trozos de otros mundos: estaciones, flotas enteras, ciudades orbitales, cada uno con su luz, su física
+alterada y sus muertos. Es un cementerio de civilizaciones y a la vez la mayor mina de tecnología conocida.
+Por eso van allí piratas, científicos, buscadores de chatarra… y Varkun. Esto justifica dentro de la historia
+lo que pide el encargo:
 
-- Que cada sector tenga **identidad visual propia**: cada uno es un mundo distinto.
-- Que haya **naves y civilizaciones desaparecidas** para explorar, porque son sus restos.
-- Que haya **anomalías**, porque las costuras entre retales están mal cosidas.
-- Que la historia sea un **misterio**: ¿de dónde vienen? ¿Quién los cose? ¿Valmar es el siguiente?
+- Que cada sector tenga **identidad visual propia**: cada uno es el resto de un mundo distinto.
+- Que haya **naves y civilizaciones desaparecidas** para explorar.
+- Que haya **anomalías**: donde chocan restos de universos distintos, las leyes de la física fallan.
+- Que la historia sea un **misterio**: ¿por qué llegan cada vez más restos? ¿Quién está acabando con esos mundos
+  y quién le ayuda?
 
 ---
 
 ## 2 · Nombre e identidad
 
-- **Nombre:** **El Mar de Retales** (en el juego: «Más allá de Valmar · El Mar de Retales»).
-- **Lema:** «Cada estrella que ves es un mundo que alguien deshiló.»
-- **Identidad:** costura y luz. Los hilos de luz son el idioma visual de toda la expansión: rutas de salto
-  como **puntadas** en el mapa, anomalías como **descosidos**, la nave de Varkun como **rueca**. Es el mismo
-  tema que la Saga 1 (coser la Grieta), así todo el juego cuenta una sola historia.
+- **Nombre:** **La Deriva** (en el juego: «Más allá de Valmar · La Deriva»).
+- **Lema:** «Aquí acaban todos los mundos. Que no acabe el tuyo.»
+- **Identidad:** frío, silencio y escala. Restos enormes en la oscuridad, luces de emergencia que aún
+  parpadean y señales de gente que ya no está. Lo único cálido son las estaciones y tu nave. Lo de Varkun
+  mantiene su estética de hilos negros (ya aprobada), pero como algo inquietante, no decorativo.
 - **Tono:** ciencia ficción seria para **13-15 años en adelante**: misterio, tensión y decisiones que pesan. Sin
   sangre ni crueldad explícita (las normas de Roblox), pero **nada infantil**. Los enemigos de Varkun son
   **telas animadas** (Hilanderos), como ya está aprobado; los piratas y furtivos son personas: sus naves
@@ -103,7 +107,7 @@ Siete sectores en anillos. Se llega por **salto cuántico** a balizas que primer
 | 3 | **Nube Escarcha** (se amplía) | 1 | Niebla azul de cristal, auroras | Ciencia, anomalías, **Estación Vigía** | Hora 2 |
 | 4 | **El Cementerio de Ovilla** | 2 | Luna rota, restos de la guerra de Tefra flotando, polvo naranja | **Pecios gigantes** que se abordan | Hora 4 |
 | 5 | **Los Bajíos de Luz** | 2 | Mar de nebulosa dorada; «peces» de luz que se mueven en bancos | La **Ballena de Hilo** (criatura gigante), carreras, rescates | Hora 6 |
-| 6 | **El Retal Invertido** | 3 | Colores al revés, gravedad que cambia, el tiempo que va a saltos | Anomalías con reglas propias, puzles de vuelo | Hora 8 |
+| 6 | **La Inversión** | 3 | Colores al revés, gravedad que cambia, el tiempo que va a saltos | Anomalías con reglas propias, puzles de vuelo | Hora 8 |
 | 7 | **El Telar** (la base de Varkun) | 4 | Hilos negros tensos, oscuridad con una luz violeta en el centro | Batallas de flota, abordaje final | Hora 12 |
 
 Además hay **sitios secretos** sin baliza: solo se encuentran con el escáner mejorado, siguiendo coordenadas
@@ -139,7 +143,7 @@ Cada mecánica explica **qué aporta, cómo funciona, cómo se desbloquea y por 
 
 ### C · Pecios (naves abandonadas) — **sistema estrella 1**
 
-Naves gigantes de otros universos flotando en los retales. **Se entra a pie** (como los interiores que ya usa
+Naves gigantes de otros universos flotando en la Deriva. **Se entra a pie** (como los interiores que ya usa
 el juego).
 
 - **Cómo funciona:** atracas la nave en una compuerta y te bajas con tu traje. Dentro hay pasillos con
@@ -167,7 +171,7 @@ el juego).
 
 ### F · Anomalías — **sistema estrella 4**
 
-Los **descosidos** entre retales. Cada anomalía cambia las reglas un rato:
+Zonas donde chocan restos de universos distintos y la física falla. Cada anomalía cambia las reglas un rato:
 
 | Anomalía | Qué cambia | Cómo se juega |
 |---|---|---|
@@ -175,7 +179,7 @@ Los **descosidos** entre retales. Cada anomalía cambia las reglas un rato:
 | **Espejo** | Los mandos se invierten y los enemigos son reflejos de tu nave | Combate raro y divertido |
 | **Pozo** | Gravedad hacia un punto; la nave gira alrededor | Recoger restos en órbita sin caer |
 | **Ventana** | Se ve un trozo de otro universo; si entras, sales en un sitio secreto | Atajos y secretos |
-| **Marea de retales** (evento) | Un sector entero cambia de color y de física durante 10 min | El mapa no es siempre igual |
+| **Marea de la Deriva** (evento) | Un sector entero cambia de color y de física durante 10 min | El mapa no es siempre igual |
 
 ### G · Progresión de nave — **sistema estrella 5** (§7)
 
@@ -213,10 +217,10 @@ horas son de juego real contando desvíos.
 | **5** | Acto I · Convoy | «Convoy de Bastión»: escoltar refugiados de Tefra | Escuadrón de 1 aliado NPC | Saqueadores y Hilanderos | **Fabricador** en Alba (§9) | Llega el convoy y Alba se llena de NPC nuevos |
 | **6** | Acto I · Jefe | **La Devanadera** (jefe) y «El mensaje» | **Clase Carguero pesado**, minería profunda | Devanadera + drones | Primer «hilo» del mapa de Nilda | Varkun habla por la radio de NILDA |
 | **7** | Bajíos de Luz | Seguir a la **Ballena de Hilo**; rescates; carreras de aros | Ancla gravitatoria | Cazadores furtivos de ballenas | **Clase Explorador** | La ballena pasa por debajo, gigante |
-| **8** | Acto II · Retal Invertido | Puzles de anomalías (Bucle, Espejo, Pozo) | Escáner profundo | Reflejos | Módulo «Paso de fase» (atravesar escudos 1 s) | Volar junto a tu propio fantasma |
+| **8** | Acto II · La Inversión | Puzles de anomalías (Bucle, Espejo, Pozo) | Escáner profundo | Reflejos | Módulo «Paso de fase» (atravesar escudos 1 s) | Volar junto a tu propio fantasma |
 | **9** | Acto II · Infiltración | **Telar Hilandero** a pie con sigilo: rescatar presos **o** robar el mapa (decisión) | Decisiones con consecuencias | Hilanderos guardia | Según la decisión: aliados o coordenadas | La decisión cambia la estación (§12) |
 | **10** | Acto II · Alianza | **El Rey Engranaje** (OZ-0): alianza o pelea; segundo y tercer pecio | Clase de **nave alienígena** con los planos de la Invasión | Engranajes de OZ-0 | Astillero, pintura de raza | Tu primera nave alienígena |
-| **11** | Acto II · Duelo | **Duelo en el Huso**: Varkun en persona; se retira al 50 % | Blindaje térmico | El Huso (fases de esquivar hilos) | Retal de su mundo (pista del final) | Varkun se quita la máscara un instante |
+| **11** | Acto II · Duelo | **Duelo en el Huso**: Varkun en persona; se retira al 50 % | Blindaje térmico | El Huso (fases de esquivar hilos) | Un objeto de su mundo (pista del final) | Varkun se quita la máscara un instante |
 | **12** | Acto III · El Telar | Abrir el sector **El Telar**; batallas de flota | Flotas, contribución, escuadrón de 3 | Flota hilandera, corbetas | **Clase Fragata** (nave grande con torreta para un amigo) | La primera batalla de flota |
 | **13** | Acto III · Aliados | «Llamada a los aliados»: misiones rápidas en cada sector para reunir apoyo | Aliados según reputación y decisiones | Mixtos | Aliados en la batalla final | Ver llegar a las naves de los planetas |
 | **14** | Acto III · La Rueca | **Batalla de la Rueca** (3 fases) sobre Valmar | — | La Rueca | Pintura «Tejedor» | El cielo de Valmar lleno de naves |
@@ -275,7 +279,7 @@ consiguen **solo jugando** (cartografía, pecios, jefes).
 | **Agujas Hilanderas** (existen) | Por todas partes | Pinchan y pasan de largo, en línea recta | Esquivar a tiempo y disparar al pasar |
 | **Tejedoras** | Telar | Tienden **redes de hilo** que frenan tu nave | Romper los nudos antes de entrar |
 | **Enjambre de Ovilla** | Cementerio | Muchos drones pequeños | Armas de área (escopeta de iones, minas) |
-| **Reflejos** | Retal Invertido | Copian tu nave y tus armas | Usar el escenario: no se pueden copiar las anomalías |
+| **Reflejos** | La Inversión | Copian tu nave y tus armas | Usar el escenario: no se pueden copiar las anomalías |
 | **Corbetas y fragatas** | Telar, Ruta | Torretas que se rompen y motores con punto débil | Romper por partes |
 
 ### Jefes
@@ -356,11 +360,11 @@ reputación abre tiendas, pinturas, misiones y **quién viene a la batalla final
 |---|---|---|---|
 | **Invasión de flota** | Una flota ataca un sector | Botín y reputación para todos | El sector queda «ocupado» 1 h (precios y patrullas peores) |
 | **Estación pide ayuda** | Una estación sufre un asalto | La estación da descuento 1 h | Tienda cerrada 15 min |
-| **Anomalía desconocida** | Aparece un descosido con reglas raras | Datos y una pieza rara | — |
+| **Anomalía desconocida** | Aparece una anomalía con reglas raras | Datos y una pieza rara | — |
 | **Señal antigua** | Registro de una civilización perdida en un sitio aleatorio | Un registro raro | — |
 | **Paso de la Ballena** | La ballena cruza un sector con furtivos detrás | Pintura «Bajío» | — |
 | **Convoy atacado** | Piratas contra cargueros NPC | Dinero por carguero salvado | — |
-| **Marea de retales** | Un sector cambia de física y de color | Recursos únicos | — |
+| **Marea de la Deriva** | Un sector cambia de física y de color | Recursos únicos | — |
 | **Tormenta solar** | Escudos a la mitad en todo el sistema | — | — |
 
 También hay **eventos pequeños cerca de ti** (cápsulas a la deriva, emboscadas o un cometa) para que siempre
@@ -371,14 +375,23 @@ pase algo al volar.
 ## 12 · Historia y misterios
 
 Base aprobada: **Varkun, el Deshilador**, y su nave-luna **la Rueca** (`diseno-espacio.md` §2). La expansión
-añade el **misterio de los retales**, que se descubre jugando:
+añade un misterio adulto, de complicidad y culpa, que se descubre jugando (registros, pecios y decisiones):
 
-1. **¿Qué son los retales?** Los registros de los pecios cuentan cómo acabó cada mundo… y que en todos apareció
-   «una luz en el cielo» antes del final (la lucecita de la Saga 1).
-2. **¿Quién los cose?** Los retales no están sueltos: alguien los cose al borde de Valmar. No es Varkun. Es
-   **la abuela Nilda**, hace años, con sus cálculos: así **escondía** mundos para que Varkun no los terminara.
-3. **La gran revelación:** **Valmar es un retal**. Nilda cosió Valmar aquí para salvarla. Por eso no está
-   registrada y por eso Varkun la busca («VALMAR · ORIGEN», el gancho que ya existe).
+1. **¿Por qué llegan cada vez más restos a la Deriva?** Los registros de los pecios cuentan cómo acabó cada
+   mundo y repiten un detalle: días antes del final, una nave sin bandera pidió sus **coordenadas exactas** a
+   cambio de ayuda.
+2. **La culpa de Nilda.** La abuela Nilda no solo escribió a Varkun: de joven **trabajó con él**. Sus cálculos
+   servían para encontrar mundos en peligro y rescatarlos. Varkun usó esos mismos cálculos para construir la
+   navegación de la Rueca. El archivo «Para V.» de NILDA es una confesión, no una carta de cariño.
+3. **La gran revelación: alguien de casa le ayuda.** La **Vigilancia de Cénit**, la policía del espacio de
+   Valmar, lleva años **vendiendo a Varkun las coordenadas de mundos que se apagan** a cambio de que no toque el
+   Sistema Valmar. La Comandante que te da contratos desde la hora 1 es quien firma esos tratos. Y el último
+   pago acordado son… las coordenadas de **Valmar**, porque Varkun ya no acepta otra cosa. Por eso Valmar
+   «no está registrada» («VALMAR · ORIGEN»): la Vigilancia borró sus datos para protegerla, y ahora va a
+   entregarlos.
+
+Esto convierte a un bando «bueno» en el gran dilema final: denunciar a la Vigilancia (perder su apoyo en la
+batalla) o callar para tener su flota (y vivir con ello).
 
 **Decisiones con consecuencias:**
 
@@ -404,7 +417,7 @@ Los **personajes** ya existen y se reutilizan: Cosme, Pip, NILDA y Varkun. Se a�
 - Jefes y batallas de flota con contribución justa.
 - Transporte en convoy (uno lleva la carga y los demás escoltan).
 
-**Todo el servidor:** eventos de flota, defensa de estaciones, la ballena y las mareas de retales.
+**Todo el servidor:** eventos de flota, defensa de estaciones, la ballena y las mareas de la Deriva.
 
 **Solo:** todo el contenido de historia se puede jugar solo. Vienen escoltas NPC y los jefes se ajustan al
 número de pilotos. Nada obligatorio necesita a otra persona.
@@ -417,7 +430,7 @@ número de pilotos. Nada obligatorio necesita a otra persona.
 
 - **Expediciones:** misiones generadas uniendo piezas (un sitio, un objetivo, una complicación y una
   recompensa). Por ejemplo: «pecio en el Bajío + recuperar núcleo + furtivos + módulo raro».
-- **Sectores de dificultad alta** («Retal profundo»): los mismos sectores con modificadores semanales (sin
+- **Sectores de dificultad alta** («Deriva profunda»): los mismos sectores con modificadores semanales (sin
   escudo que se recargue, enemigos que se curan…).
 - **Jefes especiales** semanales (versiones «furiosas»).
 - **Pecios generados** con salas montadas como piezas: siempre hay uno nuevo.
@@ -501,11 +514,11 @@ Cada fase deja algo **jugable y publicable** y no empieza la siguiente sin que e
 
 | Fase | Contenido | Horas de juego que añade |
 |---|---|---|
-| **1 · Cimientos** | `Sectors` y bolsillos, salto a sectores, clases y módulos (con las mejoras de ahora convertidas), materiales | — (base) |
+| **1 · Cimientos** | **1a [HECHO 14-11-2026]:** clases (Caza, Interceptor, Carguero, Explorador; `ShipClasses`), módulos con ranura y potencia (6, con las mejoras de antes intactas), astillero en el taller, bodega por nave, materiales (Componentes al derribar, Datos con el escáner, con tope por hora). **1b:** `Sectors` y bolsillos, salto a sectores | — (base) |
 | **2 · Ciencia y Ruta** | Estación Vigía, registros, triangular, cadena de piratas, Puesto Saqueador, Interceptor | Horas 2-3 |
 | **3 · Pecios** | Sistema de pecios a pie, Cementerio de Ovilla, Faro, 2 pecios de historia | Hora 4 |
 | **4 · Acto I** | Convoy, Fabricador, Devanadera, Carguero | Horas 5-6 |
-| **5 · Bajíos y anomalías** | Bajíos de Luz, ballena, Explorador, Retal Invertido, anomalías | Horas 7-8 |
+| **5 · Bajíos y anomalías** | Bajíos de Luz, ballena, Explorador, La Inversión, anomalías | Horas 7-8 |
 | **6 · Acto II** | Infiltración, OZ-0, astillero alienígena, duelo del Huso | Horas 9-11 |
 | **7 · Flotas** | El Telar, batallas de flota, Fragata, aliados | Horas 12-13 |
 | **8 · Final** | La Rueca, abordaje, cortar o coser, la Aguja | Horas 14-15 |
@@ -530,7 +543,6 @@ Cada fase deja algo **jugable y publicable** y no empieza la siguiente sin que e
 
 ## Lo que necesito que el dueño decida
 
-1. **Nombre:** ¿«El Mar de Retales» te gusta?
-2. **La revelación** «Valmar es un retal que cosió la abuela Nilda»: ¿sí? Encaja con «VALMAR · ORIGEN».
-3. **Pecios a pie:** ¿sí? (es lo más trabajoso y lo más diferente).
-4. **Orden:** ¿empezamos por la **Fase 1 (cimientos)** y luego la **Fase 3 (pecios)**, o prefieres otro orden?
+Respuestas del dueño (14-11-2026): «El Mar de Retales» y «Valmar es un retal» **no** (demasiado infantil) →
+cambiados por **La Deriva** y la traición de la Vigilancia (§12, a la espera de que los vea). **Empezar por la
+Fase 1.** Pecios a pie: explicados, a la espera de respuesta.

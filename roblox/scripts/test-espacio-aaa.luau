@@ -1171,9 +1171,9 @@ end
 print("\n🛠️ Fase 9 · Integración: mejoras, drones en el taller y guardado")
 ---------------------------------------------------------------------
 do
-	check(ShipCombat.upgradePrice("Blindaje", 0).Money == 800 and ShipCombat.upgradePrice("Blindaje", 3) == nil, "precios del taller por nivel (con tope)")
+	check(ShipCombat.upgradePrice("Blindaje", 0).Money == 800 and ShipCombat.upgradePrice("Blindaje", 5) == nil, "precios del taller por nivel (con tope; La Deriva: hasta el 5)")
 	local b = ShipCombat.bonuses({ Blindaje = 2, Baterias = 1, Bengalas = 9 })
-	check(b.Hull == 40 and b.Energy == 15 and b.Flares == 2, "lo que dan las mejoras (y no más del máximo)")
+	check(b.Hull == 40 and b.Energy == 15 and b.Flares == 3, "lo que dan las mejoras (y no más del máximo)")
 	local s = { World = "Cosmos", Down = false, Root = fakeRoot(OPEN), Gun = ShipWeapons.newGun(), Hull = Shields.new("Caza"), Upgrades = { Blindaje = 1, Baterias = 2, Bengalas = 1 } }
 	ShipSystems.attach(s)
 	check(s.Hull.MaxHull == 120 and s.Abil.Max == 130 and s.Flares.Max == ShipCombat.Flares.Charges + 1, "la nave sale con las mejoras (casco, energía y bengalas)")

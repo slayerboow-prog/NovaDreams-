@@ -246,31 +246,62 @@ end
 ---------------------------------------------------------------------
 -- Mejoras de la nave (tienda de las estaciones) y precios
 ---------------------------------------------------------------------
+-- (expansión «La Deriva», fase 1) Son los MÓDULOS de la nave: cada uno va en un tipo de ranura (Slot) y
+-- cada nivel ENCENDIDO gasta 1 de potencia (ShipClasses.Defs[clase].Power). Los niveles comprados se
+-- guardan en data.Space.Upgrades como siempre (las partidas viejas no pierden nada); los apagados, en
+-- data.Space.Ship.Off. Del nivel 4 en adelante piden también Componentes (materiales de la Deriva).
 ShipCombat.Upgrades = {
-	Blindaje = { Name = "Blindaje", Levels = 3, Per = 20, Text = "+20 de casco", Money = 800, Chispas = 4 },
-	Baterias = { Name = "Baterías", Levels = 3, Per = 15, Text = "+15 de energía", Money = 700, Chispas = 4 },
-	Bengalas = { Name = "Lanzabengalas", Levels = 2, Per = 1, Text = "+1 bengala", Money = 500, Chispas = 3 },
+	Blindaje = { Name = "Blindaje", Slot = "Defensa", Levels = 5, Per = 20, Text = "+20 de casco", Money = 800, Chispas = 4 },
+	Baterias = { Name = "Baterías", Slot = "Energía", Levels = 5, Per = 15, Text = "+15 de energía", Money = 700, Chispas = 4 },
+	Bengalas = { Name = "Lanzabengalas", Slot = "Defensa", Levels = 3, Per = 1, Text = "+1 bengala", Money = 500, Chispas = 3 },
+	Impulsor = { Name = "Impulsor", Slot = "Motor", Levels = 5, Per = 0.04, Text = "+4 % de velocidad", Money = 900, Chispas = 5 },
+	Radar = { Name = "Radar de largo alcance", Slot = "Sensor", Levels = 5, Per = 0.12, Text = "+12 % de radar y escáner", Money = 600, Chispas = 3 },
+	Bodega = { Name = "Bodega ampliada", Slot = "Carga", Levels = 5, Per = 6, Text = "+6 de bodega", Money = 650, Chispas = 3 },
 }
-ShipCombat.UpgradeOrder = { "Blindaje", "Baterias", "Bengalas" }
+ShipCombat.UpgradeOrder = { "Blindaje", "Baterias", "Bengalas", "Impulsor", "Radar", "Bodega" }
+ShipCombat.ComponentsFrom = 4 -- desde este nivel, cada nivel pide Componentes
+ShipCombat.ComponentsPer = 3
 
 -- Precio del siguiente nivel (o nil si ya está al máximo)
-function ShipCombat.upgradePrice(id: string, level: number): { Money: number, Chispas: number }?
+function ShipCombat.upgradePrice(id: string, level: number): { Money: number, Chispas: number, Componentes: number }?
 	local u = ShipCombat.Upgrades[id]
 	if not u or level >= u.Levels then
 		return nil
 	end
 	local n = level + 1
-	return { Money = u.Money * n, Chispas = u.Chispas * n }
+	local comp = if n >= ShipCombat.ComponentsFrom then (n - ShipCombat.ComponentsFrom + 1) * ShipCombat.ComponentsPer else 0
+	return { Money = u.Money * n, Chispas = u.Chispas * n, Componentes = comp }
 end
 
--- Lo que dan las mejoras compradas: { Hull, Energy, Flares }
-function ShipCombat.bonuses(levels: { [string]: any }?): { Hull: number, Energy: number, Flares: number }
+-- Los niveles ENCENDIDOS (sin los apagados en off)
+function ShipCombat.installed(levels: { [string]: any }?, off: { [string]: any }?): { [string]: number }
+	local out = {}
+	for id, u in ShipCombat.Upgrades do
+		local l = math.clamp(math.floor(tonumber((levels or {})[id]) or 0), 0, u.Levels)
+		if l > 0 and not (off and off[id]) then
+			out[id] = l
+		end
+	end
+	return out
+end
+
+-- Potencia que gastan esos niveles (1 por nivel)
+function ShipCombat.power(levels: { [string]: any }?): number
+	local n = 0
+	for id, u in ShipCombat.Upgrades do
+		n += math.clamp(math.floor(tonumber((levels or {})[id]) or 0), 0, u.Levels)
+	end
+	return n
+end
+
+-- Lo que dan las mejoras: { Hull, Energy, Flares, Speed (fracción), Radar (fracción), Cargo (unidades) }
+function ShipCombat.bonuses(levels: { [string]: any }?): { Hull: number, Energy: number, Flares: number, Speed: number, Radar: number, Cargo: number }
 	local l = levels or {}
 	local function lv(id: string): number
 		local u = ShipCombat.Upgrades[id]
 		return math.clamp(math.floor(tonumber(l[id]) or 0), 0, u.Levels) * u.Per
 	end
-	return { Hull = lv("Blindaje"), Energy = lv("Baterias"), Flares = lv("Bengalas") }
+	return { Hull = lv("Blindaje"), Energy = lv("Baterias"), Flares = lv("Bengalas"), Speed = lv("Impulsor"), Radar = lv("Radar"), Cargo = lv("Bodega") }
 end
 
 ShipCombat.Reasons = {

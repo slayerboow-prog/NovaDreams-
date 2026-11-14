@@ -475,10 +475,14 @@ function PlanetService.harvest(player: Player, id: string): string?
 		toast(player, "Info", "⛏ Agotado: vuelve a brillar en unos minutos")
 		return "Dry"
 	end
-	local ok, why = Mining.allow(stateOf(player).Rate, t, Mining.cargo(sp.Ore), root.Position, node.Pos, false)
+	local capOk, cap = pcall(function()
+		return service("SpaceService").cargoMax(player)
+	end)
+	local cargoCap = if capOk and type(cap) == "number" then cap else Mining.CargoMax
+	local ok, why = Mining.allow(stateOf(player).Rate, t, Mining.cargo(sp.Ore), root.Position, node.Pos, false, cargoCap)
 	if not ok then
 		if why == "Cargo" then
-			toast(player, "Info", ("⛏ Bodega llena (%d/%d): vende el mineral en una estación"):format(Mining.cargo(sp.Ore), Mining.CargoMax))
+			toast(player, "Info", ("⛏ Bodega llena (%d/%d): vende el mineral en una estación"):format(Mining.cargo(sp.Ore), cargoCap))
 		end
 		return why
 	end
@@ -494,7 +498,7 @@ function PlanetService.harvest(player: Player, id: string): string?
 	sp.Mined += 1
 	local ore = Mining.Ores[node.Ore]
 	send(player, "Mine", { Pos = node.Pos, Ore = node.Ore, Cargo = Mining.cargo(sp.Ore), Empty = result == "Empty" })
-	toast(player, "Success", ("⛏ +1 %s · bodega %d/%d"):format(if ore then ore.Name else node.Ore, Mining.cargo(sp.Ore), Mining.CargoMax))
+	toast(player, "Success", ("⛏ +1 %s · bodega %d/%d"):format(if ore then ore.Name else node.Ore, Mining.cargo(sp.Ore), cargoCap))
 	pcall(function()
 		Space().event(player, { Type = "Mine", Ore = node.Ore, Count = 1 })
 	end)

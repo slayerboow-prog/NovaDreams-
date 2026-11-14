@@ -43,6 +43,7 @@ local UserInputService = game:GetService("UserInputService")
 
 local AC = ReplicatedStorage.Shared.AirCombat
 local ShipFlight = require(AC.ShipFlight)
+local ShipClasses = require(AC.ShipClasses)
 local ShipWeapons = require(AC.ShipWeapons)
 local Lock = require(AC.Lock)
 local Arena = require(AC.Arena)
@@ -86,6 +87,8 @@ type Active = {
 	Root: BasePart,
 	Seat: BasePart,
 	Sim: ShipFlight.State,
+	SpecKind: string?, -- (La Deriva) la clase de nave con su impulsor (ShipClasses.flightSpec)
+	RadarMult: number?,
 	Gun: ShipWeapons.Gun,
 	Lock: Lock.State,
 	CamPos: Vector3?,
@@ -1499,11 +1502,15 @@ local function start(payload: { [string]: any })
 	local section = if payload.Section == "Space" then "Space" else "Atmos"
 	local cp = if typeof(payload.Checkpoint) == "CFrame" then payload.Checkpoint else root.CFrame
 	local worldName = if payload.World == "Cosmos" or payload.World == "Planet" then payload.World else "Arena"
+	-- (La Deriva, fase 1) la clase de nave y el impulsor: la misma física que el servidor
+	local specKind = ShipClasses.flightSpec(payload.Class, payload.Speed)
 	local a: Active = {
 		Ship = ship,
 		Root = root,
 		Seat = seat,
-		Sim = ShipFlight.new("Caza", cp, section),
+		Sim = ShipFlight.new(specKind, cp, section),
+		SpecKind = specKind,
+		RadarMult = tonumber(payload.Radar) or 1,
 		Gun = ShipWeapons.newGun(),
 		Lock = Lock.new(),
 		Down = false,
@@ -1794,7 +1801,7 @@ local function onEvent(kind: string, p: any)
 				log("el servidor ha devuelto la nave al último sitio bueno (salto imposible o fuera de la arena)")
 			end
 			local modeFn = envFor(a.World).mode
-			local fresh = ShipFlight.new("Caza", p.CFrame, if modeFn then modeFn(p.CFrame.Position) else "Atmos")
+			local fresh = ShipFlight.new(a.SpecKind or "Caza", p.CFrame, if modeFn then modeFn(p.CFrame.Position) else "Atmos")
 			if kind == "Reset" then
 				fresh.Speed, fresh.Throttle, fresh.Boost = a.Sim.Speed, a.Sim.Throttle, a.Sim.Boost
 			else

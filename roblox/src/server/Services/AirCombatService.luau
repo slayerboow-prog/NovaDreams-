@@ -60,6 +60,7 @@ local Zone = require(ReplicatedStorage.Shared.Cosmos.Zone)
 local Asteroids = require(ReplicatedStorage.Shared.Cosmos.Asteroids)
 local Layers = require(ReplicatedStorage.Shared.Cosmos.Layers)
 local ShipSystems = require(script.Parent.ShipSystems)
+local ShipClasses = require(AC.ShipClasses)
 local ShipCombat = require(AC.ShipCombat)
 
 local AirCombatService = {}
@@ -68,6 +69,11 @@ AirCombatService.Tick = 1 / 30 -- vueltas por segundo del combate
 AirCombatService.DownSeconds = 3 -- derribado: segundos antes de reaparecer
 AirCombatService.StateEvery = 0.1
 AirCombatService.ShipKind = "Caza"
+
+-- La física de vuelo de la nave de esa sesión (su clase: shared/AirCombat/ShipClasses)
+local function specOf(s: any): any
+	return (s and s.Spec) or ShipFlight.Specs[AirCombatService.ShipKind]
+end
 AirCombatService.FxRadius = 2500 -- (efectos de las habilidades: solo a los pilotos a menos de esto)
 AirCombatService.MaxPosesPerSecond = 45 -- (el cliente manda 20; con margen para paquetes que llegan juntos)
 
@@ -553,7 +559,7 @@ local function onPose(s: Session, cf: any)
 	if s.PoseCount > AirCombatService.MaxPosesPerSecond then
 		return
 	end
-	local spec = ShipFlight.Specs[AirCombatService.ShipKind]
+	local spec = specOf(s)
 	local g = geoOf(s)
 	-- (los paquetes pueden llegar juntos: algo de margen de tiempo)
 	local dt = math.min(t - (s.PoseAt or t), 2) + 0.2
@@ -609,7 +615,7 @@ local function ramRock(s: Session, clientSpeed: number?): number?
 	if t - ((s :: any).RamAt or -math.huge) < AirCombatService.RamCooldown then
 		return
 	end
-	local spec = ShipFlight.Specs[AirCombatService.ShipKind]
+	local spec = specOf(s)
 	local pos = s.Root.Position
 	local rock = g.rockAt(pos, spec.Radius * 2.5 + 30)
 	if not rock then
@@ -639,7 +645,7 @@ local function validateShip(s: Session, dt: number)
 	end
 	local root = s.Root
 	local pos = root.Position
-	local spec = ShipFlight.Specs[AirCombatService.ShipKind]
+	local spec = specOf(s)
 	local g = geoOf(s)
 	if not g.contains(pos, 400) then
 		-- Fuera de la arena (no debería: onPose no lo deja): al último sitio bueno
@@ -740,7 +746,7 @@ end
 -- Misiles enemigos: buscan tu nave (o el señuelo de tus bengalas); la esquiva los hace fallar
 local function stepEnemyMissiles(s: Session, dt: number, t: number)
 	local E = ShipCombat.EnemyMissile
-	local spec = ShipFlight.Specs[AirCombatService.ShipKind]
+	local spec = specOf(s)
 	local g = geoOf(s)
 	for i = #s.EnemyMissiles, 1, -1 do
 		local m = s.EnemyMissiles[i]
@@ -765,7 +771,7 @@ end
 AirCombatService._stepEnemyMissiles = stepEnemyMissiles
 
 local function stepBolts(s: Session, dt: number)
-	local spec = ShipFlight.Specs[AirCombatService.ShipKind]
+	local spec = specOf(s)
 	local g = geoOf(s)
 	for i = #s.Bolts, 1, -1 do
 		local b = s.Bolts[i]
@@ -1106,6 +1112,18 @@ function AirCombatService.enter(player: Player, options: { [string]: any }?): bo
 	seat:Sit(humanoid)
 	-- (la nave sigue ANCLADA: la mueve el CFrame que pone el cliente, no la física; ver arriba)
 	shipRoot.Anchored = true
+	-- (mejoras, drones y CLASE de nave de data.Space: Services/SpaceService.loadoutFor; La Deriva, fase 1)
+	local loadout: any = nil
+	if AirCombatService.LoadoutProvider then
+		local ok, lo = pcall(AirCombatService.LoadoutProvider, player)
+		loadout = if ok and type(lo) == "table" then lo else nil
+	end
+	local shipClass = if type(opts.Class) == "string" and ShipClasses.valid(opts.Class) then opts.Class
+		elseif loadout and ShipClasses.valid(loadout.Class) then loadout.Class
+		else ShipClasses.Default
+	local upgradesForSpec = if type(opts.Upgrades) == "table" then opts.Upgrades elseif loadout then loadout.Upgrades else nil
+	local speedBonus = ShipCombat.bonuses(upgradesForSpec).Speed
+	local specKey, flightSpec = ShipClasses.flightSpec(shipClass, speedBonus)
 	local s: Session = {
 		Player = player,
 		Ship = ship,
@@ -1114,7 +1132,10 @@ function AirCombatService.enter(player: Player, options: { [string]: any }?): bo
 		Humanoid = humanoid,
 		Section = section,
 		Difficulty = difficulty,
-		Hull = Shields.new("Caza"),
+		Hull = Shields.new(ShipClasses.shieldSpec(shipClass)),
+		Class = shipClass,
+		SpecKey = specKey,
+		Spec = flightSpec,
 		Gun = ShipWeapons.newGun(),
 		Spawner = Waves.new({ Section = section, Difficulty = difficulty, FirstDelay = 5, MaxWaves = opts.MaxWaves }),
 		Geo = geo,
@@ -1154,12 +1175,6 @@ function AirCombatService.enter(player: Player, options: { [string]: any }?): bo
 	if type(opts.Missiles) == "number" then
 		s.Gun.Missiles = math.clamp(math.floor(opts.Missiles), 0, ShipWeapons.Missile.Ammo)
 	end
-	-- (mejoras y drones de data.Space: Services/SpaceService.loadoutFor)
-	local loadout: any = nil
-	if AirCombatService.LoadoutProvider then
-		local ok, lo = pcall(AirCombatService.LoadoutProvider, player)
-		loadout = if ok and type(lo) == "table" then lo else nil
-	end
 	s.Upgrades = if type(opts.Upgrades) == "table" then opts.Upgrades elseif loadout then loadout.Upgrades else nil
 	s.Unlocked = if type(opts.Drones) == "table" then opts.Drones elseif loadout then loadout.Drones else nil
 	s.DroneKind = if type(opts.DroneKind) == "string" then opts.DroneKind elseif loadout then loadout.DroneKind else nil
@@ -1178,7 +1193,7 @@ function AirCombatService.enter(player: Player, options: { [string]: any }?): bo
 	table.insert(s.Conns, player.CharacterRemoving:Connect(function()
 		AirCombatService.exit(player, "character")
 	end))
-	send(player, "Start", { Ship = ship.Name, Section = section, Difficulty = difficulty, Checkpoint = cp, World = s.World, Planet = s.Planet, Landed = opts.Landed == true })
+	send(player, "Start", { Ship = ship.Name, Section = section, Difficulty = difficulty, Checkpoint = cp, World = s.World, Planet = s.Planet, Landed = opts.Landed == true, Class = shipClass, Speed = speedBonus, Radar = ShipClasses.def(shipClass).Radar + ShipCombat.bonuses(upgradesForSpec).Radar })
 	ensureLoop()
 	return true
 end
