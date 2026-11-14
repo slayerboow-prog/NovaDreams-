@@ -38,6 +38,10 @@ Derelicts.Misericordia = {
 	Hull = {
 		{ C = V(0, 8, 0), S = V(300, 26, 66) },
 		{ C = V(170, 6, 0), S = V(44, 30, 50) },
+		{ C = V(180, 6, 0), S = V(44, 16, 64) }, -- (góndolas de motor)
+		{ C = V(-104, 29, 0), S = V(30, 12, 28) }, -- (torre de mando)
+		{ C = V(36, 8, 40), S = V(52, 12, 14) }, -- (módulo médico, lado de la esclusa)
+		{ C = V(36, 8, -40), S = V(52, 12, 14) }, -- (módulo médico, otro lado)
 	},
 	-- La esclusa: el aro de fuera donde se atraca y dónde apareces dentro
 	Dock = V(0, 6, 64), -- (fuera del casco, por el lado de la esclusa)

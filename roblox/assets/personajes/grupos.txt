@@ -149,6 +149,12 @@ pj_cara_doctorafermina_neutral Saga2
 pj_cara_doctorafermina_sad Saga2
 pj_cara_doctorafermina_scared Saga2
 pj_cara_doctorafermina_talk Saga2
+pj_cara_dravarga_angry Saga2
+pj_cara_dravarga_happy Saga2
+pj_cara_dravarga_neutral Saga2
+pj_cara_dravarga_sad Saga2
+pj_cara_dravarga_scared Saga2
+pj_cara_dravarga_talk Saga2
 pj_cara_ernesto_happy Otros
 pj_cara_ernesto_neutral Otros
 pj_cara_ernesto_talk Otros

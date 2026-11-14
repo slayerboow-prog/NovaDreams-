@@ -79,17 +79,17 @@ local FULL: { [string]: boolean } = {
 	Javier = true, Carmen = true, Beltran = true, Pip = true, Cosimo = true,
 	GeneralCorvo = true, TobiRenn = true, DoctoraFermina = true, MadreHollin = true, Brasa = true, IngenieroOrsi = true,
 	GaloPadre = true, SargentoMurria = true, ErnestoPanadero = true, EscribanoLumo = true, CapitanaFerra = true,
+	DraVarga = true, -- (La Deriva: la doctora del último registro, en primer plano)
 }
 
 -- Personas con brillo (Glow) que son PERSONAS (el resto con Glow son criaturas: sin textura)
-local GLOW_HUMAN: { [string]: string } = { Cosimo = "Human", TuMalvado = "Human", TuFuturo = "Human", Pip = "Robot", Varkun = "Mask", NILDA = "Holo", DraVarga = "Holo" }
+local GLOW_HUMAN: { [string]: string } = { Cosimo = "Human", TuMalvado = "Human", TuFuturo = "Human", Pip = "Robot", Varkun = "Mask", NILDA = "Holo", DraVarga = "Human" }
 
 -- Papeles sin nombre: comparten caras por edad (arquetipos, como un atlas): Arq_<Edad>_<F|M>
 local GENERIC: { [string]: boolean } = {
 	Alumno1 = true, Alumno2 = true, Alumno3 = true, Alumno4 = true, Mayor1 = true, Mayor2 = true, Madre = true, Padre = true,
 	Vecino = true, Paciente = true, Veterano = true, Delegada = true, PoliciaMilitar1 = true, PoliciaMilitar2 = true,
 	PoliciaMilitar3 = true, SoldadoOvilla = true, RefugiadoMayor = true, Capataz = true,
-	DraVarga = true, -- (La Deriva: la cara de una adulta seria del atlas; sin textura propia todavía)
 }
 
 local FEM_NAMES = { "^Doña", "^Señora", "^Abuela", "^Tía", "^La ", "^Una ", "Alumna", "Delegada", "Doctora", "Profesora", "Capitana", "Soldada", "Cobradora", "Niña", "Gnoma", "Madre ", "Agente Inés", "Chef Lola", "^Sofía", "^Irene", "^Julia$", "^Carla", "^Montse", "^Rocío", "^Alba", "^Candela", "^Funcionaria", "^Mara ", "^Luz$", "^Marisa", "^Brasa", "^Pía", "^Nina " }
@@ -149,6 +149,7 @@ local TRAITS: { [string]: { [string]: any } } = {
 	GeneralCorvo = { Beard = "Stubble", Shirt = "Uniforme", Pants = "Cargo" },
 	TobiRenn = { Shirt = "Uniforme", Pants = "Cargo" },
 	DoctoraFermina = { Shirt = "Bata", Pants = "Pantalon" },
+	DraVarga = { Glasses = "Round", Tired = true, Shirt = "Bata", Pants = "Pantalon" }, -- (La Deriva: dieciséis días sin dormir)
 	MadreHollin = { Shirt = "Rebeca", Pants = "Pantalon" },
 	Brasa = { Freckles = true, Shirt = "Sudadera", Pants = "Cargo" },
 	IngenieroOrsi = { Glasses = "Square", Shirt = "Mono", Pants = "Mono" },
@@ -368,6 +369,7 @@ function CastLook.spec(id: string, variant: string?): Spec?
 			Glasses = traits.Glasses,
 			Beard = if fem then nil else traits.Beard,
 			Freckles = traits.Freckles == true,
+			Tired = traits.Tired == true or nil, -- (ojeras: alguien que no duerme)
 			Generic = GENERIC[id] == true,
 		},
 		Shirt = if kind == "Creature" or kind == "Own" then nil else shirt,
@@ -379,7 +381,7 @@ end
 
 -- Grupo de trabajo (orden de prioridad para subir y revisar: docs/personajes/auditoria-texturas.md)
 local SAGA2: { [string]: boolean } = {
-	Cosimo = true, Varkun = true, NILDA = true, TuMalvado = true, TuFuturo = true,
+	Cosimo = true, Varkun = true, NILDA = true, TuMalvado = true, TuFuturo = true, DraVarga = true,
 	DaliaRenn = true, GeneralCorvo = true, TobiRenn = true, DoctoraFermina = true, MadreHollin = true, Brasa = true,
 	IngenieroOrsi = true, GaloPadre = true, SargentoMurria = true, ErnestoPanadero = true, EscribanoLumo = true,
 	CapitanaFerra = true, PoliciaMilitar1 = true, PoliciaMilitar2 = true, PoliciaMilitar3 = true, SoldadoOvilla = true,
@@ -670,8 +672,17 @@ function CastLook.apply(model: Model, id: string, variant: string?, look: { [str
 		return false
 	end
 	local l = look or {}
-	model:SetAttribute(CastLook.ATTR_KEY, spec.Key)
-	model:SetAttribute("CastFaceFull", if #spec.Faces == #CastLook.Full then true else nil)
+	-- (si su cara propia aún no está subida, la del arquetipo de su edad: mejor que la cara por defecto
+	-- de Roblox, que sonríe siempre; p. ej. un personaje nuevo antes de scripts/upload-personajes.sh)
+	local faceKey, full = spec.Key, #spec.Faces == #CastLook.Full
+	if spec.Kind == "Human" and spec.Face and not spec.Face.Generic and not CastLook.textureId(CastLook.faceFile(spec.Key, "Neutral")) then
+		local alt = ("Arq_%s_%s"):format(tostring(spec.Face.Age), if spec.Face.Fem then "F" else "M")
+		if CastLook.textureId(CastLook.faceFile(alt, "Neutral")) then
+			faceKey, full = alt, false
+		end
+	end
+	model:SetAttribute(CastLook.ATTR_KEY, faceKey)
+	model:SetAttribute("CastFaceFull", if full then true else nil)
 	model:SetAttribute("CastShirt", spec.Shirt)
 	model:SetAttribute("CastPants", spec.Pants)
 	pcall(function()

@@ -82,6 +82,10 @@ local Entrada = {
 		Music = {
 			{ At = 0, Intensity = "Tension" },
 		},
+		-- (el rótulo acaba antes de la primera frase: no se pisan)
+		Titles = {
+			{ At = 0.2, Text = "La Misericordia", Sub = "Nave hospital de Ovilla · La Deriva, Acto I", Duration = 1.8 },
+		},
 		Dialogue = entradaLines,
 	},
 }

@@ -259,7 +259,8 @@ local function buildDeck(m: Model, d: any): { [string]: any }
 	return prompts
 end
 
--- Un cartel con texto en una cara (SurfaceGui)
+-- Un cartel con texto en una cara (SurfaceGui). La cara es la que mira a quien lo lee: Back = hacia +Z,
+-- Front = hacia −Z, Right = hacia +X, Left = hacia −X
 local function sign(parent: Instance, d: any, p: Vector3, size: Vector3, face: Enum.NormalId, text: string, color: Color3?, bg: Color3?)
 	local plate = box(parent, "Cartel", CFrame.new(Derelicts.world(d, p)), size, bg or rgb(28, 30, 34), Enum.Material.SmoothPlastic, false)
 	local gui = Instance.new("SurfaceGui")
@@ -315,7 +316,7 @@ local function decorate(m: Model, d: any)
 	local toy = box(m, "Peluche", W(V(-58, 0.6, -20)), V(1.2, 1.2, 1.2), rgb(150, 110, 70), Enum.Material.Fabric, false)
 	toy.Shape = Enum.PartType.Ball
 	box(m, "PelucheCabeza", W(V(-58, 1.5, -20.2)), V(0.9, 0.9, 0.9), rgb(150, 110, 70), Enum.Material.Fabric, false).Shape = Enum.PartType.Ball
-	sign(m, d, V(-70, 10, -27.2), V(10, 2, 0.2), Enum.NormalId.Front, "TRIAJE")
+	sign(m, d, V(-70, 10, -27.2), V(10, 2, 0.2), Enum.NormalId.Back, "TRIAJE")
 	-- Cuarentena: mampara de cristal precintada, franjas de peligro, escarcha y el aviso de la doctora
 	local glass = box(m, "Mampara", W(V(72, h / 2, 17)), V(0.5, h - 1, 20), rgb(170, 200, 210), Enum.Material.Glass)
 	glass.Transparency = 0.45
@@ -326,7 +327,7 @@ local function decorate(m: Model, d: any)
 	for _ = 1, 10 do
 		box(m, "Escarcha", W(V(rng:NextNumber(74, 93), 0.05, rng:NextNumber(8, 27))), V(rng:NextNumber(2, 5), 0.05, rng:NextNumber(2, 5)), rgb(220, 235, 245), Enum.Material.Ice, false).Transparency = 0.3
 	end
-	sign(m, d, V(57.5, 10, 27.2), V(12, 2, 0.2), Enum.NormalId.Back, "CUARENTENA")
+	sign(m, d, V(57.5, 10, 27.2), V(12, 2, 0.2), Enum.NormalId.Front, "CUARENTENA")
 	-- Máquinas: dos generadores, tuberías gruesas y vapor
 	for i, x in { 102, 110 } do
 		local gen = box(m, "Generador", W(V(x, 3.5, 24)) * CFrame.Angles(0, 0, math.rad(90)), V(7, 6, 6), rgb(60, 70, 64), Enum.Material.Metal)
@@ -346,7 +347,7 @@ local function decorate(m: Model, d: any)
 		steam.Parent = att
 	end
 	box(m, "TuberiaGruesa", W(V(117, h - 2, 26)) * CFrame.Angles(0, 0, math.rad(90)), V(2.4, 44, 2.4), rgb(110, 90, 70), Enum.Material.CorrodedMetal, false).Shape = Enum.PartType.Cylinder
-	sign(m, d, V(117.5, 10, 27.2), V(10, 2, 0.2), Enum.NormalId.Back, "MÁQUINAS")
+	sign(m, d, V(117.5, 10, 27.2), V(10, 2, 0.2), Enum.NormalId.Front, "MÁQUINAS")
 	-- Almacén: estanterías con cajas médicas
 	for i = 0, 3 do
 		local x = -18 + i * 22
@@ -356,7 +357,7 @@ local function decorate(m: Model, d: any)
 			box(m, "CruzCaja", W(V(x - 4 + k * 4, 6.2, -24.75)), V(1, 1, 0.05), rgb(200, 40, 40), Enum.Material.SmoothPlastic, false)
 		end
 	end
-	sign(m, d, V(16, 10, -27.2), V(10, 2, 0.2), Enum.NormalId.Front, "ALMACÉN MÉDICO")
+	sign(m, d, V(16, 10, -27.2), V(10, 2, 0.2), Enum.NormalId.Back, "ALMACÉN MÉDICO")
 	-- Comunicaciones: consolas con pantallas tenues y la antena interior
 	for i = 0, 3 do
 		local x = 72 + i * 16
@@ -364,12 +365,45 @@ local function decorate(m: Model, d: any)
 		local screen = box(m, "PantallaTenue", W(V(x, 3.6, -23.4)) * CFrame.Angles(math.rad(-20), 0, 0), V(6, 2.4, 0.2), rgb(40, 120, 110), Enum.Material.Neon, false)
 		screen.Transparency = 0.55
 	end
-	sign(m, d, V(100, 10, -27.2), V(12, 2, 0.2), Enum.NormalId.Front, "COMUNICACIONES")
+	sign(m, d, V(100, 10, -27.2), V(12, 2, 0.2), Enum.NormalId.Back, "COMUNICACIONES")
 	-- Puente: ventanal al espacio, mesa de cartas y la placa de la nave
 	local window = box(m, "Ventanal", W(V(-139.6, 8, 0)), V(0.4, 8, 30), rgb(120, 170, 220), Enum.Material.Glass, false)
 	window.Transparency = 0.7
 	box(m, "MesaCartas", W(V(-124, 2.2, 12)), V(6, 0.4, 8), rgb(40, 60, 80), Enum.Material.Glass)
-	sign(m, d, V(-113, 9, 10), V(0.2, 2.4, 9), Enum.NormalId.Right, "MISERICORDIA · OVILLA · NAVE HOSPITAL 07", rgb(240, 235, 220), rgb(30, 34, 40))
+	sign(m, d, V(-113, 9, 10), V(0.2, 2.4, 9), Enum.NormalId.Left, "MISERICORDIA · OVILLA · NAVE HOSPITAL 07", rgb(240, 235, 220), rgb(30, 34, 40))
+	-- Proyector del holograma (el último registro sale de aquí: un disco con luz azul hacia arriba)
+	local holo = d.Spots[5].P
+	local base = box(m, "Proyector", W(V(holo.X, 0.15, holo.Z)), V(3, 0.3, 3), rgb(40, 46, 56), Enum.Material.Metal, false)
+	base.Shape = Enum.PartType.Cylinder
+	base.CFrame = W(V(holo.X, 0.15, holo.Z)) * CFrame.Angles(0, 0, math.rad(90))
+	local lens = box(m, "LenteProyector", W(V(holo.X, 0.35, holo.Z)) * CFrame.Angles(0, 0, math.rad(90)), V(0.15, 1.6, 1.6), rgb(120, 200, 255), Enum.Material.Neon, false)
+	lens.Shape = Enum.PartType.Cylinder
+	local up = Instance.new("SpotLight")
+	up.Face = Enum.NormalId.Right -- (el cilindro va tumbado: su cara +X mira hacia arriba)
+	up.Color = rgb(140, 200, 255)
+	up.Range = 12
+	up.Angle = 40
+	up.Brightness = 2
+	up.Parent = lens
+	-- Paredes con paneles: juntas verticales oscuras cada 8 studs a lo largo del pasillo, rejilla en el
+	-- suelo del pasillo y zócalo
+	for x = -108, 136, 8 do
+		for _, z in { -5.25, 5.25 } do
+			box(m, "Junta", W(V(x, h / 2, z)), V(0.3, h, 0.2), rgb(70, 74, 80), Enum.Material.Metal, false)
+		end
+	end
+	box(m, "Rejilla", W(V(14, 0.03, 0)), V(244, 0.05, 6), rgb(60, 64, 68), Enum.Material.DiamondPlate, false)
+	for _, z in { -5.2, 5.2 } do
+		box(m, "Zocalo", W(V(14, 0.5, z)), V(244, 1, 0.3), rgb(56, 58, 62), Enum.Material.Metal, false)
+	end
+	-- Extintores y carteles de salida (verde, siempre encendidos: van con batería)
+	for _, x in { -90, -10, 70, 128 } do
+		box(m, "Extintor", W(V(x, 2.2, -5.1)), V(0.7, 2, 0.7), rgb(190, 30, 28), Enum.Material.SmoothPlastic, false).Shape = Enum.PartType.Cylinder
+	end
+	for _, x in { -60, 20, 100 } do
+		local exit = sign(m, d, V(x, 13.5, 5.8), V(4, 1.2, 0.2), Enum.NormalId.Front, "SALIDA ▼ ESCLUSA", rgb(220, 255, 220), rgb(20, 120, 60))
+		exit.Material = Enum.Material.Neon
+	end
 end
 
 -- Lo de fuera: casco, motores, cruz médica, brecha, restos, baliza y aro de la esclusa
@@ -387,7 +421,7 @@ local function buildOutside(m: Model, d: any)
 	box(m, "Lomo", CFrame.new(Derelicts.world(d, V(0, h + 4, 0))), V(hx * 2 - 20, 6, hz * 2 - 10), HULL_DARK, Enum.Material.CorrodedMetal)
 	box(m, "Quilla", CFrame.new(Derelicts.world(d, V(0, -5, 0))), V(hx * 2 - 10, 6, hz * 2 - 16), HULL_DARK, Enum.Material.CorrodedMetal)
 	-- Motores de popa (dos toberas apagadas)
-	box(m, "BloqueMotores", CFrame.new(Derelicts.world(d, V(hx + 22, h / 2 - 2, 0))), V(44, 30, 50), HULL_DARK, Enum.Material.CorrodedMetal)
+	box(m, "BloqueMotores", CFrame.new(Derelicts.world(d, V(hx + 22, h / 2 - 2, 0))), V(44, 30, 50), HULL_DARK, Enum.Material.Metal)
 	for _, z in { -12, 12 } do
 		local noz = box(m, "Tobera", CFrame.new(Derelicts.world(d, V(hx + 48, h / 2 - 2, z))) * CFrame.Angles(0, 0, math.rad(90)), V(10, 14, 14), rgb(40, 38, 40), Enum.Material.Metal)
 		noz.Shape = Enum.PartType.Cylinder
@@ -431,6 +465,83 @@ local function buildOutside(m: Model, d: any)
 		local p1 = dock + V(math.cos(a) * 26, math.sin(a) * 26, 0)
 		local p2 = dock + V(math.cos(a2) * 26, math.sin(a2) * 26, 0)
 		box(m, "AroEsclusa", CFrame.lookAt((p1 + p2) / 2, p2), V(1.2, 1.2, (p2 - p1).Magnitude + 0.4), rgb(80, 170, 255), Enum.Material.Neon, false)
+	end
+	-- SILUETA de nave hospital (que de lejos no sea una caja): pintura blanca con franja roja, costillas,
+	-- torre de mando con la cruz roja arriba, dos módulos médicos a los lados y dos góndolas de motor
+	local WHITE = rgb(214, 216, 212)
+	local STRIPE = rgb(168, 36, 34)
+	for _, side in { -1, 1 } do
+		local z = side * (hz + 2.25)
+		box(m, "PinturaBlanca", CFrame.new(Derelicts.world(d, V(0, h * 0.8, z))), V(hx * 2, h * 0.42, 0.18), WHITE, Enum.Material.SmoothPlastic, false)
+		box(m, "FranjaRoja", CFrame.new(Derelicts.world(d, V(0, h * 0.46, z + side * 0.02))), V(hx * 2, 1.6, 0.18), STRIPE, Enum.Material.SmoothPlastic, false)
+	end
+	for x = -120, 120, 40 do
+		box(m, "CostillaArriba", CFrame.new(Derelicts.world(d, V(x, h + 7.6, 0))), V(3, 1.2, hz * 2 + 6), HULL_DARK, Enum.Material.Metal, false)
+		box(m, "CostillaAbajo", CFrame.new(Derelicts.world(d, V(x, -8.6, 0))), V(3, 1.2, hz * 2 + 6), HULL_DARK, Enum.Material.Metal, false)
+		for _, side in { -1, 1 } do
+			box(m, "CostillaLado", CFrame.new(Derelicts.world(d, V(x, h / 2, side * (hz + 3.2)))), V(3, h + 16, 1.2), HULL_DARK, Enum.Material.Metal, false)
+		end
+	end
+	-- torre de mando (encima del puente, a proa) con sus ventanas y la cruz roja en el techo
+	local towerC = V(-104, h + 13, 0)
+	box(m, "TorreMando", CFrame.new(Derelicts.world(d, towerC)), V(30, 12, 28), WHITE, Enum.Material.SmoothPlastic)
+	local bridgeGlass = box(m, "VentanasTorre", CFrame.new(Derelicts.world(d, towerC + V(-15.1, 1.5, 0))), V(0.3, 3, 24), rgb(30, 50, 70), Enum.Material.Glass, false)
+	bridgeGlass.Transparency = 0.2
+	box(m, "CruzTechoV", CFrame.new(Derelicts.world(d, towerC + V(0, 6.1, 0))), V(16, 0.25, 5), STRIPE, Enum.Material.SmoothPlastic, false)
+	box(m, "CruzTechoH", CFrame.new(Derelicts.world(d, towerC + V(0, 6.1, 0))), V(5, 0.25, 16), STRIPE, Enum.Material.SmoothPlastic, false)
+	-- módulos médicos colgados a los costados (con sus brazos)
+	for _, side in { -1, 1 } do
+		local podC = V(36, h * 0.5, side * (hz + 12))
+		local pod = box(m, "ModuloMedico", CFrame.new(Derelicts.world(d, podC)), V(52, 12, 12), WHITE, Enum.Material.SmoothPlastic)
+		pod.Shape = Enum.PartType.Cylinder
+		box(m, "FranjaModulo", CFrame.new(Derelicts.world(d, podC)) * CFrame.Angles(0, 0, math.rad(90)), V(12.3, 1.5, 12.3), STRIPE, Enum.Material.SmoothPlastic, false).Shape = Enum.PartType.Cylinder
+		for _, dx in { -16, 16 } do
+			box(m, "BrazoModulo", CFrame.new(Derelicts.world(d, V(podC.X + dx, h * 0.5, side * (hz + 5)))), V(3, 2, 8), HULL_DARK, Enum.Material.Metal, false)
+		end
+	end
+	-- góndolas de motor de popa (apagadas: un aro azul muy tenue, casi muerto)
+	for _, z in { -24, 24 } do
+		local nac = box(m, "Gondola", CFrame.new(Derelicts.world(d, V(hx + 40, h / 2 - 2, z))), V(40, 14, 14), HULL_DARK, Enum.Material.Metal)
+		nac.Shape = Enum.PartType.Cylinder
+		local rim = box(m, "AroMotor", CFrame.new(Derelicts.world(d, V(hx + 60.2, h / 2 - 2, z))), V(0.6, 12, 12), rgb(40, 70, 120), Enum.Material.Neon, false)
+		rim.Shape = Enum.PartType.Cylinder
+		rim.Transparency = 0.55
+	end
+	-- Hileras de ventanas en los costados (casi todas apagadas; alguna con un resto de luz de emergencia)
+	for _, side in { -1, 1 } do
+		local z = side * (hz + 2.15)
+		for x = -120, 130, 10 do
+			if math.abs(x - -60) > 14 and math.abs(x) > 10 then
+				local lit = (x * 7 + side * 3) % 9 == 0
+				local w = box(m, "Ventana", CFrame.new(Derelicts.world(d, V(x, h * 0.62, z))), V(4, 2.2, 0.25), if lit then rgb(255, 120, 90) else rgb(18, 22, 30), if lit then Enum.Material.Neon else Enum.Material.Glass, false)
+				w.Transparency = if lit then 0.2 else 0.1
+			end
+		end
+		-- juntas de las planchas del casco
+		for x = -130, 130, 26 do
+			box(m, "JuntaCasco", CFrame.new(Derelicts.world(d, V(x, h / 2, z + side * 0.05))), V(0.4, h + 3, 0.2), HULL_DARK, Enum.Material.Metal, false)
+		end
+	end
+	-- El nombre de la nave en el casco
+	for _, side in { -1, 1 } do
+		local face = if side > 0 then Enum.NormalId.Back else Enum.NormalId.Front
+		sign(m, d, V(60, h * 0.32, side * (hz + 2.3)), V(46, 4.5, 0.2), face, "MISERICORDIA", rgb(225, 225, 215), HULL)
+	end
+	-- Antenas y una parábola en el lomo
+	for i, x in { 20, 90 } do
+		box(m, "Mastil", CFrame.new(Derelicts.world(d, V(x, h + 11, 0))), V(0.6, 12, 0.6), HULL_DARK, Enum.Material.Metal, false)
+		local dish = box(m, "Parabola", CFrame.new(Derelicts.world(d, V(x, h + 17, 0))) * CFrame.Angles(math.rad(30 + i * 10), math.rad(i * 40), 0), V(1, 7, 7), rgb(170, 172, 176), Enum.Material.Metal, false)
+		dish.Shape = Enum.PartType.Cylinder
+	end
+	-- Luces de atraque junto al aro (verde y roja; parpadean con la baliza: Controllers/DerelictClient)
+	for _, s in { { -32, rgb(60, 255, 120) }, { 32, rgb(255, 60, 50) } } do
+		local l = box(m, "LuzAtraque", CFrame.new(dock + V(s[1], 0, 0)), V(2, 2, 2), s[2], Enum.Material.Neon, false)
+		l.Shape = Enum.PartType.Ball
+		local pl = Instance.new("PointLight")
+		pl.Color = s[2]
+		pl.Range = 24
+		pl.Brightness = 2
+		pl.Parent = l
 	end
 	-- (pasarela de la nave a la compuerta)
 	box(m, "Pasarela", CFrame.new(Derelicts.world(d, V(0, 1, hz + 18))), V(10, 1, 34), HULL_DARK, Enum.Material.DiamondPlate)

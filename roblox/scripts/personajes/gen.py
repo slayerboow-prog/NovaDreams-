@@ -291,6 +291,18 @@ def cheeks(img, strength, color=(232, 120, 120)):
     img.alpha_composite(soft(lay, 0.025))
 
 
+def eyebags(img, eyes, w, h):
+    """Ojeras: sombra suave bajo los ojos y una línea fina de cansancio (alguien que no duerme)."""
+    sh = layer()
+    d = ImageDraw.Draw(sh)
+    for cx, cy in eyes:
+        ellipse(d, cx, cy + h * 1.55, w * 1.05, h * 0.75, fill=rgba((110, 70, 90), 70))
+    img.alpha_composite(soft(sh, 0.018))
+    d = ImageDraw.Draw(img)
+    for cx, cy in eyes:
+        line(d, bezier((cx - w * 0.85, cy + h * 1.35), (cx, cy + h * 2.05), (cx + w * 0.85, cy + h * 1.35)), 0.0035, rgba((120, 78, 72), 110))
+
+
 def freckles(img, seed):
     rnd = random.Random(seed)
     d = ImageDraw.Draw(img)
@@ -531,6 +543,8 @@ def human_face(spec, expr, eye_colors):
         for side in (-1, 1):
             line(d, bezier((0.5 + side * 0.07, 0.6), (0.5 + side * 0.13, 0.68), (0.5 + side * 0.12, 0.76)), 0.004, rgba((130, 88, 74), 120))
         line(d, bezier((0.36, 0.3), (0.5, 0.285), (0.64, 0.3)), 0.004, rgba((130, 88, 74), 90))
+    if face.get("Tired"):
+        eyebags(img, eyes, w, h)
     if face.get("Freckles"):
         freckles(img, seed)
     mouth_y = 0.755
