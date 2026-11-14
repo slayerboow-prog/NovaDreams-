@@ -624,6 +624,9 @@ function PlanetWorld.ensure(id: string?): string
 			PlanetWorld.buildCity(folder, function()
 				task.wait()
 			end)
+			PlanetWorld.buildMetro(Tefra, folder, function()
+				task.wait()
+			end)
 		end)
 		if not ok then
 			warn("[PlanetWorld] " .. tostring(err))
@@ -797,6 +800,32 @@ function PlanetWorld.buildPlanetCity(id: string, folder: Instance, yield: (() ->
 	return model, stats
 end
 
+-- La ciudad grande alrededor del barrio (World/PlanetMetroBuilder con shared/Cosmos/PlanetMetro), una vez
+PlanetWorld.MetroStatsById = {} :: { [string]: { [string]: any } }
+function PlanetWorld.buildMetro(S: any, folder: Instance, yield: (() -> ())?): Instance?
+	if not S or not S.Metro then
+		return nil
+	end
+	local existing = folder:FindFirstChild("Metropoli")
+	if existing then
+		return existing
+	end
+	local t0 = os.clock()
+	local PlanetMetroBuilder = require(script.Parent.PlanetMetroBuilder) :: any
+	local model, stats = PlanetMetroBuilder.build(folder, S, { Yield = yield })
+	PlanetWorld.MetroStatsById[S.Id] = stats
+	-- las guaridas, el jefe escondido y los alijos (Services/BeastService)
+	local okWild, err = pcall(function()
+		local BeastService = require(script.Parent.Parent.Services.BeastService) :: any
+		BeastService.buildWilds(S, folder)
+	end)
+	if not okWild then
+		warn("[PlanetWorld] guaridas de " .. S.Id .. ": " .. tostring(err))
+	end
+	print(("[PlanetWorld] %s · %s: %d edificios, %d piezas, %d farolas en %.1f s"):format(S.Id, S.Metro.Name, stats.Buildings or 0, stats.Parts or 0, stats.Lamps or 0, os.clock() - t0))
+	return model
+end
+
 -- Construye (una vez, poco a poco, en un hilo aparte) un planeta del registro
 function PlanetWorld.ensurePlanet(id: string): string
 	local state = PlanetWorld.States[id]
@@ -815,6 +844,9 @@ function PlanetWorld.ensurePlanet(id: string): string
 			local folder = PlanetWorld.buildPlanetProps(id)
 			if folder then
 				PlanetWorld.buildPlanetCity(id, folder, function()
+					task.wait()
+				end)
+				PlanetWorld.buildMetro(S, folder, function()
 					task.wait()
 				end)
 			end

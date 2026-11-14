@@ -1,0 +1,379 @@
+-- BeastKit (servidor): cómo SON las bestias de los planetas, sus guaridas, los alijos escondidos y los
+-- Talleres donde se fabrica (datos en shared/Cosmos/Bestiary y shared/Crafting).
+--
+--   BeastKit.beast(species) → Model     una bestia con Humanoid (anda sola con MoveTo) y piezas soldadas
+--                                       a su HumanoidRootPart; cuerpos: Cuadrupedo, Insecto, Serpiente, Bipedo
+--   BeastKit.lair(parent, lair, cf)     la guarida (roca, hielo, coral, raíces o chatarra; la del jefe, más grande)
+--   BeastKit.cache(parent, cache, cf)   un alijo (cofre con aviso «Abrir alijo», etiqueta «Alijo»)
+--   BeastKit.bench(parent, cf, colors?) un Taller (yunque, mesa y caldero; aviso «Fabricar», etiqueta «Taller»)
+
+local Builder = require(script.Parent.Parent.Builder)
+
+local BeastKit = {}
+
+local V3 = Vector3.new
+local rgb = Color3.fromRGB
+
+local function mat(name: string?): Enum.Material
+	local ok, m = pcall(function()
+		return (Enum.Material :: any)[name or "SmoothPlastic"]
+	end)
+	return if ok and m then m else Enum.Material.SmoothPlastic
+end
+
+---------------------------------------------------------------------
+-- Bestias
+---------------------------------------------------------------------
+-- Una pieza soldada a la raíz (offset en el espacio de la raíz: -Z es delante)
+local function limb(model: Model, root: BasePart, name: string, size: Vector3, offset: CFrame, color: Color3, material: Enum.Material, shape: Enum.PartType?): BasePart
+	local p = Instance.new("Part")
+	p.Name = name
+	p.Size = size
+	p.CFrame = root.CFrame * offset
+	p.Color = color
+	p.Material = material
+	p.Anchored = false
+	p.CanCollide = false
+	p.CanTouch = false
+	p.Massless = true
+	p.TopSurface = Enum.SurfaceType.Smooth
+	p.BottomSurface = Enum.SurfaceType.Smooth
+	if shape then
+		p.Shape = shape
+	end
+	p.Parent = model
+	local w = Instance.new("WeldConstraint")
+	w.Part0 = root
+	w.Part1 = p
+	w.Parent = p
+	return p
+end
+
+local function eye(model: Model, root: BasePart, offset: CFrame, s: number, glow: Color3)
+	local e = limb(model, root, "Ojo", V3(s, s, s), offset, glow, Enum.Material.Neon, Enum.PartType.Ball)
+	e.CastShadow = false
+end
+
+function BeastKit.beast(sp: { [string]: any }, id: string): Model
+	local k = sp.Size / 5
+	local C = sp.Colors
+	local body, belly, glow = C.Body, C.Belly, C.Glow
+	local m = mat(sp.Material)
+	local model = Instance.new("Model")
+	model.Name = "Bestia_" .. id
+	local shape = sp.Body
+	-- la raíz: la caja del tronco; las patas cuelgan por debajo (HipHeight)
+	local rootSize, hip
+	if shape == "Serpiente" then
+		rootSize, hip = V3(1.6 * k, 1.4 * k, 3 * k), 0.4 * k
+	elseif shape == "Insecto" then
+		rootSize, hip = V3(2.6 * k, 1.2 * k, 3.2 * k), 1.1 * k
+	elseif shape == "Bipedo" then
+		rootSize, hip = V3(2 * k, 2.4 * k, 1.6 * k), 2.4 * k
+	else
+		rootSize, hip = V3(2 * k, 1.8 * k, 4 * k), 2 * k
+	end
+	local root = Instance.new("Part")
+	root.Name = "HumanoidRootPart"
+	root.CollisionGroup = "Bestias"
+	root.Size = rootSize
+	root.Transparency = 1
+	root.CanCollide = true
+	root.CanTouch = false
+	root.Anchored = false
+	root.CFrame = CFrame.new(0, hip + rootSize.Y / 2, 0)
+	root.Parent = model
+	model.PrimaryPart = root
+	local Y = -rootSize.Y / 2 -- (la parte de abajo del tronco)
+
+	if shape == "Cuadrupedo" then
+		limb(model, root, "Tronco", V3(2 * k, 1.8 * k, 4 * k), CFrame.new(), body, m)
+		limb(model, root, "Barriga", V3(1.6 * k, 0.5 * k, 3.4 * k), CFrame.new(0, Y + 0.2 * k, 0), belly, m)
+		local head = CFrame.new(0, 0.7 * k, -2.5 * k)
+		limb(model, root, "Cabeza", V3(1.5 * k, 1.4 * k, 1.6 * k), head, body, m)
+		limb(model, root, "Hocico", V3(0.9 * k, 0.7 * k, 1 * k), head * CFrame.new(0, -0.25 * k, -1.1 * k), belly, m)
+		for _, sx in { -1, 1 } do
+			eye(model, root, head * CFrame.new(sx * 0.42 * k, 0.25 * k, -0.8 * k), 0.32 * k, glow)
+			limb(model, root, "Oreja", V3(0.3 * k, 0.7 * k, 0.4 * k), head * CFrame.new(sx * 0.5 * k, 0.9 * k, 0.2 * k) * CFrame.Angles(0, 0, sx * -0.3), body, m)
+			for _, sz in { -1, 1 } do
+				limb(model, root, "Pata", V3(0.55 * k, hip + 0.2 * k, 0.6 * k), CFrame.new(sx * 0.7 * k, Y - hip / 2 + 0.1 * k, sz * 1.4 * k), body, m)
+			end
+		end
+		limb(model, root, "Cola", V3(0.4 * k, 0.4 * k, 2 * k), CFrame.new(0, 0.5 * k, 2.6 * k) * CFrame.Angles(math.rad(25), 0, 0), body, m)
+		-- lomo con púas que brillan un poco (los jefes, más)
+		for i = 0, (if sp.Boss then 5 else 2) do
+			local p = limb(model, root, "Pua", V3(0.3 * k, 0.8 * k, 0.4 * k), CFrame.new(0, 1.2 * k, -1.2 * k + i * 0.6 * k) * CFrame.Angles(math.rad(-20), 0, 0), glow, Enum.Material.Neon)
+			p.CastShadow = false
+		end
+	elseif shape == "Insecto" then
+		local isScorpion = string.find(id, "Escorpion") ~= nil
+		local flying = string.find(id, "Avispa") ~= nil or string.find(id, "Medusa") ~= nil or string.find(id, "Dron") ~= nil
+		limb(model, root, "Abdomen", V3(2.4 * k, 1.1 * k, 2 * k), CFrame.new(0, 0.1 * k, 0.8 * k), body, m)
+		limb(model, root, "Torax", V3(1.8 * k, 1 * k, 1.4 * k), CFrame.new(0, 0, -0.9 * k), belly, m)
+		local head = CFrame.new(0, 0.1 * k, -1.9 * k)
+		limb(model, root, "Cabeza", V3(1.2 * k, 0.9 * k, 0.9 * k), head, body, m)
+		for _, sx in { -1, 1 } do
+			eye(model, root, head * CFrame.new(sx * 0.35 * k, 0.2 * k, -0.45 * k), 0.3 * k, glow)
+			limb(model, root, "Pinza", V3(0.3 * k, 0.3 * k, 1.1 * k), head * CFrame.new(sx * 0.4 * k, -0.2 * k, -0.8 * k) * CFrame.Angles(0, sx * 0.4, 0), belly, m)
+			if flying then
+				local wing = limb(model, root, "Ala", V3(2.6 * k, 0.1 * k, 1.2 * k), CFrame.new(sx * 1.5 * k, 0.7 * k, -0.4 * k) * CFrame.Angles(0, 0, sx * 0.25), glow, Enum.Material.Glass)
+				wing.Transparency = 0.45
+			else
+				for i = -1, 1 do
+					limb(model, root, "Pata", V3(2 * k, 0.25 * k, 0.25 * k), CFrame.new(sx * 1.4 * k, Y - 0.3 * k, i * 0.8 * k) * CFrame.Angles(0, 0, sx * -0.55), body, m)
+				end
+			end
+		end
+		if isScorpion then
+			for i = 1, 4 do
+				limb(model, root, "Cola", V3(0.6 * k, 0.6 * k, 0.9 * k), CFrame.new(0, 0.4 * k + i * 0.55 * k, 1.8 * k + i * 0.35 * k - (if i >= 3 then (i - 2) * 0.6 * k else 0)) * CFrame.Angles(math.rad(-30 * i), 0, 0), body, m)
+			end
+			local sting = limb(model, root, "Aguijon", V3(0.4 * k, 0.4 * k, 0.8 * k), CFrame.new(0, 2.9 * k, 2.1 * k) * CFrame.Angles(math.rad(-150), 0, 0), glow, Enum.Material.Neon)
+			sting.CastShadow = false
+		end
+	elseif shape == "Serpiente" then
+		local seg = 5
+		for i = 0, seg - 1 do
+			local s = (1 - i / (seg + 1)) * 1.5 * k
+			limb(model, root, "Cuerpo", V3(s, s * 0.85, 1.8 * k), CFrame.new(math.sin(i * 1.1) * 0.6 * k, -0.1 * k, i * 1.6 * k - 0.5 * k), if i % 2 == 0 then body else belly, m)
+		end
+		local head = CFrame.new(0, 0.2 * k, -1.8 * k)
+		limb(model, root, "Cabeza", V3(1.4 * k, 1 * k, 1.8 * k), head, body, m)
+		for _, sx in { -1, 1 } do
+			eye(model, root, head * CFrame.new(sx * 0.45 * k, 0.3 * k, -0.6 * k), 0.3 * k, glow)
+		end
+		local crest = limb(model, root, "Cresta", V3(0.2 * k, 0.8 * k, 1.6 * k), head * CFrame.new(0, 0.7 * k, 0.3 * k), glow, Enum.Material.Neon)
+		crest.CastShadow = false
+	else -- Bipedo
+		local mech = string.find(id, "Recaudador") ~= nil
+		limb(model, root, "Tronco", V3(2 * k, 2.4 * k, 1.6 * k), CFrame.new(), body, m)
+		local head = CFrame.new(0, 1.8 * k, -0.3 * k)
+		limb(model, root, "Cabeza", V3(1.2 * k, 1.1 * k, 1.2 * k), head, if mech then belly else body, m)
+		if mech then
+			local visor = limb(model, root, "Visor", V3(1 * k, 0.25 * k, 0.1 * k), head * CFrame.new(0, 0.1 * k, -0.62 * k), glow, Enum.Material.Neon)
+			visor.CastShadow = false
+		else
+			limb(model, root, "Pico", V3(0.4 * k, 0.4 * k, 1 * k), head * CFrame.new(0, -0.1 * k, -0.9 * k), belly, m)
+			for _, sx in { -1, 1 } do
+				eye(model, root, head * CFrame.new(sx * 0.35 * k, 0.2 * k, -0.6 * k), 0.25 * k, glow)
+			end
+		end
+		for _, sx in { -1, 1 } do
+			limb(model, root, "Pierna", V3(0.6 * k, hip + 0.3 * k, 0.7 * k), CFrame.new(sx * 0.6 * k, Y - hip / 2 + 0.15 * k, 0), belly, m)
+			if mech then
+				limb(model, root, "Brazo", V3(0.8 * k, 2.4 * k, 0.8 * k), CFrame.new(sx * 1.5 * k, -0.3 * k, -0.2 * k), body, m)
+				local claw = limb(model, root, "Garra", V3(0.9 * k, 0.6 * k, 1 * k), CFrame.new(sx * 1.5 * k, -1.7 * k, -0.4 * k), glow, Enum.Material.Neon)
+				claw.CastShadow = false
+			else
+				limb(model, root, "Ala", V3(2.6 * k, 0.2 * k, 1.6 * k), CFrame.new(sx * 1.9 * k, 0.6 * k, 0.2 * k) * CFrame.Angles(0, 0, sx * -0.35), body, m)
+			end
+		end
+	end
+	if sp.Boss then
+		-- (los jefes: un aura que se ve de lejos)
+		local aura = Instance.new("PointLight")
+		aura.Color = glow
+		aura.Range = 30
+		aura.Brightness = 2
+		aura.Shadows = false
+		aura.Parent = root
+	end
+
+	local humanoid = Instance.new("Humanoid")
+	humanoid.HipHeight = hip
+	humanoid.WalkSpeed = sp.Speed
+	humanoid.MaxHealth = 1e6
+	humanoid.Health = 1e6
+	humanoid.BreakJointsOnDeath = false
+	humanoid.RequiresNeck = false
+	humanoid.DisplayDistanceType = Enum.HumanoidDisplayDistanceType.None
+	humanoid.HealthDisplayType = Enum.HumanoidHealthDisplayType.AlwaysOff
+	humanoid.Parent = model
+	-- (no se sientan en asientos ni se suben a cosas)
+	humanoid:SetStateEnabled(Enum.HumanoidStateType.Seated, false)
+	humanoid:SetStateEnabled(Enum.HumanoidStateType.Climbing, false)
+	return model
+end
+
+---------------------------------------------------------------------
+-- Guaridas
+---------------------------------------------------------------------
+local LOOK = {
+	Roca = { Main = rgb(70, 62, 58), Second = rgb(46, 42, 40), Mat = Enum.Material.Basalt, Glow = rgb(255, 120, 50) },
+	Arenisca = { Main = rgb(196, 140, 90), Second = rgb(156, 96, 62), Mat = Enum.Material.Sandstone, Glow = rgb(255, 170, 80) },
+	Hielo = { Main = rgb(170, 210, 236), Second = rgb(120, 160, 200), Mat = Enum.Material.Ice, Glow = rgb(140, 220, 255) },
+	Coral = { Main = rgb(230, 120, 150), Second = rgb(90, 170, 180), Mat = Enum.Material.Pebble, Glow = rgb(90, 255, 220) },
+	Raices = { Main = rgb(86, 64, 44), Second = rgb(50, 80, 46), Mat = Enum.Material.Wood, Glow = rgb(170, 255, 120) },
+	Chatarra = { Main = rgb(96, 88, 80), Second = rgb(60, 58, 56), Mat = Enum.Material.CorrodedMetal, Glow = rgb(200, 255, 110) },
+}
+
+local function sign(parent: Instance, at: Vector3, text: string, color: Color3, distance: number)
+	local anchor = Builder.part({ Name = "Rotulo", Size = V3(1, 1, 1), CFrame = CFrame.new(at), Transparency = 1, CanCollide = false, CanQuery = false, CanTouch = false, Parent = parent })
+	local gui = Instance.new("BillboardGui")
+	gui.Size = UDim2.fromOffset(240, 40)
+	gui.MaxDistance = distance
+	gui.LightInfluence = 0
+	gui.AlwaysOnTop = false
+	gui.Parent = anchor
+	local label = Instance.new("TextLabel")
+	label.Size = UDim2.fromScale(1, 1)
+	label.BackgroundTransparency = 1
+	label.TextColor3 = color
+	label.TextStrokeTransparency = 0.3
+	label.FontFace = Font.fromEnum(Enum.Font.GothamBlack)
+	label.TextScaled = true
+	label.Text = text
+	label.Parent = gui
+end
+
+function BeastKit.lair(parent: Instance, lair: { [string]: any }, cf: CFrame): Model
+	local L = LOOK[lair.Look] or LOOK.Roca
+	local m = Builder.model("Guarida_" .. lair.Id, parent)
+	m:SetAttribute("Lair", lair.Id)
+	local boss = lair.Boss == true
+	local R = if boss then 34 else 16
+	local r = Random.new(#lair.Id * 97 + math.floor(lair.X))
+	-- un anillo de rocas (o témpanos, corales, raíces, chatarra) alrededor de una boca oscura
+	local n = if boss then 10 else 6
+	for i = 1, n do
+		local a = i / n * math.pi * 2 + r:NextNumber(-0.2, 0.2)
+		local h = r:NextNumber(6, 14) * (if boss then 1.8 else 1)
+		local w = r:NextNumber(4, 8) * (if boss then 1.5 else 1)
+		local p = cf * CFrame.new(math.cos(a) * R, h / 2 - 1.5, math.sin(a) * R) * CFrame.Angles(r:NextNumber(-0.25, 0.25), r:NextNumber(0, 6.28), r:NextNumber(-0.25, 0.25))
+		local look = lair.Look
+		if look == "Hielo" or look == "Coral" then
+			local spike = Builder.part({ Name = "Pico", Size = V3(w, h * 1.4, w * 0.8), CFrame = p, Color = if i % 2 == 0 then L.Main else L.Second, Material = L.Mat, Parent = m })
+			if look == "Coral" then
+				spike.Shape = Enum.PartType.Cylinder
+				spike.Size = V3(h * 1.2, w * 0.7, w * 0.7)
+				spike.CFrame = p * CFrame.Angles(0, 0, math.pi / 2)
+			end
+		elseif look == "Raices" then
+			Builder.part({ Name = "Raiz", Size = V3(w * 0.5, w * 0.5, h * 1.6), CFrame = p * CFrame.Angles(math.rad(50), 0, 0), Color = L.Main, Material = L.Mat, Parent = m })
+		else
+			Builder.part({ Name = "Roca", Size = V3(w, h, w * 0.9), CFrame = p, Color = if i % 2 == 0 then L.Main else L.Second, Material = L.Mat, Parent = m })
+		end
+	end
+	-- la boca de la guarida (un arco de roca con oscuridad dentro)
+	local back = cf * CFrame.new(0, 0, R * 0.55)
+	Builder.part({ Name = "Arco", Size = V3(R * 0.9, 3, 6), CFrame = back * CFrame.new(0, R * 0.55, 0), Color = L.Second, Material = L.Mat, Parent = m })
+	for _, sx in { -1, 1 } do
+		Builder.part({ Name = "Jamba", Size = V3(4, R * 0.6, 6), CFrame = back * CFrame.new(sx * R * 0.4, R * 0.3 - 1, 0), Color = L.Main, Material = L.Mat, Parent = m })
+	end
+	Builder.decor({ Name = "Oscuridad", Size = V3(R * 0.7, R * 0.55, 0.6), CFrame = back * CFrame.new(0, R * 0.27 - 1, 2), Color = rgb(6, 6, 8), Material = Enum.Material.SmoothPlastic, Parent = m })
+	-- huesos y restos por el suelo (de bestias, no de personas)
+	for i = 1, (if boss then 8 else 4) do
+		local a = r:NextNumber(0, 6.28)
+		local d = r:NextNumber(3, R * 0.8)
+		Builder.decor({ Name = "Hueso", Size = V3(0.6, 0.6, r:NextNumber(2, 4)), CFrame = cf * CFrame.new(math.cos(a) * d, 0.3, math.sin(a) * d) * CFrame.Angles(0, r:NextNumber(0, 6.28), 0), Color = rgb(222, 214, 196), Material = Enum.Material.SmoothPlastic, Parent = m })
+	end
+	-- ojos que brillan en la oscuridad (para que se encuentre de noche)
+	for _, sx in { -1, 1 } do
+		local e = Builder.decor({ Name = "Brillo", Size = V3(0.6, 0.6, 0.6), Shape = Enum.PartType.Ball, CFrame = back * CFrame.new(sx * 1.4, R * 0.25, 1.6), Color = L.Glow, Material = Enum.Material.Neon, Parent = m })
+		local l = Instance.new("PointLight")
+		l.Color = L.Glow
+		l.Range = 10
+		l.Brightness = 0.8
+		l.Shadows = false
+		l.Parent = e
+	end
+	-- (las bestias atraviesan las rocas de su guarida —grupo «Guarida», Services/BeastService—; tú no)
+	for _, d in m:GetDescendants() do
+		if d:IsA("BasePart") then
+			d.CollisionGroup = "Guarida"
+		end
+	end
+	if boss then
+		-- la del jefe: braseros y un aviso que solo se ve de cerca
+		for i = 1, 4 do
+			local a = i / 4 * math.pi * 2 + 0.4
+			local p = cf * CFrame.new(math.cos(a) * R * 0.7, 0, math.sin(a) * R * 0.7)
+			Builder.part({ Name = "Brasero", Size = V3(3, 5, 3), CFrame = p * CFrame.new(0, 2.5, 0), Color = L.Second, Material = L.Mat, Parent = m })
+			local fire = Builder.decor({ Name = "Fuego", Size = V3(2.4, 1.4, 2.4), CFrame = p * CFrame.new(0, 5.6, 0), Color = L.Glow, Material = Enum.Material.Neon, Parent = m })
+			local l = Instance.new("PointLight")
+			l.Color = L.Glow
+			l.Range = 26
+			l.Brightness = 1.6
+			l.Shadows = false
+			l.Parent = fire
+		end
+		sign(m, (cf * CFrame.new(0, R * 0.9, R * 0.55)).Position, "⚠ " .. lair.Name, rgb(255, 120, 90), 90)
+	else
+		sign(m, (cf * CFrame.new(0, R * 0.75, R * 0.55)).Position, lair.Name, rgb(240, 230, 210), 55)
+	end
+	return m
+end
+
+-- Un arrecife de roca que sale del agua (guaridas y alijos de los planetas casi sin tierra: Tálasa)
+function BeastKit.islet(parent: Instance, cf: CFrame, radius: number, bottom: number)
+	local top = cf.Position.Y
+	local h = math.max(6, top - bottom)
+	local m = Builder.model("Arrecife", parent)
+	Builder.part({ Name = "Roca", Shape = Enum.PartType.Cylinder, Size = V3(h, radius * 2, radius * 2), CFrame = CFrame.new(cf.Position - Vector3.new(0, h / 2, 0)) * CFrame.Angles(0, 0, math.pi / 2), Color = rgb(96, 104, 100), Material = Enum.Material.Rock, Parent = m })
+	Builder.part({ Name = "Arena", Shape = Enum.PartType.Cylinder, Size = V3(0.6, radius * 2 - 4, radius * 2 - 4), CFrame = CFrame.new(cf.Position + Vector3.new(0, 0.05, 0)) * CFrame.Angles(0, 0, math.pi / 2), Color = rgb(214, 202, 170), Material = Enum.Material.Sand, Parent = m })
+	local r = Random.new(math.floor(cf.Position.X + cf.Position.Z))
+	for i = 1, math.max(3, math.floor(radius / 6)) do
+		local a = r:NextNumber(0, 6.28)
+		local d = r:NextNumber(radius * 0.7, radius * 0.95)
+		Builder.part({ Name = "Pena", Size = V3(r:NextNumber(3, 7), r:NextNumber(3, 8), r:NextNumber(3, 7)), CFrame = CFrame.new(cf.Position + Vector3.new(math.cos(a) * d, 1, math.sin(a) * d)) * CFrame.Angles(r:NextNumber(-0.3, 0.3), r:NextNumber(0, 6.28), r:NextNumber(-0.3, 0.3)), Color = rgb(80, 88, 86), Material = Enum.Material.Rock, Parent = m })
+	end
+	return m
+end
+
+---------------------------------------------------------------------
+-- Alijos y Talleres
+---------------------------------------------------------------------
+function BeastKit.cache(parent: Instance, cache: { [string]: any }, cf: CFrame): Model
+	local m = Builder.model("Alijo_" .. cache.Id, parent)
+	local box = Builder.part({ Name = "Cofre", Size = V3(3.4, 2, 2.2), CFrame = cf * CFrame.new(0, 1, 0), Color = rgb(96, 70, 44), Material = Enum.Material.WoodPlanks, Parent = m })
+	Builder.part({ Name = "Tapa", Size = V3(3.6, 0.6, 2.4), CFrame = cf * CFrame.new(0, 2.3, 0), Color = rgb(70, 50, 32), Material = Enum.Material.WoodPlanks, Parent = m })
+	for _, sx in { -1, 1 } do
+		Builder.decor({ Name = "Herraje", Size = V3(0.3, 2.2, 2.4), CFrame = cf * CFrame.new(sx * 1.2, 1.2, 0), Color = rgb(150, 130, 70), Material = Enum.Material.Metal, Parent = m })
+	end
+	local glow = Builder.decor({ Name = "Brillo", Size = V3(0.6, 0.4, 0.2), CFrame = cf * CFrame.new(0, 1.6, -1.15), Color = rgb(255, 210, 110), Material = Enum.Material.Neon, Parent = m })
+	local l = Instance.new("PointLight")
+	l.Color = rgb(255, 210, 110)
+	l.Range = 9
+	l.Brightness = 0.7
+	l.Shadows = false
+	l.Parent = glow
+	local prompt = Builder.prompt(box, "Abrir alijo", "Alijo escondido", 1.2)
+	prompt:AddTag("Alijo")
+	prompt:SetAttribute("Cache", cache.Id)
+	prompt.MaxActivationDistance = 9
+	return m
+end
+
+function BeastKit.bench(parent: Instance, cf: CFrame, colors: { [string]: Color3 }?): Model
+	local c = colors or {}
+	local m = Builder.model("Taller", parent)
+	local wood = c.Trim or rgb(110, 80, 52)
+	local metal = c.Metal or rgb(70, 70, 76)
+	local table_ = Builder.part({ Name = "Mesa", Size = V3(6, 0.6, 3), CFrame = cf * CFrame.new(0, 3.2, 0), Color = wood, Material = Enum.Material.WoodPlanks, Parent = m })
+	for _, sx in { -1, 1 } do
+		for _, sz in { -1, 1 } do
+			Builder.part({ Name = "Pata", Size = V3(0.5, 3, 0.5), CFrame = cf * CFrame.new(sx * 2.6, 1.5, sz * 1.2), Color = wood, Material = Enum.Material.Wood, Parent = m })
+		end
+	end
+	Builder.decor({ Name = "Herramientas", Size = V3(2, 0.3, 0.8), CFrame = cf * CFrame.new(-1.2, 3.65, 0.4), Color = metal, Material = Enum.Material.Metal, Parent = m })
+	-- el yunque y el caldero
+	Builder.part({ Name = "Yunque", Size = V3(2.6, 1.4, 1.4), CFrame = cf * CFrame.new(4.6, 2.2, 0), Color = metal, Material = Enum.Material.Metal, Parent = m })
+	Builder.part({ Name = "PieYunque", Size = V3(1.2, 1.6, 1.2), CFrame = cf * CFrame.new(4.6, 0.8, 0), Color = rgb(60, 50, 44), Material = Enum.Material.Wood, Parent = m })
+	Builder.part({ Name = "Caldero", Shape = Enum.PartType.Cylinder, Size = V3(2.4, 3, 3), CFrame = cf * CFrame.new(-4.6, 1.2, 0) * CFrame.Angles(0, 0, math.pi / 2), Color = rgb(40, 40, 44), Material = Enum.Material.Metal, Parent = m })
+	local brew = Builder.decor({ Name = "Pocion", Shape = Enum.PartType.Cylinder, Size = V3(0.3, 2.6, 2.6), CFrame = cf * CFrame.new(-4.6, 2.45, 0) * CFrame.Angles(0, 0, math.pi / 2), Color = c.Glow or rgb(120, 255, 160), Material = Enum.Material.Neon, Parent = m })
+	local l = Instance.new("PointLight")
+	l.Color = brew.Color
+	l.Range = 10
+	l.Brightness = 0.8
+	l.Shadows = false
+	l.Parent = brew
+	local board = Builder.part({ Name = "Cartel", Size = V3(6, 1.6, 0.3), CFrame = cf * CFrame.new(0, 6.2, 1.4), Color = rgb(30, 28, 26), Material = Enum.Material.Wood, Parent = m })
+	Builder.sign(board, "🛠 TALLER · FABRICAR", Enum.NormalId.Front, rgb(255, 220, 150), rgb(30, 28, 26))
+	Builder.sign(board, "🛠 TALLER · FABRICAR", Enum.NormalId.Back, rgb(255, 220, 150), rgb(30, 28, 26))
+	local prompt = Builder.prompt(table_, "Fabricar", "Taller (Mesa, Forja y Alquimia)", 0)
+	prompt:AddTag("Taller")
+	prompt.MaxActivationDistance = 12
+	return m
+end
+
+return BeastKit

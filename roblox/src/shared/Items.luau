@@ -634,6 +634,25 @@ do
 	end
 end
 
+-- Fabricar (shared/Crafting): lo que sueltan las bestias de los planetas, los materiales raros, los
+-- trofeos de los jefes, los intermedios del Taller y lo que se fabrica (armaduras, armas blancas,
+-- pociones y herramientas). Kind «Thing»: las pociones y herramientas se usan desde la mochila con su
+-- propio sistema (Services/CraftingService con InventoryService.onUse); Craft dice qué es.
+do
+	local Crafting = require(script.Parent.Crafting)
+	for _, m in Crafting.Materials do
+		if not list[m[1]] then
+			list[m[1]] = { Id = m[1], Name = m[2], Icon = m[3], Kind = "Thing", Desc = m[4], Stack = 99 }
+		end
+	end
+	for _, g in Crafting.Gear do
+		if not list[g.Id] then
+			local stack = if g.Kind == "Potion" then 20 elseif g.Kind == "Tool" then 1 else 1
+			list[g.Id] = { Id = g.Id, Name = g.Name, Icon = g.Icon, Kind = "Thing", Desc = g.Desc, Stack = stack, Craft = g.Kind } :: any
+		end
+	end
+end
+
 Items.List = list
 
 function Items.get(id: string?): Item?

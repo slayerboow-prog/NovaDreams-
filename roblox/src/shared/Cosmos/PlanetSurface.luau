@@ -21,6 +21,9 @@
 -- Ids de mineral y de puntos llevan el prefijo del planeta («Miasma_L1», «Siroco_Baliza»): el servidor
 -- encuentra de qué planeta es cada aviso sin mirar dónde estás.
 
+local PlanetMetro = require(script.Parent.PlanetMetro)
+local MetroStyles = require(script.Parent.MetroStyles)
+
 local PlanetSurface = {}
 
 local function smooth(e0: number, e1: number, x: number): number
@@ -141,7 +144,11 @@ function PlanetSurface.new(def: { [string]: any }): { [string]: any }
 			return 0
 		end
 		if not poiY[id] then
-			poiY[id] = if p.Pad then S.padY() else math.max(S.rawHeight(p.X, p.Z), S.WaterY + 8)
+			local raw = S.rawHeight(p.X, p.Z)
+			if S.Metro then
+				raw = S.Metro.shape(p.X, p.Z, raw, S.padY())
+			end
+			poiY[id] = if p.Pad then S.padY() else math.max(raw, S.WaterY + 8)
 		end
 		return poiY[id]
 	end
@@ -149,6 +156,10 @@ function PlanetSurface.new(def: { [string]: any }): { [string]: any }
 	function S.heightAt(x: number, z: number): number
 		local lx, lz = x - O.X, z - O.Z
 		local h = S.rawHeight(lx, lz)
+		-- (la ciudad grande: relieve suavizado; el barrio, su meseta)
+		if S.Metro then
+			h = S.Metro.shape(lx, lz, h, S.padY())
+		end
 		if City then
 			h = City.shape(lx, lz, h, S.padY())
 		end
@@ -184,6 +195,14 @@ function PlanetSurface.new(def: { [string]: any }): { [string]: any }
 		local y = (h or S.heightAt(x, z)) - O.Y
 		local s = slope or S.slopeAt(x, z)
 		local lx, lz = x - O.X, z - O.Z
+		-- las calles de la ciudad grande, pintadas en el terreno (y el suelo de sus plazas)
+		local Metro = S.Metro
+		if Metro and Metro.Mode == "Ground" and y >= S.WaterY + 2 then
+			local street, avenue = Metro.streetAt(lx, lz)
+			if street then
+				return if avenue then (Metro.Style.AvenueMaterial or "Asphalt") else (Metro.Style.StreetMaterial or "Pavement")
+			end
+		end
 		if def.materialAt then
 			return def.materialAt(lx, lz, y, s, S)
 		end
@@ -217,6 +236,9 @@ function PlanetSurface.new(def: { [string]: any }): { [string]: any }
 			return false
 		end
 		if City and City.inside(lx, lz, City.Blend) then
+			return false
+		end
+		if S.Metro and S.Metro.covers(lx, lz) then
 			return false
 		end
 		local x, z = O.X + lx, O.Z + lz
@@ -351,6 +373,12 @@ function PlanetSurface.new(def: { [string]: any }): { [string]: any }
 				return "un edificio"
 			end
 		end
+		if S.Metro and S.Metro.inside(lx, lz, -radius - 20) then
+			local top = S.Metro.solidTop(lx, lz, radius * 0.6)
+			if top and pos.Y - radius * 0.6 <= O.Y + top then
+				return "un edificio"
+			end
+		end
 		return nil
 	end
 	function S.landSlopeAt(x: number, z: number): number
@@ -359,6 +387,9 @@ function PlanetSurface.new(def: { [string]: any }): { [string]: any }
 			if City.landingBlocked(lx, lz) then
 				return 9
 			end
+		end
+		if S.Metro and S.Metro.landingBlocked(x - O.X, z - O.Z) then
+			return 9
 		end
 		return S.slopeAt(x, z)
 	end
@@ -376,6 +407,12 @@ function PlanetSurface.new(def: { [string]: any }): { [string]: any }
 	end
 	function S.safeAt(_pos: Vector3): boolean
 		return false
+	end
+
+	-- La ciudad grande alrededor del barrio (shared/Cosmos/PlanetMetro; su estilo: MetroStyles o def.Metro)
+	local metroStyle = if def.Metro == false then nil else (def.Metro or MetroStyles.get(S.Id))
+	if metroStyle then
+		S.Metro = PlanetMetro.new(S, metroStyle)
 	end
 
 	S.Surface = { Id = S.Id, Origin = O, Half = S.Half, ArriveY = S.ArriveY, ClimbY = S.ClimbY, CeilingY = S.CeilingY }

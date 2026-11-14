@@ -952,6 +952,15 @@ end
 -- (marco común) En los demás planetas, sus huecos (niebla, simas…: PlanetCity.Pits): a la orilla
 function PlanetClient.pitRescue(pos: Vector3): (Vector3?, string?)
 	local _, S = PlanetRegistry.at(pos, 0)
+	-- (la ciudad grande en plataformas: quien se cae a la niebla sale a la pasarela más cercana)
+	local Metro = S and S ~= Tefra and S.Metro
+	if Metro and Metro.Mode == "Deck" and Metro.Style.Rescue then
+		local mx, mz = S.toLocal(pos)
+		if Metro.inside(mx, mz, -30) and not (S.City and S.City.inside(mx, mz, 0)) and pos.Y < S.Origin.Y + Metro.DeckY - Metro.Style.Rescue then
+			local rx, rz = Metro.rescueSpot(mx, mz)
+			return S.toWorld(rx, rz, Metro.DeckY + 4), "⚠ ¡Te caías a la niebla! Te suben a la pasarela más cercana."
+		end
+	end
 	local City = S and S ~= Tefra and S.City
 	if not City or not City.inPit then
 		return nil, nil

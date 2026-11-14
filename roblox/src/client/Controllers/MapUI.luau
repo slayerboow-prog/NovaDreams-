@@ -2578,11 +2578,13 @@ function MapUI.init()
 			if onTefra() then
 				local lx, lz = Tefra.toLocal(root.Position)
 				local barrio = TefraCity.districtAt(lx, lz)
-				zoneLabel.Text = if barrio then barrio.Name .. " · " .. TefraCity.Name else "Tefra"
+				local distrito = not barrio and Tefra.Metro and Tefra.Metro.districtAt(lx, lz)
+				zoneLabel.Text = if barrio then barrio.Name .. " · " .. TefraCity.Name elseif distrito then distrito.Name .. " · " .. Tefra.Metro.Name else "Tefra"
 			elseif here then
 				local lx, lz = here.toLocal(root.Position)
 				local barrio = here.City.districtAt(lx, lz)
-				zoneLabel.Text = if barrio then barrio.Name .. " · " .. here.City.Name else here.Name
+				local distrito = not barrio and here.Metro and here.Metro.districtAt(lx, lz)
+				zoneLabel.Text = if barrio then barrio.Name .. " · " .. here.City.Name elseif distrito then distrito.Name .. " · " .. here.Metro.Name else here.Name
 			elseif not waypoint then
 				local district = MapInfo.districtAt(root.Position.X, root.Position.Z)
 				local zone = zoneAt(root.Position)

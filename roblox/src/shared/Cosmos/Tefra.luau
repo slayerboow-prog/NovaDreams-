@@ -17,6 +17,8 @@
 -- salida (nubes) y en CeilingY se vuelve al espacio (shared/Cosmos/PlanetEntry).
 
 local TefraCity = require(script.Parent.TefraCity)
+local PlanetMetro = require(script.Parent.PlanetMetro)
+local MetroStyles = require(script.Parent.MetroStyles)
 
 local Tefra = {}
 
@@ -156,7 +158,11 @@ function Tefra.poiY(id: string): number
 		return 0
 	end
 	if not poiY[id] then
-		poiY[id] = if id == "Plataforma" then Tefra.padY() else math.max(Tefra.rawHeight(p.X, p.Z), Tefra.WaterY + 8)
+		local raw = Tefra.rawHeight(p.X, p.Z)
+		if Tefra.Metro then
+			raw = Tefra.Metro.shape(p.X, p.Z, raw, Tefra.padY())
+		end
+		poiY[id] = if id == "Plataforma" then Tefra.padY() else math.max(raw, Tefra.WaterY + 8)
 	end
 	return poiY[id]
 end
@@ -164,7 +170,12 @@ end
 -- Altura del suelo en (x, z) del MUNDO (con la ciudad, la plataforma y los puntos de interés aplanados)
 function Tefra.heightAt(x: number, z: number): number
 	local lx, lz = x - Tefra.Origin.X, z - Tefra.Origin.Z
-	local h = TefraCity.shape(lx, lz, Tefra.rawHeight(lx, lz), Tefra.padY())
+	local raw = Tefra.rawHeight(lx, lz)
+	-- (la ciudad grande alrededor de Bastión Ceniza: relieve suavizado)
+	if Tefra.Metro then
+		raw = Tefra.Metro.shape(lx, lz, raw, Tefra.padY())
+	end
+	local h = TefraCity.shape(lx, lz, raw, Tefra.padY())
 	for _, p in Tefra.POIs do
 		local d = math.sqrt((lx - p.X) ^ 2 + (lz - p.Z) ^ 2)
 		if d < p.Flat * 2.6 then
@@ -199,7 +210,15 @@ function Tefra.materialAt(x: number, z: number, h: number?, slope: number?): str
 	local lx, lz = x - Tefra.Origin.X, z - Tefra.Origin.Z
 	if y < Tefra.WaterY + 4 then
 		return "Sandstone"
-	elseif s > 1.25 then
+	end
+	-- las calles de la ciudad grande, pintadas en el terreno
+	if Tefra.Metro then
+		local street, avenue = Tefra.Metro.streetAt(lx, lz)
+		if street then
+			return if avenue then Tefra.Metro.Style.AvenueMaterial else Tefra.Metro.Style.StreetMaterial
+		end
+	end
+	if s > 1.25 then
 		return "Slate"
 	elseif s > 0.78 then
 		return "Basalt"
@@ -252,6 +271,9 @@ function Tefra.goodSpot(lx: number, lz: number, maxSlope: number, gap: number): 
 	end
 	-- (ni mineral ni flora dentro de la ciudad ni en su bajada)
 	if TefraCity.inside(lx, lz, TefraCity.Blend) then
+		return false
+	end
+	if Tefra.Metro and Tefra.Metro.covers(lx, lz) then
 		return false
 	end
 	local x, z = Tefra.Origin.X + lx, Tefra.Origin.Z + lz
@@ -394,6 +416,13 @@ function Tefra.collide(pos: Vector3, radius: number): string?
 			return "un edificio"
 		end
 	end
+	-- los de la ciudad grande
+	if Tefra.Metro and Tefra.Metro.inside(lx, lz, -radius - 20) then
+		local top = Tefra.Metro.solidTop(lx, lz, radius * 0.6)
+		if top and pos.Y - radius * 0.6 <= Tefra.Origin.Y + top then
+			return "un edificio"
+		end
+	end
 	return nil
 end
 
@@ -402,6 +431,9 @@ end
 function Tefra.landSlopeAt(x: number, z: number): number
 	local lx, lz = Tefra.toLocal(Vector3.new(x, 0, z))
 	if TefraCity.landingBlocked(lx, lz) then
+		return 9
+	end
+	if Tefra.Metro and Tefra.Metro.landingBlocked(lx, lz) then
 		return 9
 	end
 	return Tefra.slopeAt(x, z)
@@ -434,5 +466,8 @@ Tefra.Surface = {
 	ClimbY = Tefra.ClimbY,
 	CeilingY = Tefra.CeilingY,
 }
+
+-- La ciudad grande alrededor de Bastión Ceniza (shared/Cosmos/PlanetMetro; estilo en MetroStyles.Tefra)
+Tefra.Metro = PlanetMetro.new(Tefra, MetroStyles.get("Tefra") :: any)
 
 return Tefra

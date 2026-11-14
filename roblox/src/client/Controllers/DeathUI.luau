@@ -77,7 +77,9 @@ local function showFallen(how: string)
 	scale.Scale = 1.2
 	TweenService:Create(scale, TweenInfo.new(0.8, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), { Scale = 1 }):Play()
 	local mission = how == "Mission"
-	local left = if mission then EnemyStats.PlayerFallSeconds else Combat.KOSeconds
+	-- (tumbado por una bestia de los planetas: te levantas ahí mismo, Services/BeastService.GetUpSeconds)
+	local beast = how == "Bestia"
+	local left = if mission then EnemyStats.PlayerFallSeconds elseif beast then 7 else Combat.KOSeconds
 	while left > 0 and showing == id do
 		if player:GetAttribute("ArrestedInKO") then
 			-- Te ha detenido la policía estando en el suelo: no vas al hospital, vas detenido
@@ -91,7 +93,7 @@ local function showFallen(how: string)
 		local seconds = math.ceil(left)
 		subtitle.Text = if mission
 			then ("El combate vuelve a empezar en %d…"):format(seconds)
-			elseif how == "Down" then ("Te levantas en %d…"):format(seconds)
+			elseif how == "Down" or beast then ("Te levantas en %d…"):format(seconds)
 			else ("Despertarás en el hospital en %d…"):format(seconds)
 		left -= task.wait(0.2)
 	end

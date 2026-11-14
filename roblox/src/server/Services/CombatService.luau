@@ -228,6 +228,15 @@ end
 CombatService.missionTarget = missionTarget
 -- (Invasión de la Grieta) fn(atacante, modelo, daño, info) -> (cuenta, daño hecho, ha caído): InvasionService
 CombatService.invasionHit = nil :: ((Player?, Instance, number, { [string]: any }?) -> (boolean, number, boolean))?
+-- Las bestias de los planetas (Services/BeastService) llevan también InvasionTarget (puntería, golpes, policía)
+-- y el atributo Bestia: su daño va a BeastService, no a la invasión
+CombatService.beastHit = nil :: ((Player?, Instance, number, { [string]: any }?) -> (boolean, number, boolean))?
+local function targetHook(model: Instance): any
+	if model:GetAttribute("Bestia") ~= nil then
+		return CombatService.beastHit
+	end
+	return CombatService.invasionHit
+end
 -- (Invasión) fn(jugador, desde, mirando, alcance, cono) -> { {Model, At, King, Kind} }: a quién de la
 -- invasión le llega un golpe (InvasionService.meleeTargets: tropas con compensación de lag, el rey,
 -- criaturas hostiles; con la caja de su modelo y sin pared en medio)
@@ -448,7 +457,7 @@ local function hitModel(att: State, attModel: Model, attRoot: BasePart, model: M
 		-- criaturas no llevan Humanoid). Cualquiera les puede pegar; el daño lo pone el SERVIDOR con el
 		-- golpe de siempre (Combat.moveDamage) escalado (MeleeHit; el rey encaja menos). El cliente solo
 		-- dice «he pegado»: ni el daño ni a quién.
-		local hook = CombatService.invasionHit
+		local hook = targetHook(model)
 		local attPlayer = att.Player
 		if not hook or not attPlayer or model == attModel then
 			return false
@@ -759,7 +768,7 @@ local function strike(state: State, kind: string, charged: boolean?): string?
 	local invasion = CombatService.invasionMelee
 	if invasion and state.Player then
 		for i = #list, 1, -1 do
-			if list[i]:GetAttribute("InvasionTarget") ~= nil then
+			if list[i]:GetAttribute("InvasionTarget") ~= nil and list[i]:GetAttribute("Bestia") == nil then
 				table.remove(list, i)
 			end
 		end
@@ -1268,7 +1277,8 @@ function CombatService.applyHit(attacker: Player, model: Model, info: HitInfo): 
 	end
 	if model:GetAttribute("InvasionTarget") ~= nil then
 		-- Un alienígena de la Invasión de la Grieta (InvasionService decide; las de juguete no le hacen nada)
-		local hook = CombatService.invasionHit
+		-- (o una bestia de los planetas: BeastService)
+		local hook = targetHook(model)
 		if not hook or info.Toy then
 			return none
 		end
