@@ -315,6 +315,82 @@ local function buildLand(parent: Instance)
 	end
 end
 
+-- La SUPERFICIE de verdad redonda, en piezas pequeñas tangentes a la esfera (anillos desde la cima), cada
+-- una con su trozo de la imagen del planeta. Dos motivos (capturas del dueño, 14-11-2026):
+--   * Una bola de Roblox (Ball + SpecialMesh) no sirve: al ponerle TextureId su MeshType pasa solo a
+--     FileMesh (sin malla) y se dibuja como un CUBO; y con pocos polígonos, de cerca se ven caras planas.
+--   * La esfera es enorme (ValmarGlobe.Radius): cerca de la isla los anillos son finos (con la imagen) y
+--     lejos, gruesos (mar liso). Solo hasta ShellMaxTheta: lo que se ve desde el espacio; más allá, la
+--     bola lisa de debajo.
+ValmarGlobeClient.ShellFine = 0.5 -- grados por anillo donde va la imagen (~280 studs)
+ValmarGlobeClient.ShellCoarse = 2.6 -- grados por anillo en el mar liso (~1.500 studs)
+ValmarGlobeClient.ShellMaxTheta = 62 -- grados desde la cima
+ValmarGlobeClient.OceanColor = rgb(18, 84, 170) -- (el mar de la imagen, para que no se note el corte)
+local function buildShell(parent: Instance, tex: string?): number
+	local folder = Instance.new("Folder")
+	folder.Name = "Superficie"
+	folder.Parent = parent
+	local R = ValmarGlobe.Radius
+	local C = ValmarGlobe.Center
+	local texScale = R / ValmarGlobe.TexRadius -- (ángulo en la imagen por ángulo en la esfera)
+	local texLimit = math.rad(ValmarGlobe.TexMaxDeg) / texScale
+	local yaw = ValmarGlobe.TexYaw
+	local count = 0
+	local function ring(t0: number, t1: number, textured: boolean, lonStep: number)
+		local tc = (t0 + t1) / 2
+		local widest = math.max(math.sin(t0), math.sin(t1))
+		local n = math.max(6, math.ceil(2 * math.pi * widest / lonStep))
+		local dl = 2 * math.pi / n
+		local w = 2 * math.pi * R * widest / n
+		local h = R * (t1 - t0)
+		for k = 0, n - 1 do
+			local l0 = k * dl
+			local lc = l0 + dl / 2
+			-- (la misma convención que ValmarGlobe.texelToWorld: dirección (sin lon, −cos lon) en planta)
+			local up = Vector3.new(math.sin(tc) * math.sin(lc), math.cos(tc), -math.sin(tc) * math.cos(lc))
+			local east = Vector3.new(math.cos(lc), 0, math.sin(lc))
+			local p = part("Superficie", folder, 0)
+			p.Color = ValmarGlobeClient.OceanColor
+			p.Size = Vector3.new(math.min(w * 1.04, 2048), 1, math.min(h * 1.04, 2048))
+			p.CFrame = CFrame.fromMatrix(C + up * (R + 0.5), east, up, east:Cross(up).Unit)
+			if textured and tex then
+				-- toda la imagen mide 2π (U) por π (V) en ángulos de la imagen: en studs de esta pieza.
+				-- (en Studio: con el desplazamiento en positivo la imagen sale bien; el lago al oeste y el río al
+				-- este, como en el terreno)
+				local t = Instance.new("Texture")
+				t.Face = Enum.NormalId.Top
+				t.Texture = tex
+				local du = dl / (2 * math.pi)
+				local dv = (t1 - t0) * texScale / math.pi
+				local spu = p.Size.X / du
+				local spv = p.Size.Z / dv
+				t.StudsPerTileU = spu
+				t.StudsPerTileV = spv
+				local u0 = ((math.deg(l0) - yaw) / 360) % 1
+				local v0 = t0 * texScale / math.pi
+				t.OffsetStudsU = u0 * spu - (p.Size.X - w) / 2
+				t.OffsetStudsV = v0 * spv - (p.Size.Z - h) / 2
+				t.Parent = p
+				items[#items].Tex = t
+			end
+			count += 1
+		end
+	end
+	local fine = math.rad(ValmarGlobeClient.ShellFine)
+	local t = 0
+	while t < texLimit do
+		ring(t, t + fine, true, fine * 0.6)
+		t += fine
+	end
+	local coarse = math.rad(ValmarGlobeClient.ShellCoarse)
+	local maxT = math.rad(ValmarGlobeClient.ShellMaxTheta)
+	while t < maxT do
+		ring(t, t + coarse, false, coarse)
+		t += coarse
+	end
+	return count
+end
+
 function ValmarGlobeClient.build(): Model
 	local m = Instance.new("Model")
 	m.Name = "ValmarPlaneta"
@@ -326,17 +402,16 @@ function ValmarGlobeClient.build(): Model
 	local tex = look.Texture
 	textured = tex ~= nil
 	local R = ValmarGlobe.Radius
-	ball("Mar", R, rgb(16, 58, 108), m, 0, tex)
+	-- (la bola lisa, SIN imagen —con imagen se dibuja como un cubo—, un poco por dentro: el lado que no
+	-- se ve de cerca; encima, la superficie redonda en piezas con la imagen)
+	ball("Mar", R - 20, ValmarGlobeClient.OceanColor, m, 0)
+	buildShell(m, tex)
 	-- (la isla, nítida, con las teselas del mapa; si no están, la de la textura o la de polígonos)
 	buildIslandTiles(m)
 	if not textured then
 		buildLand(m)
 	end
-	-- Nubes (si hay textura de nubes: las de Tálasa sirven, son blancas sobre transparente)
-	local cloudTex = look.Clouds
-	if cloudTex then
-		clouds = ball("Nubes", R + ValmarGlobe.CloudLift, rgb(255, 255, 255), m, 0.25, cloudTex)
-	end
+	-- (sin nubes: eran una bola con imagen y Roblox la dibujaba como un cubo encima del planeta)
 	-- El aire: brillo azul en el borde (ForceField se ve más en el borde que en el centro)
 	-- (v122: muy suave, que no vele la tierra ni el mar: antes 0,55 y Valmar se veía azul lechoso)
 	local air = ball("Aire", R + ValmarGlobe.AirLift, rgb(110, 180, 255), m, ValmarGlobeClient.AirBase)
@@ -366,6 +441,33 @@ local function applyBlend(g: number)
 	end
 end
 
+-- La costa de enfrente (World/CityAssets.skyline: tierra y rascacielos al sur, más allá de la isla, siempre
+-- cargada) queda fuera de lo que tapa la esfera: se esconde en esta pantalla mientras se ve el planeta.
+local coast: Instance? = nil
+local coastHidden = false
+local coastLook = -math.huge
+local function hideCoast(hide: boolean)
+	if hide == coastHidden then
+		return
+	end
+	if not (coast and coast.Parent) then
+		if os.clock() - coastLook < 10 then
+			return
+		end
+		coastLook = os.clock()
+		coast = workspace:FindFirstChild("CostaDeEnfrente", true)
+		if not coast then
+			return
+		end
+	end
+	coastHidden = hide
+	for _, d in (coast :: Instance):GetDescendants() do
+		if d:IsA("BasePart") then
+			d.LocalTransparencyModifier = if hide then 1 else 0
+		end
+	end
+end
+
 local since = 0
 function ValmarGlobeClient.update(dt: number, camPos: Vector3, sunDir: Vector3?)
 	local arena = player and player:GetAttribute("AirCombatWorld") == "Arena"
@@ -373,6 +475,7 @@ function ValmarGlobeClient.update(dt: number, camPos: Vector3, sunDir: Vector3?)
 	-- referencia del dueño)
 	local near = Layers.inColumn(camPos, 2000) or PlanetBodies.approachAt(camPos, 600) ~= nil
 	local g = if near and not arena then ValmarGlobe.blend(camPos.Y) else 0
+	pcall(hideCoast, g > 0.005)
 	if g <= 0.005 then
 		if model and model.Parent then
 			model.Parent = nil

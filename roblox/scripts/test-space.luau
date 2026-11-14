@@ -1501,7 +1501,23 @@ do
 	check(math.abs(arc - 3000) < 1 and p.X > 0 and p.Y < top.Y, ("a 3000 studs del centro, en el planeta a un arco de %.0f, en su dirección y curvándose hacia abajo"):format(arc))
 	-- La textura y el juego usan la misma cuenta (generador scripts/espacio/gen_valmar_planeta.py)
 	local x, z = VG.texelToWorld(0.25, 0.1)
-	check(math.abs(math.sqrt(x * x + z * z) - 0.1 * math.pi * VG.Radius) < 1e-3, "texel de la imagen → punto de Valmar con el mismo arco que la esfera")
+	check(math.abs(math.sqrt(x * x + z * z) - 0.1 * math.pi * VG.TexRadius) < 1e-3, "texel de la imagen → punto de Valmar con el mismo arco que en la imagen (radio de la imagen)")
+	-- (14-11-2026) Roblox dibuja el terreno simplificado a cualquier distancia: la esfera tiene que quedar
+	-- POR ENCIMA de todo el mundo plano (ciudad, relieve, costa de enfrente) para taparlo, y su cima por
+	-- debajo de donde empieza a verse
+	local function surfaceY(px: number, pz: number): number
+		local dx, dz = px - VG.Center.X, pz - VG.Center.Z
+		return VG.Center.Y + math.sqrt(VG.Radius ^ 2 - dx * dx - dz * dz)
+	end
+	local covers = true
+	for _, c in { { 5600, 5600, 400 }, { -5600, 5600, 400 }, { 5600, -5600, 400 }, { -5600, -5600, 400 }, { 7000, 0, 300 }, { 0, 7000, 300 } } do
+		if surfaceY(c[1], c[2]) < c[3] then
+			covers = false
+		end
+	end
+	check(covers and VG.Top < VG.FromY - 150, ("la esfera tapa todo el mundo plano (en la esquina de la isla queda a %.0f studs) y su cima (%d) por debajo de donde se ve (%d)"):format(surfaceY(5600, 5600), VG.Top, VG.FromY))
+	local vgcSrc = require("@lune/fs").readFile("src/client/Controllers/ValmarGlobeClient.luau")
+	check(string.find(vgcSrc, "CostaDeEnfrente", 1, true) ~= nil, "la costa de enfrente (siempre cargada, fuera de la isla) se esconde mientras se ve el planeta")
 	local fs = require("@lune/fs")
 	check(fs.isFile("assets/espacio/valmar_planeta.jpg") and fs.isFile("scripts/espacio/gen_valmar_planeta.py"), "la textura del mapa de verdad está hecha (assets/espacio/valmar_planeta.jpg) para subirla con upload-espacio.sh")
 	-- Noche: luces solo en el lado sin sol
@@ -1563,8 +1579,22 @@ do
 	VGC = L.load("src/client/Controllers/ValmarGlobeClient")
 	VGC.update(0.1, Vector3.new(0, 6000, 0), sun)
 	local m2 = VGC.model()
+	local shell = m2 and m2:FindFirstChild("Superficie")
+	local withImage, pieces = 0, 0
+	for _, c in (shell and shell:GetChildren()) or {} do
+		pieces += 1
+		local t = c:FindFirstChildOfClass("Texture")
+		if t and t.Texture == "rbxassetid://424242" then
+			withImage += 1
+		end
+	end
 	local mesh = m2 and m2:FindFirstChild("Mar") and m2.Mar:FindFirstChildOfClass("SpecialMesh")
-	check(VGC.isTextured() and mesh and mesh.TextureId == "rbxassetid://424242" and m2:FindFirstChild("Tierra") == nil, "con la textura subida: la esfera lleva el mapa de verdad de Valmar")
+	-- (la bola sin imagen: con TextureId, Roblox cambia su malla a FileMesh y la dibuja como un cubo)
+	local okTex, ballTex = pcall(function()
+		return (mesh :: any).TextureId
+	end)
+	local plainBall = mesh ~= nil and (not okTex or ballTex == nil or ballTex == "")
+	check(VGC.isTextured() and withImage > 300 and pieces > withImage and pieces < 6000 and plainBall and m2:FindFirstChild("Tierra") == nil, ("con la textura subida: la superficie redonda en %d piezas, %d con el mapa de verdad, y la bola de debajo sin imagen"):format(pieces, withImage))
 	L.workspace, L.services.Players = oldW, oldPlayers
 	L.mock("src/shared/Images", nil)
 	L.reset("src/client/Controllers/ValmarGlobeClient")
