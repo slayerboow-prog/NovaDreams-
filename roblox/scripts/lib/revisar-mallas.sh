@@ -17,7 +17,13 @@ revisar_mallas() {
 	echo "🔎 Revisión de moderación de $# malla(s) antes de subir (scripts/audit/moderacion-mallas.py)"
 	local code=0 log
 	log="$(mktemp)"
-	python3 scripts/audit/moderacion-mallas.py --check "$@" >"$log" 2>&1 || code=$?
+	local blender="${BLENDER:-/c/Program Files/Blender Foundation/Blender 5.2/blender.exe}"
+	if python3 -c "import bpy" >/dev/null 2>&1 || [ ! -x "$blender" ]; then
+		python3 scripts/audit/moderacion-mallas.py --check "$@" >"$log" 2>&1 || code=$?
+	else
+		# (sin bpy como módulo: con el Blender instalado; el script recibe lo que va detrás de --)
+		PYTHONIOENCODING=utf-8 "$blender" -b --python-expr "import sys; sys.argv=['moderacion']+sys.argv[sys.argv.index('--')+1:]; __name__='__main__'; exec(compile(open('scripts/audit/moderacion-mallas.py',encoding='utf-8').read(),'moderacion-mallas.py','exec'))" -- --check "$@" >"$log" 2>&1 || code=$?
+	fi
 	grep -v '^FBX version\|^$' "$log" || true
 	rm -f "$log"
 	case "$code" in

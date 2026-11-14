@@ -1,0 +1,142 @@
+{
+ "Palacio": {
+  "parts": {
+   "Cuerpo": 8608,
+   "Luz": 4864,
+   "Cristal": 3856,
+   "Metal": 6192,
+   "Roca": 756,
+   "Agua": 140
+  },
+  "center": [
+   0.0,
+   131.0,
+   -0.47
+  ],
+  "size": [
+   136.4,
+   274.0,
+   147.06
+  ],
+  "tris": 24416
+ },
+ "Puerta": {
+  "parts": {
+   "Cuerpo": 6724,
+   "Luz": 3124,
+   "Metal": 3984,
+   "Cristal": 2080,
+   "Tronco": 168,
+   "Hoja": 432
+  },
+  "center": [
+   0.0,
+   93.2,
+   2.43
+  ],
+  "size": [
+   136.4,
+   194.4,
+   141.26
+  ],
+  "tris": 16512
+ },
+ "ArbolMadre": {
+  "parts": {
+   "Tronco": 668,
+   "Hoja": 3768,
+   "Cuerpo": 5128,
+   "Luz": 2624,
+   "Metal": 6864,
+   "Cristal": 3840,
+   "Roca": 108,
+   "Agua": 264
+  },
+  "center": [
+   -2.95,
+   125.1,
+   -0.74
+  ],
+  "size": [
+   150.0,
+   262.2,
+   157.48
+  ],
+  "tris": 23264
+ },
+ "TorreAnillos": {
+  "parts": {
+   "Cristal": 324,
+   "Metal": 5924,
+   "Luz": 7328,
+   "Cuerpo": 864
+  },
+  "center": [
+   0.0,
+   187.5,
+   -0.0
+  ],
+  "size": [
+   104.0,
+   375.0,
+   104.0
+  ],
+  "tris": 14440
+ },
+ "Reactor": {
+  "parts": {
+   "Metal": 864,
+   "Cuerpo": 2340,
+   "Luz": 9600,
+   "Cristal": 508
+  },
+  "center": [
+   0.0,
+   35.5,
+   -0.0
+  ],
+  "size": [
+   126.4,
+   71.0,
+   126.4
+  ],
+  "tris": 13312
+ },
+ "Ciudadela": {
+  "parts": {
+   "Luz": 3844,
+   "Roca": 252,
+   "Cuerpo": 9092,
+   "Metal": 1764
+  },
+  "center": [
+   0.0,
+   98.1,
+   -0.0
+  ],
+  "size": [
+   148.0,
+   198.2,
+   148.0
+  ],
+  "tris": 14952
+ },
+ "ReactorVerde": {
+  "parts": {
+   "Luz": 1360,
+   "Metal": 15384,
+   "Cristal": 620
+  },
+  "center": [
+   0.0,
+   73.75,
+   -0.0
+  ],
+  "size": [
+   128.0,
+   148.3,
+   128.0
+  ],
+  "tris": 17364
+ }
+}

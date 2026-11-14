@@ -1271,6 +1271,11 @@ function PlanetMetroBuilder.landmark(root: Instance, S: any, M: any, LM: any, mk
 	Builder.sign(post, LM.Name, Enum.NormalId.Front, glowC, rgb(16, 18, 26))
 	Builder.sign(post, LM.Name, Enum.NormalId.Back, glowC, rgb(16, 18, 26))
 	mk(m, "PieRotulo", cf * CFrame.new(0, 1.5, -R * 0.9), V3(2, 3, 1), L.Metal, Enum.Material.Metal)
+	-- la versión de malla hecha con Blender, si está subida (World/PlanetMetroMeshes; si no, se queda esta)
+	pcall(function()
+		local Meshes = require(script.Parent.PlanetMetroMeshes) :: any
+		Meshes.apply(m, kind, L, cf)
+	end)
 	return m
 end
 
