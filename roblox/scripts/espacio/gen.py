@@ -164,8 +164,13 @@ FACES = {
     "bk": ((0, 0, 1), (-1, 0, 0), (0, 1, 0)),
     "lf": ((-1, 0, 0), (0, 0, -1), (0, 1, 0)),
     "rt": ((1, 0, 0), (0, 0, 1), (0, 1, 0)),
-    "up": ((0, 1, 0), (1, 0, 0), (0, 0, 1)),
-    "dn": ((0, -1, 0), (1, 0, 0), (0, 0, -1)),
+    # (14-11-2026, comprobado en Studio con una imagen reconocible en cada cara) Roblox pinta la cara de
+    # arriba con la parte de arriba de la imagen hacia +X y su derecha hacia −Z, y la de abajo con la parte
+    # de arriba hacia −X y la derecha hacia −Z. Con la convención de antes se veían cortes diagonales al
+    # mirar arriba o abajo. (Los laterales: el archivo «lf» va en SkyboxRt y «rt» en SkyboxLf:
+    # shared/Cosmos/EspacioLook.SkyFaces.)
+    "up": ((0, 1, 0), (0, 0, -1), (1, 0, 0)),
+    "dn": ((0, -1, 0), (0, 0, -1), (-1, 0, 0)),
 }
 FACE_FLIP = {}  # p. ej. {"up": "rot90"} si hiciera falta
 

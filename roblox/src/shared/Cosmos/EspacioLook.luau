@@ -17,7 +17,12 @@
 
 local EspacioLook = {}
 
-EspacioLook.SkyFaces = { SkyboxBk = "bk", SkyboxDn = "dn", SkyboxFt = "ft", SkyboxLf = "lf", SkyboxRt = "rt", SkyboxUp = "up" }
+-- Qué imagen va en cada cara del cielo de Roblox. Los archivos se llaman por la DIRECCIÓN que pintan
+-- (scripts/espacio/gen.py: ft = −Z, bk = +Z, lf = −X, rt = +X, up = +Y, dn = −Y). Comprobado en Studio
+-- (14-11-2026) con una imagen reconocible en cada cara: Roblox pone SkyboxLf mirando a +X y SkyboxRt a −X
+-- (al revés de su nombre). Antes iban cruzadas y el cielo del espacio se veía con cortes entre caras.
+-- Las caras de arriba y abajo van además giradas (eso lo hace el generador: gen.py FACES).
+EspacioLook.SkyFaces = { SkyboxBk = "bk", SkyboxDn = "dn", SkyboxFt = "ft", SkyboxLf = "rt", SkyboxRt = "lf", SkyboxUp = "up" }
 EspacioLook.Skies = { EspacioProfundo = "cielo_nebulosa", CieloTefra = "cielo_tefra" }
 -- (v122, referencia del dueño) Cielo nuevo del espacio, más vivo: nebulosas moradas, azules y rosas, Vía
 -- Láctea brillante y muchas más estrellas (scripts/espacio/gen_espacio_v122.py). Hasta que se suba, el

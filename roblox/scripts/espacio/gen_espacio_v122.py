@@ -80,6 +80,34 @@ def nebula_color(d):
     lanes = smooth(0.52, 0.76, fbm(p, 6, 3.2, seed=157)) * band
     img += (band * (0.3 + 0.7 * dust) * (1 - 0.75 * lanes))[..., None] * col(150, 140, 190) * 0.55
     img += (core * (0.4 + 0.6 * dust) * (1 - lanes))[..., None] * col(255, 225, 200) * 0.38
+    # (14-11-2026, «que parezca 3D, con profundidad») Capas: nubes de polvo OSCURO por delante de las
+    # nebulosas (siluetas recortadas: lo que tapa parece estar más cerca) con un borde iluminado, y galaxias
+    # lejanas pequeñas (manchitas elípticas con núcleo) que dan escala al fondo.
+    veil_n = fbm(warp(p, 1.4, 2.2, 29), 6, 3.0, seed=171)
+    veil = smooth(0.58, 0.72, veil_n) * smooth(0.25, 0.6, a)
+    rim = (smooth(0.54, 0.6, veil_n) - smooth(0.6, 0.66, veil_n)).clip(0, 1) * smooth(0.25, 0.6, a)
+    img *= (1 - 0.72 * veil)[..., None]
+    img += rim[..., None] * col(255, 190, 230) * 0.18
+    rng = np.random.default_rng(909)
+    for _ in range(26):
+        g = rng.normal(size=3).astype(np.float32)
+        g /= np.linalg.norm(g)
+        size = rng.uniform(0.006, 0.016)
+        cosang = d @ g
+        # ejes de la elipse en el plano tangente
+        t1 = np.cross(g, np.array([0.3, 1.0, 0.2], np.float32))
+        t1 /= np.linalg.norm(t1)
+        t2 = np.cross(g, t1)
+        ang = rng.uniform(0, np.pi)
+        a1 = t1 * np.cos(ang) + t2 * np.sin(ang)
+        a2 = np.cross(g, a1)
+        u = d @ a1
+        w = d @ a2
+        r2 = (u / size) ** 2 + (w / (size * rng.uniform(0.3, 0.7))) ** 2
+        glow = np.exp(-r2) * (cosang > 0.9)
+        tint = col(*[int(x) for x in rng.choice([[255, 225, 190], [200, 215, 255], [255, 200, 230]])])
+        img += (glow * 0.55)[..., None] * tint
+        img += (np.exp(-r2 * 9) * (cosang > 0.9) * 0.6)[..., None] * col(255, 250, 235)
     return img
 
 
