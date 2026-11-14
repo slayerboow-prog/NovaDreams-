@@ -262,7 +262,7 @@ end
 -- Alerta
 ---------------------------------------------------------------------
 local banner: Frame
-local bannerTitle: TextLabel -- «🪼 PLAGA DE MEDUSAS · el puerto»
+local bannerTitle: TextLabel -- «🐙 PLAGA DE MEDUSAS · el puerto»
 local bannerTime: TextLabel -- «⏱️ 115 s» (o «⏳ en 20 s»)
 local bannerTip: TextLabel -- qué hacer
 local built: string? = nil

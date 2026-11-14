@@ -4,7 +4,7 @@
 --   Loco_D2_Deuda      «La deuda galáctica»          el Banco Galáctico viene a embargar la Tierra → 💳 Tarjeta galáctica
 --   Loco_D3_Tostadora  «Cosme en una tostadora»      la rebelión de los electrodomésticos → 🍞 La tostadora de Cosme
 --   Loco_D4_Gnomos     «La noche de los gnomos»      los gnomos de jardín reclaman sus tierras → 🧙 Gnomo aliado
---   Loco_D5_Malvado    «Tu yo malvado»               tu versión de la dimensión 66-B quiere tu vida → 🥸 La perilla malvada
+--   Loco_D5_Malvado    «Tu yo malvado»               tu versión de la dimensión 66-B quiere tu vida → 🕶️ La perilla malvada
 
 local V = Vector3.new
 
@@ -326,7 +326,7 @@ return {
 					{ Npc = "TuMalvado", Place = "GarajeCosme", Offset = V(-8, 0, 6), Mode = "Hunt", Speed = 13, Prompt = false },
 					{ Npc = "Cosme", Place = "GarajeCosme", Offset = V(4, 0, -3), Mode = "Point" },
 				} },
-			{ Type = "Fight", Place = "GarajeCosme", Respawn = "GarajeCosme", Action = "Arrancarle la perilla 🥸", HP = 6, BeamColor = Color3.fromRGB(180, 40, 70), Props = { "Portal" },
+			{ Type = "Fight", Place = "GarajeCosme", Respawn = "GarajeCosme", Action = "Arrancarle la perilla 🕶️", HP = 6, BeamColor = Color3.fromRGB(180, 40, 70), Props = { "Portal" },
 				Text = "¡Portal listo! Arráncale la perilla a tu yo malvado",
 				CaughtLine = "¡Muahaha! (Te hace una llave malvada. Vuelves al fondo del garaje.)",
 				Actors = { { Npc = "Cosme", Place = "GarajeCosme", Offset = V(4, 0, -3), Mode = "Cheer" } },
@@ -372,7 +372,7 @@ return {
 					} },
 				} },
 				{ S = "Cosme", T = "Y quédate la perilla. Como trofeo. Es la mejor victoria que se puede tener: ganarte a ti mismo. Ahí lo tienes. Filosofía barata. Gratis." },
-				{ S = "Narrador", T = "Recibes 🥸 la Perilla de tu yo malvado." },
+				{ S = "Narrador", T = "Recibes 🕶️ la Perilla de tu yo malvado." },
 			} },
 		},
 	},

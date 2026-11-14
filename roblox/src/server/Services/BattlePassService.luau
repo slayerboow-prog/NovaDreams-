@@ -417,7 +417,7 @@ function BattlePassService.addXp(player: Player, amount: number, source: string?
 			local delta = tokens - bp.OverflowTokens
 			bp.OverflowTokens = tokens
 			data.Cosmetics.Tokens += delta
-			notify(player, "Success", ("🪙 +%d ficha%s de temporada"):format(delta, if delta == 1 then "" else "s"))
+			notify(player, "Success", ("💰 +%d ficha%s de temporada"):format(delta, if delta == 1 then "" else "s"))
 			Rewards.sync(player)
 		end
 	end

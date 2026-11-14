@@ -299,4 +299,18 @@ PlanetJobs.register({
 })
 S.Jobs = PlanetJobs.of("Nivalis")
 
+
+---------------------------------------------------------------------
+-- Los peligros del terreno (shared/Cosmos/TerrainPerils; Services/PlanetPerilService)
+---------------------------------------------------------------------
+S.Perils = {
+	-- (el hielo fino: tres manchas en el Lago de los Ahogados, donde el hielo es más joven)
+	{ Id = "Nivalis_HieloFino", Kind = "Hielo", Name = "Hielo fino", Icon = "🧊",
+		Fixed = { { X = LAKE.X, Z = LAKE.Z, R = 26 }, { X = LAKE.X - 42, Z = LAKE.Z - 50, R = 16 }, { X = LAKE.X + 50, Z = LAKE.Z + 45, R = 18 } },
+		Color = rgb(186, 220, 245), Material = Enum.Material.Glass, Hold = 3, Drop = 45, Damage = 8,
+		Text = "🧊 Hielo fino: si te quedas quieto encima, cruje y se rompe. Cruza sin pararte." },
+	{ Id = "Nivalis_Ventisca", Kind = "Empuje", Name = "Viento de la ventisca", Icon = "🌨️", Mode = "Ventisca", Every = 6, Force = 28, Dir = Vector3.new(-1, 0, 0.5),
+		Text = "🌨️ Ventisca: el viento te arrastra. Busca una hoguera o métete bajo techo." },
+}
+
 return S

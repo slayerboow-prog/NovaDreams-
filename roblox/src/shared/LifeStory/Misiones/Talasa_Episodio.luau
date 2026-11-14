@@ -126,7 +126,7 @@ return {
 					{ Type = "Event", Event = "PoiDiscovered", Match = { Id = "Talasa_Muestra3" }, Text = "La muestra que se encoge con la luz" },
 				} },
 			{ Type = "Event", Event = "HazardCountered", Match = { Planet = "Talasa" },
-				Text = "🌊 ¡Presión! Usa una 🫧 carga de oxígeno de la mochila" },
+				Text = "🌊 ¡Presión! Usa una 💧 carga de oxígeno de la mochila" },
 			{ Type = "Talk", Npc = "NoaFerran", Dialogue = "Microscopio", Text = "Lleva las muestras al laboratorio de la Estación",
 				Actors = { at("NoaFerran", "Talasa_EstacionDentro", 0, -3), at("Cosme", "Talasa_EstacionDentro", 4, 0) } },
 			{ Type = "MiniGame", Game = "Timing", Title = "El microscopio", Icon = "🔬", Hint = "Enfoca la muestra: pulsa cuando la aguja pase por el verde",

@@ -75,7 +75,7 @@ local list = {
 		},
 	},
 	{
-		Key = "O03", Number = 3, Name = "Shadow Ops", Rarity = "Legendaria", Icon = "🥷",
+		Key = "O03", Number = 3, Name = "Shadow Ops", Rarity = "Legendaria", Icon = "🕵️",
 		Description = "Negro táctico de pies a cabeza: chaqueta, chaleco de bolsillos, cargo, botas, guantes, gorra y braga de cuello. (Solo estilo: sin armas).",
 		Top = { Kind = "Jacket", Color = rgb(20, 20, 22), Trim = rgb(48, 50, 54), Sleeves = "Long", Zip = true, Collar = "High" },
 		Bottom = { Kind = "Cargo", Color = rgb(22, 22, 24), Length = "Long", Pockets = true, Straps = rgb(40, 42, 46) },
@@ -317,7 +317,7 @@ local list = {
 		},
 	},
 	{
-		Key = "O22", Number = 22, Name = "Cyber Pink", Rarity = "Legendaria", Icon = "🩷",
+		Key = "O22", Number = 22, Name = "Cyber Pink", Rarity = "Legendaria", Icon = "💗",
 		Description = "Plumífero rosa corto, top negro, shorts, botas altas rosas, coletas rosa chicle y visera de neón. Del futuro, en rosa.",
 		Top = { Kind = "Puffer", Color = rgb(255, 128, 196), Inner = rgb(20, 20, 24), Sleeves = "Long", Open = true, Midriff = true, Quilt = true, Neon = rgb(255, 60, 200) },
 		Bottom = { Kind = "Shorts", Color = rgb(20, 20, 24), Length = "Short", Neon = rgb(255, 60, 200) },

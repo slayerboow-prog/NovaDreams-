@@ -73,7 +73,7 @@ function Movement.allowed(stance: any, ctx: StanceContext): (boolean, string?)
 	elseif ctx.Swimming then
 		return false, "🌊 En el agua no te puedes agachar."
 	elseif ctx.Climbing then
-		return false, "🪜 Primero baja de la escalera."
+		return false, "⬆️ Primero baja de la escalera."
 	end
 	return true, nil
 end

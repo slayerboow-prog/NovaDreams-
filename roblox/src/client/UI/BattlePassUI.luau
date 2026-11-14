@@ -713,7 +713,7 @@ local function renderTop()
 			Theme.setText(dot, tostring(n))
 		end
 	end
-	Theme.setText(ui.Tabs.Shop, ("FICHAS · 🪙 %d"):format((progress and progress.Tokens) or 0))
+	Theme.setText(ui.Tabs.Shop, ("FICHAS · 💰 %d"):format((progress and progress.Tokens) or 0))
 	Theme.setText(ui.Money, "💶 " .. money(tonumber(player:GetAttribute("Money")) or 0))
 	ui.RewardsPage.Visible = section == "Rewards"
 	ui.MissionsPage.Visible = section == "Missions"

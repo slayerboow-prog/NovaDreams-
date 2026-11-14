@@ -55,7 +55,7 @@ return {
 					{ Type = "Use", Prop = "Punto2", Text = "La plaza del centro" },
 					{ Type = "Use", Prop = "Punto3", Text = "El patio del instituto" },
 				} },
-			{ Type = "Fight", Place = "Parque", Respawn = "Parque", Action = "Enrollarla en la aguja 🪡", HP = 2, BeamColor = Color3.fromRGB(120, 255, 160),
+			{ Type = "Fight", Place = "Parque", Respawn = "Parque", Action = "Enrollarla en la aguja 🧵", HP = 2, BeamColor = Color3.fromRGB(120, 255, 160),
 				Text = "¡Hilachas en el parque! Enróllalas todas ({count}/{total})",
 				CaughtLine = "¡Latigazo de hilo! (Te atan los tobillos y caes de bruces. Te desenredas junto a la fuente.)",
 				Enemies = {
@@ -458,7 +458,7 @@ return {
 					{ Npc = "Cosimo", Place = "PatioInstituto", Offset = V(0, 0, -8) },
 					{ Npc = "Cosme", Place = "PatioInstituto", Offset = V(2, 0, 3) },
 				} },
-			{ Type = "Fight", Place = "PatioInstituto", Respawn = "PatioInstituto", Action = "Pinchar con la aguja 🪡", HP = 3, BeamColor = Color3.fromRGB(120, 255, 160),
+			{ Type = "Fight", Place = "PatioInstituto", Respawn = "PatioInstituto", Action = "Pinchar con la aguja 🧵", HP = 3, BeamColor = Color3.fromRGB(120, 255, 160),
 				Text = "¡Los drones de Cósimo atacan! Protege a tus amigos ({count}/{total})",
 				CaughtLine = "¡Aplausos para el concursante! (Un dron te levanta del suelo y te lanza a la otra punta del patio.)",
 				Actors = {

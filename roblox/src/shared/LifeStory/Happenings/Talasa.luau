@@ -119,4 +119,48 @@ return {
 			},
 		},
 	},
+
+	---------------------------------------------------------------------
+	-- Talasa_Peligro · el peligro del terreno de este planeta (Misiones/Planetas_Peligros; shared/Cosmos/TerrainPerils).
+	--   Plano del sitio y del cielo, el golpe, silencio, y quien te lo va a enseñar.
+	---------------------------------------------------------------------
+	Talasa_Peligro = {
+		Duration = 19,
+		Skippable = true,
+		FadeIn = true,
+		Anchors = {
+			Lugar = "Place:Talasa_Muelle",
+			Yo = "Player",
+			Cielo = { Place = "Talasa_Muelle", Offset = V(80, 120, -200) },
+		},
+		Tracks = {
+			Camera = {
+				{ At = 0, Duration = 5.6, From = { "Lugar", V(-14, 6, 16) }, To = { "Lugar", V(-8, 4, 12) }, Look = { "Cielo" }, Fov = { 62, 54 }, Cut = "Fade" },
+				{ At = 5.6, Duration = 4.4, Shot = "Medio:Bruma", Cut = "Cut" },
+				{ At = 10, Duration = 3, Shot = "Reaccion:Yo", Cut = "Cut" },
+				{ At = 13, Duration = 6, Shot = "PrimerPlano:Bruma", Cut = "Cut" },
+			},
+			Fx = {
+				{ At = 1, Play = "Flash", Anchor = "Cielo" },
+				{ At = 1, Play = "LocalStorm", Anchor = "Cielo" },
+			},
+			Sound = {
+				{ At = 1, Play = "Thunder" },
+			},
+			Music = {
+				{ At = 0, Intensity = "Tension" },
+			},
+			Actors = {
+				{ At = 0, Use = { Key = "Bruma", Npc = "Bruma", Anchor = "Lugar", Offset = V(2, 0, 2) } },
+				{ At = 0.4, Look = { Key = "Bruma", At = "Cielo" } },
+				{ At = 5.6, Mood = { Key = "Bruma", Mood = "Fear" } },
+				{ At = 6, Look = { Key = "Bruma", At = "Yo" } },
+			},
+			Dialogue = {
+				{ At = 3.4, S = "Narrador", T = "El cielo verde de Tálasa se ha vuelto negro. Sobre el mar, los rayos bajan de tres en tres." },
+				{ At = 6.2, S = "Bruma", T = "Ya viene. Cuando el agua de la cubierta brille en rojo, te quiero tres pasos más allá.", To = "Yo" },
+				{ At = 13.4, S = "Narrador", T = "Las tormentas de Tálasa no mojan. Buscan." },
+			},
+		},
+	},
 }

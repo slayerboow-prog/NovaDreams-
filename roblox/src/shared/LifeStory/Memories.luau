@@ -89,7 +89,7 @@ local Memories: { [string]: Memory } = {
 	ElTrato = { Text = "La noche que Cósimo te ofreció un trato", Icon = "🤝" },
 	GranFusion = { Text = "Paraste la Gran Fusión en la cima del Monte del Silencio", Icon = "🌀" },
 	FinDeLaSaga = { Text = "Cerraste la Grieta para siempre en el patio donde empezó todo", Icon = "🌅" },
-	CoserElCielo = { Text = "La noche que cosiste el cielo con Cosme (y oíste a Cósimo por primera vez)", Icon = "🪡" },
+	CoserElCielo = { Text = "La noche que cosiste el cielo con Cosme (y oíste a Cósimo por primera vez)", Icon = "🧵" },
 	-- Rarezas de la Grieta
 	BuzonPasado = { Text = "Te escribiste una carta a ti mismo desde ayer", Icon = "📮" },
 	FarolaOpera = { Text = "Le diste clase de canto a una farola tenor", Icon = "🎶" },
@@ -101,7 +101,7 @@ local Memories: { [string]: Memory } = {
 	NubePerdida = { Text = "Llevaste a una nube bebé de vuelta al mar", Icon = "☁️" },
 	ColumpioPasado = { Text = "Te columpiaste hasta la infancia de tu abu", Icon = "🎠" },
 	SombraEscapada = { Text = "El día que tu sombra se escapó a jugar", Icon = "👤" },
-	EspejoContesta = { Text = "Le enseñaste a tu reflejo a ser amable", Icon = "🪞" },
+	EspejoContesta = { Text = "Le enseñaste a tu reflejo a ser amable", Icon = "🔮" },
 	PalomasCola = { Text = "Ayudaste a cuarenta palomas a enviar una carta", Icon = "🕊️" },
 	CafeConsejos = { Text = "La máquina de café que daba consejos", Icon = "☕" },
 	EcoFuturo = { Text = "Oíste a tu yo del futuro en el eco del estadio", Icon = "📣" },
@@ -120,7 +120,7 @@ local Memories: { [string]: Memory } = {
 	EmperadorBigotes = { Text = "Salvaste a Bigotes, emperador de Gatonia, de las cucarachas espaciales", Icon = "👑" },
 	GallinaGigante = { Text = "Petra, la gallina de seis metros de Villaverde", Icon = "🐔" },
 	LosClones = { Text = "El día que hubo cuatro como tú en el cole", Icon = "👯" },
-	TirachinasAbu = { Text = "Cuando tu abu te regaló su tirachinas de campeón (solo latas)", Icon = "🪃" },
+	TirachinasAbu = { Text = "Cuando tu abu te regaló su tirachinas de campeón (solo latas)", Icon = "🎯" },
 	RatonPerez = { Text = "La noche que ayudaste al Ratón Pérez en su huelga", Icon = "🐭" },
 	MensajeFuturo = { Text = "Cuando tu yo del futuro vino a pedirte un favor", Icon = "📱" },
 	DimensionExamen = { Text = "El examen en la Dimensión de los Lápices", Icon = "✏️" },
@@ -136,7 +136,7 @@ local Memories: { [string]: Memory } = {
 	DeudaGalactica = { Text = "Cuando el Banco Galáctico vino a embargar la Tierra", Icon = "💳" },
 	CosmeTostadora = { Text = "Cuando Cosme se pasó a una tostadora", Icon = "🍞" },
 	GuerraGnomos = { Text = "La noche de la guerra de los gnomos", Icon = "🧙" },
-	TuYoMalvado = { Text = "El duelo contra tu yo malvado de la dimensión 66-B", Icon = "🥸" },
+	TuYoMalvado = { Text = "El duelo contra tu yo malvado de la dimensión 66-B", Icon = "🕶️" },
 	-- Misiones de aliados
 	GuardiaGatuna = { Text = "Protegiste la visita de Estado de Bigotes y te nombró Canciller de Gatonia", Icon = "🎗️" },
 	AbogadoRex = { Text = "Rex te defendió ante el tribunal del Consorcio (y ganó su primer juicio)", Icon = "⚖️" },
@@ -155,7 +155,7 @@ local Memories: { [string]: Memory } = {
 	AltoElFuego = { Text = "El alto el fuego de Bastión: Dalia contó la verdad, también la suya", Icon = "🕊" },
 	PadreDeBrasa = { Text = "Brasa corriendo hacia su padre entre la ceniza", Icon = "🖍" },
 	CandadoDeAda = { Text = "El candado de Ada en el Puente de los Mil Candados", Icon = "🔒" },
-	PapelesDeBastion = { Text = "El control de la Capitana Ferra y los papeles de Lumo", Icon = "🪪" },
+	PapelesDeBastion = { Text = "El control de la Capitana Ferra y los papeles de Lumo", Icon = "🆔" },
 	-- Miasma · Anclaje Siete (Saga 2: docs/planetas/marco-planetas.md)
 	LlegadaMiasma = { Text = "El aterrizaje en Anclaje Siete, entre cañonazos, sobre un mar de niebla", Icon = "🌫" },
 	RacionDoble = { Text = "Las latas de la Señora Garúa y la tos de sus nietos", Icon = "🥫" },
@@ -164,6 +164,13 @@ local Memories: { [string]: Memory } = {
 	CancionDelSeis = { Text = "Una canción infantil por la radio, desde debajo de la niebla", Icon = "📻" },
 	-- Siroco · Puerto Calcina (Saga 2)
 	LlegadaSiroco = { Text = "La hora roja de Puerto Calcina, corriendo bajo el sol detrás de Rafa", Icon = "🌞" },
+	-- Los peligros del terreno de cada planeta (Misiones/Planetas_Peligros)
+	ArenasSiroco = { Text = "Las arenas movedizas de Siroco: la arena oscura no se pisa", Icon = "🏜️" },
+	TormentaTalasa = { Text = "La tormenta eléctrica de Tálasa: tres pasos fuera del rojo", Icon = "⚡" },
+	LagoNivalis = { Text = "El Lago de los Ahogados, cruzado sin pararse", Icon = "🧊" },
+	LluviaUmbria = { Text = "La lluvia de Raíz Honda, cuando llueve madera", Icon = "🌳" },
+	PararrayosMiasma = { Text = "Los pararrayos de Lastre bajo la lluvia ácida", Icon = "⚡" },
+	ApagonVertice = { Text = "El apagón de Distrito Cero, mirando al suelo", Icon = "🌑" },
 	DeudasDeRafa = { Text = "La huida por el Zoco del Viento con los cobradores de Hierro detrás", Icon = "💸" },
 	AguaDeTodos = { Text = "Los bidones de Pozo Hondo, repartidos sin derramar una gota", Icon = "💧" },
 	CementerioDeslizadores = { Text = "Las piezas del Cementerio de Deslizadores para el motor de Nina", Icon = "⚙" },
@@ -176,7 +183,7 @@ local Memories: { [string]: Memory } = {
 	PrincesaViva = { Text = "Una figura en la Muralla Vieja que oficialmente murió hace seis años", Icon = "👑" },
 	-- Umbría · Raíz Honda (Saga 2)
 	LlegadaUmbria = { Text = "El Árbol Madre perdiéndose en la niebla y el zumbido, lejos", Icon = "🌳" },
-	PrimeraOleada = { Text = "Las barricadas del Vivero y las tres primeras máquinas cayendo en chispas", Icon = "🪵" },
+	PrimeraOleada = { Text = "Las barricadas del Vivero y las tres primeras máquinas cayendo en chispas", Icon = "🌲" },
 	Dron7 = { Text = "Una máquina pequeña que dijo «gracias» con la boca llena de madera muerta", Icon = "🤖" },
 	BalizaTorca = { Text = "La baliza del Claro Muerto y lo que Garza no se atrevía a contar", Icon = "📡" },
 	ViejosSocios = { Text = "La cara roja de Vesna sobre la plaza y la oferta que Garza no aceptó", Icon = "🤝" },
@@ -194,8 +201,8 @@ local Memories: { [string]: Memory } = {
 	LuzVertice = { Text = "Una caja de luz embotellada: «Proveedor: V.» y Ofelia Brum anunciando la Liquidación Total", Icon = "🔦" },
 	-- El mar de los Hondarios · «La canción de lo hondo» (docs/mar/civilizacion-marina.md, fase 1)
 	IlunArrecife = { Text = "La red vieja del jardín de coral y el chico con cola que había dentro", Icon = "🐚" },
-	LlegadaNacara = { Text = "La primera vez que viste Nácara: torres de coral que brillaban a 37 metros", Icon = "🪸" },
-	PrimerTrueque = { Text = "Tres conchas por una «auténtica pieza pirata» de Bartolo", Icon = "🫧" },
+	LlegadaNacara = { Text = "La primera vez que viste Nácara: torres de coral que brillaban a 37 metros", Icon = "🐚" },
+	PrimerTrueque = { Text = "Tres conchas por una «auténtica pieza pirata» de Bartolo", Icon = "💧" },
 	JuicioConsejo = { Text = "El juicio en la Concha del Consejo, delante de Maresa", Icon = "⚖️" },
 	RedesCortadas = { Text = "La persecución por el kelp detrás de Sargo, el de la Marea Callada", Icon = "🌿" },
 }

@@ -165,4 +165,48 @@ return {
 			},
 		},
 	},
+
+	---------------------------------------------------------------------
+	-- Miasma_Peligro · el peligro del terreno de este planeta (Misiones/Planetas_Peligros; shared/Cosmos/TerrainPerils).
+	--   Plano del sitio y del cielo, el golpe, silencio, y quien te lo va a enseñar.
+	---------------------------------------------------------------------
+	Miasma_Peligro = {
+		Duration = 19,
+		Skippable = true,
+		FadeIn = true,
+		Anchors = {
+			Lugar = "Place:Miasma_Taller",
+			Yo = "Player",
+			Cielo = { Place = "Miasma_Taller", Offset = V(-60, 40, -140) },
+		},
+		Tracks = {
+			Camera = {
+				{ At = 0, Duration = 5.6, From = { "Lugar", V(-14, 6, 16) }, To = { "Lugar", V(-8, 4, 12) }, Look = { "Cielo" }, Fov = { 62, 54 }, Cut = "Fade" },
+				{ At = 5.6, Duration = 4.4, Shot = "Medio:BrumaTaller", Cut = "Cut" },
+				{ At = 10, Duration = 3, Shot = "Reaccion:Yo", Cut = "Cut" },
+				{ At = 13, Duration = 6, Shot = "PrimerPlano:BrumaTaller", Cut = "Cut" },
+			},
+			Fx = {
+				{ At = 1, Play = "Flash", Anchor = "Cielo" },
+				{ At = 1, Play = "LocalStorm", Anchor = "Cielo" },
+			},
+			Sound = {
+				{ At = 1, Play = "Thunder" },
+			},
+			Music = {
+				{ At = 0, Intensity = "Tension" },
+			},
+			Actors = {
+				{ At = 0, Use = { Key = "BrumaTaller", Npc = "BrumaTaller", Anchor = "Lugar", Offset = V(2, 0, 2) } },
+				{ At = 0.4, Look = { Key = "BrumaTaller", At = "Cielo" } },
+				{ At = 5.6, Mood = { Key = "BrumaTaller", Mood = "Fear" } },
+				{ At = 6, Look = { Key = "BrumaTaller", At = "Yo" } },
+			},
+			Dialogue = {
+				{ At = 3.4, S = "Narrador", T = "Gotas verdes golpean los discos de Anclaje Siete. Desde la niebla de abajo sube un rayo." },
+				{ At = 6.2, S = "BrumaTaller", T = "Lluvia ácida. Y con ella, rayos que suben de la niebla. A ver dónde falla el pararrayos.", To = "Yo" },
+				{ At = 13.4, S = "Narrador", T = "En Miasma, hasta los rayos van al revés." },
+			},
+		},
+	},
 }

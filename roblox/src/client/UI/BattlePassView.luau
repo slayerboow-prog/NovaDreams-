@@ -146,7 +146,7 @@ function BattlePassView.nextText(state: { [string]: any }?, track: string): stri
 	end
 	local max = (state.Season and state.Season.MaxLevel) or 50
 	if progress.IsMax or (progress.Level or 1) >= max then
-		return ("🏁 Nivel máximo. La XP de más te da fichas (🪙 %d)"):format(progress.Tokens or 0)
+		return ("🏁 Nivel máximo. La XP de más te da fichas (💰 %d)"):format(progress.Tokens or 0)
 	end
 	local nextLevel = (progress.Level or 1) + 1
 	local reward = BattlePassView.find(state, track, nextLevel)
@@ -177,7 +177,7 @@ end
 function BattlePassView.missionReward(mission: { [string]: any }): string
 	local text = ("+%s XP"):format(BattlePassView.number(tonumber(mission.Xp) or 0))
 	if (tonumber(mission.Tokens) or 0) > 0 then
-		text ..= (" · +%d 🪙"):format(mission.Tokens)
+		text ..= (" · +%d 💰"):format(mission.Tokens)
 	end
 	return text
 end

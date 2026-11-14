@@ -26,11 +26,12 @@ _Ninguno._
 - PASO 1 → paso 1 del juego (Event): 4 frases al cumplirlo (escena ligera «Varkun1_G1_Fin», sin quitar el control)
 - PASO 2 → paso 2 del juego (Event): 3 frases al empezar el paso (van detrás de las del final del paso 1, en su escena «Varkun1_G1_Fin»)
 - PASO 3 → paso 3 del juego (Event): 3 frases al empezar el paso (escena ligera «Varkun1_G3_Entra», la lanza el paso 2 al cumplirse; el jugador no pierde el control)
-- PASO 4 → paso 4 del juego (Event): 5 frases al empezar el paso (escena ligera «Varkun1_G4_Entra», la lanza el paso 3 al cumplirse; el jugador no pierde el control)
+- PASO 4 → paso 4 del juego (Event): 6 frases al empezar el paso (escena ligera «Varkun1_G4_Entra», la lanza el paso 3 al cumplirse; el jugador no pierde el control)
 
 ## Adaptado (y por qué)
 
 - PASO 1: no hay paso de antes que pueda lanzar las 4 frases del principio (es el primero, o un objetivo de un Group, o el de antes ya lanza escena): suenan al cumplir el paso 1
+- PASO 4 (línea 34): la acotación «(mira hacia arriba)» no tiene gesto en el juego: se queda solo la frase
 
 ## Género ({o/a}) corregido en frases dirigidas al jugador
 

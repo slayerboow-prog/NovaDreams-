@@ -100,4 +100,47 @@ return {
 			},
 		},
 	},
+
+	---------------------------------------------------------------------
+	-- Nivalis_Peligro · el peligro del terreno de este planeta (Misiones/Planetas_Peligros; shared/Cosmos/TerrainPerils).
+	--   Plano del sitio y del cielo, el golpe, silencio, y quien te lo va a enseñar.
+	---------------------------------------------------------------------
+	Nivalis_Peligro = {
+		Duration = 19,
+		Skippable = true,
+		FadeIn = true,
+		Anchors = {
+			Lugar = "Place:Nivalis_Hoguera",
+			Yo = "Player",
+			Cielo = { Place = "Nivalis_Hoguera", Offset = V(-60, 40, -120) },
+		},
+		Tracks = {
+			Camera = {
+				{ At = 0, Duration = 5.6, From = { "Lugar", V(-14, 6, 16) }, To = { "Lugar", V(-8, 4, 12) }, Look = { "Cielo" }, Fov = { 62, 54 }, Cut = "Fade" },
+				{ At = 5.6, Duration = 4.4, Shot = "Medio:Tila", Cut = "Cut" },
+				{ At = 10, Duration = 3, Shot = "Reaccion:Yo", Cut = "Cut" },
+				{ At = 13, Duration = 6, Shot = "PrimerPlano:Tila", Cut = "Cut" },
+			},
+			Fx = {
+				{ At = 1.2, Play = "Dust", Anchor = "Cielo" },
+			},
+			Sound = {
+				{ At = 1.2, Play = "Crack", Volume = 0.6 },
+			},
+			Music = {
+				{ At = 0, Intensity = "Intima" },
+			},
+			Actors = {
+				{ At = 0, Use = { Key = "Tila", Npc = "Tila", Anchor = "Lugar", Offset = V(2, 0, 2) } },
+				{ At = 0.4, Look = { Key = "Tila", At = "Cielo" } },
+				{ At = 5.6, Mood = { Key = "Tila", Mood = "Sad" } },
+				{ At = 6, Look = { Key = "Tila", At = "Yo" } },
+			},
+			Dialogue = {
+				{ At = 3.4, S = "Narrador", T = "Más allá de la hoguera, bajo la aurora, el Lago de los Ahogados parece un espejo. Tiene manchas de hielo claro, casi transparente." },
+				{ At = 6.2, S = "Tila", T = "El hielo claro aguanta al que camina. Al que se para… ya has oído el nombre del lago.", To = "Yo" },
+				{ At = 13.4, S = "Narrador", T = "Dicen que en las noches sin viento todavía se oye crujir." },
+			},
+		},
+	},
 }

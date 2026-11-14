@@ -731,7 +731,7 @@ function TesterService.handle(player: Player, kind: any, a: any, b: any): boolea
 				if missing > 0 then (" (%d no caben en la mochila)"):format(missing) else ""))
 		elseif a == "Licences" then
 			local given = giveLicences(player)
-			toast(player, "Success", ("🪪 Carnets y licencias: %d nuevos"):format(given))
+			toast(player, "Success", ("🆔 Carnets y licencias: %d nuevos"):format(given))
 		elseif a == "Vehicles" then
 			toast(player, "Success", ("🚗 Vehículos y barcos: %d nuevos"):format(giveVehicles(player)))
 		elseif a == "MaxLevel" then

@@ -109,7 +109,7 @@ outfit(1, P, "O01")
 add(2, F, { Type = "Money", Name = "150 €", Icon = "💶", Amount = 150, Description = "Un pequeño empujón para empezar." })
 add(2, P, { Type = "Emote", Name = "Saludo del faro", Icon = "🗼", Rarity = "Rara", AnimationId = 3344650532, Loop = false,
 	Description = "Un saludo amplio, como la luz del faro barriendo el puerto.", Preview = { Kind = "Emote" } })
-add(3, F, { Type = "Decor", Name = "Planta de Villaverde", Icon = "🪴", Shape = "Plant", Size = Vector3.new(1.4, 3, 1.4), Color = rgb(70, 140, 70),
+add(3, F, { Type = "Decor", Name = "Planta de Villaverde", Icon = "🌱", Shape = "Plant", Size = Vector3.new(1.4, 3, 1.4), Color = rgb(70, 140, 70),
 	Description = "Una planta de la cooperativa de Villaverde para tu casa.", Preview = { Kind = "Decor" } })
 add(3, P, { Type = "PhoneTheme", Name = "Neón del Centro", Icon = "📱", Rarity = "Rara", Colors = { Background = rgb(18, 14, 40), Accent = rgb(255, 64, 160), Text = rgb(240, 240, 255) },
 	Description = "El teléfono y los menús con los carteles de neón de Valmar Centro." })
@@ -266,7 +266,7 @@ add(47, P, { Type = "HudSkin", Name = "HUD Leyenda", Icon = "🏆", Rarity = "Ep
 add(48, F, { Type = "Decor", Name = "Trofeo de la temporada", Icon = "🏆", Shape = "Trophy", Size = Vector3.new(1, 2, 1), Color = rgb(200, 205, 215), Material = "Metal",
 	Description = "Para la estantería.", Preview = { Kind = "Decor" } })
 outfit(48, P, "O29")
-add(49, F, { Type = "Tokens", Name = "3 fichas de temporada", Icon = "🪙", Amount = 3, Description = "Para la tienda de fichas (solo cosméticos)." })
+add(49, F, { Type = "Tokens", Name = "3 fichas de temporada", Icon = "💰", Amount = 3, Description = "Para la tienda de fichas (solo cosméticos)." })
 vehicle(49, P, "ShadowF1")
 add(50, F, { Type = "Bundle", Name = "Recuerdo de la Temporada 1", Icon = "🎖️", Rarity = "Epica",
 	Description = "Has llegado al final: un título y una placa conmemorativa para tu casa.",

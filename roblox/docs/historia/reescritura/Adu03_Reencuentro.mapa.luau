@@ -46,6 +46,13 @@ return {
 		["coinciden sueno"] = { If = {} },
 		["profesion"] = { If = {} },
 		primer_grupo = { If = { Memories = { "PrimerGrupo" } } },
+		-- (las decisiones del colegio que vuelven: el gato de Omar en Cole03, el proyecto de Cole11, Nina en Cole10)
+		["el jugador busco al gato"] = { If = { Choices = { GatoColegio = "Buscar" } } },
+		["el jugador no busco al gato"] = { If = { Choices = { GatoColegio = "Nobuscar" } } },
+		["el jugador fue lider del proyecto"] = { If = { Choices = { Rol = "Lider" } } },
+		["el jugador presento el proyecto"] = { If = { Choices = { Rol = "Presentador" } } },
+		["el jugador busco a nina con ella"] = { If = { Choices = { NinaPerdida = "Juntos" } } },
+		["el jugador llevo a nina con lucia"] = { If = { Choices = { NinaPerdida = "Lucia" } } },
 	},
 	Informe = "La mecánica es la de siempre: el notición de Omar en la cafetería, invitar al grupo (al menos tres; Leire, Hugo y Mateo solo si están en tu vida), Lucía (directora del colegio, como ya era en el juego), ayudar en la cocina (el minijuego de siempre: fallar no bloquea), la inauguración, la foto (Adu03_Foto), el banco del parque (Adu03_Banco) y el montaje de cambio de etapa, que no se cambia.",
 }

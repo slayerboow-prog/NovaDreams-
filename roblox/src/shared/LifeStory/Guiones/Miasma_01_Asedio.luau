@@ -12,7 +12,7 @@ return {
 			Lines = {
 				{
 					S = "BrumaTaller",
-					T = "¿Otro forastero, Mara? ¿Este también viene a por el gas o a por tus rutas?",
+					T = "¿Otr{o/a} foraster{o/a}, Mara? ¿{Este/Esta} también viene a por el gas o a por tus rutas?",
 					To = "Yo",
 					Shot = "Medio:BrumaTaller",
 					A = "Ask",
@@ -31,7 +31,7 @@ return {
 					To = "Yo",
 					A = "Sad",
 				},
-				{ S = "BrumaTaller", T = "Si te quedas, forastero, en la Plaza falta comida y en mi taller faltan manos. Elige.", To = "Yo", A = "Nod" },
+				{ S = "BrumaTaller", T = "Si te quedas, foraster{o/a}, en la Plaza falta comida y en mi taller faltan manos. Elige.", To = "Yo", A = "Nod" },
 			},
 		},
 		Filtro = {
@@ -68,7 +68,7 @@ return {
 	Scenes = {
 		Miasma1_G1_Musica = { Light = true, Duration = 31.8, Anchors = { Yo = "Player" }, Tracks = { Music = { { At = 0, Intensity = "Tension" } } } },
 		Miasma1_G2_Musica = { Light = true, Duration = 31, Anchors = { Yo = "Player" }, Tracks = { Music = { { At = 0, Intensity = "Descubrimiento" } } } },
-		Miasma1_G3_Musica = { Light = true, Duration = 35.6, Anchors = { Yo = "Player" }, Tracks = { Music = { { At = 0, Intensity = "Intima" } } } },
+		Miasma1_G3_Musica = { Light = true, Duration = 36.9, Anchors = { Yo = "Player" }, Tracks = { Music = { { At = 0, Intensity = "Intima" } } } },
 	},
 	Steps = {},
 }

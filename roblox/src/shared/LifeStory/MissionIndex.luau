@@ -78,6 +78,9 @@ return {
 	require(Misiones.Vertice_Episodio),
 	-- Saga 2 · Umbría (Raíz Honda): su primera parte jugable (docs/planetas/nivalis-umbria.md)
 	require(Misiones.Umbria_Episodio),
+	-- Saga 2 · los peligros del terreno: una secundaria por planeta que presenta su problema propio del suelo
+	-- o del clima (arenas movedizas, hielo fino, rayos, ramas, paneles: shared/Cosmos/TerrainPerils)
+	require(Misiones.Planetas_Peligros),
 	-- Saga 2 · el prólogo del espacio «La costura negra» (Varkun, el Deshilador: docs/universo/diseno-espacio.md)
 	require(Misiones.Saga2_Prologo),
 	-- El mar de los Hondarios · «La canción de lo hondo»: Prólogo y Acto I (fase 1; docs/mar/civilizacion-marina.md)

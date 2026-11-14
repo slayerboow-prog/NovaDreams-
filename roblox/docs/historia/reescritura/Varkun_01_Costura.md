@@ -31,4 +31,5 @@ Narrador: En la Cénit, el carrete descansa dentro de la caja fuerte de la Vigil
 Cosme: (se inclina hacia delante) Hilo negro. Frío al tacto. Y nadie del Gremio sabe de dónde ha salido.
 Pip: (levanta una ceja) Señor, ¿por qué alguien coserá naves rotas en mitad del espacio?
 Cosme: (niega con la cabeza) No lo sé. Pero quien sabe coser, también sabe descoser. Y eso me da más miedo que los piratas.
+Cosme: (mira hacia arriba) ¿Te acuerdas de la lucecita que vimos en el cielo, el día del patio, cuando cosimos la Grieta? Pensé que era una estrella. Ya no lo pienso.
 NILDA: (pensativo) Guardaré la señal original. Tiene un ritmo. Como una costura hecha a mano.

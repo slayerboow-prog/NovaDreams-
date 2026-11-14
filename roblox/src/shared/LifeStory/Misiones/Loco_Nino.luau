@@ -5,8 +5,8 @@
 --   Loco_N2_Bigotes   «Bigotes, emperador de Gatonia» cucarachas cazarrecompensas → 👑 Corona del emperador
 --   Loco_N3_Pollo     «La gallina de seis metros»     huir y encoger a Petra → 🔬 Rayo encogedor
 --   Loco_N4_Clones    «Deberes clónicos»              tres clones en el cole → 📸 Foto con tus clones
---   Loco_N5_Perez     «La huelga del Ratón Pérez»     persecución nocturna → 🪙 Moneda del Ratón Pérez
---   Loco_N6_Tirachinas «El tirachinas del campeón»   desde el primer día de cole: prácticas y palomas robot → 🪃 Tirachinas
+--   Loco_N5_Perez     «La huelga del Ratón Pérez»     persecución nocturna → 💰 Moneda del Ratón Pérez
+--   Loco_N6_Tirachinas «El tirachinas del campeón»   desde el primer día de cole: prácticas y palomas robot → 🎯 Tirachinas
 --
 -- Todo es de dibujos animados: los «malos» no se hacen daño, se desintegran en chispas y vuelven a
 -- su planeta (o a su tamaño, o a su botón de deshacer).
@@ -439,7 +439,7 @@ return {
 				} },
 				{ S = "RatonPerez", T = "Toma. No es la moneda de siempre. Es una de las de antes: oro de verdad, del año 1702.", To = "Yo" },
 				{ S = "RatonPerez", T = "Me la dio un pirata por su último diente.", Beat = "Sonrie" },
-				{ S = "Narrador", T = "Recibes 🪙 la Moneda del Ratón Pérez (y 50 monedas de las normales, «para gastos»)." },
+				{ S = "Narrador", T = "Recibes 💰 la Moneda del Ratón Pérez (y 50 monedas de las normales, «para gastos»)." },
 				{ S = "RatonPerez", T = "Y ahora, a dormir. Que mañana tienes cole. Y yo, a lo mejor, playa." },
 			} },
 		},
@@ -478,7 +478,7 @@ return {
 				Props = { "Latas" }, Actors = { { Npc = "Abu", Place = "Parque", Offset = V(3, 0, 2), Mode = "Cheer" } } },
 			{ Type = "Scene", Dialogue = "Palomas", Props = { "Latas" },
 				Actors = { { Npc = "Abu", Place = "Parque", Offset = V(3, 0, 2) }, { Npc = "Cosme", Place = "Parque", Offset = V(-4, 0, 4) } } },
-			{ Type = "Fight", Place = "Parque", Respawn = "Parque", Action = "Disparar el tirachinas 🪃", HP = 2, BeamColor = Color3.fromRGB(160, 110, 60),
+			{ Type = "Fight", Place = "Parque", Respawn = "Parque", Action = "Disparar el tirachinas 🎯", HP = 2, BeamColor = Color3.fromRGB(160, 110, 60),
 				Text = "Apaga las palomas robot con el tirachinas ({count}/{total})",
 				CaughtLine = "¡Cucurrú-bip! (Te han quitado la merienda. Vuelves al banco del parque.)",
 				Actors = { { Npc = "Abu", Place = "Parque", Offset = V(3, 0, 2), Mode = "Cheer" }, { Npc = "Cosme", Place = "Parque", Offset = V(-4, 0, 4) } },
@@ -525,7 +525,7 @@ return {
 				{ S = "Abu", T = "¿Has visto qué puntería? Se hereda.", If = { Flags = { "PunteriaDeCampeon" } }, A = "Happy", To = "Cosme" },
 				{ S = "Abu", T = "La puntería ya llegará. A mí me costó tres veranos y un sombrero de alcalde.", IfNot = { Flags = { "PunteriaDeCampeon" } }, A = "Laugh" },
 				{ S = "Abu", T = "El tirachinas ya es tuyo. Cuídalo. Y recuerda la regla.", To = "Yo", Beat = "Mira" },
-				{ S = "Narrador", T = "Recibes 🪃 el tirachinas de {abu}. Úsalo desde la mochila o la barra rápida: dispara bellotas que hacen «¡plof!»." },
+				{ S = "Narrador", T = "Recibes 🎯 el tirachinas de {abu}. Úsalo desde la mochila o la barra rápida: dispara bellotas que hacen «¡plof!»." },
 			} },
 		},
 	},

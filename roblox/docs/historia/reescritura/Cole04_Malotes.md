@@ -1204,7 +1204,7 @@ Silencio.
 
 PLANO PPP -> Bruno
 
-Bruno: ¿Contento?
+Bruno: ¿Content{o/a}?
 
 PLANO Reaccion -> Bruno | Se enfada consigo mismo por haberlo contado.
 

@@ -368,7 +368,7 @@ local function proneBlocker(humanoid: Humanoid, root: BasePart): string?
 		local at = root.Position + flat * side * 2.2 * scale
 		local hit = workspace:Raycast(at, Vector3.new(0, -height - 1.5, 0), params)
 		if not hit or math.abs(hit.Position.Y - ground.Position.Y) > 1.1 * scale then
-			return "🪜 Aquí no te puedes tumbar (escalones o un desnivel)."
+			return "⬆️ Aquí no te puedes tumbar (escalones o un desnivel)."
 		end
 	end
 	-- Sitio: el cuerpo tumbado mide casi lo que mides de pie (cabeza delante, pies detrás)

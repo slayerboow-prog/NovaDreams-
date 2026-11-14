@@ -31,7 +31,7 @@ ValmarGlobeClient.Every = 0.1
 ValmarGlobeClient.CloudSpin = 0.35 -- grados por segundo
 ValmarGlobeClient.AirBase = 0.84 -- transparencia del aire del borde con Valmar entera
 
-type Item = { Part: BasePart, Base: number }
+type Item = { Part: BasePart, Base: number, Tex: Texture? }
 local model: Model? = nil
 local items: { Item } = {}
 local clouds: BasePart? = nil
@@ -148,6 +148,120 @@ function ValmarGlobeClient.landColor(x: number, z: number, edge: boolean): Color
 	return rgb(84, 126, 72)
 end
 
+-- La isla en ALTA RESOLUCIÓN encima de la esfera: las 12 teselas del mapa grande (textures/mapa/isla_*,
+-- las del mapa del teléfono: shared/MapTextureIds) en piezas pequeñas tangentes a la esfera. La textura de
+-- la esfera es una imagen de 1024×512 para todo el planeta y la isla solo ocupa su casquete de arriba: unos
+-- 30 studs por píxel, y desde la nave Valmar se veía a cuadros, como un tablero plano (vídeo del dueño,
+-- 14-11-2026). Las teselas son de ~2,6 studs por píxel.
+ValmarGlobeClient.CellsPerTile = { 5, 6 } -- trozos por tesela (columnas, filas)
+ValmarGlobeClient.IslandGrow = 1.18 -- hasta dónde de la costa (CityPlan.Coast, a escala) se ponen trozos
+local function buildIslandTiles(model: Instance): number
+	local okIds, tileIds = pcall(function()
+		local raw = require(ReplicatedStorage.Shared.MapTextureIds)
+		local okMap, mapped = pcall(function()
+			return require(ReplicatedStorage.Shared.Images).map(raw)
+		end)
+		return if okMap and type(mapped) == "table" then mapped else raw
+	end)
+	local MapScreen = require(ReplicatedStorage.Shared.MapScreen)
+	local tiles = MapScreen.tiles(if okIds then tileIds else nil)
+	if #tiles == 0 then
+		return 0
+	end
+	local grow = ValmarGlobeClient.IslandGrow
+	local coast = {}
+	for _, p in CityPlan.Coast do
+		table.insert(coast, { p[1] * grow, p[2] * grow })
+	end
+	-- (van en su carpeta y solo se ponen si sus imágenes cargan de verdad: si no, serían manchas azules
+	-- encima de la isla de la textura)
+	local parent = Instance.new("Folder")
+	parent.Name = "IslaNitida"
+	local first = #items + 1
+	local lift = ValmarGlobe.LandLift + 2
+	local nu, nv = ValmarGlobeClient.CellsPerTile[1], ValmarGlobeClient.CellsPerTile[2]
+	local count = 0
+	for _, tile in tiles do
+		local a = MapScreen.toWorld(tile.X0, tile.Y0) -- esquina de arriba a la izquierda (noroeste)
+		local b = MapScreen.toWorld(tile.X1, tile.Y1) -- esquina de abajo a la derecha (sureste)
+		local tileW, tileH = b.X - a.X, b.Y - a.Y -- (studs: X hacia el este, Z hacia el sur)
+		for i = 0, nu - 1 do
+			for j = 0, nv - 1 do
+				local x0, x1 = a.X + tileW * i / nu, a.X + tileW * (i + 1) / nu
+				local z0, z1 = a.Y + tileH * j / nv, a.Y + tileH * (j + 1) / nv
+				local cx, cz = (x0 + x1) / 2, (z0 + z1) / 2
+				local keep = inPoly(cx, cz, coast)
+				if not keep then
+					for _, c in { { x0, z0 }, { x1, z0 }, { x0, z1 }, { x1, z1 } } do
+						if inPoly(c[1], c[2], coast) then
+							keep = true
+							break
+						end
+					end
+				end
+				if keep then
+					local pos = ValmarGlobe.toSphere(cx, cz, lift)
+					local up = ValmarGlobe.normal(pos)
+					local east = ValmarGlobe.toSphere(x1, cz, lift) - ValmarGlobe.toSphere(x0, cz, lift)
+					local south = ValmarGlobe.toSphere(cx, z1, lift) - ValmarGlobe.toSphere(cx, z0, lift)
+					local right = (east - up * east:Dot(up)).Unit
+					local back = right:Cross(up).Unit
+					local cell = part("Isla", parent, 0)
+					cell.Color = rgb(0, 82, 175)
+					cell.Size = Vector3.new(east.Magnitude * 1.02, 1, south.Magnitude * 1.02)
+					cell.CFrame = CFrame.fromMatrix(pos, right, up, back)
+					local tex = Instance.new("Texture")
+					tex.Face = Enum.NormalId.Top
+					tex.Texture = tile.Image
+					tex.StudsPerTileU = tileW * cell.Size.X / (x1 - x0)
+					tex.StudsPerTileV = tileH * cell.Size.Z / (z1 - z0)
+					tex.OffsetStudsU = -(x0 - a.X) * cell.Size.X / (x1 - x0) + (cell.Size.X - east.Magnitude) / 2
+					tex.OffsetStudsV = -(z0 - a.Y) * cell.Size.Z / (z1 - z0) + (cell.Size.Z - south.Magnitude) / 2
+					tex.Parent = cell
+					items[#items].Tex = tex
+					count += 1
+				end
+			end
+		end
+	end
+	local mine = {}
+	for i = first, #items do
+		mine[items[i]] = true
+	end
+	local function drop()
+		for i = #items, 1, -1 do
+			if mine[items[i]] then
+				table.remove(items, i)
+			end
+		end
+		parent:Destroy()
+	end
+	local okCp, ContentProvider = pcall(function()
+		return game:GetService("ContentProvider")
+	end)
+	if not okCp or not ContentProvider or typeof(ContentProvider) ~= "Instance" then
+		parent.Parent = model -- (fuera de Roblox: pruebas)
+		return count
+	end
+	task.spawn(function()
+		local probe = parent:FindFirstChildWhichIsA("BasePart", true)
+		local tex = probe and probe:FindFirstChildOfClass("Texture")
+		local status: any = nil
+		pcall(function()
+			ContentProvider:PreloadAsync({ tex }, function(_, st)
+				status = st
+			end)
+		end)
+		if status == Enum.AssetFetchStatus.Success then
+			parent.Parent = model
+			shownBlend = -1 -- (que el próximo update les ponga la transparencia de ahora)
+		else
+			drop()
+		end
+	end)
+	return count
+end
+
 local function buildLand(parent: Instance)
 	local coast = CityPlan.Coast
 	local lift = ValmarGlobe.LandLift
@@ -213,6 +327,8 @@ function ValmarGlobeClient.build(): Model
 	textured = tex ~= nil
 	local R = ValmarGlobe.Radius
 	ball("Mar", R, rgb(16, 58, 108), m, 0, tex)
+	-- (la isla, nítida, con las teselas del mapa; si no están, la de la textura o la de polígonos)
+	buildIslandTiles(m)
 	if not textured then
 		buildLand(m)
 	end
@@ -244,6 +360,9 @@ end
 local function applyBlend(g: number)
 	for _, it in items do
 		it.Part.Transparency = 1 - g * (1 - it.Base)
+		if it.Tex then
+			it.Tex.Transparency = it.Part.Transparency
+		end
 	end
 end
 

@@ -224,6 +224,32 @@ Pausa.
 LOLA:
 —No sé cuándo ocurrió.
 
+Si el jugador busco al gato
+
+OMAR:
+—(levanta una ceja) Por cierto. ¿Te acuerdas del gato del colegio? El que buscamos aquella semana.
+
+OMAR:
+—Viene aquí todas las mañanas. Le pongo leche. No se lo digas a Lola.
+
+Si el jugador no busco al gato
+
+OMAR:
+—Por cierto. El gato del colegio apareció. Tenías razón: los gatos saben cuidarse.
+
+OMAR:
+—Ahora viene aquí todas las mañanas. Como si fuera suyo.
+
+Si el jugador fue lider del proyecto
+
+OMAR:
+—Y tú haces de {jefe/jefa} el sábado. Como en el proyecto del cole. Todavía tengo tu chapa de cartón.
+
+Si el jugador presento el proyecto
+
+OMAR:
+—Y tú das el discurso el sábado. Como cuando presentaste el proyecto del cole delante de todos.
+
 Música
 
 Emocion
@@ -785,6 +811,24 @@ Señala su despacho.
 
 LUCÍA:
 —Tengo despacho y todo.
+
+Si el jugador busco a nina con ella
+
+LUCÍA:
+—¿Te acuerdas de Nina, la niña que se perdió en el festival? Ahora es monitora de campamento.
+
+LUCÍA:
+—Dice que eligió eso porque una vez alguien le dio la mano y la buscó con ella.
+
+Si el jugador llevo a nina con lucia
+
+LUCÍA:
+—¿Te acuerdas de Nina, la niña que se perdió en el festival? Me la trajiste a mí.
+
+LUCÍA:
+—Hiciste bien. Saber pedir ayuda también es de valientes. Ahora ella hace lo mismo con los pequeños.
+
+⸻
 
 Dentro
 

@@ -234,7 +234,7 @@ function Pages.shop(list: ScrollingFrame, layout: { [string]: any }, state: { [s
 		Name = "Info",
 		Position = UDim2.fromOffset(4, 0),
 		Size = UDim2.fromOffset(width - 8, S.Info),
-		Text = ("Tienes 🪙 %d ficha%s · Se ganan con la XP de más del nivel 50 y algunas misiones · Solo cosméticos"):format(tokens, if tokens == 1 then "" else "s"),
+		Text = ("Tienes 💰 %d ficha%s · Se ganan con la XP de más del nivel 50 y algunas misiones · Solo cosméticos"):format(tokens, if tokens == 1 then "" else "s"),
 		TextSize = T.Small,
 		TextColor3 = C.Muted,
 		TextTruncate = Enum.TextTruncate.AtEnd,
@@ -265,7 +265,7 @@ function Pages.shop(list: ScrollingFrame, layout: { [string]: any }, state: { [s
 		create("UIStroke", { Color = rarity or C.Stroke, Transparency = 0.45, Thickness = 1.5, ApplyStrokeMode = Enum.ApplyStrokeMode.Border, Parent = frame })
 		Theme.label({ Name = "Icon", Position = UDim2.fromOffset(8, 8), Size = UDim2.fromOffset(card.X - 16, 52), Text = tostring(item.Icon or "🎁"), TextScaled = true, TextXAlignment = Enum.TextXAlignment.Center, Parent = frame })
 		Theme.label({ Name = "ItemName", Position = UDim2.fromOffset(8, 64), Size = UDim2.fromOffset(card.X - 16, 40), Text = tostring(item.Name or ""), Font = Theme.FontBold, TextSize = T.Body - 1, TextWrapped = true, TextTruncate = Enum.TextTruncate.AtEnd, TextXAlignment = Enum.TextXAlignment.Center, Parent = frame })
-		Theme.label({ Name = "Meta", Position = UDim2.fromOffset(8, 106), Size = UDim2.fromOffset(card.X - 16, 18), Text = ("%s · 🪙 %d"):format(tostring(item.TypeName or item.Type or ""), tonumber(item.Cost) or 0), TextSize = T.Small - 1, TextColor3 = C.Muted, TextTruncate = Enum.TextTruncate.AtEnd, TextXAlignment = Enum.TextXAlignment.Center, Parent = frame })
+		Theme.label({ Name = "Meta", Position = UDim2.fromOffset(8, 106), Size = UDim2.fromOffset(card.X - 16, 18), Text = ("%s · 💰 %d"):format(tostring(item.TypeName or item.Type or ""), tonumber(item.Cost) or 0), TextSize = T.Small - 1, TextColor3 = C.Muted, TextTruncate = Enum.TextTruncate.AtEnd, TextXAlignment = Enum.TextXAlignment.Center, Parent = frame })
 		local cost = tonumber(item.Cost) or 0
 		local pending = actions.pending and actions.pending["Token:" .. tostring(item.Id)]
 		local text, active
@@ -274,9 +274,9 @@ function Pages.shop(list: ScrollingFrame, layout: { [string]: any }, state: { [s
 		elseif pending then
 			text, active = "…", false
 		elseif tokens < cost then
-			text, active = ("Faltan %d 🪙"):format(cost - tokens), false
+			text, active = ("Faltan %d 💰"):format(cost - tokens), false
 		else
-			text, active = ("CANJEAR · 🪙 %d"):format(cost), true
+			text, active = ("CANJEAR · 💰 %d"):format(cost), true
 		end
 		local button = smallButton(frame, "Buy", text, { 8, card.Y - btnH - 8, card.X - 16, btnH }, T.Button, active)
 		button.AutoButtonColor = active

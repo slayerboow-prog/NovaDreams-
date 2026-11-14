@@ -381,7 +381,7 @@ local KEEPSAKES = {
 	{ "PinzaDeOro", "Pinza de oro de Don Pinzas", "🦀", "Se le cayó al cangrejo abogado. Según el tratado de 1734, ahora un metro de playa es tuyo." },
 	{ "FotoCosmeCosimo", "Foto de Cosme y Cósimo, jóvenes", "📸", "«La noche antes de la prueba». Dos jóvenes con bata delante de una máquina. Uno de ellos, con una sonrisa de anuncio." },
 	-- Saga de la Grieta
-	{ "MonedaPerilla", "Moneda de la 66-B", "🪙", "Caliente, como recién salida de un horno. En una cara, la cara de Cosme… con perilla." },
+	{ "MonedaPerilla", "Moneda de la 66-B", "💰", "Caliente, como recién salida de un horno. En una cara, la cara de Cosme… con perilla." },
 	{ "EscamaBrillante", "Escama brillante", "✨", "Regalo de Don Escamas: «Por si necesitas un contable. O un amigo. Soy las dos cosas»." },
 	{ "SelloAduana", "Sello de la Aduana del Tiempo", "📄", "De repuesto. «Nunca se sabe cuándo hay que sellar algo.» — Agente Cronos." },
 	{ "CalcetinSolitario", "Calcetín solitario", "🧦", "Verde. Sin pareja. Del Monstruo de los Calcetines Desparejados. Te mira." },
@@ -396,8 +396,8 @@ local KEEPSAKES = {
 	{ "MapaMalvado", "Mapa de la 66-B", "🗺️", "Dibujado por tu versión malvada. Las calles son las mismas; los carteles, no." },
 	{ "FotoSinMemoria", "Foto de Cosme sin memoria", "📷", "Cosme, con una manta, preguntando quién eres. Detrás, a boli: «Pero se quedó a cenar»." },
 	{ "AlbumRecuerdos", "Álbum de recuerdos", "📔", "El microondas, las gallinas, el anclaje del parque. Todo lo que le devolviste a Cosme." },
-	{ "AgujaDeOro", "La aguja de oro", "🪡", "La que cerró la Grieta para siempre. En la punta pone, muy pequeñito: «Gracias, Ancla»." },
-	{ "AgujaCuantica", "Aguja cuántica", "🪡", "Con ella cosiste el cielo de Valmar. Todavía brilla un poco cuando hay luna llena." },
+	{ "AgujaDeOro", "La aguja de oro", "🧵", "La que cerró la Grieta para siempre. En la punta pone, muy pequeñito: «Gracias, Ancla»." },
+	{ "AgujaCuantica", "Aguja cuántica", "🧵", "Con ella cosiste el cielo de Valmar. Todavía brilla un poco cuando hay luna llena." },
 	-- Restos de la Grieta (colección de las rarezas)
 	{ "SelloDelAyer", "Sello del ayer", "📮", "Resto de la Grieta. Un sello con matasellos de ayer. Siempre de ayer, lo mires cuando lo mires." },
 	{ "BombillaTenor", "Bombilla tenor", "💡", "Resto de la Grieta. Si la acercas al oído, tararea «Fígaro». Bajito, por fin." },
@@ -409,8 +409,8 @@ local KEEPSAKES = {
 	{ "GotaNube", "Gota de nube", "💧", "Resto de la Grieta. No se seca nunca. En los días tristes, dicen, sale el sol." },
 	{ "CadenaColumpio", "Cadena del columpio viejo", "⛓️", "Resto de la Grieta. Del columpio donde tu abu grabó sus iniciales. Todavía chirría un poco." },
 	{ "TizaSombra", "Tiza de sombra", "🖍️", "Resto de la Grieta. Para dibujar el contorno de tu sombra y que sepa dónde vive." },
-	{ "EsquirlaEspejo", "Esquirla de espejo", "🪞", "Resto de la Grieta. Tu reflejo siempre sonríe en ella. Aunque tú no." },
-	{ "PlumaCartero", "Pluma de paloma cartera", "🪶", "Resto de la Grieta. Regalo de la paloma 37. Cuenta como sello en la dimensión del pan infinito." },
+	{ "EsquirlaEspejo", "Esquirla de espejo", "🔮", "Resto de la Grieta. Tu reflejo siempre sonríe en ella. Aunque tú no." },
+	{ "PlumaCartero", "Pluma de paloma cartera", "🕊️", "Resto de la Grieta. Regalo de la paloma 37. Cuenta como sello en la dimensión del pan infinito." },
 	{ "VasoConsejos", "Vaso de los consejos", "🥤", "Resto de la Grieta. Dentro hay un papel: «Buena decisión». O «no le hagas caso a todo lo que dice una máquina»." },
 	{ "SilbatoEco", "Silbato del eco", "📯", "Resto de la Grieta. Si soplas, no suena. Se oye un segundo después." },
 	{ "CintaContestador", "Cinta del contestador", "📼", "Resto de la Grieta. Un mensaje de 1999: «que sepas que eres lo mejor que nos ha pasado»." },
@@ -426,14 +426,14 @@ local KEEPSAKES = {
 	-- Recuerdos exclusivos de las misiones locas
 	{ "CoronaBigotes", "Corona del emperador Bigotes", "👑", "Mide dos centímetros. En Gatonia es enorme. Huele un poco a jamón." },
 	{ "FotoClones", "Foto con tus clones", "📸", "Cuatro como tú haciendo el signo de la victoria. Uno tiene plastilina en la boca." },
-	{ "MonedaPerez", "Moneda del Ratón Pérez", "🪙", "Oro de verdad, del año 1702. Un pirata la cambió por su último diente." },
+	{ "MonedaPerez", "Moneda del Ratón Pérez", "💰", "Oro de verdad, del año 1702. Un pirata la cambió por su último diente." },
 	{ "LapizDimensional", "Lápiz de la Dimensión Examen", "✏️", "Escribe solo respuestas correctas… de preguntas que nadie ha hecho." },
 	{ "FichaDorada", "Ficha dorada de Zoltán", "🟡", "La última ficha de la máquina de los deseos. Mejor no gastarla. Nunca." },
 	{ "DienteRex", "Diente de Rex", "🦖", "Rex te lo regaló al mudarse. «Me salen nuevos cada martes.»" },
 	{ "DiplomaUniverso", "Diploma del Universo", "📜", "Firmado por El Evaluador: «La Tierra aprueba. Por los pelos. Gracias a este humano.»" },
 	{ "TarjetaGalactica", "Tarjeta del Banco Galáctico", "💳", "Sin límite. En ninguna tienda de la Tierra la aceptan. En Plutón, sí." },
 	{ "GnomoAliado", "Rigoberto, gnomo aliado", "🧙", "Firmó la paz contigo. Ahora vigila tu jardín. Por la noche se mueve un poco." },
-	{ "PerillaMalvada", "La perilla de tu yo malvado", "🥸", "Postiza. Se la quitaste en el duelo. Sin ella, tu yo malvado es solo un yo triste." },
+	{ "PerillaMalvada", "La perilla de tu yo malvado", "🕶️", "Postiza. Se la quitaste en el duelo. Sin ella, tu yo malvado es solo un yo triste." },
 	-- Misiones de aliados
 	{ "BandaCanciller", "Banda de Canciller de Gatonia", "🎗️", "Regalo del presidente Bigotes. Sueldo: una siesta al sol por semana. Huele a atún." },
 	{ "TarjetaRex", "Tarjeta de Rex, abogado", "📇", "«Rex. Abogado. Especialista en Anclas y jamón.» Tiene un mordisco en una esquina: es su firma." },
@@ -452,7 +452,7 @@ end
 -- El gel térmico se usa desde la mochila (Services/TefraService lo engancha a InventoryService.onUse).
 local TEFRA = {
 	-- { Id, Nombre, Icono, Kind, Descripción, extra }
-	{ "ObsidianaIgnea", "Obsidiana ígnea", "🪨", "Thing", "Cristal negro de las coladas de Tefra. Aguanta el calor: para blindajes y trajes.", { Stack = 99 } },
+	{ "ObsidianaIgnea", "Obsidiana ígnea", "⛰️", "Thing", "Cristal negro de las coladas de Tefra. Aguanta el calor: para blindajes y trajes.", { Stack = 99 } },
 	{ "AzufreNegro", "Azufre negro", "🟡", "Thing", "De las fumarolas y de la pólvora de las bombas viejas. Huele fatal. Sirve para el gel térmico.", { Stack = 99 } },
 	{ "CuarzoMalva", "Cuarzo malva", "💜", "Thing", "El cuarzo del color del cielo de Tefra. Por él se hizo rica Ovilla. Y por él empezó todo.", { Stack = 99 } },
 	{ "LiquenTermico", "Liquen térmico", "🍂", "Thing", "Un manto rojo que crece sobre la roca caliente. Del invernadero de los Pozos.", { Stack = 99 } },
@@ -463,7 +463,7 @@ local TEFRA = {
 	{ "TrajeRefrigerado3", "Traje refrigerado (nivel 3)", "🧥", "Thing", "El de los soldados de la Muralla. Con él en la mochila, el calor sube un 60 % menos.", { Stack = 1 } },
 	{ "RecetaTraje3", "Receta: traje refrigerado (nivel 3)", "📜", "Document", "Planos de la Muralla para fabricar en la Forja de Bastión el traje refrigerado de nivel 3.", { Stack = 1 } },
 	{ "EscudoNaveTefra", "Escudo de nave (pieza)", "🛡", "Thing", "Una placa de escudo sacada de la Lanza. Para el astillero de tu nave.", { Stack = 5 } },
-	{ "PapelesTefra", "Papeles de Bastión", "🪪", "Document", "Papeles de la policía militar de Bastión Ceniza. Con ellos no te requisan nada.", { Stack = 1 } },
+	{ "PapelesTefra", "Papeles de Bastión", "🆔", "Document", "Papeles de la policía militar de Bastión Ceniza. Con ellos no te requisan nada.", { Stack = 1 } },
 	{ "OrdenesCorvo", "Órdenes del General Corvo", "📑", "Document", "Las órdenes robadas del despacho de Corvo: «Proyecto Lanza». Pesan más de lo que parece.", { Stack = 1 } },
 }
 for _, entry in TEFRA do
@@ -491,10 +491,10 @@ for _, entry in {
 	-- { Id, Nombre, Icono, Kind, Descripción, extra }
 	{ "EsporaFiltro", "Espora de filtro", "🌿", "Thing", "El musgo de los picos de Miasma: limpia el aire. Con él se hacen todos los filtros.", { Stack = 99 } },
 	{ "PlataRayo", "Plata de rayo", "⚡", "Thing", "Metal que dejan los rayos en los picos de Miasma. Para cables y baterías.", { Stack = 99 } },
-	{ "GasPesado", "Gas pesado (bombona)", "🫙", "Thing", "El gas de la niebla de Miasma, embotellado. Lo que quiere el Dominio Talar.", { Stack = 20 } },
+	{ "GasPesado", "Gas pesado (bombona)", "🏺", "Thing", "El gas de la niebla de Miasma, embotellado. Lo que quiere el Dominio Talar.", { Stack = 20 } },
 	{ "MascaraFiltro", "Máscara de filtro", "😷", "Thing", "Con ella en la mochila, las toxinas de Miasma suben la mitad.", { Stack = 1 } },
 	{ "TrajeSellado", "Traje sellado", "🥽", "Thing", "El de los buzos de niebla. Con él en la mochila, las toxinas casi no suben.", { Stack = 1 } },
-	{ "CapsulaAire", "Cápsula de aire limpio", "🫧", "Thing", "Úsala desde la mochila en Miasma: las toxinas bajan de golpe y durante un minuto casi no suben.", { Stack = 20 } },
+	{ "CapsulaAire", "Cápsula de aire limpio", "💧", "Thing", "Úsala desde la mochila en Miasma: las toxinas bajan de golpe y durante un minuto casi no suben.", { Stack = 20 } },
 	{ "PanueloMiasma", "Pañuelo de Anclaje Siete", "🧣", "Keepsake", "Un pañuelo de la barandilla de las Góndolas. Uno por cada nave que no volvió.", { Stack = 9 } },
 	{ "SalRocio", "Sal de rocío", "🧂", "Thing", "La sal de Siroco que recoge la humedad de la noche. Con ella se fabrica agua.", { Stack = 99 } },
 	{ "VidrioTormenta", "Vidrio de tormenta", "🔷", "Thing", "Arena que un rayo convirtió en cristal. Duro y precioso.", { Stack = 99 } },
@@ -537,7 +537,7 @@ end
 -- oscuridad (en la mochila) y el ungüento de savia (desde la mochila: InventoryService.onUse).
 for _, entry in {
 	{ "SaviaAmbar", "Savia ámbar", "🍯", "Thing", "La savia dorada de los árboles de Umbría: pega como la miel y cura como la medicina.", { Stack = 99 } },
-	{ "MaderaHierro", "Madera de hierro", "🪵", "Thing", "La madera más dura (y más cara) de la galaxia. Solo de árboles muertos: en Umbría no se corta un árbol vivo.", { Stack = 99 } },
+	{ "MaderaHierro", "Madera de hierro", "🌲", "Thing", "La madera más dura (y más cara) de la galaxia. Solo de árboles muertos: en Umbría no se corta un árbol vivo.", { Stack = 99 } },
 	{ "SedaLiana", "Seda de liana", "🧵", "Thing", "Cuerda de liana de Umbría: no pesa nada y aguanta un escarabajo de carga.", { Stack = 99 } },
 	{ "ChatarraEnjambre", "Chatarra del Enjambre", "🔩", "Thing", "Piezas de las máquinas que se comen la madera. En Umbría, el metal sale de ellas.", { Stack = 99 } },
 	{ "MascarillaHojas", "Mascarilla de hojas", "😷", "Thing", "Con ella en la mochila, las esporas de Umbría suben un 45 % menos.", { Stack = 1 } },
@@ -558,10 +558,10 @@ for _, entry in {
 	{ "Talasa_AlgaLuz", "Alga de luz", "🌿", "Thing", "Alga que brilla en verde. Se come, alumbra y es la cosecha de los Jardines de Tálasa.", { Stack = 99 } },
 	{ "Talasa_Nacar", "Nácar abisal", "🐚", "Thing", "Nácar raspado de los pilotes y del fondo. Con él se recubren los trajes de presión.", { Stack = 99 } },
 	{ "Talasa_MuestraCoral", "Muestra de coral negro", "🧪", "Thing", "En un tubo sellado. Late un poco. No la abras.", { Stack = 9 } },
-	{ "Talasa_CargaOxigeno", "Carga de oxígeno", "🫧", "Thing", "Úsala desde la mochila en Tálasa: la presión baja de golpe y durante un minuto casi no sube.", { Stack = 20 } },
+	{ "Talasa_CargaOxigeno", "Carga de oxígeno", "💧", "Thing", "Úsala desde la mochila en Tálasa: la presión baja de golpe y durante un minuto casi no sube.", { Stack = 20 } },
 	{ "Talasa_TrajePresion1", "Traje de presión (nivel 1)", "🤿", "Thing", "Con él en la mochila, la presión de Tálasa sube un 40 % menos.", { Stack = 1 } },
 	{ "Talasa_TrajePresion2", "Traje de presión (nivel 2)", "🥽", "Thing", "Recubierto de nácar. Con él en la mochila, la presión sube un 65 % menos.", { Stack = 1 } },
-	{ "Talasa_PermisoBuceo", "Permiso de buceo del Consejo", "🪪", "Document", "Firmado por la Almirante Coria: «Hasta −40 m. Ni un metro más».", { Stack = 1 } },
+	{ "Talasa_PermisoBuceo", "Permiso de buceo del Consejo", "🆔", "Document", "Firmado por la Almirante Coria: «Hasta −40 m. Ni un metro más».", { Stack = 1 } },
 } do
 	local item = { Id = entry[1], Name = entry[2], Icon = entry[3], Kind = entry[4], Desc = entry[5], Stack = 99 }
 	for key, value in entry[6] or {} do
@@ -602,7 +602,7 @@ end
 -- Gadgets: recompensas exclusivas de las misiones secundarias locas (una por misión, no se venden)
 --   Effect = Sling (bellota en arco) | Beam (rayo) | Bubbles (burbujas) | Teleport (salto de dimensión) | Message (dice algo) | Sparkle (brillo)
 local GADGETS = {
-	{ "Tirachinas", "El tirachinas de tu abu", "🪃", "El de verdad, el del Gran Torneo de 1962. Dispara bellotas que vuelan en arco y hacen «¡plof!». Regla de oro: nunca a personas ni a animales de verdad.", { Effect = "Sling", Cooldown = 0.8 } },
+	{ "Tirachinas", "El tirachinas de tu abu", "🎯", "El de verdad, el del Gran Torneo de 1962. Dispara bellotas que vuelan en arco y hacen «¡plof!». Regla de oro: nunca a personas ni a animales de verdad.", { Effect = "Sling", Cooldown = 0.8 } },
 	{ "PistolaBurbujas", "Pistola de burbujas cuánticas", "🔵", "Invento de Cosme. Las burbujas existen en tres dimensiones a la vez. Explotan en las tres.", { Effect = "Bubbles" } },
 	{ "RayoEncogedor", "Rayo encogedor", "🔬", "El rayo que convirtió un pollo de 6 metros en un pollo normal. Ahora solo hace «bzzzt» y da cosquillas.", { Effect = "Beam", Color = { 190, 90, 255 }, Cooldown = 1 } },
 	{ "MovilFuturo", "Móvil del futuro", "📱", "Recibe mensajes de ti dentro de 10 años. Casi todos son sobre qué no comer.", { Effect = "Message", Lines = "Futuro", Cooldown = 4 } },

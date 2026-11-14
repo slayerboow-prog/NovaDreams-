@@ -196,7 +196,7 @@ local function build()
 	local unlock = grid()
 	for i, item in {
 		{ "Weapons", "🔫 Todas las armas" },
-		{ "Licences", "🪪 Todos los carnets" },
+		{ "Licences", "🆔 Todos los carnets" },
 		{ "Vehicles", "🚗 Todos los vehículos" },
 		{ "MaxLevel", "⭐ Nivel máximo" },
 	} do

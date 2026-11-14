@@ -246,4 +246,21 @@ PlanetJobs.register({
 })
 S.Jobs = PlanetJobs.of("Vertice")
 
+
+---------------------------------------------------------------------
+-- Los peligros del terreno (shared/Cosmos/TerrainPerils; Services/PlanetPerilService)
+---------------------------------------------------------------------
+-- (su misión de peligros, Misiones/Planetas_Peligros: mientras la sigues, llega el momento del peligro)
+S.StoryModes = { Vertice_Peligro = "Apagon" }
+
+S.Perils = {
+	{ Id = "Vertice_Paneles", Kind = "Caida", Name = "Paneles de la Cúpula", Icon = "🌑", Mode = "Apagon", Every = 14, Warn = 1.8, Reach = 7, Damage = 18,
+		Color = rgb(40, 42, 52), Material = Enum.Material.DiamondPlate,
+		Text = "🌑 Apagón: se sueltan paneles de la Cúpula. Si ves un círculo rojo en la acera, apártate.",
+		Hit = "🌑 ¡Un panel de la Cúpula! Te ha dado de lleno." },
+	{ Id = "Vertice_Charcos", Kind = "Pozo", Name = "Charco con corriente", Icon = "⚡", Count = 6, Radius = { 5, 8 }, Materials = { "Asphalt", "Pavement" }, MaxSlope = 0.3, Seed = 29,
+		Color = rgb(40, 74, 116), Material = Enum.Material.Glass, Slow = 0.8, Burn = 3,
+		Text = "⚡ Charco con corriente: hay un cable pelado en el agua y da calambre. Rodéalo." },
+}
+
 return S

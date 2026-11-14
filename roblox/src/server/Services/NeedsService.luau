@@ -58,6 +58,13 @@ local function applyWalkSpeed(player: Player)
 	-- rápido mientras dure la estamina (la Destreza suma); apuntando más despacio (WeaponService); con
 	-- hambre o sueño se anda más lento, pero corriendo SIEMPRE se va más rápido que andando normal
 	-- (Gameplay.walkSpeed)
+	-- (los planetas: el medidor frena con HeatSlow y el terreno —arenas movedizas, ciénaga— con
+	-- TerrainSlow, Services/PlanetPerilService; se multiplican)
+	local heat = player:GetAttribute("HeatSlow")
+	local terrain = player:GetAttribute("TerrainSlow")
+	if type(terrain) == "number" and terrain > 0 and terrain < 1 then
+		heat = (if type(heat) == "number" and heat > 0 then heat else 1) * terrain
+	end
 	local speed = Gameplay.walkSpeed({
 		Stage = player:GetAttribute("StageWalkSpeed") or Config.WalkSpeed,
 		Sprinting = player:GetAttribute("Sprinting") == true,
@@ -67,7 +74,7 @@ local function applyWalkSpeed(player: Player)
 		TiredWalk = Config.TiredWalkSpeed,
 		AimFactor = AIM_WALK,
 		-- (Tefra: con mucho calor se anda más lento; lo pone Services/TefraService)
-		Heat = player:GetAttribute("HeatSlow"),
+		Heat = heat,
 	})
 	-- La velocidad que debe tener (el cliente la mira: si algo suyo la dejó pisada —una carrera que no
 	-- acabó bien—, la vuelve a poner; Controllers/Character)

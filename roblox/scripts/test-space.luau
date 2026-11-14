@@ -1546,7 +1546,13 @@ do
 		end
 	end
 	check(g1 == 1 and m and m.Parent == cameraFolder and sea and sea.Transparency == 0, "a 1,2 km: el planeta entero, dentro de la cámara")
-	check(land > 100 and not VGC.isTextured() and m:FindFirstChild("Carretera") ~= nil and m:FindFirstChild("Aire") ~= nil, ("sin la textura subida: la isla en polígonos (%d triángulos), carreteras y el aire del borde"):format(land))
+	local isla = 0
+	for _, c in (m and m:GetChildren()) or {} do
+		if c.Name == "Isla" and c:FindFirstChildOfClass("Texture") then
+			isla += 1
+		end
+	end
+	check((land > 100 or isla > 100) and not VGC.isTextured() and m:FindFirstChild("Aire") ~= nil, ("sin la textura de la esfera: la isla nítida con las teselas del mapa (%d trozos) o, sin ellas, en polígonos (%d triángulos), y el aire del borde"):format(isla, land))
 	local mid = VGC.update(0.1, Vector3.new(0, (VG.FromY + VG.FullY) / 2, 0), sun)
 	check(mid > 0 and mid < 1 and sea.Transparency > 0 and sea.Transparency < 1, ("en la transición, a medias (%.2f): el horizonte plano se curva poco a poco"):format(mid))
 	VGC.update(0.1, Vector3.new(0, 40, 0), sun)

@@ -155,15 +155,15 @@ S.Hazard = PlanetHazard.new({
 S.HazardTint = rgb(40, 120, 200)
 S.HazardHints = {
 	Normal = "Bajo el agua sube. Las compuertas la bajan.",
-	Aviso = "Sube despacio o usa una carga de oxígeno 🫧",
+	Aviso = "Sube despacio o usa una carga de oxígeno 💧",
 	Peligro = "¡Sube ya! O una carga de oxígeno de la mochila",
 }
 S.HazardToasts = {
-	Aviso = "🌊 La presión aprieta: el cristal del casco cruje. Sube despacio o usa una 🫧 carga de oxígeno.",
+	Aviso = "🌊 La presión aprieta: el cristal del casco cruje. Sube despacio o usa una 💧 carga de oxígeno.",
 	Peligro = "⚠ ¡Demasiada presión! Pierdes fuerzas: sube a la superficie o métete en una compuerta.",
 }
 S.KnockText = "💫 La presión te ha dejado sin aire."
-S.CounterText = "🫧 Carga de oxígeno: respiras hondo y la presión baja de golpe (y durante un minuto casi no sube)"
+S.CounterText = "💧 Carga de oxígeno: respiras hondo y la presión baja de golpe (y durante un minuto casi no sube)"
 
 -- Lo que rodea al jugador: bajo el agua (cuánto) o al descubierto en la tormenta
 local DEPTH_AGUA, DEPTH_HONDO, DEPTH_FONDO = 2, 9, 24
@@ -261,5 +261,21 @@ PlanetJobs.register({
 	},
 })
 S.Jobs = PlanetJobs.of("Talasa")
+
+
+---------------------------------------------------------------------
+-- Los peligros del terreno (shared/Cosmos/TerrainPerils; Services/PlanetPerilService)
+---------------------------------------------------------------------
+-- (su misión de peligros, Misiones/Planetas_Peligros: mientras la sigues, llega el momento del peligro)
+S.StoryModes = { Talasa_Peligro = "Tormenta" }
+
+S.Perils = {
+	{ Id = "Talasa_Rayos", Kind = "Rayo", Name = "Rayos de la tormenta", Icon = "⚡", Mode = "Tormenta", Every = 11, Warn = 1.6, Reach = 7, Damage = 22, Drop = 15,
+		Text = "⚡ Tormenta eléctrica: los rayos buscan a quien está al descubierto. Si ves un círculo rojo a tus pies, sal de él.",
+		Hit = "⚡ ¡Un rayo! El traje aguanta, pero duele." },
+	{ Id = "Talasa_Coral", Kind = "Pozo", Name = "Coral negro", Icon = "🐚", Count = 4, Radius = { 6, 10 }, Materials = { "Sandstone", "LeafyGrass" }, MaxSlope = 0.45, Seed = 5,
+		Color = rgb(34, 26, 40), Material = Enum.Material.Slate, Slow = 0.7, Rate = 1.5, Burn = 2,
+		Text = "🐚 Coral negro: corroe el traje y quema al pisarlo. Rodéalo." },
+}
 
 return S

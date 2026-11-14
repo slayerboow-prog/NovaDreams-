@@ -24,7 +24,7 @@ local roots: { [string]: BasePart } = {} -- avión -> su pieza Root
 local riding: { [string]: any }? = nil -- datos del vuelo en el que vas
 local cameraMode = "Exterior" -- "Exterior" | "Ventanilla" | "Normal"
 local MODES = { "Exterior", "Ventanilla", "Normal" }
-local MODE_TEXT = { Exterior = "🎥 Cámara: exterior", Ventanilla = "🪟 Cámara: ventanilla", Normal = "🎮 Cámara: normal" }
+local MODE_TEXT = { Exterior = "🎥 Cámara: exterior", Ventanilla = "🖼️ Cámara: ventanilla", Normal = "🎮 Cámara: normal" }
 local orbit = 0
 local savedCamera: CFrame? = nil
 local panel: Frame? = nil

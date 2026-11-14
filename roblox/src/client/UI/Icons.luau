@@ -7,7 +7,7 @@
 -- Los iconos son de línea, blancos sobre transparente (assets/icons/*.svg). Cuando se suben a Roblox
 -- con scripts/upload-icons.sh, sus ids quedan en UI/IconIds y se usan como imagen (se pueden teñir).
 -- Mientras no estén subidos se usa un emoji: solo emojis antiguos (Unicode 9 o anterior), que se ven
--- en todos los móviles. Nada de "✦", "▸", "◂", "☰" ni "🪨": en muchos móviles salen como cajas vacías.
+-- en todos los móviles. Nada de "✦", "▸", "◂", "☰" ni "⛰️": en muchos móviles salen como cajas vacías.
 --
 -- Las flechas, el más, el menos, el rombo y los puntos se dibujan con marcos (Icons.chevron…):
 -- así nunca dependen de la fuente.
@@ -57,7 +57,7 @@ Icons.Fallback = {
 	menos = "➖",
 	linterna = "🔦",
 	camara = "📷",
-	piedra = "🥌", -- (🪨 no se ve en muchos móviles)
+	piedra = "🥌", -- (⛰️ no se ve en muchos móviles)
 	bajarse = "⬇️",
 	misiones = "📋",
 	personaje = "⭐",

@@ -161,13 +161,13 @@ local function breathe(player: Player)
 		elseif pressure == "Over" then
 			Notify:FireClient(player, "Error", SeaDiving.overText(gear, meters))
 		else
-			Notify:FireClient(player, "Info", ("🫧 Estás cerca del límite de tu equipo (%d m)."):format(if gills then MerForm.Depth else SeaDiving.info(gear).Depth))
+			Notify:FireClient(player, "Info", ("💧 Estás cerca del límite de tu equipo (%d m)."):format(if gills then MerForm.Depth else SeaDiving.info(gear).Depth))
 		end
 	elseif pressure == "Ok" then
 		warned[player] = nil
 	end
 	if pocket and now < max * 0.95 and oxygen >= max * 0.95 then
-		Notify:FireClient(player, "Success", "🫧 Aire recuperado.")
+		Notify:FireClient(player, "Success", "💧 Aire recuperado.")
 	end
 	now = oxygen
 	player:SetAttribute("DiveDepth", if under then math.floor(meters * 10 + 0.5) / 10 else nil)

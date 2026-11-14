@@ -315,7 +315,7 @@ return {
 				{ S = "Bruno", T = "Hugo habla demasiado.", To = "Yo", A = "ArmsCrossed", If = { Choices = { Malotes = "Hablar" } } },
 				{ S = "Bruno", T = "Mi hermano me llama enano.", To = "Yo", Shot = "PPP:Bruno", A = "LookAway", If = { Choices = { Malotes = "Hablar" } } },
 				{ S = "Bruno", T = "Delante de sus amigos. Todos los días.", To = "Yo", Pause = 0.9, If = { Choices = { Malotes = "Hablar" } } },
-				{ S = "Bruno", T = "¿Contento?", To = "Yo", Shot = "PPP:Bruno", Pause = 0.9, If = { Choices = { Malotes = "Hablar" } } },
+				{ S = "Bruno", T = "¿Content{o/a}?", To = "Yo", Shot = "PPP:Bruno", Pause = 0.9, If = { Choices = { Malotes = "Hablar" } } },
 				{
 					Ask = "¿Qué le dices?",
 					Options = {

@@ -101,7 +101,7 @@ return {
 				{ S = "Narrador", T = "Un dibujo a carboncillo: tú, Brasa y un hombre alto con bufanda. Debajo pone «PAPÁ»." },
 				{ S = "Brasa", T = "Se llama Galo. Se fue de la Muralla cuando murió mamá. Para no dejarme sola. Y luego se fue también.", Beat = "Baja" },
 				{ S = "Brasa", T = "No llores, que me haces llorar a mí. Búscalo. Tú sabes colarte en sitios.", A = "Angry" },
-				{ S = "MadreHollin", T = "La cría paga con dibujos. Yo cobro en dinero. Pregúntame a mí también, forastero.", To = "Yo" },
+				{ S = "MadreHollin", T = "La cría paga con dibujos. Yo cobro en dinero. Pregúntame a mí también, foraster{o/a}.", To = "Yo" },
 			}, Effects = { Items = { DibujoBrasa = 1 } } },
 			Hollin = { Lines = {
 				{ S = "MadreHollin", T = "¿Galo? Desertor. Me compraba gel térmico para ir a las Trincheras. Mucho gel.", Shot = "Medio:MadreHollin" },
@@ -216,7 +216,7 @@ return {
 			Final = { Lines = {
 				{ S = "CapitanaFerra", T = "Bien. Alguien roba medicinas del Campus y los heridos se mueren. Cuando te llame, vienes. Trato hecho.", If = { Choices = { TefraFerra = "Favor" } } },
 				{ S = "CapitanaFerra", T = "Bien. Esta tarde Lumo dormirá en los calabozos. Tú, con papeles de verdad. Así funciona Bastión.", If = { Choices = { TefraFerra = "Delatar" } }, A = "Sad" },
-				{ S = "CapitanaFerra", T = "Con eso la armería del Muelle te abre y nadie te requisa nada. Bienvenido a existir.", To = "Yo" },
+				{ S = "CapitanaFerra", T = "Con eso la armería del Muelle te abre y nadie te requisa nada. Bienvenid{o/a} a existir.", To = "Yo" },
 			} },
 		},
 	},

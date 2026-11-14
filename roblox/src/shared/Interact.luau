@@ -49,7 +49,7 @@ Interact.Uses = {
 	Wardrobe = { Action = "Abrir el armario", Off = "Cerrar el armario", Object = "👕 Armario", Distance = 5 },
 	Computer = { Action = "Usar el ordenador", Object = "💻 Ordenador", Distance = 5, Pose = "Type" },
 	Piano = { Action = "Tocar el piano", Object = "🎹 Piano", Distance = 5, Hold = 0.3, Pose = "Piano" },
-	Window = { Action = "Mirar por la ventana", Object = "🪟 Ventana", Distance = 5, Harmless = true, Pose = "Window", Seconds = 6 },
+	Window = { Action = "Mirar por la ventana", Object = "🖼️ Ventana", Distance = 5, Harmless = true, Pose = "Window", Seconds = 6 },
 } :: { [string]: Use }
 
 -- Picar algo de la nevera de casa (la tuya o la de tus padres): gratis y sin límite, solo con

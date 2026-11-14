@@ -108,4 +108,49 @@ return {
 			},
 		},
 	},
+
+	---------------------------------------------------------------------
+	-- Umbria_Peligro · el peligro del terreno de este planeta (Misiones/Planetas_Peligros; shared/Cosmos/TerrainPerils).
+	--   Plano del sitio y del cielo, el golpe, silencio, y quien te lo va a enseñar.
+	---------------------------------------------------------------------
+	Umbria_Peligro = {
+		Duration = 19,
+		Skippable = true,
+		FadeIn = true,
+		Anchors = {
+			Lugar = "Place:Umbria_Raices",
+			Yo = "Player",
+			Cielo = { Place = "Umbria_Raices", Offset = V(30, 220, -60) },
+		},
+		Tracks = {
+			Camera = {
+				{ At = 0, Duration = 5.6, From = { "Lugar", V(-14, 6, 16) }, To = { "Lugar", V(-8, 4, 12) }, Look = { "Cielo" }, Fov = { 62, 54 }, Cut = "Fade" },
+				{ At = 5.6, Duration = 4.4, Shot = "Medio:Garza", Cut = "Cut" },
+				{ At = 10, Duration = 3, Shot = "Reaccion:Yo", Cut = "Cut" },
+				{ At = 13, Duration = 6, Shot = "PrimerPlano:Garza", Cut = "Cut" },
+			},
+			Fx = {
+				{ At = 1, Play = "Leaves", Anchor = "Cielo" },
+				{ At = 1.4, Play = "Debris", Anchor = "Lugar" },
+			},
+			Sound = {
+				{ At = 0.6, Play = "Thunder", Volume = 0.5 },
+				{ At = 1.4, Play = "Crack" },
+			},
+			Music = {
+				{ At = 0, Intensity = "Tension" },
+			},
+			Actors = {
+				{ At = 0, Use = { Key = "Garza", Npc = "Garza", Anchor = "Lugar", Offset = V(2, 0, 2) } },
+				{ At = 0.4, Look = { Key = "Garza", At = "Cielo" } },
+				{ At = 5.6, Mood = { Key = "Garza", Mood = "Surprise" } },
+				{ At = 6, Look = { Key = "Garza", At = "Yo" } },
+			},
+			Dialogue = {
+				{ At = 3.4, S = "Narrador", T = "La lluvia de la mañana golpea las copas, tan altas que se pierden en la niebla. Algo cruje allá arriba." },
+				{ At = 6.2, S = "Garza", T = "Eso era una rama. Cuando llueve en Raíz, llueve madera. Mira siempre la sombra del suelo.", To = "Yo" },
+				{ At = 13.4, S = "Narrador", T = "Las ramas tardan en caer. Lo justo para apartarse." },
+			},
+		},
+	},
 }

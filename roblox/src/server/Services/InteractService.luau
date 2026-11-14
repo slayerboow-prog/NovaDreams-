@@ -660,11 +660,11 @@ actions.Piano = function(player, part)
 end
 
 local VIEWS = {
-	"🪟 Se ve la ciudad de Valmar: tejados, antenas y el mar al fondo.",
-	"🪟 Pasa un autobús por la calle y alguien corre a cogerlo.",
-	"🪟 Unas palomas se posan en el balcón de enfrente.",
-	"🪟 El cielo está precioso hoy.",
-	"🪟 Abajo, un perro tira de su dueño hacia el parque.",
+	"🖼️ Se ve la ciudad de Valmar: tejados, antenas y el mar al fondo.",
+	"🖼️ Pasa un autobús por la calle y alguien corre a cogerlo.",
+	"🖼️ Unas palomas se posan en el balcón de enfrente.",
+	"🖼️ El cielo está precioso hoy.",
+	"🖼️ Abajo, un perro tira de su dueño hacia el parque.",
 }
 actions.Window = function(player, part)
 	start(player, { Pose = "Window", Part = part, At = part.Position, Seconds = Interact.Uses.Window.Seconds, Connections = {} })

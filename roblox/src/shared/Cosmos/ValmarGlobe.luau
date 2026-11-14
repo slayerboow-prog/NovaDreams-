@@ -27,7 +27,12 @@ ValmarGlobe.Radius = 5000
 ValmarGlobe.Top = 3 -- la cima de la esfera (justo por encima del mar plano: 0)
 ValmarGlobe.Center = Vector3.new(Layers.Center.X, ValmarGlobe.Top - ValmarGlobe.Radius, Layers.Center.Z)
 ValmarGlobe.FromY = Layers.TransitionY -- desde aquí empieza a verse
-ValmarGlobe.FullY = Layers.TransitionY + (Layers.SpaceY - Layers.TransitionY) * 0.75 -- y aquí ya entero
+-- y aquí ya entero. Un cruce CORTO (250 studs de subida): antes duraba 1.200 y en medio se veían a la vez
+-- las losas planas de la isla y del mar (Controllers/Horizon, SpaceClient) y la esfera a medias: Valmar
+-- parecía una plancha con el borde recto flotando en el espacio (vídeo del dueño, 14-11-2026). Con la
+-- isla nítida de las teselas del mapa encima de la esfera, el planeta y el suelo plano se parecen y el
+-- cruce rápido no se nota.
+ValmarGlobe.FullY = Layers.TransitionY + 250
 ValmarGlobe.AirLift = 260 -- grosor del aire (el aro azul del borde)
 ValmarGlobe.CloudLift = 70
 ValmarGlobe.LandLift = 32 -- la isla dibujada va por encima de la esfera (sus triángulos planos no se meten dentro)

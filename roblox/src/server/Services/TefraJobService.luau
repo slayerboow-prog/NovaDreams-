@@ -919,7 +919,7 @@ function TefraJobService._tick()
 					if Inventory.count(player, "PapelesTefra") > 0 then
 						if not shift.Data.Waved then
 							shift.Data.Waved = true
-							toast(player, "Info", "🪪 «¿Papeles? …Pasa, pasa.» La patrulla mira tus papeles de Bastión y te deja seguir.")
+							toast(player, "Info", "🆔 «¿Papeles? …Pasa, pasa.» La patrulla mira tus papeles de Bastión y te deja seguir.")
 						end
 					else
 						shift.Data.Waved = nil

@@ -33,16 +33,16 @@ end
 for _, race in Races.List do
 	local mat = ({
 		Vortidos = { "Cristal de Kael", "💠", "Un trozo de cristal que zumba bajito. Si lo acercas al oído, tararea." },
-		Morfagos = { "Membrana de Tharn", "🫧", "Elástica, tibia y ligeramente pegajosa. Huele a menta (no se sabe por qué)." },
+		Morfagos = { "Membrana de Tharn", "💧", "Elástica, tibia y ligeramente pegajosa. Huele a menta (no se sabe por qué)." },
 		Ferrocefalos = { "Chatarra de Ozzar", "⚙️", "Tornillos que no encajan en ninguna rosca de la Tierra. Pesan menos de lo que parece." },
 		Luminidos = { "Polvo de Ilyra", "✨", "Brilla en la oscuridad y se escapa de los bolsillos si no los cierras bien." },
-		Brumaridos = { "Perla de Oskun", "🫧", "Siempre está húmeda. Dentro se ve un mar en miniatura." },
+		Brumaridos = { "Perla de Oskun", "💧", "Siempre está húmeda. Dentro se ve un mar en miniatura." },
 	})[race.Id]
 	add({ Id = race.Material, Name = mat[1], Icon = mat[2], Kind = "Material", Rarity = "Comun", Price = 28, Stack = 60, Desc = mat[3] .. " Se vende en el Laboratorio Xeno.", Race = race.Id })
 	add({ Id = race.Sample, Name = "Muestra " .. ({ Vortidos = "cristalina", Morfagos = "de membrana", Ferrocefalos = "de engranaje", Luminidos = "de luz", Brumaridos = "de bruma" })[race.Id], Icon = "🧪", Kind = "Sample", Rarity = "Comun", Price = 6, Stack = 30, Desc = ("Una muestra de los %s. Con tres muestras y un material se fabrica el inversor de fase en el Laboratorio Xeno."):format(race.Name), Race = race.Id })
 end
 -- Minerales de otras galaxias (de las naves sobre todo)
-add({ Id = "Xenita", Name = "Xenita", Icon = "🪨", Kind = "Mineral", Rarity = "Comun", Price = 18, Stack = 80, Desc = "Mineral verde que flota un milímetro por encima de la mesa." })
+add({ Id = "Xenita", Name = "Xenita", Icon = "⛰️", Kind = "Mineral", Rarity = "Comun", Price = 18, Stack = 80, Desc = "Mineral verde que flota un milímetro por encima de la mesa." })
 add({ Id = "AleacionEstelar", Name = "Aleación estelar", Icon = "🔩", Kind = "Mineral", Rarity = "Raro", Price = 65, Stack = 40, Desc = "Ligera como el aluminio y dura como el diamante. A los astilleros les encanta." })
 add({ Id = "NucleoPlasma", Name = "Núcleo de plasma", Icon = "🔆", Kind = "Mineral", Rarity = "Epico", Price = 190, Stack = 10, Desc = "El corazón de un motor alienígena. Calentito. No lo metas en el microondas." })
 -- Munición de las armas alienígenas
@@ -59,8 +59,8 @@ Loot.Collectibles = {
 	{ "BrujulaCasa", "Brújula que apunta a casa", "🧭", "Siempre señala hacia el sitio donde te sientes en casa. Ahora mismo apunta a Valmar." },
 	{ "SemillaEstrella", "Semilla de estrella", "🌰", "Dicen que, plantada en una noche sin nubes, en mil años da una estrella pequeñita." },
 	{ "DiscoTharn", "Disco de música de Tharn", "💿", "Suena como una ballena cantando dentro de un globo. Es el número uno en el Cúmulo de Tharn." },
-	{ "MonedaOzzar", "Moneda de Ozzar", "🪙", "Tiene un engranaje en cada cara. Gira sola cuando nadie la mira." },
-	{ "PlumaLuz", "Pluma de luz", "🪶", "Escribe con luz. Lo que escribes se lee solo de noche." },
+	{ "MonedaOzzar", "Moneda de Ozzar", "💰", "Tiene un engranaje en cada cara. Gira sola cuando nadie la mira." },
+	{ "PlumaLuz", "Pluma de luz", "🕊️", "Escribe con luz. Lo que escribes se lee solo de noche." },
 	{ "CaracolaNiebla", "Caracola de niebla", "🐚", "Si te la acercas al oído no se oye el mar: se oye la niebla. Es más bajito." },
 	{ "MapaEstelar", "Mapa estelar arrugado", "🗺️", "Un mapa de otra galaxia con una cruz y una nota: «aquí se está muy bien en verano»." },
 	{ "HuevoCristal", "Huevo de cristal (vacío)", "🥚", "Lo que fuera que había dentro ya se fue. Esperemos que a un sitio bonito." },

@@ -57,7 +57,7 @@ return {
 			{ Type = "Reach", Place = "Miasma_BordeLastre", Text = "Sigue a Mara por la pasarela sur hasta el Barrio Lastre", Actors = { MARA_SIGUE } },
 			{ Type = "Talk", Npc = "MaraSolis", Dialogue = "Filtro", Text = "Mara quiere enseñarte algo antes de que respires más", Actors = { at("MaraSolis", "Miasma_BordeLastre", 3, -3) } },
 			{ Type = "Event", Event = "HazardCountered", Match = { Planet = "Miasma" }, Place = "Miasma_BordeLastre",
-				Text = "Usa una 🫧 cápsula de aire de la mochila (medidor de ☣)", Actors = { at("MaraSolis", "Miasma_BordeLastre", 3, -3) } },
+				Text = "Usa una 💧 cápsula de aire de la mochila (medidor de ☣)", Actors = { at("MaraSolis", "Miasma_BordeLastre", 3, -3) } },
 			{ Type = "Reach", Place = "Miasma_CantinaDentro", Text = "Entra con Mara en la cantina El Lastre (aire filtrado)", Actors = { MARA_SIGUE } },
 			{ Type = "Scene", Dialogue = "Cantina", Actors = { at("MaraSolis", "Miasma_CantinaDentro", 2, 1), at("BrumaTaller", "Miasma_CantinaDentro", -3, 2) } },
 		},
@@ -75,11 +75,11 @@ return {
 				{ S = "MaraSolis", T = "Una cápsula, ahora. Respira hondo. Eso es el aire de antes de la niebla, embotellado.", To = "Yo" },
 			} },
 			Cantina = { Lines = {
-				{ S = "BrumaTaller", T = "¿Otro forastero, Mara? ¿Este también viene a por el gas o a por tus rutas?", To = "MaraSolis", Shot = "Medio:BrumaTaller" },
+				{ S = "BrumaTaller", T = "¿Otr{o/a} foraster{o/a}, Mara? ¿{Este/Esta} también viene a por el gas o a por tus rutas?", To = "MaraSolis", Shot = "Medio:BrumaTaller" },
 				{ S = "MaraSolis", T = "Este viene a por un caldo de musgo, Bruma. Y a ayudar, si se deja.", A = "Shrug" },
 				{ S = "MaraSolis", T = "Siete Anclajes había en Miasma. Quedamos nosotros. Los otros seis se los tragó la niebla.", To = "Yo", Beat = "Piensa" },
 				{ S = "MaraSolis", T = "Mi hijo, Leo, quiere ser piloto de la Defensa. Tiene quince años. Yo quiero sacarlo de aquí antes de que lo consiga.", A = "Sad" },
-				{ S = "BrumaTaller", T = "Si te quedas, forastero, en la Plaza falta comida y en mi taller faltan manos. Elige.", To = "Yo" },
+				{ S = "BrumaTaller", T = "Si te quedas, foraster{o/a}, en la Plaza falta comida y en mi taller faltan manos. Elige.", To = "Yo" },
 			} },
 		},
 	},
@@ -243,7 +243,7 @@ return {
 		},
 		Dialogues = {
 			Defensa = { Lines = {
-				{ S = "ComandanteAndres", T = "Tú eres el forastero que ayuda a Bruma. Bien. Esta noche necesito piernas, no pilotos.", To = "Yo", Shot = "Medio:ComandanteAndres" },
+				{ S = "ComandanteAndres", T = "Tú eres {el forastero/la forastera} que ayuda a Bruma. Bien. Esta noche necesito piernas, no pilotos.", To = "Yo", Shot = "Medio:ComandanteAndres" },
 				{ S = "LeoSolis", T = "¡Yo sí soy piloto! Bueno, casi. Me falta despegar. Y aterrizar.", A = "Cheer" },
 				{ S = "ComandanteAndres", T = "Leo, tú a la batería. Y no le digas a tu madre que te he visto aquí.", To = "LeoSolis", A = "ArmsCrossed" },
 				{ S = "ComandanteAndres", T = "Si el Dominio ataca, irá a por las Góndolas. Si cortan los cables, las casas caen a la niebla.", To = "Yo" },

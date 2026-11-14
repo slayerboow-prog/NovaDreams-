@@ -283,6 +283,21 @@ function PlanetHazardService.valueOf(player: Player): number
 	return st and st.Value or 0
 end
 
+-- Sube (o baja) el medidor de golpe desde fuera: los peligros del terreno (Services/PlanetPerilService:
+-- caer al hielo, un rayo, la ciénaga…). La fase se recalcula en el siguiente tick.
+function PlanetHazardService.bump(player: Player, amount: number)
+	local id, S = PlanetHazardService.planetOf(player)
+	if not id then
+		return
+	end
+	local st = states[player]
+	if not st or st.Planet ~= id then
+		return
+	end
+	st.Value = math.clamp(st.Value + amount, 0, S.Hazard.Max)
+	player:SetAttribute("Peligro", math.floor(st.Value + 0.5))
+end
+
 function PlanetHazardService._tick(dt: number)
 	for _, p in Players:GetPlayers() do
 		local ok, err = pcall(stepPlayer, p, dt)

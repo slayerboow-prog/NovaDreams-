@@ -259,4 +259,16 @@ PlanetJobs.register({
 })
 S.Jobs = PlanetJobs.of("Siroco")
 
+
+---------------------------------------------------------------------
+-- Los peligros del terreno (shared/Cosmos/TerrainPerils; Services/PlanetPerilService)
+---------------------------------------------------------------------
+S.Perils = {
+	{ Id = "Siroco_Arenas", Kind = "Pozo", Name = "Arenas movedizas", Icon = "🏜️", Count = 9, Radius = { 9, 15 }, Materials = { "Sand" }, MaxSlope = 0.3, Seed = 11,
+		Color = rgb(150, 104, 62), Material = Enum.Material.Sand, Slow = 0.4, Rate = 2.5,
+		Text = "🏜️ ¡Arenas movedizas! Te hundes y andas muy lento: sal andando hacia el borde de la mancha oscura." },
+	{ Id = "Siroco_Rafagas", Kind = "Empuje", Name = "Ráfagas de arena", Icon = "🌪️", Mode = "Tormenta", Every = 5, Force = 34, Dir = Vector3.new(1, 0, 0.3),
+		Text = "🌪️ Tormenta de arena: las ráfagas te empujan de lado. Métete a cubierto (la cantina, los Túneles)." },
+}
+
 return S

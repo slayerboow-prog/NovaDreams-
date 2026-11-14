@@ -880,6 +880,7 @@ function Validate.report(): Report
 			local ctx = {
 				Fx = require(Shared.StoryFxCatalog).names(),
 				SkyMoods = require(Shared.SkyMoods).names(),
+				RiftPhases = require(Shared.SkyRift).Phases,
 				Moods = require(script.Parent.ActorMoods).names(),
 				Creatures = require(script.Parent.StoryCreatures).names(),
 				Places = Locations.Places,

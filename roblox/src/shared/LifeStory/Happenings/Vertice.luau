@@ -118,4 +118,49 @@ return {
 			},
 		},
 	},
+
+	---------------------------------------------------------------------
+	-- Vertice_Peligro · el peligro del terreno de este planeta (Misiones/Planetas_Peligros; shared/Cosmos/TerrainPerils).
+	--   Plano del sitio y del cielo, el golpe, silencio, y quien te lo va a enseñar.
+	---------------------------------------------------------------------
+	Vertice_Peligro = {
+		Duration = 19,
+		Skippable = true,
+		FadeIn = true,
+		Anchors = {
+			Lugar = "Place:Vertice_Plaza",
+			Yo = "Player",
+			Cielo = { Place = "Vertice_Plaza", Offset = V(0, 160, 0) },
+		},
+		Tracks = {
+			Camera = {
+				{ At = 0, Duration = 5.6, From = { "Lugar", V(-14, 6, 16) }, To = { "Lugar", V(-8, 4, 12) }, Look = { "Cielo" }, Fov = { 62, 54 }, Cut = "Fade" },
+				{ At = 5.6, Duration = 4.4, Shot = "Medio:Gil", Cut = "Cut" },
+				{ At = 10, Duration = 3, Shot = "Reaccion:Yo", Cut = "Cut" },
+				{ At = 13, Duration = 6, Shot = "PrimerPlano:Gil", Cut = "Cut" },
+			},
+			Fx = {
+				{ At = 1, Play = "Flash", Anchor = "Cielo" },
+				{ At = 1.2, Play = "Debris", Anchor = "Lugar" },
+			},
+			Sound = {
+				{ At = 1, Play = "Interruptor" },
+				{ At = 1.2, Play = "Crack", Volume = 0.6 },
+			},
+			Music = {
+				{ At = 0, Intensity = "Tension" },
+			},
+			Actors = {
+				{ At = 0, Use = { Key = "Gil", Npc = "Gil", Anchor = "Lugar", Offset = V(2, 0, 2) } },
+				{ At = 0.4, Look = { Key = "Gil", At = "Cielo" } },
+				{ At = 5.6, Mood = { Key = "Gil", Mood = "Surprise" } },
+				{ At = 6, Look = { Key = "Gil", At = "Yo" } },
+			},
+			Dialogue = {
+				{ At = 3.4, S = "Narrador", T = "La Cúpula de anuncios parpadea y se apaga. Distrito Cero se queda a oscuras. Algo metálico se suelta allá arriba." },
+				{ At = 6.2, S = "Gil", T = "Apagón. Ahora caen los paneles. El suelo te avisa en rojo. Lo único que funciona aquí.", To = "Yo" },
+				{ At = 13.4, S = "Narrador", T = "Sin anuncios, el cielo de Vértice es solo metal. Y el metal pesa." },
+			},
+		},
+	},
 }

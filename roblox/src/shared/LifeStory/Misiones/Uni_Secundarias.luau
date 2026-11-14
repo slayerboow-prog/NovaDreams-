@@ -313,7 +313,7 @@ return {
 				} },
 			{ Type = "Use", Prop = "Castillo", Text = "Concurso de castillos de arena",
 				Actors = { { Npc = "Candela", Place = "Playa", Offset = V(8, 0, 6) }, { Npc = "Carla", Place = "Playa", Offset = V(10, 0, 4) } } },
-			{ Type = "Fight", Place = "Playa", Respawn = "Playa", Action = "Echarle un cubo de agua dulce 🪣", HP = 6, BeamColor = Color3.fromRGB(120, 200, 255),
+			{ Type = "Fight", Place = "Playa", Respawn = "Playa", Action = "Echarle un cubo de agua dulce 🧺", HP = 6, BeamColor = Color3.fromRGB(120, 200, 255),
 				Text = "¡Don Pinzas invade la playa! Échale agua dulce",
 				CaughtLine = "¡Pinza legal! (Te pellizca el bañador con mucha educación. Vuelves a la orilla.)",
 				Actors = {

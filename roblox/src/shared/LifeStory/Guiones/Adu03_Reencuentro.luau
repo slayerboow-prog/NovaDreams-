@@ -87,6 +87,30 @@ return {
 			Lines = {
 				{ S = "Lucia", T = "¡{nombre}! Madre mía. Ahora soy directora.", To = "Yo", A = "Happy" },
 				{ S = "Lucia", T = "Tengo despacho y todo.", To = "Yo" },
+				{
+					S = "Lucia",
+					T = "¿Te acuerdas de Nina, la niña que se perdió en el festival? Ahora es monitora de campamento.",
+					To = "Yo",
+					If = { Choices = { NinaPerdida = "Juntos" } },
+				},
+				{
+					S = "Lucia",
+					T = "Dice que eligió eso porque una vez alguien le dio la mano y la buscó con ella.",
+					To = "Yo",
+					If = { Choices = { NinaPerdida = "Juntos" } },
+				},
+				{
+					S = "Lucia",
+					T = "¿Te acuerdas de Nina, la niña que se perdió en el festival? Me la trajiste a mí.",
+					To = "Yo",
+					If = { Choices = { NinaPerdida = "Lucia" } },
+				},
+				{
+					S = "Lucia",
+					T = "Hiciste bien. Saber pedir ayuda también es de valientes. Ahora ella hace lo mismo con los pequeños.",
+					To = "Yo",
+					If = { Choices = { NinaPerdida = "Lucia" } },
+				},
 				{ S = "Lucia", T = "Hay una fotografía antigua. Cuéntame.", To = "Yo" },
 				{ S = "Lucia", T = "¿Qué ha sido de tu vida?", To = "Yo", Pause = 0.9 },
 				{
@@ -189,6 +213,38 @@ return {
 				{ S = "Lola", T = "Supongo que algo hice bien.", To = "Yo", If = { Choices = { Empleo = "Barista" } } },
 				{ S = "Lola", T = "¿Te acuerdas?", To = "Yo" },
 				{ S = "Lola", T = "Entonces erais niños. Ahora sois adultos. No sé cuándo ocurrió.", To = "Yo", If = { Memories = { "PrimerDiaCole" } } },
+				{
+					S = "Omar",
+					T = "Por cierto. ¿Te acuerdas del gato del colegio? El que buscamos aquella semana.",
+					To = "Yo",
+					A = "Ask",
+					If = { Choices = { GatoColegio = "Buscar" } },
+				},
+				{
+					S = "Omar",
+					T = "Viene aquí todas las mañanas. Le pongo leche. No se lo digas a Lola.",
+					To = "Yo",
+					If = { Choices = { GatoColegio = "Buscar" } },
+				},
+				{
+					S = "Omar",
+					T = "Por cierto. El gato del colegio apareció. Tenías razón: los gatos saben cuidarse.",
+					To = "Yo",
+					If = { Choices = { GatoColegio = "Nobuscar" } },
+				},
+				{ S = "Omar", T = "Ahora viene aquí todas las mañanas. Como si fuera suyo.", To = "Yo", If = { Choices = { GatoColegio = "Nobuscar" } } },
+				{
+					S = "Omar",
+					T = "Y tú haces de {jefe/jefa} el sábado. Como en el proyecto del cole. Todavía tengo tu chapa de cartón.",
+					To = "Yo",
+					If = { Choices = { Rol = "Lider" } },
+				},
+				{
+					S = "Omar",
+					T = "Y tú das el discurso el sábado. Como cuando presentaste el proyecto del cole delante de todos.",
+					To = "Yo",
+					If = { Choices = { Rol = "Presentador" } },
+				},
 			},
 		},
 		Sara = {

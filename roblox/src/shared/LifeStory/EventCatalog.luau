@@ -46,6 +46,10 @@ EventCatalog.Names = {
 	-- PlanetService): el medidor de la desventaja de un planeta cambia de fase ({ Planet, Hazard, Phase }),
 	-- usas su contramedida ({ Planet, Hazard, Item }) y recoges su material ({ Planet, Id, Item })
 	HazardChanged = true, HazardCountered = true, PlanetGather = true,
+	-- Los peligros del terreno de cada planeta (Services/PlanetPerilService, shared/Cosmos/TerrainPerils):
+	-- te pilla ({ Planet, Peril, Kind }: entras en las arenas movedizas, se rompe el hielo, te da el rayo)
+	-- y lo esquivas ({ Planet, Peril, Kind }: sales del pozo, te mueves del hielo que cruje, sales del círculo)
+	PerilHit = true, PerilDodged = true,
 	-- El espacio (docs/universo/diseno-espacio.md): contratos de los trabajos espaciales cumplidos
 	-- (SpaceJobService: { Job, Kind }) y el prólogo de Varkun (VarkunService: VarkunSignal { Part } al
 	-- atracar ofrece la misión; VarkunStep { Step } avanza sus pasos)

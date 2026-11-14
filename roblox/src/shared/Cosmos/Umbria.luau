@@ -90,13 +90,13 @@ local S = PlanetSurface.new({
 		{ Id = "Umbria_Baliza", Name = "Baliza de la Compañía", X = CLEARING.X + 20, Z = CLEARING.Z - 20, Flat = 24,
 			Text = "📡 La baliza de la Compañía Torca: una antena de metal en mitad de un bosque de tocones. Todavía parpadea." },
 		{ Id = "Umbria_LagoEspejo", Name = "Lago Espejo", X = -460, Z = 420 - 150, Flat = 18,
-			Text = "🪞 Agua quieta al pie de una cascada colgante. Debajo, dicen, están las ruinas del Templo de Raíz." },
+			Text = "🔮 Agua quieta al pie de una cascada colgante. Debajo, dicen, están las ruinas del Templo de Raíz." },
 		{ Id = "Umbria_Templo", Name = "Templo de Raíz", X = -640, Z = 120, Flat = 30,
 			Text = "🛕 Piedras talladas con marcas que nadie sabe leer: el primer pueblo de Umbría vivió aquí abajo." },
 		{ Id = "Umbria_Nido", Name = "Nido del Gran Escarabajo", X = 600, Z = 300, Flat = 26,
-			Text = "🪲 Un nido del tamaño de una casa. Huele a madera mojada. Algo se mueve dentro." },
+			Text = "🐞 Un nido del tamaño de una casa. Huele a madera mojada. Algo se mueve dentro." },
 		{ Id = "Umbria_VainaEnea", Name = "Una vaina vieja", X = 180, Z = 420, Flat = 16,
-			Text = "🫘 Una vaina colgada de una raíz baja, cerrada con cuerda. En la puerta pone «Enea». Nadie contesta." },
+			Text = "🥜 Una vaina colgada de una raíz baja, cerrada con cuerda. En la puerta pone «Enea». Nadie contesta." },
 	},
 	NodeCount = 10,
 	NodeOres = { { Id = "Hierro", Weight = 3 }, { Id = "Cobalto", Weight = 1 } },
@@ -273,5 +273,22 @@ PlanetJobs.register({
 	},
 })
 S.Jobs = PlanetJobs.of("Umbria")
+
+
+---------------------------------------------------------------------
+-- Los peligros del terreno (shared/Cosmos/TerrainPerils; Services/PlanetPerilService)
+---------------------------------------------------------------------
+-- (su misión de peligros, Misiones/Planetas_Peligros: mientras la sigues, llega el momento del peligro)
+S.StoryModes = { Umbria_Peligro = "Lluvia" }
+
+S.Perils = {
+	{ Id = "Umbria_Cienaga", Kind = "Pozo", Name = "Ciénaga", Icon = "🟤", Count = 7, Radius = { 8, 13 }, Materials = { "Sandstone", "Limestone" }, MaxSlope = 0.3, Seed = 17,
+		Color = rgb(60, 52, 30), Material = Enum.Material.Mud, Slow = 0.45, Rate = 1.2,
+		Text = "🟤 Ciénaga: el barro te traga los pies y suelta esporas. Sal despacio hacia el borde." },
+	{ Id = "Umbria_Ramas", Kind = "Caida", Name = "Ramas que caen", Icon = "🌳", Mode = "Lluvia", Every = 13, Warn = 1.8, Reach = 6, Damage = 18,
+		Color = rgb(84, 62, 40), Material = Enum.Material.Wood,
+		Text = "🌧️ Con la lluvia torrencial caen ramas de las copas. Si ves un círculo rojo, apártate.",
+		Hit = "🌳 ¡Una rama te ha caído encima!" },
+}
 
 return S

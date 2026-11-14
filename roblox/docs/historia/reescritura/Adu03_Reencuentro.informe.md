@@ -42,14 +42,14 @@ _Ninguno._
 
 - PASO 1 → paso 1 del juego (Transition): 1 frases al cumplirlo (escena ligera «Adu03_G1_Fin», sin quitar el control)
 - PASO 2 → paso 2 del juego (Reach): 3 frases al empezar el paso (van detrás de las del final del paso 1, en su escena «Adu03_G1_Fin»)
-- PASO 3 → paso 3 del juego (Scene «Noticia»): conversación «Noticia» con 13 frases nuevas
+- PASO 3 → paso 3 del juego (Scene «Noticia»): conversación «Noticia» con 19 frases nuevas
 - PASO 4.1 → paso 4.1 del juego (Talk «Nico»): conversación «Nico» con 5 frases nuevas
 - PASO 4.2 → paso 4.2 del juego (Talk «Sara»): conversación «Sara» con 5 frases nuevas
 - PASO 4.3 → paso 4.3 del juego (Talk «Bruno»): conversación «Bruno» con 8 frases nuevas
 - PASO 4.4 → paso 4.4 del juego (Talk «Leire»): conversación «Leire» con 5 frases nuevas
 - PASO 4.5 → paso 4.5 del juego (Talk «Hugo»): conversación «Hugo» con 1 frases nuevas
 - PASO 4.6 → paso 4.6 del juego (Talk «Mateo»): conversación «Mateo» con 5 frases nuevas
-- PASO 6 → paso 6 del juego (Talk «Lucia»): conversación «Lucia» con 15 frases nuevas
+- PASO 6 → paso 6 del juego (Talk «Lucia»): conversación «Lucia» con 19 frases nuevas
 - PASO 7 → paso 7 del juego (Reach): 1 frases al empezar el paso (escena ligera «Adu03_G7_Entra», la lanza el paso 6 al cumplirse; el jugador no pierde el control)
 - PASO 8 → paso 8 del juego (MiniGame): 2 frases al empezar el paso (escena ligera «Adu03_G8_Entra», la lanza el paso 7 al cumplirse; el jugador no pierde el control)
 - PASO 9 → paso 9 del juego (Scene «Inauguracion»): conversación «Inauguracion» con 12 frases nuevas
@@ -96,13 +96,13 @@ _Ninguna corrección._
 
 ## Avisos
 
-- PASO 4 (línea 239): «Mínimo» no está en el reparto del juego: sus frases no se aplican (si es alguien, ponlo en Hablantes del mapa)
-- PASO 4 (línea 241): «Máximo» no está en el reparto del juego: sus frases no se aplican (si es alguien, ponlo en Hablantes del mapa)
-- PASO 10 (línea 1221): «General» no está en el reparto del juego: sus frases no se aplican (si es alguien, ponlo en Hablantes del mapa)
-- PASO 10 (línea 1223): «DosPlanos» no está en el reparto del juego: sus frases no se aplican (si es alguien, ponlo en Hablantes del mapa)
-- PASO 10 (línea 1225): «Reaccion» no está en el reparto del juego: sus frases no se aplican (si es alguien, ponlo en Hablantes del mapa)
-- PASO 10 (línea 1233): «Inserto» no está en el reparto del juego: sus frases no se aplican (si es alguien, ponlo en Hablantes del mapa)
-- PASO 13 (línea 1344): «Lateral» no está en el reparto del juego: sus frases no se aplican (si es alguien, ponlo en Hablantes del mapa)
+- PASO 4 (línea 265): «Mínimo» no está en el reparto del juego: sus frases no se aplican (si es alguien, ponlo en Hablantes del mapa)
+- PASO 4 (línea 267): «Máximo» no está en el reparto del juego: sus frases no se aplican (si es alguien, ponlo en Hablantes del mapa)
+- PASO 10 (línea 1265): «General» no está en el reparto del juego: sus frases no se aplican (si es alguien, ponlo en Hablantes del mapa)
+- PASO 10 (línea 1267): «DosPlanos» no está en el reparto del juego: sus frases no se aplican (si es alguien, ponlo en Hablantes del mapa)
+- PASO 10 (línea 1269): «Reaccion» no está en el reparto del juego: sus frases no se aplican (si es alguien, ponlo en Hablantes del mapa)
+- PASO 10 (línea 1277): «Inserto» no está en el reparto del juego: sus frases no se aplican (si es alguien, ponlo en Hablantes del mapa)
+- PASO 13 (línea 1388): «Lateral» no está en el reparto del juego: sus frases no se aplican (si es alguien, ponlo en Hablantes del mapa)
 
 ## Notas del guion sin equivalente directo (bloques de dirección, minijuegos, memoria…)
 

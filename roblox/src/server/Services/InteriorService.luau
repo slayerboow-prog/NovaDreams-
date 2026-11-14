@@ -1322,7 +1322,7 @@ function connectRoom(inst: Instance_)
 			end)
 		elseif part:IsA("BasePart") and part:HasTag("TowerStairs") and isTower(inst.Building) then
 			-- De la tienda de la calle al portal del edificio (escalera y ascensor)
-			local prompt = Builder.prompt(part, "Ir al portal", "🪜 Escalera y viviendas", 0.2)
+			local prompt = Builder.prompt(part, "Ir al portal", "⬆️ Escalera y viviendas", 0.2)
 			prompt.MaxActivationDistance = 8
 			prompt.Triggered:Connect(function(player)
 				if not PromptIntent.allows(player, prompt) then

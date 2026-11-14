@@ -100,7 +100,7 @@ return {
 		},
 		Varkun1_G4_Entra = {
 			Light = true,
-			Duration = 32,
+			Duration = 42.7,
 			Anchors = { Sitio = "Player", Yo = "Player" },
 			Tracks = {
 				Actors = {
@@ -119,7 +119,13 @@ return {
 						To = "Yo",
 						A = "No",
 					},
-					{ At = 25.2, S = "NILDA", T = "Guardaré la señal original. Tiene un ritmo. Como una costura hecha a mano.", To = "Yo", A = "ThinkChin" },
+					{
+						At = 25.2,
+						S = "Cosme",
+						T = "¿Te acuerdas de la lucecita que vimos en el cielo, el día del patio, cuando cosimos la Grieta? Pensé que era una estrella. Ya no lo pienso.",
+						To = "Yo",
+					},
+					{ At = 36, S = "NILDA", T = "Guardaré la señal original. Tiene un ritmo. Como una costura hecha a mano.", To = "Yo", A = "ThinkChin" },
 				},
 				Music = { { At = 0, Intensity = "Descubrimiento" } },
 			},

@@ -1278,7 +1278,7 @@ El jugador lo abre.
 
 Dentro:
 
-🪡 LA AGUJA DE ORO
+🧵 LA AGUJA DE ORO
 
 No es un arma.
 

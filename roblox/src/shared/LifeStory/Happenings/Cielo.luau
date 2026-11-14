@@ -124,6 +124,7 @@ return {
 				{ At = 0.4, Strength = 0.12, Seconds = 0.8 },
 			},
 			Sky = {
+				{ At = 0, Phase = "Crece", Instant = true }, -- (la Grieta como en este momento de la historia, aunque la tuya vaya por otro)
 				{ At = 0, Mood = "GrietaVerde", Fade = 1.5 },
 				{ At = 2, Rift = "Flare", Strength = 1, Seconds = 2.5 },
 				{ At = 31, Mood = false, Fade = 2 },
@@ -257,6 +258,7 @@ return {
 		Anchors = { Yo = "Player", Grieta = "Rift" },
 		Tracks = {
 			Sky = {
+				{ At = 0, Phase = "Rasguno", Instant = true }, -- (la Grieta como en este momento de la historia, aunque la tuya vaya por otro)
 				{ At = 2.5, Rift = "Flare", Strength = 0.7, Seconds = 2.5 },
 				{ At = 5.6, Rift = "Flare", Strength = 0.45, Seconds = 2 },
 			},
@@ -281,6 +283,7 @@ return {
 		Anchors = { Yo = "Player", Grieta = "Rift" },
 		Tracks = {
 			Sky = {
+				{ At = 0, Phase = "Grande", Instant = true }, -- (la Grieta como en este momento de la historia, aunque la tuya vaya por otro)
 				{ At = 0, Mood = "Ominoso", Fade = 2 },
 				{ At = 1.5, Rift = "Flare", Strength = 1.2, Seconds = 3 },
 				{ At = 8, Mood = false, Fade = 2 },
@@ -319,21 +322,30 @@ return {
 				-- (3,3–7: Medio de Cosme y su «allá vamos», en el diálogo)
 				-- Inserto: la aguja se enciende y sale disparada
 				{ At = 7.9, Duration = 1.6, Shot = "Inserto:Aguja", Cut = "Cut" },
-				-- Tu mirada sube con ella hasta la Grieta
-				{ At = 9.5, Duration = 3, From = { "Yo", V(2, 1.6, 4) }, To = { "Yo", V(1.5, 1.2, 3) }, Look = { "Yo", V(0, 2, 0) }, LookTo = { "Grieta" }, Fov = { 60, 48 } },
-				-- Las puntadas, desde el patio
-				{ At = 12.5, Duration = 3.4, Fixed = { "Patio", V(-10, 3, 14) }, Look = { "Grieta" }, Fov = 55, Cut = "Cut" },
-				-- Vuelve la luz: la cara de Cosme
-				{ At = 16.7, Duration = 3, Shot = "Reaccion:Cosme", Cut = "Cut" },
+				-- Tu mirada sube con ella hasta la Grieta: una grúa desde el centro del patio (al aire libre)
+				-- que sube mirando la aguja y acaba en el cielo. (Antes iba pegada a ti y a la pared del
+				-- colegio: el edificio tapaba la Grieta y el plano se quedaba en una pared.)
+				{ At = 9.5, Duration = 3, From = { "Patio", V(0, 4, 12) }, To = { "Patio", V(0, 22, 6) }, Look = { "Aguja", V(0, 2, 0) }, LookTo = { "Grieta" }, Fov = { 60, 52 } },
+				-- Las puntadas, desde lo alto del patio, por encima de los tejados (la voz de Pip, en off)
+				{ At = 12.5, Duration = 3.4, From = { "Patio", V(0, 26, 4) }, To = { "Patio", V(0, 30, 2) }, Look = { "Grieta" }, Fov = 58, Cut = "Cut" },
+				-- Vuelve la luz: Cosme (plano medio: en el de reacción su aparato le tapaba la cara)
+				{ At = 16.7, Duration = 1.6, Shot = "Medio:Cosme", Cut = "Cut" },
+				-- y la cara de Pip, que no se lo cree (el plano de reacción, sin aparatos delante)
+				{ At = 18.3, Duration = 1.4, Shot = "Reaccion:Pip", Cut = "Cut" },
 				{ At = 19.7, Duration = 2.2, Shot = "DosPlanos:Cosme,Pip" },
-				-- Te alejas: el patio, el cielo cosido
-				{ At = 21.9, Duration = 4.1, Shot = "Dolly:Yo", Reverse = true },
+				-- Te alejas: una grúa que sube desde el patio hasta el cielo cosido (el dolly hacia atrás
+				-- acababa contra la pared del colegio, a oscuras, justo con el rótulo del final del acto)
+				{ At = 21.9, Duration = 4.1, From = { "Patio", V(0, 5, 16) }, To = { "Patio", V(0, 28, 24) }, Look = { "Aguja", V(0, 2, 0) }, LookTo = { "Grieta" }, Fov = { 55, 62 } },
 			},
 			Shake = {
 				{ At = 9.9, Strength = 0.3, Seconds = 0.8 },
 			},
 			Sky = {
 				{ At = 0, Mood = "GrietaAzul", Fade = 1.5 },
+				-- (la Grieta abierta durante la escena aunque tu historia ya la haya cerrado: si no, al
+				-- revivirla el cielo salía vacío y la cámara miraba a la nada; y cosida al volver la luz)
+				{ At = 0, Phase = "Abierta", Instant = true },
+				{ At = 16.7, Phase = "Cosida" },
 				{ At = 9.9, Rift = "Flare", Strength = 1.4, Seconds = 2.5 },
 				{ At = 12.8, Rift = "Flare", Strength = 0.9, Seconds = 0.8 },
 				{ At = 13.8, Rift = "Flare", Strength = 0.7, Seconds = 0.8 },
@@ -387,7 +399,7 @@ return {
 			},
 			Dialogue = coserDialogue({ At = 12.7, S = "Pip", T = "Puntada. Otra. Puntada… Mis sensores están llorando aceite.", Duration = 3.1 }),
 			Titles = {
-				{ At = 22.3, Text = "🪡 El cielo está cosido", Sub = "Fin del Acto I · La Grieta", Duration = 3.4 },
+				{ At = 22.3, Text = "✨ El cielo está cosido", Sub = "Fin del Acto I · La Grieta", Duration = 3.4 },
 			},
 			-- Lo que se queda (fase 5): la marca de la aguja en el patio (StageSets.AgujaPatio)
 			World = {
@@ -441,6 +453,7 @@ return {
 				{ At = 3.4, Strength = 0.5, Seconds = 0.9 },
 			},
 			Sky = {
+				{ At = 0, Phase = "Rota", Instant = true }, -- (la Grieta como en este momento de la historia, aunque la tuya vaya por otro)
 				{ At = 3.3, Rift = "Flare", Strength = 1.6, Seconds = 3 },
 				{ At = 3.3, Mood = "GrietaAzul", Fade = 1 },
 				{ At = 14.2, Rift = "Flare", Strength = 1, Seconds = 2 },
@@ -520,6 +533,7 @@ return {
 		Anchors = { Yo = "Player", Grieta = "Rift" },
 		Tracks = {
 			Sky = {
+				{ At = 0, Phase = "Inminente", Instant = true }, -- (la Grieta como en este momento de la historia, aunque la tuya vaya por otro)
 				{ At = 0, Mood = "Ominoso", Fade = 1.5 },
 				{ At = 1.2, Rift = "Flare", Strength = 1.5, Seconds = 2.5 },
 				{ At = 7, Mood = false, Fade = 2 },
@@ -573,6 +587,7 @@ return {
 				{ At = 4.5, Strength = 0.6, Seconds = 1 },
 			},
 			Sky = {
+				{ At = 0, Phase = "Fusion", Instant = true }, -- (la Grieta como en este momento de la historia, aunque la tuya vaya por otro)
 				{ At = 0, Mood = "GrietaFinal", Fade = 3 },
 				{ At = 4.4, Rift = "Flare", Strength = 2, Seconds = 3 },
 				{ At = 17, Rift = "Flare", Strength = 1.2, Seconds = 2 },

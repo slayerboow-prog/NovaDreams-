@@ -32,7 +32,7 @@ Civ.MaxLights = 6
 ---------------------------------------------------------------------
 Civ.Districts = {
 	{ Id = "Nacara", Name = "Nácara", Sub = "la capital de los Hondarios", X = Nacara.Center.X, Z = Nacara.Center.Z, R = 235, Safe = true, Icon = "🐚" },
-	{ Id = "Burbuja", Name = "La Burbuja", Sub = "la posada de los secos", X = -960, Z = 4040, R = 70, Safe = true, Icon = "🫧" },
+	{ Id = "Burbuja", Name = "La Burbuja", Sub = "la posada de los secos", X = -960, Z = 4040, R = 70, Safe = true, Icon = "💧" },
 }
 Civ.DistrictById = {}
 for _, d in Civ.Districts do

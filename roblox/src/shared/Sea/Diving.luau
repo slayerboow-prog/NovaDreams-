@@ -78,7 +78,7 @@ function Diving.overText(gear: string?, meters: number): string
 	local need = Diving.gearFor(meters)
 	local needInfo = if need then Diving.Gear[need] else nil
 	local tail = if needInfo and need ~= "Base" then (" Para bajar a %d m necesitas %s (tienda de pesca)."):format(math.floor(meters), needInfo.Name) else ""
-	return ("🫧 ¡Presión! Con %s puedes bajar hasta %d m.%s Sube un poco."):format(info.Name, info.Depth, tail)
+	return ("💧 ¡Presión! Con %s puedes bajar hasta %d m.%s Sube un poco."):format(info.Name, info.Depth, tail)
 end
 
 -- Un segundo de buceo (lo hace DivingService cada segundo). Devuelve el aire nuevo, el daño y los
@@ -119,9 +119,9 @@ end
 Diving.Loot = {
 	Concha = { Id = "Concha", Item = "Mar_Concha", Name = "Concha", Icon = "🐚", Price = 4, Color = Color3.fromRGB(245, 225, 205) },
 	Perla = { Id = "Perla", Item = "Mar_Perla", Name = "Perla", Icon = "⚪", Price = 70, Color = Color3.fromRGB(240, 240, 255) },
-	Coral = { Id = "Coral", Item = "Mar_Coral", Name = "Muestra de coral", Icon = "🪸", Price = 18, Color = Color3.fromRGB(240, 90, 110) },
+	Coral = { Id = "Coral", Item = "Mar_Coral", Name = "Muestra de coral", Icon = "🐚", Price = 18, Color = Color3.fromRGB(240, 90, 110) },
 	Bio = { Id = "Bio", Item = "Mar_Bio", Name = "Muestra bioluminiscente", Icon = "🧪", Price = 45, Color = Color3.fromRGB(90, 240, 255) },
-	Doblon = { Id = "Doblon", Item = "Mar_Doblon", Name = "Doblón antiguo", Icon = "🪙", Price = 120, Color = Color3.fromRGB(240, 200, 80) },
+	Doblon = { Id = "Doblon", Item = "Mar_Doblon", Name = "Doblón antiguo", Icon = "💰", Price = 120, Color = Color3.fromRGB(240, 200, 80) },
 }
 Diving.LootOrder = { "Concha", "Perla", "Coral", "Bio", "Doblon" }
 Diving.LootByItem = {}

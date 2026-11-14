@@ -993,6 +993,14 @@ local function showTitle(run: ClientRun, d: { [string]: any })
 end
 
 local function applySky(run: ClientRun, d: { [string]: any })
+	-- La Grieta en la fase de la escena (Coser el cielo se ve con la Grieta abierta aunque ya la
+	-- cerraras: revivir la escena desde la cinemateca o tras acabar la saga mostraba un cielo vacío)
+	if d.Phase ~= nil then
+		pcall(function()
+			require(script.Parent.SkyRift).preview(if d.Phase then d.Phase else nil, d.Instant == true)
+		end)
+		run.RiftPreview = d.Phase ~= false
+	end
 	if d.Rift then
 		pcall(function()
 			require(script.Parent.SkyRift).flare(d.Strength or 1, d.Seconds or 2)
@@ -1732,6 +1740,11 @@ local function play(payload: { [string]: any })
 	if run.SkyLayer then
 		pcall(function()
 			require(script.Parent.DayLight).popLayer(run.SkyLayer :: string, 1.5)
+		end)
+	end
+	if (run :: any).RiftPreview then
+		pcall(function()
+			require(script.Parent.SkyRift).preview(nil)
 		end)
 	end
 	if cinematic then

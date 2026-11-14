@@ -351,7 +351,7 @@ return {
 				{ S = "IngenieroOrsi", T = "Un fallo secreto en el núcleo. Si alguien lo toca en el momento justo, la Lanza se apaga.", To = "Yo" },
 				{ S = "IngenieroOrsi", T = "Nunca me he atrevido. Corvo me mira cada mañana como si ya lo supiera.", A = "Sad" },
 				{ S = "IngenieroOrsi", T = "Sacadme de aquí y os lo cuento todo. Por favor.", To = "Yo" },
-				{ S = "DaliaRenn", T = "Puede ser una trampa. Puede ser la única oportunidad. Tú decides, forastero.", To = "Yo", If = { Flags = { "TefraConoceDalia" } } },
+				{ S = "DaliaRenn", T = "Puede ser una trampa. Puede ser la única oportunidad. Tú decides, foraster{o/a}.", To = "Yo", If = { Flags = { "TefraConoceDalia" } } },
 			} },
 			Hospital = { Lines = {
 				{ S = "DoctoraFermina", T = "Otro más. Camilla cuatro. Aquí no se pregunta de qué bando eres.", Shot = "Medio:DoctoraFermina" },
@@ -420,7 +420,7 @@ return {
 				{ S = "TobiRenn", T = "Tú también nos disparabas, Dalia.", Shot = "PrimerPlano:TobiRenn", Pause = 1.2 },
 				{ S = "Narrador", T = "Nadie dice nada. Cae ceniza sobre la bandera blanca." },
 				{ S = "TobiRenn", T = "Y yo pedí los bombardeos sobre el Muelle. Los dos tenemos las manos sucias.", A = "Sad", To = "DaliaRenn" },
-				{ S = "TobiRenn", T = "¿Y tú quién eres? No tienes cara de soldado. Tienes cara de forastero que se ha perdido.", To = "Yo" },
+				{ S = "TobiRenn", T = "¿Y tú quién eres? No tienes cara de soldado. Tienes cara de foraster{o/a} que se ha perdido.", To = "Yo" },
 			} },
 			Despedida = { Lines = {
 				{ S = "TobiRenn", T = "Si esto es verdad… evacuaremos las ciudades de la cara que mira a Tefra. Esta noche.", If = { Choices = { TefraTobiLanza = "Contar" } }, Shot = "Medio:TobiRenn" },

@@ -1111,6 +1111,11 @@ function validateBody(def: { [string]: any }, c: { [string]: any }): { string }
 		if sky.Mood ~= nil and sky.Mood ~= false and c.SkyMoods and not c.SkyMoods[sky.Mood] then
 			err("%s: cielo desconocido '%s'", where, tostring(sky.Mood))
 		end
+		-- (Phase: la Grieta en esa fase mientras dura la escena —shared/SkyRift.Phases—, aunque tu
+		-- historia ya vaya por otra; false la devuelve a la tuya)
+		if sky.Phase ~= nil and sky.Phase ~= false and c.RiftPhases and not c.RiftPhases[sky.Phase] then
+			err("%s: fase de la Grieta desconocida '%s'", where, tostring(sky.Phase))
+		end
 	end
 	for i, s in def.Tracks.Sound or {} do
 		at("Sound[" .. i .. "]", s)

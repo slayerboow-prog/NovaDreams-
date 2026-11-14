@@ -168,15 +168,15 @@ S.Hazard = PlanetHazard.new({
 S.HazardTint = rgb(150, 230, 70)
 S.HazardHints = {
 	Normal = "Cerca de la niebla y en Lastre suben: máscara de filtro en la mochila",
-	Aviso = "Toses y vas más lento: usa una 🫧 cápsula de aire o entra a un refugio",
-	Peligro = "Pierdes vida: 🫧 cápsula de aire (mochila) o la enfermería del Muelle",
+	Aviso = "Toses y vas más lento: usa una 💧 cápsula de aire o entra a un refugio",
+	Peligro = "Pierdes vida: 💧 cápsula de aire (mochila) o la enfermería del Muelle",
 }
 S.HazardToasts = {
-	Aviso = "☣ Toses: el aire pica. Una 🫧 cápsula de aire o un refugio con aire filtrado (la enfermería, la cantina).",
-	Peligro = "☣ ¡Te mareas! Pierdes vida: usa una 🫧 cápsula de aire o entra en la enfermería del Muelle.",
+	Aviso = "☣ Toses: el aire pica. Una 💧 cápsula de aire o un refugio con aire filtrado (la enfermería, la cantina).",
+	Peligro = "☣ ¡Te mareas! Pierdes vida: usa una 💧 cápsula de aire o entra en la enfermería del Muelle.",
 }
 S.KnockText = "☣ Las toxinas te han tumbado."
-S.CounterText = "🫧 Aire limpio: las toxinas bajan de golpe y durante un minuto casi no suben"
+S.CounterText = "💧 Aire limpio: las toxinas bajan de golpe y durante un minuto casi no suben"
 
 -- Las estaciones de filtro del borde (el oficio de filtrador)
 S.FilterStations = {
@@ -260,5 +260,23 @@ PlanetJobs.register({
 	},
 })
 S.Jobs = PlanetJobs.of("Miasma")
+
+
+---------------------------------------------------------------------
+-- Los peligros del terreno (shared/Cosmos/TerrainPerils; Services/PlanetPerilService)
+---------------------------------------------------------------------
+-- (su misión de peligros, Misiones/Planetas_Peligros: mientras la sigues, llega el momento del peligro)
+S.StoryModes = { Miasma_Peligro = "LluviaAcida" }
+
+S.Perils = {
+	{ Id = "Miasma_Rayos", Kind = "Rayo", Name = "Rayos de la lluvia ácida", Icon = "⚡", Mode = "LluviaAcida", Every = 10, Warn = 1.6, Reach = 7, Damage = 22, Drop = 12,
+		Text = "⚡ Con la lluvia ácida llegan los rayos. Bajo los pararrayos de los discos estás a salvo; si ves un círculo rojo, sal.",
+		Hit = "⚡ ¡Un rayo! Te sacude de pies a cabeza." },
+	{ Id = "Miasma_Lodo", Kind = "Pozo", Name = "Lodo ácido", Icon = "🟢", Count = 4, Radius = { 6, 10 }, Materials = { "Ground", "Salt", "Rock" }, MaxSlope = 0.45, Seed = 3,
+		Color = rgb(110, 150, 40), Material = Enum.Material.Mud, Slow = 0.6, Rate = 3, Burn = 2,
+		Text = "🟢 Lodo ácido: quema y las toxinas suben deprisa. No lo pises." },
+	{ Id = "Miasma_Viento", Kind = "Empuje", Name = "Viento de la marea", Icon = "💨", Mode = "Marea", Every = 7, Force = 22, Dir = Vector3.new(0.4, 0, 1),
+		Text = "💨 Sube la marea de niebla y con ella el viento: las ráfagas te empujan. Aléjate de los bordes." },
+}
 
 return S

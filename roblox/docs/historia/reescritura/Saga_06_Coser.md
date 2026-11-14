@@ -1047,7 +1047,7 @@ COSME
 
 Siempre has sido tú.
 
-RECOMPENSA: 🪡 Aguja cuántica
+RECOMPENSA: 🧵 Aguja cuántica
 
 ⸻
 

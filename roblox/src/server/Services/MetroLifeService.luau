@@ -383,11 +383,11 @@ local PHONE_CALLS = {
 	{ "📞 «Ha llamado al servicio de horóscopos. Hoy es tu día de suerte. Fin del mensaje.»" },
 }
 local FORTUNES = {
-	"🪙 Plin. La moneda cae al fondo. Algo bueno va a pasar hoy.",
-	"🪙 Plin. Dicen que el deseo se cumple si no se lo cuentas a nadie.",
-	"🪙 Plin. Un pez imaginario te guiña un ojo. Buena señal.",
-	"🪙 Plin. La fuente burbujea. ¿Eso es un sí?",
-	"🪙 Plin. Te sientes con suerte. Mucha suerte.",
+	"💰 Plin. La moneda cae al fondo. Algo bueno va a pasar hoy.",
+	"💰 Plin. Dicen que el deseo se cumple si no se lo cuentas a nadie.",
+	"💰 Plin. Un pez imaginario te guiña un ojo. Buena señal.",
+	"💰 Plin. La fuente burbujea. ¿Eso es un sí?",
+	"💰 Plin. Te sientes con suerte. Mucha suerte.",
 }
 local BIN_FINDS = {
 	"🗑️ Solo hay un chicle masticado. Puaj.",
@@ -567,7 +567,7 @@ local SETUP: { [string]: (BasePart) -> () } = {
 			end
 			local root = rootOf(player)
 			local at = if root then water.Position:Lerp(root.Position, 0.35) else water.Position
-			floatText(Vector3.new(at.X, water.Position.Y + 0.8, at.Z), "🪙 plin", rgb(250, 220, 90))
+			floatText(Vector3.new(at.X, water.Position.Y + 0.8, at.Z), "💰 plin", rgb(250, 220, 90))
 			info(player, pick(FORTUNES))
 		end)
 	end,

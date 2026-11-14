@@ -96,4 +96,48 @@ return {
 			},
 		},
 	},
+
+	---------------------------------------------------------------------
+	-- Siroco_Peligro · el peligro del terreno de este planeta (Misiones/Planetas_Peligros; shared/Cosmos/TerrainPerils).
+	--   Plano del sitio y del cielo, el golpe, silencio, y quien te lo va a enseñar.
+	---------------------------------------------------------------------
+	Siroco_Peligro = {
+		Duration = 19,
+		Skippable = true,
+		FadeIn = true,
+		Anchors = {
+			Lugar = "Place:Siroco_Fuente",
+			Yo = "Player",
+			Cielo = { Place = "Siroco_Fuente", Offset = V(200, 30, -260) },
+		},
+		Tracks = {
+			Camera = {
+				{ At = 0, Duration = 5.6, From = { "Lugar", V(-14, 6, 16) }, To = { "Lugar", V(-8, 4, 12) }, Look = { "Cielo" }, Fov = { 62, 54 }, Cut = "Fade" },
+				{ At = 5.6, Duration = 4.4, Shot = "Medio:TavoAguador", Cut = "Cut" },
+				{ At = 10, Duration = 3, Shot = "Reaccion:Yo", Cut = "Cut" },
+				{ At = 13, Duration = 6, Shot = "PrimerPlano:TavoAguador", Cut = "Cut" },
+			},
+			Fx = {
+				{ At = 0.8, Play = "Dust", Anchor = "Cielo" },
+			},
+			Sound = {
+				{ At = 0.4, Play = "Hum", Pitch = 0.5, Volume = 0.4 },
+				{ At = 1.2, Play = "Whoosh", Volume = 0.5 },
+			},
+			Music = {
+				{ At = 0, Intensity = "Tension" },
+			},
+			Actors = {
+				{ At = 0, Use = { Key = "TavoAguador", Npc = "TavoAguador", Anchor = "Lugar", Offset = V(2, 0, 2) } },
+				{ At = 0.4, Look = { Key = "TavoAguador", At = "Cielo" } },
+				{ At = 5.6, Mood = { Key = "TavoAguador", Mood = "Sad" } },
+				{ At = 6, Look = { Key = "TavoAguador", At = "Yo" } },
+			},
+			Dialogue = {
+				{ At = 3.4, S = "Narrador", T = "Más allá del cañón, las dunas. Algunas manchas de arena brillan como si estuvieran mojadas." },
+				{ At = 6.2, S = "TavoAguador", T = "Ahí. ¿Ves la arena oscura? Mi carro está debajo. Y no pienso ir a por él solo.", To = "Yo" },
+				{ At = 13.4, S = "Narrador", T = "En Siroco no llueve nunca. Por eso, lo que parece mojado da miedo." },
+			},
+		},
+	},
 }
