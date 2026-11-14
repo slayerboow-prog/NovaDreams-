@@ -191,7 +191,7 @@ do
 			table.insert(inner, e.Name)
 		end
 	end
-	check(#inner == 7 and table.find(inner, "Cinturón de Hierro") and table.find(inner, "Estación Alba") and table.find(inner, "Estación Cénit") and table.find(inner, "Frente de Ovilla"), "por dentro, lo que ya hay en el juego: " .. table.concat(inner, ", "))
+	check(#inner == 8 and table.find(inner, "Cinturón de Hierro") and table.find(inner, "Estación Alba") and table.find(inner, "Estación Cénit") and table.find(inner, "Estación Vigía") and table.find(inner, "Frente de Ovilla"), "por dentro, lo que ya hay en el juego: " .. table.concat(inner, ", "))
 
 	-- Saga 1 terminada: Tefra abierta, visitada y con 2 misiones; Miasma y los demás, aún cerrados
 	local snap = {
@@ -502,7 +502,7 @@ do
 				sites += 1
 			end
 		end
-		check(okParts and sites == 15, ("%s: se monta (título, ficha, LEYENDA, MISIONES, tarjeta con VIAJAR, pestañas) con los %d sitios%s"):format(name, sites, if okOpen then "" else ": " .. tostring(err)))
+		check(okParts and sites == 16, ("%s: se monta (título, ficha, LEYENDA, MISIONES, tarjeta con VIAJAR, pestañas) con los %d sitios%s"):format(name, sites, if okOpen then "" else ": " .. tostring(err)))
 	end
 	check(#badProps == 0, "todas las propiedades que se ponen existen en Roblox" .. (if #badProps > 0 then ": " .. table.concat(badProps, ", ") else ""))
 	check(#fired >= 1 and fired[1][1] == "Get", "al abrir pide tus datos al servidor (GalaxyMap «Get»)")

@@ -84,6 +84,7 @@ GalaxyMap.StatusText = {
 GalaxyMap.Inner = {
 	{ Id = "Estacion_Alba", Kind = "Station", Station = "Alba", Angle = 180, Ring = 0.3 },
 	{ Id = "Estacion_Cenit", Kind = "Station", Station = "Cenit", Angle = 0, Ring = 0.3 },
+	{ Id = "Estacion_Vigia", Kind = "Station", Station = "Vigia", Angle = -70, Ring = 0.45 }, -- (La Deriva: el Instituto Nilda)
 	{ Id = "Hierro", Kind = "Poi", Field = "Hierro", Angle = 148, Ring = 0.62 },
 	{ Id = "Escarcha", Kind = "Poi", Field = "Escarcha", Sector = "Escarcha", Angle = -32, Ring = 0.6 },
 	{ Id = "Brasa", Kind = "Poi", Field = "Brasa", Sector = "Brasa", Angle = 30, Ring = 0.6 },
@@ -192,7 +193,7 @@ function GalaxyMap.entries(snap: { [string]: any }?, opts: { [string]: any }?): 
 			Dest = nil,
 			Lines = {
 				{ "Mundos", "Valmar y su luna" },
-				{ "Estaciones", ("%d (%s)"):format(#Stations.List, "Alba y Cénit") },
+				{ "Estaciones", ("%d (%s)"):format(#Stations.List, "Alba, Cénit y Vigía") },
 				{ "Estado", if invasion then "⚠ " .. invasion else (if main then "Misión principal activa" else "Tu hogar") },
 			},
 		})

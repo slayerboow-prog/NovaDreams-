@@ -82,7 +82,34 @@ local function applyPower(power: number)
 	end
 end
 
+-- «La anomalía que canta»: interferencia en tu pantalla mientras estás dentro (color que tiembla y un
+-- desenfoque a golpes, como una radio mal sintonizada)
+local interference: ColorCorrectionEffect? = nil
+local function applyInterference()
+	local on = player:GetAttribute("Interferencia") == true
+	local Lighting = game:GetService("Lighting")
+	if on then
+		if not interference or not interference.Parent then
+			local cc = Instance.new("ColorCorrectionEffect")
+			cc.Name = "InterferenciaCanto"
+			cc.Parent = Lighting
+			interference = cc
+		end
+		local t = os.clock()
+		local cc = interference :: ColorCorrectionEffect
+		cc.Saturation = -0.4 + 0.5 * math.sin(t * 7.3)
+		cc.TintColor = Color3.fromRGB(220 + math.floor(35 * math.sin(t * 3.1)), 230, 255)
+		-- (golpes de contraste solo si el jugador no ha apagado los destellos: ajuste LightningFlashes)
+		local flashes = player:GetAttribute("LightningFlashes") ~= false
+		cc.Contrast = if flashes and (t * 2.7) % 1 < 0.12 then 0.35 else 0.05
+	elseif interference then
+		interference:Destroy()
+		interference = nil
+	end
+end
+
 local function step()
+	pcall(applyInterference)
 	local inside = player:GetAttribute("EnPecio") ~= nil
 	setFlashlight(inside)
 	local power = tonumber(player:GetAttribute("DerivaPower")) or 0

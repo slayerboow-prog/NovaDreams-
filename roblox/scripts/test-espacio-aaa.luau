@@ -806,7 +806,7 @@ do
 	for _, d in list do
 		byKind[d.Kind] = (byKind[d.Kind] or 0) + 1
 	end
-	check(byKind.Estacion == 2 and byKind.Planeta == 7 and byKind.Baliza == 1 and byKind.Mision == 1 and (byKind.Campo or 0) == 3 and (byKind.Sector or 0) == 3, "destinos del registro de verdad: 2 estaciones, 7 órbitas, la baliza, la misión y los puntos de interés")
+	check(byKind.Estacion == #Stations.List and byKind.Planeta == 7 and byKind.Baliza == 1 and byKind.Mision == 1 and (byKind.Campo or 0) == 3 and (byKind.Sector or 0) == 3, "destinos del registro de verdad: las estaciones, 7 órbitas, la baliza, la misión y los puntos de interés")
 	local hierro, brasa = QuantumJump.find(list, "Campo_Hierro"), QuantumJump.find(list, "Campo_Brasa")
 	check(hierro and not hierro.Locked and brasa and brasa.Locked ~= nil, "los puntos de interés solo cuando ya los has descubierto")
 	local lontana, ocrea = QuantumJump.find(list, "Planeta_Tefra"), QuantumJump.find(list, "Planeta_Siroco")

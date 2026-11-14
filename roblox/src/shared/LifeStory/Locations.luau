@@ -304,6 +304,22 @@ do
 	end
 end
 
+-- Las estaciones del espacio: vestíbulo, laboratorio y hangar de cada una (marcas StorySpot de
+-- World/SpaceWorld). Sin Fallback: si el espacio no está construido, no existen.
+do
+	local ok, Stations = pcall(function()
+		return require(script.Parent.Parent.Cosmos.Stations)
+	end)
+	if ok then
+		for _, st in Stations.List do
+			for _, spot in { "Vestibulo", "Laboratorio", "Hangar" } do
+				local key = ("Estacion_%s_%s"):format(st.Id, spot)
+				Locations.Places[key] = { NameKey = ("%s · %s"):format(st.Name, spot), Tag = "StorySpot", Attribute = { SpotId = key }, Radius = 10, School = false }
+			end
+		end
+	end
+end
+
 -- La Deriva: los sitios de los pecios (marcas StorySpot «Deriva_<Id>» de World/DerelictBuilder). Sin
 -- Fallback: si el pecio no está construido, el sitio no existe.
 do

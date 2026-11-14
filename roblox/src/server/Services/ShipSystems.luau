@@ -573,6 +573,13 @@ function ShipSystems.scan(s: any, ctx: Ctx, t: number, radius: number?): boolean
 	pcall(function()
 		local ShipClasses = require(game:GetService("ReplicatedStorage").Shared.AirCombat.ShipClasses)
 		radarMult = ShipClasses.def(s.Class).Radar + ((s.Bonus and s.Bonus.Radar) or 0)
+		-- (La Deriva) investigación de la Vigía: escáner de largo alcance
+		local okR, fx = pcall(function()
+			return require(script.Parent.SpaceService).research(s.Player)
+		end)
+		if okR and type(fx) == "table" then
+			radarMult *= fx.ScanRadius or 1
+		end
 	end)
 	local r = (radius or ShipCombat.Scan.Radius) * radarMult
 	local found = if ctx.discover then ctx.discover(pos(s), r) else {}

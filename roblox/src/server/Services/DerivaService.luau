@@ -19,6 +19,7 @@ local RunService = game:GetService("RunService")
 
 local Cosmos = ReplicatedStorage.Shared.Cosmos
 local Derelicts = require(Cosmos.Derelicts)
+local Canto = require(Cosmos.Canto)
 local Stations = require(Cosmos.Stations)
 local Layers = require(Cosmos.Layers)
 
@@ -30,7 +31,7 @@ local DerivaService = {}
 DerivaService.TickSeconds = 0.2
 DerivaService.RewardMats = { Componentes = 12, Datos = 10 }
 
-type RState = { Enemies: { string }, Killed: number, Kind: string?, HurtAt: number, Logs: { [string]: boolean } }
+type RState = { Enemies: { string }, Killed: number, Kind: string?, HurtAt: number, Logs: { [string]: boolean }, Scan: number, ScanAt: number? }
 local runtime: { [Player]: RState } = {}
 local wired = false
 local loop: RBXScriptConnection? = nil
@@ -47,7 +48,7 @@ end
 local function rt(player: Player): RState
 	local r = runtime[player]
 	if not r then
-		r = { Enemies = {}, Killed = 0, HurtAt = -math.huge, Logs = {} }
+		r = { Enemies = {}, Killed = 0, HurtAt = -math.huge, Logs = {}, Scan = 0 }
 		runtime[player] = r
 	end
 	return r
@@ -311,7 +312,97 @@ local function spawnAmbush(player: Player)
 	end
 end
 
+---------------------------------------------------------------------
+-- «La anomalía que canta» (shared/Cosmos/Canto): el sitio, el escaneo y la interferencia
+---------------------------------------------------------------------
+local cantoModel: Model? = nil
+local function ensureCanto(): Model?
+	if cantoModel and cantoModel.Parent then
+		return cantoModel
+	end
+	local ok, m = pcall(function()
+		local model = Instance.new("Model")
+		model.Name = "AnomaliaCanto"
+		local c = Canto.AnomalyPos
+		local function ring(radius: number, tilt: CFrame, color: Color3, alpha: number)
+			for i = 1, 24 do
+				local a = i / 24 * math.pi * 2
+				local a2 = (i + 1) / 24 * math.pi * 2
+				local p1 = c + (tilt * CFrame.new(math.cos(a) * radius, 0, math.sin(a) * radius)).Position
+				local p2 = c + (tilt * CFrame.new(math.cos(a2) * radius, 0, math.sin(a2) * radius)).Position
+				local seg = Instance.new("Part")
+				seg.Anchored, seg.CanCollide, seg.CanQuery, seg.CanTouch, seg.CastShadow = true, false, false, false, false
+				seg.Material = Enum.Material.Neon
+				seg.Color = color
+				seg.Transparency = alpha
+				seg.Size = Vector3.new(2.5, 2.5, (p2 - p1).Magnitude + 1)
+				seg.CFrame = CFrame.lookAt((p1 + p2) / 2, p2)
+				seg.Parent = model
+			end
+		end
+		-- (anillos cruzados de dos colores que no encajan: dos restos de mundos rozándose)
+		ring(90, CFrame.Angles(0.3, 0, 0.2), Color3.fromRGB(120, 240, 210), 0.25)
+		ring(130, CFrame.Angles(-0.5, 0.8, 0), Color3.fromRGB(255, 120, 200), 0.35)
+		ring(60, CFrame.Angles(1.2, 0.2, 0.4), Color3.fromRGB(255, 255, 255), 0.2)
+		local core = Instance.new("Part")
+		core.Shape = Enum.PartType.Ball
+		core.Anchored, core.CanCollide, core.CanQuery, core.CanTouch, core.CastShadow = true, false, false, false, false
+		core.Material = Enum.Material.ForceField
+		core.Color = Color3.fromRGB(180, 140, 255)
+		core.Size = Vector3.new(40, 40, 40)
+		core.CFrame = CFrame.new(c)
+		core.Parent = model
+		local light = Instance.new("PointLight")
+		light.Color = Color3.fromRGB(180, 140, 255)
+		light.Range = 60
+		light.Brightness = 3
+		light.Parent = core
+		model.PrimaryPart = core
+		model.Parent = workspace
+		return model
+	end)
+	if ok then
+		cantoModel = m
+	end
+	return cantoModel
+end
+
+local function cantoTick(player: Player, pos: Vector3, dt: number)
+	local cp = Canto.phaseOf(storyOf(player))
+	local inside = cp ~= nil and (cp.Step == "Signal" or cp.Step == "Scanned") and Canto.inScan(pos)
+	if player:GetAttribute("Interferencia") ~= (inside or nil) then
+		player:SetAttribute("Interferencia", if inside then true else nil)
+	end
+	if not cp then
+		return
+	end
+	local r = rt(player)
+	if cp.Step == "Signal" then
+		ensureCanto()
+		if (pos - Canto.AnomalyPos).Magnitude <= Canto.ArriveRadius then
+			r.Scan = 0
+			StoryEvents.emit(player, "CantoStep", { Step = "Signal" })
+		end
+	elseif cp.Step == "Scanned" then
+		ensureCanto()
+		if Canto.inScan(pos) then
+			r.Scan += dt
+			if r.Scan >= Canto.ScanSeconds then
+				StoryEvents.emit(player, "CantoStep", { Step = "Scanned" })
+			end
+		end
+	end
+end
+
 function DerivaService.tick(player: Player)
+	local stCanto = airCombat().status(player)
+	if stCanto and not stCanto.Down then
+		local r0 = rt(player)
+		local t0 = os.clock()
+		local dt = if r0.ScanAt then math.clamp(t0 - r0.ScanAt, 0, 3) else 0
+		r0.ScanAt = t0
+		pcall(cantoTick, player, stCanto.Pos, dt)
+	end
 	local phase = phaseOf(player)
 	local r = rt(player)
 	if not phase then
@@ -386,6 +477,16 @@ function DerivaService.event(player: Player, ev: { [string]: any })
 		if Derelicts.offer(story) then
 			StoryEvents.emit(player, "DerivaSignal", { Part = 1 })
 		end
+		-- «La anomalía que canta»: se ofrece al atracar; se entrega atracando en la Vigía
+		local cp = Canto.phaseOf(story)
+		if cp and cp.Step == "Docked" and ev.Station == Canto.Station then
+			StoryEvents.emit(player, "CantoStep", { Step = "Docked" })
+			pcall(service("SpaceService").addMat, player, "Datos", Canto.RewardDatos)
+			toast(player, "Success", ("📡 Entregas el escaneo del canto: +%d Datos"):format(Canto.RewardDatos))
+		end
+		if Canto.offer(story) then
+			StoryEvents.emit(player, "CantoSignal", { Part = 1 })
+		end
 	elseif ev.Type == "Kill" and type(ev.Id) == "string" then
 		local r = runtime[player]
 		if r and table.find(r.Enemies, ev.Id) then
@@ -398,12 +499,17 @@ end
 
 function DerivaService.onExit(player: Player)
 	dropEnemies(player)
+	player:SetAttribute("Interferencia", nil)
 end
 
 -- Fila de misión del HUD de la nave (o nil)
 function DerivaService.row(player: Player): { [string]: any }?
 	local alba = Stations.ById[Derelicts.Misericordia.DeliverStation]
 	local row = Derelicts.row(phaseOf(player), alba and alba.Dock)
+	if not row then
+		local r = runtime[player]
+		row = Canto.row(Canto.phaseOf(storyOf(player)), r and r.Scan)
+	end
 	if row then
 		row.Id = "Deriva"
 	end

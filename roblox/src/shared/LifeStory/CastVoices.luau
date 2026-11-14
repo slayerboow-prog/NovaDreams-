@@ -186,6 +186,7 @@ local PEOPLE: { [string]: { G: string, P: number, S: number } } = {
 	-- El espacio (Saga 2): la voz del chip de Cosme y el Deshilador (faltaban: test-voices)
 	NILDA = { G = "F", P = 1.7, S = 0.96 },
 	DraVarga = { G = "F", P = -0.8, S = 0.92 }, -- (La Deriva) cansada, exacta
+	DraIvo = { G = "F", P = 0.4, S = 1.08 }, -- (La Deriva) rápida, directa
 	Varkun = { G = "M", P = -4.6, S = 0.78 },
 	-- Miasma · Anclaje Siete (Saga 2)
 	MaraSolis = { G = "F", P = -1.1, S = 1.06 }, -- rápida, seca, de contrabandista

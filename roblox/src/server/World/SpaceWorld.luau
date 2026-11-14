@@ -245,7 +245,27 @@ local function buildStation(parent: Instance, st: Stations.Station): Prompts
 	local home = portal(model, "PortalValmar", CFrame.new(C + V(0, 0, 30)) * CFrame.Angles(0, math.pi, 0), rgb(90, 220, 140), rgb(80, 200, 255))
 	local homePrompt = prompt(home, "Volver a Valmar", "Portal", "Home")
 	sign(model, "VOLVER A VALMAR", CFrame.new(C + V(0, 19, 30)), V(14, 2.4, 0.4), rgb(170, 255, 200))
-	return { Shop = shop, Board = board, Launch = hangar, Home = homePrompt }
+	-- (La Deriva) laboratorio de investigación: mesa con pantallas, un holograma del escáner y su panel
+	local lab: ProximityPrompt? = nil
+	if st.Lab then
+		lab = kiosk("Laboratorio", V(-26, 0, 14), rgb(120, 240, 210), "Investigar", "Laboratorio del Instituto Nilda", "Lab", "LABORATORIO")
+		for i = -1, 1 do
+			decor({ Name = "PantallaLab", Size = V(5, 3, 0.3), CFrame = CFrame.new(C + V(-26 + i * 6, 9.5, 11.6)) * CFrame.Angles(math.rad(-12), 0, 0), Color = rgb(40, 140, 130), Material = M.Neon, Transparency = 0.35, Parent = model })
+		end
+		decor({ Name = "HologramaEscaner", Shape = Enum.PartType.Ball, Size = V(4, 4, 4), CFrame = CFrame.new(C + V(-36, 6, 14)), Color = rgb(120, 240, 210), Material = M.ForceField, Transparency = 0.2, Parent = model })
+		decor({ Name = "MesaMuestras", Size = V(10, 3, 5), CFrame = CFrame.new(C + V(-14, 1.5, 22)), Color = rgb(70, 76, 90), Material = M.Metal, Parent = model })
+		for k = 0, 3 do
+			decor({ Name = "Muestra", Size = V(1, 1.6, 1), CFrame = CFrame.new(C + V(-18 + k * 2.6, 3.8, 22)), Color = rgb(160, 120, 255), Material = M.Glass, Transparency = 0.3, Parent = model })
+		end
+	end
+	-- Sitios de la historia dentro de la estación (marcas StorySpot «Estacion_<Id>_<Sitio>»:
+	-- shared/LifeStory/Locations)
+	for spotName, at in { Vestibulo = V(0, 0, 8), Laboratorio = V(-24, 0, 8), Hangar = V(22, 0, -12) } do
+		local mark = decor({ Name = "StorySpot_" .. spotName, Size = V(2, 2, 2), CFrame = CFrame.new(C + at + V(0, 3, 0)), Transparency = 1, Parent = model })
+		mark:SetAttribute("SpotId", ("Estacion_%s_%s"):format(st.Id, spotName))
+		game:GetService("CollectionService"):AddTag(mark, "StorySpot")
+	end
+	return { Shop = shop, Board = board, Launch = hangar, Home = homePrompt, Lab = lab }
 end
 
 -- Un asteroide: roca irregular (shared/Cosmos/AsteroidBuild: bloques y cuñas, o la malla de Blender si

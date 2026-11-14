@@ -44,6 +44,7 @@ local SpaceEvents = require(Cosmos.SpaceEvents)
 local Waves = require(ReplicatedStorage.Shared.AirCombat.Waves)
 local ShipWeapons = require(ReplicatedStorage.Shared.AirCombat.ShipWeapons)
 local Derelicts = require(ReplicatedStorage.Shared.Cosmos.Derelicts)
+local Research = require(ReplicatedStorage.Shared.Cosmos.Research)
 local ShipClasses = require(ReplicatedStorage.Shared.AirCombat.ShipClasses)
 local ShipCombat = require(ReplicatedStorage.Shared.AirCombat.ShipCombat)
 local Shields = require(ReplicatedStorage.Shared.AirCombat.Shields)
@@ -177,6 +178,9 @@ local function spaceData(player: Player): { [string]: any }?
 	if type(sp.Mats) ~= "table" then
 		sp.Mats = {}
 	end
+	if type(sp.Research) ~= "table" then
+		sp.Research = {} -- (La Deriva, fase 2) investigaciones hechas en la Vigía: { EscanerLargo = os.time(), … }
+	end
 	return sp
 end
 SpaceService.spaceData = spaceData
@@ -205,6 +209,12 @@ function SpaceService.addMat(player: Player, id: string, n: number)
 end
 local function mat(sp: { [string]: any }, id: string): number
 	return math.floor(tonumber(sp.Mats[id]) or 0)
+end
+
+-- Lo que dan las investigaciones de la Vigía a ese jugador (shared/Cosmos/Research)
+function SpaceService.research(player: Player): { [string]: number }
+	local sp = spaceData(player)
+	return Research.effects(sp and sp.Research)
 end
 
 local function isTester(player: Player): boolean
@@ -324,6 +334,9 @@ ensureSpace = function()
 		end)
 		wire(prompts.Home, function(player)
 			SpaceService.home(player)
+		end)
+		wire(prompts.Lab, function(player)
+			SpaceService.labMenu(player, id)
 		end)
 	end
 end
@@ -692,8 +705,9 @@ local function onKill(player: Player, data: { [string]: any })
 		chispas += 1
 	end
 	reward(player, SpaceService.KillReward[kind] or 0, chispas)
-	if math.random() < SpaceService.Mats.KillChance then
-		local got = grantMat(player, "Componentes", SpaceService.Mats.KillAmount[kind] or 1)
+	local fx = SpaceService.research(player)
+	if math.random() < SpaceService.Mats.KillChance + fx.CompChance then
+		local got = grantMat(player, "Componentes", (SpaceService.Mats.KillAmount[kind] or 1) + fx.CompBonus)
 		if got > 0 then
 			toast(player, "Info", ("⚙ +%d Componentes (restos de la nave derribada)"):format(got))
 		end
@@ -1000,6 +1014,7 @@ function SpaceService.buyUpgrade(player: Player, id: string): (boolean, string?)
 	if not price then
 		return false, "Maximo"
 	end
+	price.Money = math.floor(price.Money * Research.effects(sp.Research).ModuleMoney + 0.5)
 	if sp.Chispas < price.Chispas then
 		return false, "Chispas"
 	end
@@ -1144,6 +1159,7 @@ function SpaceService.modulesMenu(player: Player, stationId: string)
 		local level = math.floor(tonumber(sp.Upgrades[id]) or 0)
 		local price = ShipCombat.upgradePrice(id, level)
 		if price then
+			price.Money = math.floor(price.Money * Research.effects(sp.Research).ModuleMoney + 0.5)
 			table.insert(options, {
 				Text = ("⬆ %s (%s) %d/%d · %s: %s"):format(u.Name, u.Slot, level, u.Levels, u.Text, priceText(price)),
 				Do = function()
@@ -1220,6 +1236,73 @@ function SpaceService.shipyardMenu(player: Player, stationId: string)
 	menu(player, "🚀 Astillero", wallet(sp), options)
 end
 
+-- (La Deriva, fase 2) Laboratorio de la Vigía: investigar con Datos (shared/Cosmos/Research). Se abre con la
+-- bandera de la historia VigiaAbierta (al terminar «La anomalía que canta»).
+function SpaceService.buyResearch(player: Player, id: string): (boolean, string?)
+	local sp = spaceData(player)
+	if not sp then
+		return false, "Desconocido"
+	end
+	local ok, why = Research.canBuy(sp.Research, id)
+	if not ok then
+		return false, why
+	end
+	local n = Research.ById[id]
+	if mat(sp, "Datos") < n.Datos then
+		return false, "Datos"
+	end
+	if mat(sp, "Componentes") < (n.Componentes or 0) then
+		return false, "Componentes"
+	end
+	if not DataService.spend(player, n.Money) then
+		return false, "Dinero"
+	end
+	SpaceService.addMat(player, "Datos", -n.Datos)
+	SpaceService.addMat(player, "Componentes", -(n.Componentes or 0))
+	sp.Research[id] = os.time()
+	return true, nil
+end
+
+local function labOpen(player: Player): boolean
+	local data = DataService.get(player)
+	local flags = data and data.Story and data.Story.Flags
+	return type(flags) == "table" and flags[Research.UnlockFlag] == true
+end
+
+function SpaceService.labMenu(player: Player, stationId: string)
+	local sp = spaceData(player)
+	local st = Stations.ById[stationId]
+	if not sp or not st or not st.Lab then
+		return
+	end
+	if not labOpen(player) then
+		menu(player, "🔬 Laboratorio del Instituto Nilda", "Las pantallas están apagadas. Un aviso: «Solo personal del Instituto». Alguien de aquí tendrá que confiar en ti primero.", { { Text = "Cerrar" } })
+		return
+	end
+	local options = {}
+	for _, n in Research.Nodes do
+		local can, why = Research.canBuy(sp.Research, n.Id)
+		local text
+		if sp.Research[n.Id] then
+			text = ("✅ %s · %s: %s"):format(n.Branch, n.Name, n.Text)
+		elseif why == "Falta" then
+			text = ("🔒 %s · %s (antes: %s)"):format(n.Branch, n.Name, Research.ById[n.Needs :: string].Name)
+		else
+			text = ("🔬 %s · %s: %s · 📡 %d · $%d%s"):format(n.Branch, n.Name, n.Text, n.Datos, n.Money, if (n.Componentes or 0) > 0 then (" · ⚙ %d"):format(n.Componentes) else "")
+		end
+		table.insert(options, { Text = text, Do = if can then function()
+			if not inStation(player, stationId) then
+				return
+			end
+			local ok, err = SpaceService.buyResearch(player, n.Id)
+			toast(player, if ok then "Success" else "Error", if ok then ("🔬 Investigación terminada: %s. %s"):format(n.Name, n.Text) else (BUY_TEXT[err or ""] or "No se puede"))
+			SpaceService.labMenu(player, stationId)
+		end else nil })
+	end
+	table.insert(options, { Text = "Cerrar" })
+	menu(player, "🔬 Laboratorio del Instituto Nilda", wallet(sp) .. " · lo investigado vale para siempre", options)
+end
+
 function SpaceService.workshop(player: Player, stationId: string)
 	local sp = spaceData(player)
 	if not sp or not Stations.ById[stationId] then
@@ -1276,11 +1359,11 @@ function SpaceService.scanFor(player: Player, at: Vector3, radius: number): { st
 		end
 	end
 	if #out > 0 then
-		local datos = grantMat(player, "Datos", SpaceService.Mats.DiscoverDatos * #out)
+		local datos = grantMat(player, "Datos", math.floor(SpaceService.Mats.DiscoverDatos * #out * SpaceService.research(player).DatosMult + 0.5))
 		toast(player, "Success", ("📡 Escáner: %s descubierto. Ya puedes ir con el salto cuántico (X).%s"):format(table.concat(out, ", "), if datos > 0 then (" 📡 +%d Datos"):format(datos) else ""))
 	elseif Zone.fieldAt(at) or Zone.sectorAt(at) then
 		-- (escanear un campo o un sector conocido también da Datos, poco a poco)
-		grantMat(player, "Datos", SpaceService.Mats.PulseDatos)
+		grantMat(player, "Datos", math.floor(SpaceService.Mats.PulseDatos * SpaceService.research(player).DatosMult + 0.5))
 	end
 	return out
 end
@@ -1415,7 +1498,7 @@ local function discover(player: Player, pos: Vector3)
 	end
 	for _, poi in NavInfo.discoverAt(pos, sp.Found) do
 		sp.Found[poi.Id] = os.time()
-		local datos = grantMat(player, "Datos", SpaceService.Mats.DiscoverDatos)
+		local datos = grantMat(player, "Datos", math.floor(SpaceService.Mats.DiscoverDatos * SpaceService.research(player).DatosMult + 0.5))
 		toast(player, "Success", ("📡 Descubierto: %s. Ya puedes ir con el salto cuántico (X).%s"):format(poi.Name, if datos > 0 then (" 📡 +%d Datos"):format(datos) else ""))
 	end
 end

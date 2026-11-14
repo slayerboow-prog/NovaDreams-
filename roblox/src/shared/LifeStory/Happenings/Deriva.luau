@@ -160,6 +160,62 @@ local Registro = {
 }
 
 ---------------------------------------------------------------------
+-- Deriva_Vigia_Ivo · al atracar en la Estación Vigía con el escaneo del canto: la doctora Ivo.
+--   ¿Qué pasa? Una científica agotada te explica qué son las anomalías y que cada vez hay más. Cénit no le hace caso.
+--   ¿Qué quiero que sienta el jugador? Que ha encontrado a la única persona que se lo toma en serio. Y una
+--   sospecha: ¿por qué la Vigilancia no hace nada?
+-- (todo en el vestíbulo de la Vigía, donde estás tú: el director de cámara no deja paredes en medio)
+---------------------------------------------------------------------
+local ivoLines, iS, iEnd = lines(2.6, {
+	{ S = "Narrador", T = "La Estación Vigía huele a café frío y a cables quemados. Aquí trabajan seis personas. Ninguna parece haber dormido." },
+	{ S = "DraIvo", T = "Treinta segundos dentro de un canto. La mayoría de los pilotos sale a los diez, con la radio pitando y ganas de vomitar.", To = "Yo" },
+	{ S = "DraIvo", T = "No es una nube ni una tormenta. Es un sitio donde se rozan los restos de dos mundos que ya no existen. La física no sabe qué reglas aplicar." },
+	{ S = "DraIvo", T = "Hace tres años había dos en toda la Deriva. Hoy he contado catorce. Y cantan cada vez más alto.", To = "Yo" },
+	{ S = "DraIvo", T = "Lo he mandado a Cénit cuatro veces. La Vigilancia contesta siempre lo mismo: «Recibido». Y nada más." },
+	{ S = "Cosme", T = "Ivo fue la mejor alumna de Nilda. No le digas que te lo he dicho, que se le sube a la cabeza.", To = "Yo" },
+	{ S = "DraIvo", T = "El laboratorio es tuyo. Tráeme Datos y te devuelvo herramientas. Aquí nadie más me hace caso.", To = "Yo" },
+})
+
+local VigiaIvo = {
+	Duration = math.ceil(iEnd + 1.5),
+	Skippable = true,
+	FadeIn = true,
+	Speakers = { Cosme = true }, -- (por radio)
+	Anchors = {
+		Lab = "Place:Estacion_Vigia_Laboratorio",
+		Vestibulo = "Place:Estacion_Vigia_Vestibulo",
+		Yo = "Player",
+	},
+	Tracks = {
+		Camera = {
+			{ At = 0, Duration = iS[2], From = { "Vestibulo", V(10, 8, 12) }, To = { "Vestibulo", V(6, 6, 8) }, Look = { "Lab", V(0, 3, 0) }, Fov = { 62, 54 }, Cut = "Fade" },
+			{ At = iS[2], Duration = iS[3] - iS[2], Shot = "Medio:DraIvo", Cut = "Cut" },
+			{ At = iS[3], Duration = iS[4] - iS[3], Shot = "Reaccion:Yo", Cut = "Cut" },
+			{ At = iS[4], Duration = iS[5] - iS[4], Shot = "Medio:DraIvo", Cut = "Cut" },
+			{ At = iS[5], Duration = iS[6] - iS[5], Shot = "PrimerPlano:DraIvo", Cut = "Cut" },
+			{ At = iS[6], Duration = iS[7] - iS[6], Shot = "Medio:Yo", Cut = "Cut" },
+			{ At = iS[7], Duration = iEnd - iS[7] + 1.5, Shot = "Medio:DraIvo", Cut = "Cut" },
+		},
+		Fx = {
+			{ At = 0.5, Play = "KeyLight", Anchor = "Lab", Offset = V(0, 6, 4) },
+		},
+		Sound = {
+			{ At = 0.2, Play = "Hum", Pitch = 0.8, Volume = 0.3 },
+		},
+		Music = {
+			{ At = 0, Intensity = "Intima" },
+		},
+		Actors = {
+			{ At = 0, Use = { Key = "DraIvo", Npc = "DraIvo", Anchor = "Lab", Offset = V(0, 0, 0), Face = { "Yo" } } },
+			{ At = 0.4, Mood = { Key = "DraIvo", Mood = "Calm" } },
+			{ At = iS[4], Mood = { Key = "DraIvo", Mood = "Nervous" } },
+			{ At = iS[6], Mood = { Key = "DraIvo", Mood = "Calm" } },
+		},
+		Dialogue = ivoLines,
+	},
+}
+
+---------------------------------------------------------------------
 -- Los tres REGISTROS de las salas (escenas ligeras: el holograma habla y tú sigues andando)
 ---------------------------------------------------------------------
 local function logScene(list: { { [string]: any } }): { [string]: any }
@@ -177,6 +233,7 @@ local function logScene(list: { { [string]: any } }): { [string]: any }
 end
 
 return {
+	Deriva_Vigia_Ivo = VigiaIvo,
 	Deriva_Misericordia_Entrada = Entrada,
 	Deriva_Misericordia_Registro = Registro,
 	Deriva_Registro_Triaje = logScene({

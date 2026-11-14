@@ -355,13 +355,14 @@ do
 
 	-- Coger una carga Alba → Cénit (normal o urgente; en esta franja)
 	local cargo, t1 = findOffer("Alba", function(c)
-		return c.Job == "Carga" and c.Rank == 1 and not c.Fragile
+		return c.Job == "Carga" and c.Rank == 1 and not c.Fragile and c.To == "Cenit" -- (con la Vigía, hay cargas a dos sitios)
 	end)
 	clock = t1
 	Jobs.board(player, "Alba")
 	local idx = nil
-	for i, text in menuTexts do
-		if type(i) == "number" and string.find(text, cargo.Title, 1, true) then
+	for i = 1, #menuTexts do
+		-- (la primera con ese título: puede haber dos cargas iguales en el tablón, en el orden de las ofertas)
+		if idx == nil and string.find(menuTexts[i], cargo.Title, 1, true) then
 			idx = i
 		end
 	end
@@ -511,6 +512,13 @@ do
 	Space._onKill(player, { Kind = "Caza", Id = liveAny and liveAny.Target })
 	check(liveAny ~= nil and jobs.Done[liveId] ~= nil and data.Space.Chispas == ch6, "con el tope de Chispas por hora lleno: cobra el dinero pero no más Chispas")
 
+	-- (un contrato a medias al salir, para ver que se guarda: con la Vigía, el reparto de ofertas cambió y ya
+	-- no quedaba ninguno de los anteriores sin cobrar)
+	local pending, tp = findOffer("Alba", function(c)
+		return c.Job == "Carga" and c.Rank == 1 and not jobs.Done[c.Id] and not jobs.Active[c.Id]
+	end, clock)
+	clock = tp
+	SpaceJobs.accept(jobs, pending, "Alba", clock)
 	-- Salir del juego: nada queda colgado
 	Jobs.tick(player)
 	for _, fn in removing do

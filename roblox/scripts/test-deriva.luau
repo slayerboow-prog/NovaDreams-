@@ -75,6 +75,11 @@ check(true, "cada paso tiene su fila en el HUD de la nave")
 
 local missions = L.load("src/shared/LifeStory/Misiones/Deriva_ActoI")
 local m = missions[1]
+for _, x in missions do
+	if x.Id == Derelicts.MissionId then
+		m = x
+	end
+end
 check(m.Id == Derelicts.MissionId and #m.Steps == #Derelicts.Steps, "la misión tiene los pasos que cuenta el servicio")
 check(m.Steps[3].Type == "Cinematic" and m.Steps[3].Id == "Deriva_Misericordia_Entrada" and m.Steps[6].Id == "Deriva_Misericordia_Registro", "con sus dos cinemáticas en su sitio")
 check(m.Steps[4].Type == "Group" and m.Steps[4].Need == 3, "los tres fusibles son un grupo de 3")

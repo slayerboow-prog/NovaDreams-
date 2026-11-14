@@ -80,6 +80,7 @@ local FULL: { [string]: boolean } = {
 	GeneralCorvo = true, TobiRenn = true, DoctoraFermina = true, MadreHollin = true, Brasa = true, IngenieroOrsi = true,
 	GaloPadre = true, SargentoMurria = true, ErnestoPanadero = true, EscribanoLumo = true, CapitanaFerra = true,
 	DraVarga = true, -- (La Deriva: la doctora del último registro, en primer plano)
+	DraIvo = true, -- (La Deriva: la científica de la Vigía)
 }
 
 -- Personas con brillo (Glow) que son PERSONAS (el resto con Glow son criaturas: sin textura)
@@ -150,6 +151,7 @@ local TRAITS: { [string]: { [string]: any } } = {
 	TobiRenn = { Shirt = "Uniforme", Pants = "Cargo" },
 	DoctoraFermina = { Shirt = "Bata", Pants = "Pantalon" },
 	DraVarga = { Glasses = "Round", Tired = true, Shirt = "Bata", Pants = "Pantalon" }, -- (La Deriva: dieciséis días sin dormir)
+	DraIvo = { Glasses = "Square", Tired = true, Shirt = "Bata", Pants = "Pantalon" }, -- (La Deriva: la Vigía)
 	MadreHollin = { Shirt = "Rebeca", Pants = "Pantalon" },
 	Brasa = { Freckles = true, Shirt = "Sudadera", Pants = "Cargo" },
 	IngenieroOrsi = { Glasses = "Square", Shirt = "Mono", Pants = "Mono" },
@@ -381,7 +383,7 @@ end
 
 -- Grupo de trabajo (orden de prioridad para subir y revisar: docs/personajes/auditoria-texturas.md)
 local SAGA2: { [string]: boolean } = {
-	Cosimo = true, Varkun = true, NILDA = true, TuMalvado = true, TuFuturo = true, DraVarga = true,
+	Cosimo = true, Varkun = true, NILDA = true, TuMalvado = true, TuFuturo = true, DraVarga = true, DraIvo = true,
 	DaliaRenn = true, GeneralCorvo = true, TobiRenn = true, DoctoraFermina = true, MadreHollin = true, Brasa = true,
 	IngenieroOrsi = true, GaloPadre = true, SargentoMurria = true, ErnestoPanadero = true, EscribanoLumo = true,
 	CapitanaFerra = true, PoliciaMilitar1 = true, PoliciaMilitar2 = true, PoliciaMilitar3 = true, SoldadoOvilla = true,

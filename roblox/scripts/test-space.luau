@@ -280,7 +280,7 @@ print("\n🛰 Estaciones")
 ---------------------------------------------------------------------
 do
 	local a = Stations.List[1]
-	check(#Stations.List == 2 and Stations.safeAt(a.Center) == a and Stations.safeAt(a.Center + Vector3.new(Stations.SafeRadius + 50, 0, 0)) == nil, "zona segura alrededor de cada estación")
+	check(#Stations.List == 3 and Stations.safeAt(a.Center) == a and Stations.safeAt(a.Center + Vector3.new(Stations.SafeRadius + 50, 0, 0)) == nil, "zona segura alrededor de cada estación")
 	check(Stations.dockAt(a.Dock) == a and Stations.dockAt(a.Center + Vector3.new(0, 0, -Stations.SafeRadius)) == nil, "atracar solo en el muelle")
 	check(Stations.safeAt(a.Dock) == a and Stations.safeAt(Stations.launch(a).Position) == a, "el muelle y la salida están dentro de la zona segura")
 	check(Stations.inHall(a, Stations.arrival(a).Position) and not Stations.inHall(a, a.Center + Vector3.new(200, 0, 0)), "llegas andando dentro del vestíbulo")

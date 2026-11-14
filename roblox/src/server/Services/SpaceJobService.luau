@@ -91,6 +91,11 @@ local function pay(player: Player, jobs: { [string]: any }, id: string, late: bo
 		StoryEvents.emit(player, "SpaceJobDone", { Job = c.Job, Kind = c.Kind })
 	end)
 	local S = space()
+	-- (La Deriva) investigación «Contactos» de la Vigía: más paga en los contratos
+	local okR, fx = pcall(S.research, player)
+	if okR and type(fx) == "table" and (fx.ContractPay or 1) > 1 then
+		money = math.floor(money * fx.ContractPay + 0.5)
+	end
 	S.reward(player, money, 0)
 	local got = if (chispas or 0) > 0 then S.grantChispas(player, chispas) else 0
 	local rank = select(2, SpaceJobs.rankOf(jobs.Xp[c.Job] or 0))

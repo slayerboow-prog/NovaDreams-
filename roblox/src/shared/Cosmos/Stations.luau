@@ -18,6 +18,7 @@ export type Station = {
 	Dock: Vector3, -- el muelle (fuera, por donde llegan y salen las naves)
 	Out: Vector3, -- hacia dónde sale la nave al despegar (unitario)
 	Color: Color3,
+	Lab: boolean?, -- (La Deriva) tiene laboratorio: investigación con Datos (shared/Cosmos/Research)
 }
 
 Stations.SafeRadius = 520
@@ -43,6 +44,18 @@ Stations.List = {
 		Dock = Vector3.new(2600, 5600 + 10, -2400 + 150),
 		Out = Vector3.new(0, 0, 1),
 		Color = Color3.fromRGB(255, 190, 110),
+	},
+	-- (La Deriva, fase 2) la estación científica del Instituto Nilda, cerca de la Nube Escarcha pero fuera
+	-- de su sector de patrullas. Tiene laboratorio (investigación con Datos: shared/Cosmos/Research)
+	{
+		Id = "Vigia",
+		Name = "Estación Vigía",
+		Sign = "ESTACIÓN VIGÍA · INSTITUTO NILDA",
+		Center = Vector3.new(-4200, 6100, -4800),
+		Dock = Vector3.new(-4200, 6100 + 10, -4800 + 150),
+		Out = Vector3.new(0, 0, 1),
+		Color = Color3.fromRGB(120, 240, 210),
+		Lab = true,
 	},
 } :: { Station }
 

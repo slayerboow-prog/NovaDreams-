@@ -43,7 +43,38 @@ local steps = {
 -- (los pasos tienen que ir en el mismo orden que la cuenta del servicio)
 assert(#steps == #Derelicts.Steps, "Deriva_ActoI: los pasos no cuadran con shared/Cosmos/Derelicts.Steps")
 
+local Canto = require(script.Parent.Parent.Parent.Cosmos.Canto)
+
+local function canto(id: string, text: string): { [string]: any }
+	return { Type = "Event", Event = "CantoStep", Match = { Step = id }, Text = text }
+end
+
+local cantoSteps = {
+	canto("Signal", "Sigue el ruido de la radio hasta la anomalía, al otro lado de la Nube Escarcha"),
+	canto("Scanned", "Quédate dentro de la anomalía 30 segundos mientras el escáner la mide. La radio y la pantalla van a fallar"),
+	canto("Docked", "Lleva el escaneo al muelle de la Estación Vigía"),
+	{ Type = "Cinematic", Id = "Deriva_Vigia_Ivo" },
+}
+assert(#cantoSteps == #Canto.Steps, "Deriva_ActoI: los pasos del canto no cuadran con shared/Cosmos/Canto.Steps")
+
 return {
+	-- «La anomalía que canta» (hora 2): la ciencia de la Deriva y la doctora Ivo. Abre el laboratorio de la
+	-- Vigía (bandera VigiaAbierta: investigación con Datos, shared/Cosmos/Research).
+	{
+		Id = Canto.MissionId,
+		Kind = "Side",
+		Title = "La anomalía que canta",
+		Description = "La radio de la estación repite un ruido que suena como una canción. Viene de más allá de la Nube Escarcha. El Instituto Nilda lleva años pidiendo que alguien lo mida de cerca, y nadie ha querido acercarse.",
+		Type = "La Deriva · Acto I",
+		Duration = { 8, 12 },
+		Offer = { Event = "CantoSignal", Match = { Part = 1 } },
+		OfferKey = "La radio repite un ruido que suena como una canción",
+		Requires = { Completed = { "Varkun_02_Escarcha" } },
+		Moment = "Aguantaste dentro de una anomalía que cantaba y conociste a la doctora Ivo",
+		Memory = "CantoAnomalia",
+		Rewards = { Money = 600, Flags = { "VigiaAbierta" } },
+		Steps = cantoSteps,
+	},
 	{
 		Id = Derelicts.MissionId,
 		Kind = "Side",
