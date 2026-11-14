@@ -437,6 +437,18 @@ Para que nada sea una obligación: recompensas semanales con tope pequeño, sin 
   - Música que sube en combate y radio con voces de NPC.
 - **Móvil primero:** todo con niveles gráficos (Bajo, Medio y Alto, que ya existen) y topes de efectos.
 
+### Imágenes de referencia del dueño
+
+`referencia-expansion-1.png` y `referencia-expansion-2.png` (miniaturas del encargo). Lo que pide cada una:
+
+| Sistema | Lo que se ve en la imagen | Cómo se lleva a Roblox |
+|---|---|---|
+| Pecios | Nave gigante, alargada y oscura, con una nave pequeña delante para dar escala | Pecio de 1-2 km hecho con pocas mallas grandes, luces de posición sueltas y nuestra nave al lado (la escala es lo que impresiona) |
+| Batallas masivas | Nave capital en el centro, muchos disparos de colores cruzados, explosiones, nebulosa violeta | Estelas y rayos por `Beam`, explosiones en 3 capas, nebulosa en el cielo del sector; topes por `FxBudget` |
+| Estaciones vivas | Hangar interior grande, iluminado, con pasarelas y naves aparcadas | Interior de estación con hangar visitable a pie, naves NPC aparcadas y luces cálidas |
+| Anomalías | Remolino de luz (rosa, naranja y azul) en el espacio | Anillos de partículas que giran y distorsión de imagen al acercarse (como la del salto) |
+| Progresión de naves | Hangar con muchas naves distintas en fila | El **astillero**: todas tus clases aparcadas y la que eliges en el centro |
+
 ---
 
 ## 16 · Arquitectura técnica para Roblox
