@@ -675,7 +675,10 @@ function CastLook.apply(model: Model, id: string, variant: string?, look: { [str
 	-- (si su cara propia aún no está subida, la del arquetipo de su edad: mejor que la cara por defecto
 	-- de Roblox, que sonríe siempre; p. ej. un personaje nuevo antes de scripts/upload-personajes.sh)
 	local faceKey, full = spec.Key, #spec.Faces == #CastLook.Full
-	if spec.Kind == "Human" and spec.Face and not spec.Face.Generic and not CastLook.textureId(CastLook.faceFile(spec.Key, "Neutral")) then
+	-- (se mira si está SUBIDA —su id en PersonajesTextureIds—, no si ya está convertida: recién subida, el
+	-- servidor tarda un poco en pasarla de Decal a imagen y no hay que quedarse con la del arquetipo)
+	local own = textureIds()[CastLook.faceFile(spec.Key, "Neutral")]
+	if spec.Kind == "Human" and spec.Face and not spec.Face.Generic and (type(own) ~= "string" or own == "") then
 		local alt = ("Arq_%s_%s"):format(tostring(spec.Face.Age), if spec.Face.Fem then "F" else "M")
 		if CastLook.textureId(CastLook.faceFile(alt, "Neutral")) then
 			faceKey, full = alt, false

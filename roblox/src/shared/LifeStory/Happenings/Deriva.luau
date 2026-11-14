@@ -145,8 +145,13 @@ local Registro = {
 		},
 		Actors = {
 			{ At = 0, Use = { Key = "DraVarga", Npc = "DraVarga", Anchor = "Holograma", Offset = V(0, 0, 0), Face = { "Yo" } } }, -- (de cara a ti: probado en Studio, sin Face salía de espaldas)
-			{ At = 0.4, Mood = { Key = "DraVarga", Mood = "Sad" } }, -- (cansada desde el principio: nada de sonrisas)
+			-- (seria desde el principio, con la cabeza alta: con «Sad» bajaba tanto la cabeza que en los planos
+			-- medios no se le veía la cara; probado en Studio. Su cara propia ya es seria y con ojeras)
+			{ At = 0.4, Mood = { Key = "DraVarga", Mood = "Calm" } },
 			{ At = 0.5, Look = { Key = "DraVarga", At = "Yo" } },
+			{ At = rS[3], Mood = { Key = "DraVarga", Mood = "Hurt" } }, -- (cara triste, la cabeza solo un poco baja)
+			{ At = rS[4], Mood = { Key = "DraVarga", Mood = "Calm" } },
+			{ At = rS[6], Mood = { Key = "DraVarga", Mood = "Hurt" } },
 			{ At = rS[6], Look = { Key = "DraVarga", At = "Yo" } },
 			{ At = holoOff, Despawn = { Key = "DraVarga" } },
 		},
