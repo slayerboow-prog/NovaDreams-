@@ -68,8 +68,27 @@ su física y sus ruinas. Esto justifica dentro de la historia lo que pide el enc
 - **Identidad:** costura y luz. Los hilos de luz son el idioma visual de toda la expansión: rutas de salto
   como **puntadas** en el mapa, anomalías como **descosidos**, la nave de Varkun como **rueca**. Es el mismo
   tema que la Saga 1 (coser la Grieta), así todo el juego cuenta una sola historia.
-- **Tono:** aventura luminosa con misterio (13+, sin sangre). Los enemigos de Varkun son **telas animadas**
-  (Hilanderos): se pueden derribar sin que «muera nadie», como ya está aprobado.
+- **Tono:** ciencia ficción seria para **13-15 años en adelante**: misterio, tensión y decisiones que pesan. Sin
+  sangre ni crueldad explícita (las normas de Roblox), pero **nada infantil**. Los enemigos de Varkun son
+  **telas animadas** (Hilanderos), como ya está aprobado; los piratas y furtivos son personas: sus naves
+  revientan y ellos escapan en cápsula o se rinden.
+
+### Tono y madurez (regla para todas las misiones, frases y escenas)
+
+Pedido del dueño (14-11-2026): **contenido para mayores de 13-15 años, nada infantilizado.**
+
+| Sí | No |
+|---|---|
+| Lo que está en juego es real: refugiados que no llegan, una estación que se queda sin aire, gente que pierde su casa | Misiones de «recoge 10 estrellitas» sin motivo |
+| Dilemas sin respuesta buena: salvar a los presos o el mapa que salvaría a más gente | Malos que son malos «porque sí» o buenos perfectos |
+| Personajes adultos con motivos: la Capitana Brea roba porque su gente pasa hambre; Varkun tiene razones que duelen | Voces de dibujos, chistes tontos, diminutivos («navecita», «amiguitos») |
+| Consecuencias que se notan: si fallas el convoy, esos NPC no aparecen en Alba | Todo sale bien siempre, digas lo que digas |
+| Tensión y algo de miedo: pecios a oscuras, ruidos en el casco, registros de los últimos días de una tripulación | Sustos de sangre, cadáveres o gore (no lo permite Roblox y no hace falta) |
+| Humor seco de personajes (Cosme, Pip), en su momento | Humor que rompe una escena seria |
+| La muerte existe pero fuera de plano: registros, naves vacías y monumentos | Muertes mostradas |
+
+Cada guion nuevo pasa por esta tabla antes de entrar (con las herramientas de revisión de guiones de
+`scripts/audit`).
 
 ---
 
@@ -125,14 +144,14 @@ el juego).
 
 - **Cómo funciona:** atracas la nave en una compuerta y te bajas con tu traje. Dentro hay pasillos con
   gravedad o sin ella, salas a oscuras (linterna) y puertas que se abren con energía. Tienes que **restaurar
-  la corriente**, sortear peligros (fugas de aire, chispas, criaturas de hilo inofensivas que apagan las
-  luces), leer registros y llegar al **núcleo** para coger su tecnología única.
+  la corriente**, sortear peligros (fugas de aire, cortocircuitos, sistemas de defensa que siguen activos y
+  criaturas de hilo que apagan las luces y te acechan en la oscuridad), leer registros y llegar al **núcleo** para coger su tecnología única.
 - **Cada pecio es distinto:** un crucero de lujo hundido en polvo, un arca de semillas con un jardín vivo, una
   nave prisión, una nave de Hilanderos (sigilo), etc. Son **6 pecios de historia** hechos a mano, más **pecios
   generados** para después (§14), con salas montadas como piezas de Lego.
 - **Recompensa:** cada pecio da un **módulo único** para la nave (§7), un registro clave y el aspecto de esa
   civilización como pintura.
-- **Por qué es divertido:** cambia el ritmo (de pilotar a explorar a pie), da miedo suave y misterio y deja
+- **Por qué es divertido:** cambia el ritmo (de pilotar a explorar a pie), da tensión de verdad (oscuridad, ruidos, el último registro de la tripulación), misterio y deja
   cosas que no se consiguen de otra forma.
 
 ### D · Batallas masivas — **sistema estrella 2**
