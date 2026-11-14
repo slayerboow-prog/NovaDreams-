@@ -324,6 +324,9 @@ task.spawn(EconomyUI.init) -- granja (cooperativa, obrador) y negocios (gestión
 task.spawn(UseMotion.init) -- posturas al usar los muebles: sentado, tumbado, grifo, nevera, ducha, ordenador, piano, ventana
 task.spawn(InteractClient.init) -- tele con imagen, ordenador, piano, agua y clics de los muebles
 task.spawn(FridgeUI.init) -- nevera de casa: lo que hay dentro (comer, coger) y guardar la compra
+safeInit("AmbientShips", function() -- las naves que vuelan sobre las ciudades de los planetas
+	require(script.Parent.Controllers.AmbientShips).init()
+end)
 safeInit("CraftingUI", function() -- el Taller: fabricar armas, armaduras, pociones y herramientas (Services/CraftingService)
 	require(script.Parent.Controllers.CraftingUI).init()
 end)

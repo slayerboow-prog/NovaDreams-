@@ -161,6 +161,12 @@ function PlanetMetroBuilder.build(parent: Instance, S: any, opts: { [string]: an
 				mk(m, "NieveA", cf * CFrame.new(0, top + hr / 2 + 0.35, -d / 4 - 0.1), V3(w + 1.3, hr * 0.92, d / 2 + 0.4), L.Snow, Enum.Material.Snow, { Class = "WedgePart", Decor = true })
 				mk(m, "NieveB", cf * CFrame.new(0, top + hr / 2 + 0.35, d / 4 + 0.1) * CFrame.Angles(0, math.pi, 0), V3(w + 1.3, hr * 0.92, d / 2 + 0.4), L.Snow, Enum.Material.Snow, { Class = "WedgePart", Decor = true })
 			end
+		elseif kind == "Spire" then
+			mk(m, "Cornisa", cf * CFrame.new(0, top + 0.6, 0), V3(w + 1, 1.2, d + 1), L.Trim, trimMat)
+			spire(m, cf, math.min(w, d) * 0.55, top + 1.2, math.min(w, d) * 0.9 + 6)
+			if L.Snow then
+				mk(m, "Nieve", cf * CFrame.new(0, top + 1.3, 0), V3(w + 0.6, 0.3, d + 0.6), L.Snow, Enum.Material.Snow, { Decor = true })
+			end
 		elseif kind == "Dome" and r() < 0.45 then
 			-- (no todas con cúpula: azotea con pretil y, a veces, una cúpula pequeña en una esquina)
 			mk(m, "Pretil", cf * CFrame.new(0, top + 1, 0), V3(w + 0.8, 2, d + 0.8), L.Trim, trimMat)
@@ -187,6 +193,48 @@ function PlanetMetroBuilder.build(parent: Instance, S: any, opts: { [string]: an
 			end
 		end
 	end
+	-- Luces de ciencia ficción (como la hoja del dueño): dos franjas de neón en las esquinas de la fachada y una
+	-- banda arriba, del color del planeta (L.Strip)
+	local function accents(m: Model, cf: CFrame, w: number, d: number, h: number, r: () -> number)
+		local c = L.Strip or L.Glow
+		for _, sx in { -1, 1 } do
+			mk(m, "Franja", cf * CFrame.new(sx * (w / 2 + 0.15), h / 2, -d / 2 - 0.15), V3(0.45, h * 0.94, 0.45), c, Enum.Material.Neon, { Decor = true })
+		end
+		if r() < 0.7 then
+			mk(m, "Banda", cf * CFrame.new(0, h - 1.4, 0), V3(w + 0.5, 0.6, d + 0.5), c, Enum.Material.Neon, { Decor = true })
+		end
+	end
+	-- Pantalla holográfica en la fachada (como en la hoja de estética: paneles de luz con un anuncio)
+	local SCREEN_TEXT = {
+		Tefra = { "⚠ ZONA DE FORJA", "GUARDIA", "RACIONES" },
+		Siroco = { "AGUA FRESCA", "LA RECTA", "MOTORES" },
+		Talasa = { "NÁCAR", "PRESIÓN OK", "BUCEO" },
+		Nivalis = { "AURORA", "LANA", "FAROLES" },
+		Umbria = { "SAVIA", "SEMILLAS", "VIVERO" },
+		Miasma = { "☢ FILTROS", "GAS", "RACIONES" },
+		Vertice = { "CRÉDITO YA", "HOLOVIA", "LUZ+", "NEXO" },
+	}
+	local function screen(m: Model, cf: CFrame, w: number, d: number, h: number, r: () -> number)
+		local list = SCREEN_TEXT[planet] or { "TIENDA" }
+		local sw = math.clamp(w * 0.55, 6, 16)
+		local sh = math.clamp(sw * 0.6, 4, 10)
+		local y = math.clamp(h * (0.45 + r() * 0.3), 10, math.max(10, h - sh))
+		local c = if L.Neon then L.Neon[1 + math.floor(r() * #L.Neon)] else (L.Strip or L.Glow)
+		local frame = mk(m, "Marco", cf * CFrame.new((r() - 0.5) * w * 0.3, y, -d / 2 - 0.35), V3(sw + 0.8, sh + 0.8, 0.3), c, Enum.Material.Neon, { Decor = true })
+		local panel = mk(m, "Pantalla", frame.CFrame * CFrame.new(0, 0, -0.2), V3(sw, sh, 0.2), rgb(12, 16, 26), Enum.Material.SmoothPlastic, { Decor = true })
+		Builder.sign(panel, list[1 + math.floor(r() * #list)], Enum.NormalId.Front, c, rgb(12, 16, 26))
+	end
+
+	-- Remate en aguja: escalones que se estrechan y una punta de luz
+	local function spire(m: Model, cf: CFrame, base: number, top: number, tall: number)
+		local tiers = 4
+		for i = 0, tiers - 1 do
+			local k = 1 - i / tiers
+			column(m, "Aguja" .. i, cf * CFrame.new(0, top + i * tall / tiers, 0), tall / tiers + 0.2, math.max(1.2, base * k), if i % 2 == 0 then L.Roof else L.Trim, if i % 2 == 0 then wallMat else trimMat, { Decor = i > 1 })
+		end
+		column(m, "Punta", cf * CFrame.new(0, top + tall, 0), tall * 0.45, math.max(0.6, base * 0.12), L.Strip or L.Glow, Enum.Material.Neon, { Decor = true })
+	end
+
 	local function sign(m: Model, cf: CFrame, d: number, y: number, text: string, color: Color3)
 		local board = mk(m, "Cartel", cf * CFrame.new(0, y, -d / 2 - 0.5), V3(math.min(16, 4 + #text * 1.1), 3, 0.4), darker(L.Trim, 0.5), Enum.Material.SmoothPlastic, { Decor = true })
 		Builder.sign(board, text, Enum.NormalId.Front, color, nil)
@@ -244,9 +292,14 @@ function PlanetMetroBuilder.build(parent: Instance, S: any, opts: { [string]: an
 		roof(m, cf, w, d, h, if L.RoofKind == "Pitched" or L.RoofKind == "Cone" then "Flat" else L.RoofKind, r)
 		if L.Neon then
 			neonStrips(m, cf, w, d, h, r)
+		else
+			accents(m, cf, w, d, h, r)
 		end
 		if r() < 0.3 then
 			sign(m, cf, d, 11.5, brands[1 + math.floor(r() * #brands)], L.Accent)
+		end
+		if h >= 24 and r() < 0.45 then
+			screen(m, cf, w, d, h, r)
 		end
 	end
 
@@ -285,9 +338,18 @@ function PlanetMetroBuilder.build(parent: Instance, S: any, opts: { [string]: an
 		windows(m, cf, w * 0.72, d * 0.72, h1, math.floor((h - h1) / FH), r, 4)
 		door(m, cf, d, 8, 10)
 		roof(m, cf, w * 0.72, d * 0.72, h, "Flat", r)
-		column(m, "Antena", cf * CFrame.new(0, h, 0), 12, 0.5, L.Metal, Enum.Material.Metal, { Decor = true })
+		if r() < 0.5 then
+			screen(m, cf, w, d, h1, r)
+		end
+		if L.RoofKind == "Spire" then
+			spire(m, cf, math.min(w, d) * 0.6, h + 1, math.min(w, d) + 10)
+		else
+			column(m, "Antena", cf * CFrame.new(0, h, 0), 12, 0.5, L.Metal, Enum.Material.Metal, { Decor = true })
+		end
 		if L.Neon then
 			neonStrips(m, cf, w, d, h1, r)
+		else
+			accents(m, cf, w, d, h1, r)
 		end
 	end
 
@@ -321,6 +383,9 @@ function PlanetMetroBuilder.build(parent: Instance, S: any, opts: { [string]: an
 		windows(m, cf, w, d, FH * 0.15, lot.Floors, r)
 		door(m, cf, d, 5, 8)
 		roof(m, cf, w, d, h, L.RoofKind, r)
+		if r() < 0.5 then
+			accents(m, cf, w, d, h, r)
+		end
 		if planet == "Nivalis" or planet == "Tefra" then
 			mk(m, "Chimenea", cf * CFrame.new(w * 0.28, h + 5, d * 0.2), V3(2.2, 8, 2.2), darker(wall, 0.7), wallMat)
 		end
@@ -408,7 +473,7 @@ function PlanetMetroBuilder.build(parent: Instance, S: any, opts: { [string]: an
 				local z = (j / (rows + 1) - 0.5) * d
 				local c = cf * CFrame.new(x, 0, z)
 				mk(m, "Mostrador", c * CFrame.new(0, 1.8, 0), V3(8, 3.2, 3), L.Trim, Enum.Material.Wood)
-				local awn = L.Neon and L.Neon[1 + math.floor(r() * #L.Neon)] or (if r() < 0.5 then L.Accent else L.Walls[1])
+				local awn = L.Neon and L.Neon[1 + math.floor(r() * #L.Neon)] or (if r() < 0.7 then (L.Awning or L.Accent) else L.Walls[1])
 				mk(m, "Toldo", c * CFrame.new(0, 8.4, -0.6) * CFrame.Angles(math.rad(10), 0, 0), V3(9.4, 0.3, 6.6), awn, Enum.Material.Fabric, { Decor = true })
 				for _, sx in { -1, 1 } do
 					mk(m, "Poste", c * CFrame.new(sx * 4.4, 4, -3.4), V3(0.4, 8, 0.4), L.Metal, Enum.Material.Metal, { Decor = true })
@@ -437,7 +502,50 @@ function PlanetMetroBuilder.build(parent: Instance, S: any, opts: { [string]: an
 		end
 	end
 
+	-- El parque de cada planeta: lo que más se ve en la hoja de estética (lava, charcas tóxicas, cascadas…)
+	local function parqueRio(m: Model, cf: CFrame, w: number, d: number, r: () -> number, liquid: Color3, liquidMat: Enum.Material, transp: number, rock: Color3, rockMat: Enum.Material, fallMat: Enum.Material?)
+		mk(m, "Orilla", cf * CFrame.new(0, 0.2, 0), V3(w, 0.4, d), rock, rockMat)
+		local pool = mk(m, "Charca", cf * CFrame.new(0, 0.45, d * 0.08), V3(w * 0.78, 0.3, d * 0.62), liquid, liquidMat, { Decor = true, Transparency = transp })
+		local pl = Instance.new("PointLight")
+		pl.Color = liquid
+		pl.Range = 28
+		pl.Brightness = if liquidMat == Enum.Material.Neon then 1.6 else 0.6
+		pl.Shadows = false
+		pl.Parent = pool
+		-- el risco del fondo y la cascada que cae a la charca
+		local back = cf * CFrame.new(0, 0, -d * 0.36)
+		local ch = 14 + r() * 12
+		mk(m, "Risco", back * CFrame.new(0, ch / 2, 0), V3(w * 0.7, ch, d * 0.22), rock, rockMat)
+		local fall = mk(m, "Cascada", back * CFrame.new(0, ch / 2, d * 0.115), V3(w * 0.24, ch, 0.8), liquid, fallMat or liquidMat, { Decor = true, Transparency = transp })
+		local pe = Instance.new("ParticleEmitter")
+		pe.Color = ColorSequence.new(if liquidMat == Enum.Material.Neon then liquid else Color3.new(1, 1, 1))
+		pe.Size = NumberSequence.new({ NumberSequenceKeypoint.new(0, 1.5), NumberSequenceKeypoint.new(1, 5) })
+		pe.Transparency = NumberSequence.new({ NumberSequenceKeypoint.new(0, 0.5), NumberSequenceKeypoint.new(1, 1) })
+		pe.Lifetime = NumberRange.new(1, 2)
+		pe.Rate = 5
+		pe.Speed = NumberRange.new(1, 3)
+		pe.EmissionDirection = Enum.NormalId.Bottom
+		pe.LightEmission = if liquidMat == Enum.Material.Neon then 0.8 else 0
+		pe.Parent = fall
+		for i = 1, 3 do
+			tree(m, cf * CFrame.new((i - 2) * w * 0.34, 0.4, d * 0.4), 12 + r() * 8, r)
+		end
+	end
+
 	draw.Parque = function(m, cf, lot, w, d, r)
+		if planet == "Tefra" then
+			return parqueRio(m, cf, w, d, r, L.Glow, Enum.Material.Neon, 0.05, rgb(40, 34, 32), Enum.Material.Basalt)
+		elseif planet == "Miasma" then
+			return parqueRio(m, cf, w, d, r, rgb(130, 255, 60), Enum.Material.Neon, 0.15, rgb(60, 64, 60), Enum.Material.Metal)
+		elseif planet == "Nivalis" then
+			return parqueRio(m, cf, w, d, r, rgb(170, 225, 255), Enum.Material.Ice, 0.2, rgb(200, 224, 245), Enum.Material.Ice)
+		elseif planet == "Umbria" then
+			return parqueRio(m, cf, w, d, r, rgb(110, 200, 220), Enum.Material.Glass, 0.3, rgb(70, 74, 58), Enum.Material.Slate)
+		elseif planet == "Siroco" then
+			return parqueRio(m, cf, w, d, r, rgb(70, 190, 220), Enum.Material.Glass, 0.25, rgb(200, 150, 100), Enum.Material.Sandstone)
+		elseif planet == "Talasa" then
+			return parqueRio(m, cf, w, d, r, rgb(60, 220, 240), Enum.Material.Neon, 0.45, rgb(210, 218, 226), Enum.Material.SmoothPlastic, Enum.Material.Glass)
+		end
 		mk(m, "Cesped", cf * CFrame.new(0, 0.2, 0), V3(w, 0.4, d), darker(L.Leaf, 0.8), if treeKind == "Coral" or treeKind == "Fungus" or treeKind == "Dead" then Enum.Material.Ground else Enum.Material.Grass)
 		mk(m, "Camino", cf * CFrame.new(0, 0.45, 0), V3(4, 0.2, d), L.Ground, Enum.Material.Pavement, { Decor = true })
 		for i = 1, 5 do
@@ -562,6 +670,45 @@ function PlanetMetroBuilder.build(parent: Instance, S: any, opts: { [string]: an
 		tire.CastShadow = false
 	end
 
+	-- Aguja: torre fina de ciencia ficción con un núcleo de luz y una punta altísima (hielo, desierto, volcán)
+	draw.Aguja = function(m, cf, lot, w, d, r)
+		local s = math.min(w, d)
+		local body = lot.Height - 34
+		local wall = L.Walls[1 + math.floor(r() * #L.Walls)]
+		mk(m, "Base", cf * CFrame.new(0, 4, 0), V3(s, 8, s), L.Trim, trimMat)
+		column(m, "Cuerpo", cf * CFrame.new(0, 8, 0), body - 8, s * 0.82, wall, wallMat)
+		-- el núcleo de luz que se ve entre las costillas
+		column(m, "Nucleo", cf * CFrame.new(0, 10, 0), body - 12, s * 0.86, L.Strip or L.Glow, Enum.Material.Neon, { Decor = true, Transparency = 0.55 })
+		for i = 0, 3 do
+			local a = i * math.pi / 2 + math.pi / 4
+			mk(m, "Costilla", cf * CFrame.new(math.cos(a) * s * 0.42, body / 2 + 4, math.sin(a) * s * 0.42), V3(1.6, body, 1.6), L.Trim, trimMat)
+		end
+		local band = column(m, "Ventanas", cf * CFrame.new(0, body * 0.55, 0), 2.2, s * 0.9, L.Window, Enum.Material.Glass, { Decor = true })
+		glow(band)
+		spire(m, cf, s * 0.7, body, 34)
+		mk(m, "Puerta", cf * CFrame.new(0, 4.5, -s / 2 - 0.2), V3(5, 9, 0.6), darker(L.Trim, 0.6), Enum.Material.Metal, { Decor = true })
+	end
+
+	-- Tanque: depósito de cristal con el líquido que brilla (radiación de Miasma) y sus tuberías
+	draw.Tanque = function(m, cf, lot, w, d, r)
+		local s = math.min(w, d)
+		local h = lot.Height
+		mk(m, "Zocalo", cf * CFrame.new(0, 1.5, 0), V3(s, 3, s), L.Trim, trimMat)
+		column(m, "Liquido", cf * CFrame.new(0, 3, 0), (h - 6) * (0.55 + r() * 0.35), s * 0.66, L.Glow, Enum.Material.Neon, { Decor = true })
+		column(m, "Cristal", cf * CFrame.new(0, 3, 0), h - 6, s * 0.74, L.Window, Enum.Material.Glass, { Transparency = 0.55 })
+		for _, y in { 3, h - 3 } do
+			column(m, "Aro", cf * CFrame.new(0, y - 1, 0), 2, s * 0.8, L.Metal, Enum.Material.Metal)
+		end
+		ball(m, "Tapa", cf * CFrame.new(0, h - 3, 0), s * 0.72, L.Roof, wallMat)
+		for i = 0, 3 do
+			local a = i * math.pi / 2
+			mk(m, "Pata", cf * CFrame.new(math.cos(a) * s * 0.4, (h - 4) / 2 + 2, math.sin(a) * s * 0.4), V3(1.2, h - 4, 1.2), L.Metal, Enum.Material.Metal, { Decor = true })
+		end
+		mk(m, "Tubo", cf * CFrame.new(s * 0.45, h * 0.35, 0), V3(s * 0.4, 1.6, 1.6), L.Metal, Enum.Material.Metal, { Decor = true })
+		local light = ball(m, "Aviso", cf * CFrame.new(0, h + s * 0.36 - 2, 0), 1.6, L.Glow, Enum.Material.Neon, { Decor = true })
+		glow(light)
+	end
+
 	---------------------------------------------------------------------
 	-- Plataformas y pasarelas (Deck)
 	---------------------------------------------------------------------
@@ -667,6 +814,43 @@ function PlanetMetroBuilder.build(parent: Instance, S: any, opts: { [string]: an
 			yield()
 		end
 	end
+
+	-- Puentes elevados entre torres vecinas (los de la hoja de estética): de cristal, con luz por debajo
+	local TALLK = { Bloque = true, Torre = true, Aguja = true, Rascacielos = true, Fundicion = true, Tanque = true, Cupula = true }
+	local bridgeFolder = Builder.model("PuentesAltos", root)
+	local bridges = 0
+	for i, a in lots do
+		if bridges >= 140 then
+			break
+		end
+		if TALLK[a.Kind] and a.Height >= 26 then
+			for j = i + 1, math.min(#lots, i + 12) do
+				local b = lots[j]
+				if TALLK[b.Kind] and b.Height >= 26 then
+					local dx, dz = b.X - a.X, b.Z - a.Z
+					local alongX = math.abs(dz) < 2 and math.abs(dx) < 90 and math.abs(dx) > (a.W + b.W) / 2 + 4
+					local alongZ = math.abs(dx) < 2 and math.abs(dz) < 90 and math.abs(dz) > (a.D + b.D) / 2 + 4
+					if (alongX or alongZ) and (i * 7 + j) % 3 == 0 then
+						local y = math.min(a.Base + a.Height, b.Base + b.Height) * 0.62 + math.max(a.Base, b.Base) * 0.38
+						y = math.max(y, math.max(a.Base, b.Base) + 14)
+						local x0 = if alongX then (if dx > 0 then a.X + a.W / 2 else a.X - a.W / 2) else a.X
+						local x1 = if alongX then (if dx > 0 then b.X - b.W / 2 else b.X + b.W / 2) else b.X
+						local z0 = if alongZ then (if dz > 0 then a.Z + a.D / 2 else a.Z - a.D / 2) else a.Z
+						local z1 = if alongZ then (if dz > 0 then b.Z - b.D / 2 else b.Z + b.D / 2) else b.Z
+						local len = math.abs(if alongX then x1 - x0 else z1 - z0) + 1
+						local size = if alongX then V3(len, 3, 5) else V3(5, 3, len)
+						local c = CFrame.new(W((x0 + x1) / 2, (z0 + z1) / 2, y))
+						mk(bridgeFolder, "PuenteAlto", c, size, L.Trim, Enum.Material.Metal)
+						mk(bridgeFolder, "Cristal", c * CFrame.new(0, 2.6, 0), if alongX then V3(len, 2.2, 4.6) else V3(4.6, 2.2, len), L.Window, Enum.Material.Glass, { Decor = true, Transparency = 0.45 })
+						mk(bridgeFolder, "LuzBajo", c * CFrame.new(0, -1.7, 0), if alongX then V3(len, 0.4, 3) else V3(3, 0.4, len), L.Strip or L.Glow, Enum.Material.Neon, { Decor = true })
+						bridges += 1
+						break
+					end
+				end
+			end
+		end
+	end
+	stats.SkyBridges = bridges
 
 	-- Pasarelas (Deck), con barandilla donde dan al vacío, y escaleras desde el agua (Tálasa)
 	if deck then
@@ -793,9 +977,301 @@ function PlanetMetroBuilder.build(parent: Instance, S: any, opts: { [string]: an
 		end
 	end
 
+	-- El gran monumento de la ciudad (como la hoja de estética del dueño)
+	local LM = M.Landmark
+	if LM then
+		local okLm, err = pcall(function()
+			PlanetMetroBuilder.landmark(root, S, M, LM, mk, column, ball, glow, L)
+		end)
+		if not okLm then
+			warn("[PlanetMetroBuilder] monumento de " .. planet .. ": " .. tostring(err))
+		end
+		if yield then
+			yield()
+		end
+	end
+	-- Naves que vuelan por encima de la ciudad (las mueve el cliente: Controllers/AmbientShips)
+	local ships = Builder.model("NavesCielo", root)
+	local center = if LM then V3(O.X + LM.X, O.Y + (LM.Base or 0), O.Z + LM.Z) else V3(O.X, O.Y + S.padY(), O.Z)
+	for i = 1, 7 do
+		local sm = Builder.model("Nave_" .. i, ships)
+		local c0 = CFrame.new(center + V3(0, 140 + i * 16, 0))
+		local hull = if L.Neon then L.Neon[1 + i % #L.Neon] else (if i % 2 == 0 then L.Walls[1] else rgb(220, 224, 230))
+		local body = mk(sm, "Casco", c0, V3(7, 3, 16), hull, Enum.Material.Metal, { Decor = true })
+		mk(sm, "Cabina", c0 * CFrame.new(0, 1.6, -4), V3(4.5, 1.6, 5), L.Window, Enum.Material.Glass, { Decor = true })
+		mk(sm, "Alas", c0 * CFrame.new(0, -0.3, 2), V3(20, 0.6, 5), darker(hull, 0.8), Enum.Material.Metal, { Decor = true })
+		for _, sx in { -1, 1 } do
+			local eng = mk(sm, "Motor", c0 * CFrame.new(sx * 3, 0, 8.2), V3(2.4, 2.4, 0.6), L.Strip or L.Glow, Enum.Material.Neon, { Decor = true })
+			local pl = Instance.new("PointLight")
+			pl.Color = eng.Color
+			pl.Range = 16
+			pl.Brightness = 1.4
+			pl.Parent = eng
+		end
+		sm.PrimaryPart = body
+		sm:AddTag("NaveAmbiente")
+		sm:SetAttribute("Centro", center)
+		sm:SetAttribute("Radio", 160 + i * 70)
+		sm:SetAttribute("Altura", 120 + (i % 4) * 40)
+		sm:SetAttribute("Velocidad", (if i % 2 == 0 then 1 else -1) * (0.05 + i * 0.012))
+		sm:SetAttribute("Fase", i * 0.9)
+	end
+
 	root:SetAttribute("Parts", stats.Parts)
 	root:SetAttribute("Buildings", stats.Buildings)
 	return root, stats
+end
+
+---------------------------------------------------------------------
+-- Los monumentos (Landmark.Kind): uno por planeta, a lo grande. cf: centro de la base mirando hacia el barrio.
+---------------------------------------------------------------------
+function PlanetMetroBuilder.landmark(root: Instance, S: any, M: any, LM: any, mk: any, column: any, ball: any, glow: any, L: any)
+	local O = S.Origin
+	local m = Builder.model("Monumento_" .. LM.Kind, root)
+	Builder.streamable(m)
+	local base = V3(O.X + LM.X, O.Y + LM.Base, O.Z + LM.Z)
+	local toCity = V3(-LM.X, 0, -LM.Z)
+	local cf = Builder.facing(base, if toCity.Magnitude > 1 then toCity else V3(0, 0, -1))
+	local R = LM.R
+	local glowC = L.Strip or L.Glow
+	local wallMat = mat(L.WallMaterial, Enum.Material.Concrete)
+	local white = L.Walls[1]
+	local function light(part: BasePart, range: number, bright: number)
+		local pl = Instance.new("PointLight")
+		pl.Color = part.Color
+		pl.Range = range
+		pl.Brightness = bright
+		pl.Shadows = false
+		pl.Parent = part
+	end
+	local function tiered(at: CFrame, base0: number, height: number, tiers: number, color: Color3, material: Enum.Material)
+		for i = 0, tiers - 1 do
+			local k = 1 - i / tiers
+			column(m, "Piso" .. i, at * CFrame.new(0, i * height / tiers, 0), height / tiers + 0.3, math.max(2, base0 * (0.35 + 0.65 * k)), if i % 2 == 0 then color else darker(color, 0.85), material)
+			mk(m, "Anillo" .. i, at * CFrame.new(0, (i + 1) * height / tiers - 1, 0), V3(1, 1, 1), glowC, Enum.Material.Neon, { Decor = true }).Size = V3(math.max(2, base0 * (0.35 + 0.65 * k)) + 0.6, 0.8, math.max(2, base0 * (0.35 + 0.65 * k)) + 0.6)
+		end
+		column(m, "Punta", at * CFrame.new(0, height, 0), height * 0.25, math.max(1, base0 * 0.08), glowC, Enum.Material.Neon, { Decor = true })
+	end
+	-- un anillo hecho de tramos (hueco por dentro), tumbado
+	local function ring(at: CFrame, radius: number, thick: number, color: Color3)
+		local n = 24
+		for i = 0, n - 1 do
+			local a = (i + 0.5) / n * math.pi * 2
+			local len = 2 * math.pi * radius / n + 0.4
+			mk(m, "Aro", at * CFrame.Angles(0, -a, 0) * CFrame.new(radius, 0, 0), V3(thick, thick, len), color, Enum.Material.Neon, { Decor = true })
+		end
+	end
+	local function waterfall(at: CFrame, width: number, height: number, color: Color3, material: Enum.Material, transp: number)
+		local fall = mk(m, "Cascada", at * CFrame.new(0, height / 2, 0), V3(width, height, 1.4), color, material, { Decor = true, Transparency = transp })
+		mk(m, "Poza", at * CFrame.new(0, 0.3, -width * 0.4), V3(width * 1.6, 0.6, width), color, material, { Decor = true, Transparency = transp * 0.6 })
+		local pe = Instance.new("ParticleEmitter")
+		pe.Color = ColorSequence.new(Color3.new(1, 1, 1))
+		pe.Size = NumberSequence.new({ NumberSequenceKeypoint.new(0, 3), NumberSequenceKeypoint.new(1, 9) })
+		pe.Transparency = NumberSequence.new({ NumberSequenceKeypoint.new(0, 0.5), NumberSequenceKeypoint.new(1, 1) })
+		pe.Lifetime = NumberRange.new(1.5, 2.5)
+		pe.Rate = 8
+		pe.Speed = NumberRange.new(2, 5)
+		pe.SpreadAngle = Vector2.new(60, 20)
+		pe.EmissionDirection = Enum.NormalId.Bottom
+		pe.Parent = fall
+	end
+	local function beam(at: CFrame, height: number, width: number)
+		local b = column(m, "Haz", at, height, width, glowC, Enum.Material.Neon, { Decor = true, Transparency = 0.35 })
+		b.CastShadow = false
+		light(b, 60, 3)
+	end
+	-- la explanada (en tierra) o la plataforma (en el mar o la niebla)
+	if M.Mode == "Deck" then
+		mk(m, "Plataforma", CFrame.new(base + V3(0, -0.7, 0)), V3(R * 2.2, 2, R * 2.2), L.Deck or L.Ground, mat(L.DeckMaterial, Enum.Material.Concrete))
+	else
+		local low = math.huge
+		for a = 0, 7 do
+			local x, z = LM.X + math.cos(a * math.pi / 4) * R, LM.Z + math.sin(a * math.pi / 4) * R
+			low = math.min(low, M.groundY(x, z))
+		end
+		local fh = LM.Base - low + 3
+		column(m, "Explanada", cf * CFrame.new(0, -fh, 0), fh, R * 2, L.Ground, Enum.Material.Pavement)
+	end
+	column(m, "Circulo", cf * CFrame.new(0, 0.05, 0), 0.3, R * 1.3, glowC, Enum.Material.Neon, { Decor = true, Transparency = 0.2 })
+	column(m, "Circulo2", cf * CFrame.new(0, 0.06, 0), 0.32, R * 1.24, L.Ground, Enum.Material.Pavement, { Decor = true })
+
+	local kind = LM.Kind
+	if kind == "Palacio" then
+		-- Palacio de Hielo: una aguja central de cristal, cuatro torres, un anillo de puentes y una cascada helada
+		tiered(cf, 34, 210, 7, white, Enum.Material.SmoothPlastic)
+		for i = 0, 3 do
+			mk(m, "Nucleo", cf * CFrame.Angles(0, i * math.pi / 2, 0) * CFrame.new(0, 90, -17.2), V3(3, 170, 0.6), glowC, Enum.Material.Neon, { Decor = true })
+		end
+		for i = 0, 3 do
+			local a = i * math.pi / 2 + math.pi / 4
+			local at = cf * CFrame.new(math.cos(a) * R * 0.55, 0, math.sin(a) * R * 0.55)
+			tiered(at, 16, 120 + i * 10, 5, white, Enum.Material.SmoothPlastic)
+			ball(m, "Cupula", at * CFrame.new(0, 30, 0), 20, L.Roof, Enum.Material.Glass, { Transparency = 0.25 })
+		end
+		for i = 0, 11 do
+			local a = i / 12 * math.pi * 2
+			local a2 = (i + 1) / 12 * math.pi * 2
+			local p1 = V3(math.cos(a), 0, math.sin(a)) * R * 0.55
+			local p2 = V3(math.cos(a2), 0, math.sin(a2)) * R * 0.55
+			local mid = (p1 + p2) / 2
+			local seg = (p2 - p1)
+			local c = cf * CFrame.new(mid.X, 64, mid.Z) * CFrame.Angles(0, math.atan2(-seg.X, -seg.Z), 0)
+			mk(m, "Puente", c, V3(5, 1.6, seg.Magnitude + 1), L.Trim, Enum.Material.Metal)
+			mk(m, "LuzPuente", c * CFrame.new(0, -1, 0), V3(5.4, 0.4, seg.Magnitude + 1), glowC, Enum.Material.Neon, { Decor = true })
+		end
+		-- la cascada helada que baja de un risco de hielo
+		local cliff = cf * CFrame.new(R * 0.2, 0, R * 0.9)
+		mk(m, "Risco", cliff * CFrame.new(0, 24, 6), V3(46, 48, 14), rgb(190, 220, 245), Enum.Material.Ice)
+		waterfall(cliff * CFrame.new(0, 0, -1.5), 16, 46, rgb(170, 225, 255), Enum.Material.Ice, 0.25)
+	elseif kind == "Puerta" then
+		-- Puerta del Sol: dos torres de arenisca con agujas, el arco y el anillo de luz azul en medio; detrás, la catedral
+		for _, sx in { -1, 1 } do
+			local at = cf * CFrame.new(sx * 26, 0, 0)
+			mk(m, "Pilono", at * CFrame.new(0, 55, 0), V3(20, 110, 22), white, wallMat)
+			mk(m, "Franja", at * CFrame.new(0, 55, -11.2), V3(2, 100, 0.5), glowC, Enum.Material.Neon, { Decor = true })
+			tiered(at * CFrame.new(0, 110, 0), 18, 50, 4, white, wallMat)
+		end
+		mk(m, "Arco", cf * CFrame.new(0, 100, 0), V3(72, 14, 20), darker(white, 0.9), wallMat)
+		for i = 0, 23 do
+			local a = i / 24 * math.pi * 2
+			mk(m, "Portal", cf * CFrame.new(math.cos(a) * 20, 52 + math.sin(a) * 20, -0.5) * CFrame.Angles(0, 0, a), V3(2.4, 5.6, 2), glowC, Enum.Material.Neon, { Decor = true })
+		end
+		local disc = column(m, "Velo", cf * CFrame.new(0, 52, 0) * CFrame.Angles(math.pi / 2, 0, 0) * CFrame.new(0, -0.5, 0), 1, 38, glowC, Enum.Material.Glass, { Decor = true, Transparency = 0.6 })
+		light(disc, 60, 2.5)
+		local back = cf * CFrame.new(0, 0, 40)
+		mk(m, "Nave", back * CFrame.new(0, 30, 0), V3(40, 60, 40), white, wallMat)
+		tiered(back * CFrame.new(0, 60, 0), 26, 80, 5, white, wallMat)
+		for _, sx in { -1, 1 } do
+			ball(m, "Cupula", back * CFrame.new(sx * 30, 26, 0), 26, L.Roof, wallMat)
+			column(m, "Tambor", back * CFrame.new(sx * 30, 0, 0), 26, 22, white, wallMat)
+			mk(m, "Anillo", back * CFrame.new(sx * 30, 22, 0), V3(23, 1.2, 23), glowC, Enum.Material.Neon, { Decor = true })
+		end
+	elseif kind == "ArbolMadre" then
+		-- Árbol Madre: un tronco enorme con casas-cúpula en dos plataformas y una cascada
+		column(m, "Tronco", cf * CFrame.new(0, -6, 0), 206, 34, L.Trunk, Enum.Material.Wood)
+		for i = 0, 5 do
+			mk(m, "Raiz", cf * CFrame.Angles(0, i * math.pi / 3, 0) * CFrame.new(0, 8, -24), V3(8, 22, 22), L.Trunk, Enum.Material.Wood, { Class = "WedgePart" })
+		end
+		for i = 0, 6 do
+			local a = i / 7 * math.pi * 2
+			ball(m, "Copa", cf * CFrame.new(math.cos(a) * 34, 196 + (i % 3) * 10, math.sin(a) * 34), 70 + (i % 3) * 12, L.Leaf, Enum.Material.Grass, { Decor = true })
+		end
+		ball(m, "CopaCentro", cf * CFrame.new(0, 222, 0), 90, darker(L.Leaf, 1.1), Enum.Material.Grass, { Decor = true })
+		for _, y in { 70, 130 } do
+			column(m, "Plataforma", cf * CFrame.new(0, y, 0), 2, 78, L.Trim, Enum.Material.WoodPlanks)
+			ring(cf * CFrame.new(0, y + 1.4, 0), 39, 1, glowC)
+			for i = 0, 3 do
+				local a = i * math.pi / 2 + (if y == 70 then 0 else math.pi / 4)
+				local at = cf * CFrame.new(math.cos(a) * 28, y + 2, math.sin(a) * 28)
+				column(m, "Casa", at, 8, 13, white, Enum.Material.SmoothPlastic)
+				ball(m, "Cupula", at * CFrame.new(0, 8, 0), 13, L.Roof, Enum.Material.Glass, { Transparency = 0.2 })
+				local win = mk(m, "Luz", at * CFrame.new(0, 4, -6.6), V3(4, 2, 0.4), glowC, Enum.Material.Neon, { Decor = true })
+				light(win, 18, 1.2)
+			end
+		end
+		mk(m, "Escalera", cf * CFrame.new(0, 66, -19), V3(3, 132, 3), L.Trim, Enum.Material.Wood, { Class = "TrussPart" })
+		waterfall(cf * CFrame.new(-30, 0, -40), 14, 70, rgb(150, 220, 240), Enum.Material.Glass, 0.3)
+	elseif kind == "TorreAnillos" then
+		-- Torre del Crédito: un rascacielos de 330 studs con tres anillos de neón y anuncios gigantes
+		local seg = { { 54, 0, 110 }, { 42, 110, 110 }, { 30, 220, 80 } }
+		for _, sgm in seg do
+			local w, y0, h = sgm[1], sgm[2], sgm[3]
+			mk(m, "Cuerpo", cf * CFrame.new(0, y0 + h / 2, 0), V3(w, h, w), white, Enum.Material.Glass)
+			for y = y0 + 6, y0 + h - 4, 12 do
+				mk(m, "Ventanas", cf * CFrame.new(0, y, 0), V3(w + 0.4, 3, w + 0.4), L.Window, Enum.Material.Neon, { Decor = true, Transparency = 0.3 })
+			end
+			for _, sx in { -1, 1 } do
+				for _, sz in { -1, 1 } do
+					mk(m, "Arista", cf * CFrame.new(sx * w / 2, y0 + h / 2, sz * w / 2), V3(1, h, 1), glowC, Enum.Material.Neon, { Decor = true })
+				end
+			end
+		end
+		column(m, "Aguja", cf * CFrame.new(0, 300, 0), 70, 3, L.Metal, Enum.Material.Metal)
+		ball(m, "Baliza", cf * CFrame.new(0, 372, 0), 4, rgb(255, 40, 60), Enum.Material.Neon, { Decor = true })
+		local colors = L.Neon or { glowC }
+		for i, y in { 120, 200, 270 } do
+			ring(cf * CFrame.new(0, y, 0), 48 - i * 6, 4, colors[(i - 1) % #colors + 1])
+		end
+		local brands = { "CRÉDITO YA", "VÉRTICE BANK", "HOLOVIA", "LUZ+" }
+		for i = 0, 3 do
+			local face = cf * CFrame.Angles(0, i * math.pi / 2, 0)
+			local board = mk(m, "Anuncio", face * CFrame.new(0, 60, -27.6), V3(38, 30, 0.6), rgb(10, 8, 20), Enum.Material.SmoothPlastic, { Decor = true })
+			Builder.sign(board, brands[i + 1], Enum.NormalId.Front, colors[i % #colors + 1], rgb(10, 8, 20))
+		end
+	elseif kind == "Reactor" then
+		-- Reactor de Mareas: un disco blanco enorme con el núcleo de luz azul y un halo; cuatro torres alrededor
+		column(m, "Disco", cf * CFrame.new(0, 14, 0), 8, R * 1.7, white, Enum.Material.SmoothPlastic)
+		for i = 0, 5 do
+			local a = i / 6 * math.pi * 2
+			column(m, "Pilar", cf * CFrame.new(math.cos(a) * R * 0.6, 0, math.sin(a) * R * 0.6), 14, 5, L.Metal, Enum.Material.Metal)
+		end
+		column(m, "BordeLuz", cf * CFrame.new(0, 21.6, 0), 0.6, R * 1.72, glowC, Enum.Material.Neon, { Decor = true })
+		column(m, "Tapa", cf * CFrame.new(0, 22, 0), 0.4, R * 1.66, white, Enum.Material.SmoothPlastic, { Decor = true })
+		for _, d in { 40, 70 } do
+			column(m, "Circulo", cf * CFrame.new(0, 22.3, 0), 0.3, d, glowC, Enum.Material.Neon, { Decor = true })
+			column(m, "Circulo", cf * CFrame.new(0, 22.4, 0), 0.32, d - 3, white, Enum.Material.SmoothPlastic, { Decor = true })
+		end
+		local core = ball(m, "Nucleo", cf * CFrame.new(0, 44, 0), 26, glowC, Enum.Material.Neon)
+		light(core, 80, 3)
+		column(m, "Jaula", cf * CFrame.new(0, 22, 0), 46, 32, L.Window, Enum.Material.Glass, { Transparency = 0.7 })
+		ring(cf * CFrame.new(0, 50, 0), 44, 2, glowC)
+		ring(cf * CFrame.new(0, 34, 0), 30, 1.4, glowC)
+		for i = 0, 3 do
+			local a = i * math.pi / 2 + math.pi / 4
+			local at = cf * CFrame.new(math.cos(a) * R * 0.95, 0, math.sin(a) * R * 0.95)
+			mk(m, "Torre", at * CFrame.new(0, 30, 0), V3(14, 60, 14), white, Enum.Material.SmoothPlastic)
+			mk(m, "Banda", at * CFrame.new(0, 48, 0), V3(14.6, 2, 14.6), glowC, Enum.Material.Neon, { Decor = true })
+			mk(m, "Pantalla", at * CFrame.new(0, 34, -7.3), V3(10, 8, 0.4), glowC, Enum.Material.Neon, { Decor = true, Transparency = 0.25 })
+		end
+	elseif kind == "Ciudadela" then
+		-- La Forja Mayor: una ciudadela negra de púas con ríos de lava y un haz de luz naranja hacia el cielo
+		for i = 0, 7 do
+			local a = i / 8 * math.pi * 2
+			local at = cf * CFrame.new(math.cos(a) * R * 0.75, 0, math.sin(a) * R * 0.75) * CFrame.Angles(0, -a, 0)
+			mk(m, "Muralla", at * CFrame.new(0, 16, 0), V3(10, 32, R * 0.62), white, wallMat)
+			tiered(at * CFrame.new(0, 32, 0), 9, 40 + (i % 3) * 12, 3, darker(white, 0.9), wallMat)
+			mk(m, "Lava", at * CFrame.new(-5.4, 14, 0), V3(0.6, 28, 4), glowC, Enum.Material.Neon, { Decor = true })
+		end
+		mk(m, "Torreon", cf * CFrame.new(0, 45, 0), V3(46, 90, 46), white, wallMat)
+		for _, sx in { -1, 1 } do
+			for _, sz in { -1, 1 } do
+				tiered(cf * CFrame.new(sx * 20, 90, sz * 20), 12, 70, 4, darker(white, 0.85), wallMat)
+			end
+		end
+		tiered(cf * CFrame.new(0, 90, 0), 26, 80, 5, white, wallMat)
+		beam(cf * CFrame.new(0, 170, 0), 600, 7)
+		column(m, "Foso", cf * CFrame.new(0, -0.6, 0), 1, R * 1.9, glowC, Enum.Material.Neon, { Decor = true, Transparency = 0.1 })
+		column(m, "Isla", cf * CFrame.new(0, -0.4, 0), 1.2, R * 1.6, L.Ground, Enum.Material.Basalt)
+		for i = 0, 2 do
+			waterfall(cf * CFrame.Angles(0, i * 2.1, 0) * CFrame.new(0, 0, -23.8), 8, 80, glowC, Enum.Material.Neon, 0.05)
+		end
+	elseif kind == "ReactorVerde" then
+		-- Reactor Verde: tanques de cristal con el líquido verde que brilla, tuberías y un haz verde
+		local spots = { { 0, 0, 30, 120 }, { 32, 10, 18, 70 }, { -30, 14, 18, 64 }, { 12, -34, 16, 56 }, { -18, -30, 14, 48 } }
+		for i, sp in spots do
+			local at = cf * CFrame.new(sp[1], 0, sp[2])
+			local d, h = sp[3], sp[4]
+			column(m, "Zocalo", at, 4, d + 4, L.Trim, Enum.Material.Metal)
+			column(m, "Liquido", at * CFrame.new(0, 4, 0), h * 0.85, d * 0.86, glowC, Enum.Material.Neon, { Decor = true })
+			column(m, "Cristal", at * CFrame.new(0, 4, 0), h, d, L.Window, Enum.Material.Glass, { Transparency = 0.5 })
+			for _, y in { 4, h * 0.5, h + 2 } do
+				column(m, "Aro", at * CFrame.new(0, y, 0), 2, d + 1.4, L.Metal, Enum.Material.Metal)
+			end
+			ball(m, "Tapa", at * CFrame.new(0, h + 4, 0), d, L.Roof, Enum.Material.Metal)
+			if i > 1 then
+				local dir = V3(-sp[1], 0, -sp[2])
+				mk(m, "Tubo", at * CFrame.new(0, h * 0.4, 0) * CFrame.Angles(0, math.atan2(-dir.X, -dir.Z), 0) * CFrame.new(0, 0, -dir.Magnitude / 2), V3(3, 3, dir.Magnitude), L.Metal, Enum.Material.Metal, { Decor = true })
+			end
+		end
+		beam(cf * CFrame.new(0, 128, 0), 520, 6)
+		column(m, "Charca", cf * CFrame.new(0, 0.1, 0), 0.4, R * 1.8, glowC, Enum.Material.Neon, { Decor = true, Transparency = 0.25 })
+	end
+	-- el rótulo con su nombre
+	local post = mk(m, "Rotulo", cf * CFrame.new(0, 6, -R * 0.9), V3(28, 6, 1.2), rgb(16, 18, 26), Enum.Material.Metal)
+	Builder.sign(post, LM.Name, Enum.NormalId.Front, glowC, rgb(16, 18, 26))
+	Builder.sign(post, LM.Name, Enum.NormalId.Back, glowC, rgb(16, 18, 26))
+	mk(m, "PieRotulo", cf * CFrame.new(0, 1.5, -R * 0.9), V3(2, 3, 1), L.Metal, Enum.Material.Metal)
+	return m
 end
 
 return PlanetMetroBuilder

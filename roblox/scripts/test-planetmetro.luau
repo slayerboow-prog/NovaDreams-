@@ -175,6 +175,38 @@ for _, id in Registry.Order do
 	check(#again == #lots and again[#again].Kind == lots[#lots].Kind and again[1].X == lots[1].X, "el plano sale igual cada vez")
 end
 
+print("🏛 Monumentos y construcción de verdad (con piezas de Roblox fuera de Roblox)")
+local roblox = require("@lune/roblox")
+local PMB = L.load("src/server/World/PlanetMetroBuilder")
+local kinds = {}
+for _, id in Registry.Order do
+	local S = Registry.get(id)
+	local LM = S.Metro.Landmark
+	check(LM ~= nil and LM.Name ~= nil, id .. ": tiene su gran monumento")
+	kinds[LM.Kind] = true
+	local clearLm = true
+	for _, lot in S.Metro.lots() do
+		if (lot.X - LM.X) ^ 2 + (lot.Z - LM.Z) ^ 2 < LM.R ^ 2 then
+			clearLm = false
+		end
+	end
+	check(clearLm, id .. ": ningún edificio dentro de la explanada del monumento")
+	check(S.Metro.solidTop(LM.X, LM.Z, 2) == LM.Base + LM.Height and S.Metro.landingBlocked(LM.X, LM.Z), id .. ": la nave choca con el monumento y no se posa encima")
+	local folder = roblox.Instance.new("Folder")
+	local ok, model, stats = pcall(PMB.build, folder, S, {})
+	check(ok and model ~= nil and model:FindFirstChild("Monumento_" .. LM.Kind) ~= nil, id .. ": la ciudad y su monumento se construyen sin errores " .. (if ok then "" else tostring(model)))
+	if ok then
+		local ships = model:FindFirstChild("NavesCielo")
+		check(ships ~= nil and #ships:GetChildren() >= 5, id .. ": naves volando sobre la ciudad")
+		check(stats.Parts < 14000, ("%s: piezas contenidas (%d)"):format(id, stats.Parts))
+	end
+end
+local n = 0
+for _ in kinds do
+	n += 1
+end
+check(n == 7, "siete monumentos distintos")
+
 print("🧱 Constructor y conexiones")
 local world = fs.readFile("src/server/World/PlanetWorld.luau")
 check(string.find(world, "PlanetWorld.buildMetro(S, folder", 1, true) ~= nil and string.find(world, "PlanetWorld.buildMetro(Tefra, folder", 1, true) ~= nil, "PlanetWorld construye la ciudad grande en todos los planetas")

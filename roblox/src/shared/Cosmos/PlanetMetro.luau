@@ -37,6 +37,8 @@ end
 -- Altura de una planta, y lo que mide cada tipo cuando no va por plantas
 PlanetMetro.FloorH = 10
 local TALL = { Torre = true, Rascacielos = true, Bloque = true }
+-- Lo que mide cada monumento (Landmark.Kind) para los choques de la nave
+PlanetMetro.LandmarkHeight = { Ciudadela = 170, Puerta = 140, Reactor = 80, Palacio = 230, ArbolMadre = 200, ReactorVerde = 130, TorreAnillos = 330 }
 local OPEN = { Plaza = true, Parque = true, Jardin = true, Mercado = true }
 
 function PlanetMetro.new(S: any, st: { [string]: any }): { [string]: any }
@@ -198,6 +200,27 @@ function PlanetMetro.new(S: any, st: { [string]: any }): { [string]: any }
 	local deckY = S.padY() + (st.DeckY or 0)
 	M.DeckY = deckY
 
+	-- El gran monumento de la ciudad (Landmark): ningún solar dentro de su radio; su base, en lo más alto
+	local LM = st.Landmark
+	M.Landmark = LM
+	if LM then
+		if deck then
+			LM.Base = deckY
+		else
+			local top = -math.huge
+			for a = 0, 7 do
+				local x, z = LM.X + math.cos(a * math.pi / 4) * LM.R * 0.6, LM.Z + math.sin(a * math.pi / 4) * LM.R * 0.6
+				top = math.max(top, groundY(x, z))
+			end
+			LM.Base = math.max(top, groundY(LM.X, LM.Z)) + 0.4
+		end
+		LM.Height = PlanetMetro.LandmarkHeight[LM.Kind] or 150
+	end
+	local function inLandmark(lx: number, lz: number, pad: number): boolean
+		return LM ~= nil and (lx - LM.X) ^ 2 + (lz - LM.Z) ^ 2 < (LM.R + pad) ^ 2
+	end
+	M.inLandmark = inLandmark
+
 	---------------------------------------------------------------------
 	-- ¿Se puede construir aquí? (fuera del barrio, de los puntos de interés, de lagos y del agua)
 	---------------------------------------------------------------------
@@ -275,7 +298,7 @@ function PlanetMetro.new(S: any, st: { [string]: any }): { [string]: any }
 		-- todo el solar tiene que estar dentro, libre y (en tierra) seco
 		local corners = { { x0, z0 }, { x1, z0 }, { x0, z1 }, { x1, z1 }, { cx, cz } }
 		for _, c in corners do
-			if not M.inside(c[1], c[2], 6) or not clearOf(c[1], c[2], 0) or not groundOk(c[1], c[2]) then
+			if not M.inside(c[1], c[2], 6) or not clearOf(c[1], c[2], 0) or not groundOk(c[1], c[2]) or inLandmark(c[1], c[2], 6) then
 				return
 			end
 		end
@@ -297,7 +320,10 @@ function PlanetMetro.new(S: any, st: { [string]: any }): { [string]: any }
 		elseif kind == "Choza" then
 			wA *= 0.6 + r() * 0.2
 			dI *= 0.6 + r() * 0.2
-		elseif kind == "Cupula" or kind == "TorreViento" or kind == "Mastil" or kind == "Arbol" or kind == "Globo" then
+		elseif kind == "Aguja" then
+			local s = math.min(wA, dI) * (0.55 + r() * 0.15)
+			wA, dI = s, s
+		elseif kind == "Cupula" or kind == "TorreViento" or kind == "Mastil" or kind == "Arbol" or kind == "Globo" or kind == "Tanque" then
 			local s = math.min(wA, dI) * (0.7 + r() * 0.2)
 			wA, dI = s, s
 		elseif not OPEN[kind] then
@@ -327,6 +353,10 @@ function PlanetMetro.new(S: any, st: { [string]: any }): { [string]: any }
 			height = floors * PlanetMetro.FloorH + 6
 		elseif kind == "Cupula" then
 			height = floors * PlanetMetro.FloorH + math.min(wA, dI) * 0.5
+		elseif kind == "Aguja" then
+			height = floors * PlanetMetro.FloorH + 34
+		elseif kind == "Tanque" then
+			height = floors * PlanetMetro.FloorH + 6
 		elseif kind == "TorreViento" then
 			height = floors * PlanetMetro.FloorH + 18
 		elseif kind == "Nave" or kind == "Bunker" or kind == "Chatarra" then
@@ -555,6 +585,10 @@ function PlanetMetro.new(S: any, st: { [string]: any }): { [string]: any }
 		if lot and lot.Kind ~= "Plaza" and lot.Kind ~= "Parque" then
 			return lot.Top
 		end
+		-- el monumento: un cilindro de medio radio con su altura
+		if LM and (lx - LM.X) ^ 2 + (lz - LM.Z) ^ 2 < (LM.R * 0.55 + (margin or 0)) ^ 2 then
+			return LM.Base + LM.Height
+		end
 		return nil
 	end
 	function M.landingBlocked(lx: number, lz: number): boolean
@@ -562,7 +596,7 @@ function PlanetMetro.new(S: any, st: { [string]: any }): { [string]: any }
 			return false
 		end
 		local lot = M.lotAt(lx, lz, 6)
-		return lot ~= nil and lot.Kind ~= "Plaza" and lot.Kind ~= "Parque"
+		return (lot ~= nil and lot.Kind ~= "Plaza" and lot.Kind ~= "Parque") or inLandmark(lx, lz, 4)
 	end
 
 	---------------------------------------------------------------------
@@ -573,7 +607,7 @@ function PlanetMetro.new(S: any, st: { [string]: any }): { [string]: any }
 			return false, false
 		end
 		local d, isAv = M.streetDist(lx, lz)
-		if d > 0 then
+		if d > 0 or inLandmark(lx, lz, 0) then
 			return false, false
 		end
 		if City and City.inside(lx, lz, (City.Blend or 100) * 0.5) then
