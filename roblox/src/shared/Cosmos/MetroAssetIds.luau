@@ -5,13 +5,13 @@
 -- Vacío hasta que se suban: mientras tanto se ven los de piezas (World/PlanetMetroBuilder).
 return {
 	Mallas = {
-		Palacio = "rbxassetid://139305344474359",
-		Puerta = "rbxassetid://87147382187733",
-		ArbolMadre = "rbxassetid://99991627059457",
-		TorreAnillos = "rbxassetid://140449159284933",
-		Reactor = "rbxassetid://123271037711410",
-		Ciudadela = "rbxassetid://95813791724983",
-		ReactorVerde = "rbxassetid://82247017780803",
+		Palacio = "rbxassetid://74787864721054",
+		Puerta = "rbxassetid://93682716177142",
+		ArbolMadre = "rbxassetid://103552325929758",
+		TorreAnillos = "rbxassetid://110107244465653",
+		Reactor = "rbxassetid://116334987942645",
+		Ciudadela = "rbxassetid://77417893899286",
+		ReactorVerde = "rbxassetid://98513498173381",
 	},
 	Texturas = {
 	},

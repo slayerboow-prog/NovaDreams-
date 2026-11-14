@@ -124,6 +124,16 @@ function PlanetMetroMeshes.apply(fallback: Model, kind: string, L: { [string]: a
 			p.Anchored = true
 			p.Material = material
 			p.Color = color
+			-- (el cuerpo y el metal, con la textura PBR de las ciudades si está: sillares en Siroco y Tefra, chapa en el resto)
+			pcall(function()
+				local MaterialService = game:GetService("MaterialService")
+				local stone = kind == "Puerta" or kind == "Ciudadela"
+				local want = if group == "Cuerpo" then (if stone then "CiudadPiedra" else "CiudadPanel") elseif group == "Metal" then "CiudadPanel" elseif group == "Roca" then nil else nil
+				if want and MaterialService:FindFirstChild(want) then
+					p.Material = if want == "CiudadPiedra" then Enum.Material.Sandstone else Enum.Material.Metal
+					p.MaterialVariant = want
+				end
+			end)
 			p.Transparency = transp
 			p.CanCollide = group == "Cuerpo" or group == "Metal" or group == "Roca" or group == "Tronco"
 			p.CanTouch = false

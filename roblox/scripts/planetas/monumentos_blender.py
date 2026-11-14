@@ -74,7 +74,7 @@ def box(c, size, group, rot=(0, 0, 0), bevel=0.0):
     return _keep(o, group)
 
 
-def cyl(c, r, h, group, n=24, rot=(0, 0, 0), r2=None, bevel=0.0):
+def cyl(c, r, h, group, n=32, rot=(0, 0, 0), r2=None, bevel=0.0):
     """Cilindro (o cono si r2) con la BASE en c."""
     rx, ry, rz = rot
     if r2 is None:
@@ -480,6 +480,12 @@ def finish(kind, tint):
             dec = o.modifiers.new("simplificar", "DECIMATE")
             dec.ratio = MAX_TRIS / t * 0.97
             bpy.ops.object.convert(target="MESH")
+        # sombreado suave en lo redondo y aristas vivas donde el ángulo es grande (fuera las facetas)
+        try:
+            bpy.ops.object.shade_smooth_by_angle(angle=math.radians(38), keep_sharp_edges=True)
+            bpy.ops.object.convert(target="MESH")
+        except Exception:
+            bpy.ops.object.shade_smooth()
         base, metal, rough, emit = PREVIEW[group]
         col = tint.get(group, base)
         o.data.materials.clear()
@@ -548,7 +554,7 @@ def main():
         bpy.ops.object.select_all(action="DESELECT")
         for o in objs:
             o.select_set(True)
-        bpy.ops.export_scene.fbx(filepath=os.path.join(OUT, kind + ".fbx"), use_selection=True, object_types={"MESH"}, apply_unit_scale=True, global_scale=1.0, axis_forward="-Z", axis_up="Y", mesh_smooth_type="FACE", add_leaf_bones=False, path_mode="STRIP")
+        bpy.ops.export_scene.fbx(filepath=os.path.join(OUT, kind + ".fbx"), use_selection=True, object_types={"MESH"}, apply_unit_scale=True, global_scale=1.0, axis_forward="-Z", axis_up="Y", mesh_smooth_type="EDGE", add_leaf_bones=False, path_mode="STRIP")
         parts = {o.name.split("_", 1)[1]: tris_of(o) for o in objs}
         # (Roblox: X igual, Y arriba = Z de Blender, Z sur = -Y de Blender)
         center = [round((lo.x + hi.x) / 2, 2), round((lo.z + hi.z) / 2, 2), round(-(lo.y + hi.y) / 2, 2)]

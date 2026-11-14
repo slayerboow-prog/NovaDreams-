@@ -56,6 +56,11 @@ end
 EspacioLook.Variants = {
 	NaveCasco = { Prefix = "nave_casco", Base = "Metal", Studs = 9, Pattern = "Regular", Maps = { "color", "normal", "roughness", "metalness" } },
 	TefraRoca = { Prefix = "roca_tefra", Base = "Basalt", Studs = 14, Pattern = "Organic", Maps = { "color", "normal", "roughness" } },
+	-- Las ciudades de los planetas (scripts/espacio/gen_ciudad.py; el color de la pieza las tiñe: World/PlanetMetroBuilder)
+	CiudadPanel = { Prefix = "ciudad_panel", Base = "Metal", Studs = 24, Pattern = "Regular", Maps = { "color", "normal", "roughness", "metalness" } },
+	CiudadFachada = { Prefix = "ciudad_fachada", Base = "Concrete", Studs = 40, Pattern = "Regular", Maps = { "color", "normal", "roughness", "metalness" } },
+	CiudadPiedra = { Prefix = "ciudad_piedra", Base = "Sandstone", Studs = 28, Pattern = "Regular", Maps = { "color", "normal", "roughness", "metalness" } },
+	CiudadSuelo = { Prefix = "ciudad_suelo", Base = "Pavement", Studs = 22, Pattern = "Regular", Maps = { "color", "normal", "roughness", "metalness" } },
 }
 EspacioLook.MapProperty = { color = "ColorMap", normal = "NormalMap", roughness = "RoughnessMap", metalness = "MetalnessMap" }
 

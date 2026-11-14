@@ -80,6 +80,67 @@ function PlanetMetroBuilder.build(parent: Instance, S: any, opts: { [string]: an
 	local treeKind = TREE[planet] or "Round"
 	local brands = BRANDS[planet] or { "TIENDA" }
 
+	-- Texturas PBR de las ciudades (MaterialVariant «Ciudad…» de shared/Cosmos/EspacioLook, hechas con
+	-- scripts/espacio/gen_ciudad.py): fachadas con ventanas, chapa de paneles, sillares y losas de plaza. El color
+	-- de la pieza las tiñe. Si la variante no está (un servidor sin ellas), la pieza se queda con su material.
+	local okMs, MaterialService = pcall(function()
+		return game:GetService("MaterialService")
+	end)
+	local SKIN_BASE = { CiudadPanel = Enum.Material.Metal, CiudadFachada = Enum.Material.Concrete, CiudadPiedra = Enum.Material.Sandstone, CiudadSuelo = Enum.Material.Pavement }
+	local haveSkin: { [string]: boolean } = {}
+	for name in SKIN_BASE do
+		local okV, found = pcall(function()
+			return (MaterialService :: any):FindFirstChild(name)
+		end)
+		haveSkin[name] = okMs and okV and found ~= nil
+	end
+	local BODY_SKIN = { Vertice = "CiudadFachada", Talasa = "CiudadFachada", Nivalis = "CiudadFachada", Miasma = "CiudadFachada", Tefra = "CiudadPiedra", Siroco = "CiudadPiedra" }
+	local TECH_SKIN = { Tefra = "CiudadPiedra", Siroco = "CiudadPiedra" }
+	local BODY_NAMES = { Cuerpo = true, Alto = true, Torre = true, Zocalo = true }
+	local TECH_NAMES = { Muros = true, Nave = true, Base = true, Cobertizo = true, Tambor = true, Cimientos = true, Amarre = true, Arco = true, Techo = true }
+	local FLOOR_NAMES = { Plataforma = true, Losas = true, Suelo = true, Pasarela = true, Orilla = true }
+	local HOUSING = { Bloque = true, Torre = true, Rascacielos = true, Casa = true }
+	local function skin(part: BasePart, name: string?): boolean
+		if not name or not haveSkin[name] then
+			return false
+		end
+		part.Material = SKIN_BASE[name]
+		part.MaterialVariant = name
+		if part.Transparency > 0 and part.Transparency < 1 then
+			part.Transparency = 0
+		end
+		return true
+	end
+	-- Viste un edificio recién dibujado: cuerpo con fachada (o sillares), lo técnico con chapa, suelos con losas
+	local function dress(m: Instance, kind: string?)
+		local facade = false
+		for _, ch in m:GetChildren() do
+			if ch:IsA("BasePart") then
+				if BODY_NAMES[ch.Name] then
+					local want = if kind and HOUSING[kind] then BODY_SKIN[planet] else (TECH_SKIN[planet] or "CiudadPanel")
+					if planet == "Umbria" and kind and HOUSING[kind] then
+						want = nil -- (madera: se queda como está)
+					end
+					if skin(ch, want) and want == "CiudadFachada" then
+						facade = true
+					end
+				elseif TECH_NAMES[ch.Name] then
+					skin(ch, TECH_SKIN[planet] or "CiudadPanel")
+				elseif FLOOR_NAMES[ch.Name] then
+					skin(ch, "CiudadSuelo")
+				end
+			end
+		end
+		-- (la fachada ya trae sus ventanas: fuera las franjas de cristal de antes)
+		if facade then
+			for _, ch in m:GetChildren() do
+				if ch.Name == "Ventanas" then
+					ch:Destroy()
+				end
+			end
+		end
+	end
+
 	local root = Builder.model("Metropoli", parent)
 	local stats = { Parts = 0, Buildings = 0, Lamps = 0, Districts = 0, Bridges = 0 }
 	local folders: { [string]: Model } = {}
@@ -794,6 +855,7 @@ function PlanetMetroBuilder.build(parent: Instance, S: any, opts: { [string]: an
 		if not ok then
 			warn("[PlanetMetroBuilder] " .. planet .. " " .. lot.Kind .. ": " .. tostring(err))
 		end
+		dress(m, lot.Kind)
 		if lot.Kind ~= "Plaza" and lot.Kind ~= "Parque" then
 			stats.Buildings += 1
 			Builder.streamable(m)
@@ -865,6 +927,9 @@ function PlanetMetroBuilder.build(parent: Instance, S: any, opts: { [string]: an
 				deckUnder(bf, lx, lz, b.Y - 1.6)
 			end
 			railEdges(bf, b.X0, b.X1, b.Z0, b.Z1, b.Y)
+			if i == 1 then
+				stats.Skins = haveSkin.CiudadSuelo
+			end
 			if planet == "Talasa" and long > 60 then
 				local lx = if b.X1 - b.X0 > b.Z1 - b.Z0 then (b.X0 + b.X1) / 2 else b.X1 + 1.2
 				local lz = if b.X1 - b.X0 > b.Z1 - b.Z0 then b.Z1 + 1.2 else (b.Z0 + b.Z1) / 2
@@ -875,6 +940,10 @@ function PlanetMetroBuilder.build(parent: Instance, S: any, opts: { [string]: an
 				yield()
 			end
 		end
+	end
+
+	if deck then
+		dress(root:FindFirstChild("Pasarelas") :: Instance, nil)
 	end
 
 	-- Farolas
@@ -1271,6 +1340,17 @@ function PlanetMetroBuilder.landmark(root: Instance, S: any, M: any, LM: any, mk
 	Builder.sign(post, LM.Name, Enum.NormalId.Front, glowC, rgb(16, 18, 26))
 	Builder.sign(post, LM.Name, Enum.NormalId.Back, glowC, rgb(16, 18, 26))
 	mk(m, "PieRotulo", cf * CFrame.new(0, 1.5, -R * 0.9), V3(2, 3, 1), L.Metal, Enum.Material.Metal)
+	for _, ch in m:GetChildren() do
+		if ch:IsA("BasePart") and (ch.Name == "Explanada" or ch.Name == "Plataforma") then
+			pcall(function()
+				if game:GetService("MaterialService"):FindFirstChild("CiudadSuelo") then
+					ch.Material = Enum.Material.Pavement
+					ch.MaterialVariant = "CiudadSuelo"
+				end
+			end)
+
+		end
+	end
 	-- la versión de malla hecha con Blender, si está subida (World/PlanetMetroMeshes; si no, se queda esta)
 	pcall(function()
 		local Meshes = require(script.Parent.PlanetMetroMeshes) :: any
