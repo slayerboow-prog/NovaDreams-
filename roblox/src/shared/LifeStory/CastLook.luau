@@ -82,13 +82,14 @@ local FULL: { [string]: boolean } = {
 }
 
 -- Personas con brillo (Glow) que son PERSONAS (el resto con Glow son criaturas: sin textura)
-local GLOW_HUMAN: { [string]: string } = { Cosimo = "Human", TuMalvado = "Human", TuFuturo = "Human", Pip = "Robot", Varkun = "Mask", NILDA = "Holo" }
+local GLOW_HUMAN: { [string]: string } = { Cosimo = "Human", TuMalvado = "Human", TuFuturo = "Human", Pip = "Robot", Varkun = "Mask", NILDA = "Holo", DraVarga = "Holo" }
 
 -- Papeles sin nombre: comparten caras por edad (arquetipos, como un atlas): Arq_<Edad>_<F|M>
 local GENERIC: { [string]: boolean } = {
 	Alumno1 = true, Alumno2 = true, Alumno3 = true, Alumno4 = true, Mayor1 = true, Mayor2 = true, Madre = true, Padre = true,
 	Vecino = true, Paciente = true, Veterano = true, Delegada = true, PoliciaMilitar1 = true, PoliciaMilitar2 = true,
 	PoliciaMilitar3 = true, SoldadoOvilla = true, RefugiadoMayor = true, Capataz = true,
+	DraVarga = true, -- (La Deriva: la cara de una adulta seria del atlas; sin textura propia todavía)
 }
 
 local FEM_NAMES = { "^Doña", "^Señora", "^Abuela", "^Tía", "^La ", "^Una ", "Alumna", "Delegada", "Doctora", "Profesora", "Capitana", "Soldada", "Cobradora", "Niña", "Gnoma", "Madre ", "Agente Inés", "Chef Lola", "^Sofía", "^Irene", "^Julia$", "^Carla", "^Montse", "^Rocío", "^Alba", "^Candela", "^Funcionaria", "^Mara ", "^Luz$", "^Marisa", "^Brasa", "^Pía", "^Nina " }

@@ -185,6 +185,7 @@ local PEOPLE: { [string]: { G: string, P: number, S: number } } = {
 	NinaVentana = { G = "F", P = 7.4, S = 1.2 },
 	-- El espacio (Saga 2): la voz del chip de Cosme y el Deshilador (faltaban: test-voices)
 	NILDA = { G = "F", P = 1.7, S = 0.96 },
+	DraVarga = { G = "F", P = -0.8, S = 0.92 }, -- (La Deriva) cansada, exacta
 	Varkun = { G = "M", P = -4.6, S = 0.78 },
 	-- Miasma · Anclaje Siete (Saga 2)
 	MaraSolis = { G = "F", P = -1.1, S = 1.06 }, -- rápida, seca, de contrabandista

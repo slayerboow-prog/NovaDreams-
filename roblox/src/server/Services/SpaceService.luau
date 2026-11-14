@@ -43,6 +43,7 @@ local NavInfo = require(Cosmos.NavInfo)
 local SpaceEvents = require(Cosmos.SpaceEvents)
 local Waves = require(ReplicatedStorage.Shared.AirCombat.Waves)
 local ShipWeapons = require(ReplicatedStorage.Shared.AirCombat.ShipWeapons)
+local Derelicts = require(ReplicatedStorage.Shared.Cosmos.Derelicts)
 local ShipClasses = require(ReplicatedStorage.Shared.AirCombat.ShipClasses)
 local ShipCombat = require(ReplicatedStorage.Shared.AirCombat.ShipCombat)
 local Shields = require(ReplicatedStorage.Shared.AirCombat.Shields)
@@ -336,8 +337,9 @@ end
 local objectiveFor: (Player) -> () -> string?
 local onExitRequest: (Player) -> ()
 
--- Subir a la nave: en el puerto espacial (from = nil / "Port") o en el hangar de una estación (id)
-function SpaceService.board(player: Player, from: string?): boolean
+-- Subir a la nave: en el puerto espacial (from = nil / "Port"), en el hangar de una estación (id) o en
+-- un sitio dado (startAt: la esclusa de un pecio de la Deriva, Services/DerivaService)
+function SpaceService.board(player: Player, from: string?, startAt: CFrame?): boolean
 	local ok, why = SpaceService.canFly(player)
 	if not ok then
 		toast(player, "Info", Access.Messages[why or "Locked"] or Access.Messages.Locked)
@@ -353,7 +355,7 @@ function SpaceService.board(player: Player, from: string?): boolean
 	end
 	ensureSpace()
 	local st = from and Stations.ById[from]
-	local start = if st then Stations.launch(st) else Access.launch()
+	local start = if startAt then startAt elseif st then Stations.launch(st) else Access.launch()
 	local ps = stateOf(player)
 	local entered = AC.enter(player, {
 		World = "Cosmos",
@@ -370,11 +372,17 @@ function SpaceService.board(player: Player, from: string?): boolean
 		setStation(player, nil)
 		ps.NextSpawn = now() + 8
 		ensureLoop() -- (patrullas: el bucle solo va mientras alguien vuela aquí)
-		toast(player, "Success", if st
+		toast(player, "Success", if startAt
+			then "🚀 Sueltas amarras de la esclusa. VALMAR te devuelve a casa cuando quieras."
+			elseif st
 			then "🚀 Despegas del muelle. VALMAR te devuelve a casa cuando quieras."
 			else "🚀 ¡Despega! Sube y sube: por encima del cielo de los aviones empieza el espacio. VALMAR te devuelve a casa cuando quieras.")
 	end
 	return entered
+end
+
+function SpaceService.boardAt(player: Player, start: CFrame, _why: string?): boolean
+	return SpaceService.board(player, nil, start)
 end
 
 -- Volver a Valmar (siempre): de la nave o de una estación, al puerto espacial
@@ -448,6 +456,11 @@ onExitRequest = function(player: Player)
 		SpaceService.dock(player)
 		return
 	end
+	-- (la esclusa de un pecio de la Deriva: te bajas dentro y andas)
+	if Derelicts.dockAt(st.Pos) then
+		SpaceService.dockDerelict(player)
+		return
+	end
 	if not Layers.canLand(st.Pos) then
 		toast(player, "Info", Access.Messages.TooHigh:format(Layers.meters(Layers.LandY)))
 		return
@@ -481,6 +494,30 @@ function SpaceService.dock(player: Player): boolean
 	send(player, "Docked", { Station = station.Id })
 	toast(player, "Success", ("🛰 Atracado en la %s: tienda, tablón de misiones y portal a Valmar."):format(station.Name))
 	SpaceService.event(player, { Type = "Dock", Station = station.Id, Now = os.time(), Hull = st.Hull, MaxHull = st.MaxHull })
+	return true
+end
+
+-- Atracar en la esclusa de un pecio de la Deriva (Services/DerivaService): te bajas dentro y andas
+function SpaceService.dockDerelict(player: Player): boolean
+	local AC = airCombat()
+	local st = AC.status(player)
+	if not st or st.Down or AC.world(player) ~= "Cosmos" or not Derelicts.dockAt(st.Pos) then
+		return false
+	end
+	local Deriva = service("DerivaService")
+	Deriva.ensure()
+	local ps = stateOf(player)
+	ps.Docking = true
+	ps.Ship = { Hull = st.Hull, Missiles = st.Missiles }
+	dip(player)
+	AC.setReturn(player, Deriva.entryCFrame())
+	AC.exit(player, "dock")
+	ps.Docking = false
+	setStation(player, nil)
+	-- (si se desconecta dentro, PositionService le guarda en el puerto espacial, no en el pecio)
+	player:SetAttribute("SpaceReturn", Access.arrival().Position)
+	Deriva.onEnter(player)
+	toast(player, "Success", "🛰 Atracas en la esclusa de la Misericordia. La gravedad de emergencia todavía funciona.")
 	return true
 end
 
@@ -557,6 +594,13 @@ function SpaceService.event(player: Player, ev: { [string]: any })
 	end)
 	if not okVarkun then
 		warn("[SpaceService] Varkun: " .. tostring(errVarkun))
+	end
+	-- (La Deriva: los pecios y su historia)
+	local okDeriva, errDeriva = pcall(function()
+		service("DerivaService").event(player, ev)
+	end)
+	if not okDeriva then
+		warn("[SpaceService] Deriva: " .. tostring(errDeriva))
 	end
 end
 
@@ -1481,6 +1525,12 @@ local function tick()
 			if not okVarkun then
 				warn("[SpaceService] Varkun: " .. tostring(errVarkun))
 			end
+			local okDeriva, errDeriva = pcall(function()
+				service("DerivaService").tick(player)
+			end)
+			if not okDeriva then
+				warn("[SpaceService] Deriva: " .. tostring(errDeriva))
+			end
 		end
 	end
 	-- Asteroides rotos: los trozos caducan y el asteroide vuelve entero
@@ -1655,6 +1705,9 @@ function SpaceService.init()
 			pcall(function()
 				service("VarkunService").onExit(player) -- (los Hilanderos se van; el paso vuelve a empezar)
 			end)
+			pcall(function()
+				service("DerivaService").onExit(player)
+			end)
 			if data.Down then
 				ps.Ship = {} -- (derribada: la próxima es nueva)
 			elseif not ps.Docking then
@@ -1728,6 +1781,12 @@ function SpaceService.infoFor(player: Player): { [string]: any }?
 	end)
 	if okVarkun and type(vrow) == "table" then
 		table.insert(missions, 1, vrow) -- (la historia, la primera)
+	end
+	local okDeriva, drow = pcall(function()
+		return service("DerivaService").row(player)
+	end)
+	if okDeriva and type(drow) == "table" then
+		table.insert(missions, 1, drow)
 	end
 	local event: string? = nil
 	local st = airCombat().status(player)

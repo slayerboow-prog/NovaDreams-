@@ -54,6 +54,8 @@ EventCatalog.Names = {
 	-- (SpaceJobService: { Job, Kind }) y el prólogo de Varkun (VarkunService: VarkunSignal { Part } al
 	-- atracar ofrece la misión; VarkunStep { Step } avanza sus pasos)
 	SpaceJobDone = true, VarkunSignal = true, VarkunStep = true,
+	-- (La Deriva: Services/DerivaService) atracar ofrece la misión; DerivaStep { Step } y DerivaFuse { N }
+	DerivaSignal = true, DerivaStep = true, DerivaFuse = true,
 	-- El mar de los Hondarios (docs/mar/civilizacion-marina.md, fase 1): un encargo de un oficio del mar
 	-- cobrado (MarJobService: { JobId, Any = true }), la persecución del kelp (SeaCivService: { Result }) y
 	-- alquilar una concha (SeaCivService: { Key })

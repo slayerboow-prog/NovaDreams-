@@ -334,6 +334,7 @@ local order = {
 	"PlanetJobService", -- marco común de los planetas: sus oficios hechos con datos (tablones «Trabajar» de cada barrio)
 	"SpaceJobService", -- trabajos espaciales: transportista, cazarrecompensas y mercenario en los tablones de las estaciones (docs/universo/diseno-espacio.md)
 	"VarkunService", -- el prólogo de la historia del espacio, «La costura negra» (Varkun, el Deshilador): sitios y sucesos para sus misiones
+	"DerivaService", -- La Deriva: los pecios (la Misericordia) que se recorren a pie y su historia
 	"CareerService", -- carreras en las instituciones: rangos, ascensos, plus de sueldo y uniformes
 	"JusticeService", -- juicios (jueces), condenas y prisión (presos y funcionarios)
 	"TaxService", -- Agencia Tributaria: declaración de la renta, agentes e inspecciones

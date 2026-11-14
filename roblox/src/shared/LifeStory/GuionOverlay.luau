@@ -40,6 +40,7 @@ GuionOverlay.List = {
 	"Cole10_Festival",
 	"Cole11_Proyecto",
 	"Cole12_UltimoDia",
+	"Deriva_01_Misericordia",
 	"Ins01_NuevoInstituto",
 	"Ins02_Clubes",
 	"Ins03_QueQuieresSer",

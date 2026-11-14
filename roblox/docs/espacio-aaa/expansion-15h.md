@@ -516,7 +516,7 @@ Cada fase deja algo **jugable y publicable** y no empieza la siguiente sin que e
 |---|---|---|
 | **1 · Cimientos** | **1a [HECHO 14-11-2026]:** clases (Caza, Interceptor, Carguero, Explorador; `ShipClasses`), módulos con ranura y potencia (6, con las mejoras de antes intactas), astillero en el taller, bodega por nave, materiales (Componentes al derribar, Datos con el escáner, con tope por hora). **1b:** `Sectors` y bolsillos, salto a sectores | — (base) |
 | **2 · Ciencia y Ruta** | Estación Vigía, registros, triangular, cadena de piratas, Puesto Saqueador, Interceptor | Horas 2-3 |
-| **3 · Pecios** | Sistema de pecios a pie, Cementerio de Ovilla, Faro, 2 pecios de historia | Hora 4 |
+| **3 · Pecios** | **[PRIMERO HECHO 14-11-2026]:** la Misericordia (nave hospital de Ovilla) a pie: 9 salas con detalle, 3 fusibles, láseres de seguridad, chispas, puerta del puente, 3 registros, núcleo, emboscada al salir; misión «La nave hospital» con 2 cinemáticas (probadas en Studio) y radio (`Derelicts`, `DerelictBuilder`, `DerivaService`, `DerelictClient`, `Misiones/Deriva_ActoI`, `Happenings/Deriva`). Falta: Cementerio de Ovilla, Faro y el segundo pecio | Hora 4 |
 | **4 · Acto I** | Convoy, Fabricador, Devanadera, Carguero | Horas 5-6 |
 | **5 · Bajíos y anomalías** | Bajíos de Luz, ballena, Explorador, La Inversión, anomalías | Horas 7-8 |
 | **6 · Acto II** | Infiltración, OZ-0, astillero alienígena, duelo del Huso | Horas 9-11 |

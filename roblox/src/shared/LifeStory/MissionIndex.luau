@@ -83,6 +83,7 @@ return {
 	require(Misiones.Planetas_Peligros),
 	-- Saga 2 · el prólogo del espacio «La costura negra» (Varkun, el Deshilador: docs/universo/diseno-espacio.md)
 	require(Misiones.Saga2_Prologo),
+	require(Misiones.Deriva_ActoI),
 	-- El mar de los Hondarios · «La canción de lo hondo»: Prólogo y Acto I (fase 1; docs/mar/civilizacion-marina.md)
 	require(Misiones.Mar_Acto1),
 }

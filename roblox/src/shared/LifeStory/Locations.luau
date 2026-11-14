@@ -304,6 +304,27 @@ do
 	end
 end
 
+-- La Deriva: los sitios de los pecios (marcas StorySpot «Deriva_<Id>» de World/DerelictBuilder). Sin
+-- Fallback: si el pecio no está construido, el sitio no existe.
+do
+	local ok, Derelicts = pcall(function()
+		return require(script.Parent.Parent.Cosmos.Derelicts)
+	end)
+	if ok then
+		for _, d in Derelicts.List do
+			for _, s in d.Spots do
+				Locations.Places["Deriva_" .. s.Id] = {
+					NameKey = s.Name,
+					Tag = "StorySpot",
+					Attribute = { SpotId = "Deriva_" .. s.Id },
+					Radius = s.Radius or 10,
+					School = false,
+				}
+			end
+		end
+	end
+end
+
 -- El mar de los Hondarios (docs/mar/civilizacion-marina.md, fase 1): un lugar «Mar_<Id>» por cada sitio de
 -- la historia de shared/Sea/Civ.StorySpots (marcas StorySpot que pone World/NacaraCityBuilder). Sin Fallback
 -- (si Nácara no está construida, el paso de ir allí no se puede cumplir en otro sitio de Valmar).

@@ -22,6 +22,7 @@ local Access = require(script.Parent.Access)
 local Mining = require(script.Parent.Mining)
 local PlanetBodies = require(script.Parent.PlanetBodies)
 local Asteroids = require(script.Parent.Asteroids)
+local Derelicts = require(script.Parent.Derelicts)
 
 local Zone = {}
 
@@ -285,6 +286,9 @@ function Zone.collide(pos: Vector3, radius: number): string?
 	if Stations.hullHit(pos, radius) then
 		return "una estación"
 	end
+	if Derelicts.hullHit(pos, radius) then
+		return "un pecio"
+	end
 	if pos.Y + radius >= Layers.SpaceY then
 		local f = Zone.fieldAt(pos, 80)
 		if f then
@@ -324,6 +328,9 @@ function Zone.segmentBlocked(a: Vector3, b: Vector3): boolean
 		return true
 	end
 	if Stations.hullHit(b, 0.5) then
+		return true
+	end
+	if Derelicts.hullHit(b, 0.5) then
 		return true
 	end
 	local rock = Zone.rockHit(a, b)

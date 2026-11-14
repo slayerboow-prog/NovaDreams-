@@ -171,6 +171,8 @@ local Memories: { [string]: Memory } = {
 	LluviaUmbria = { Text = "La lluvia de Raíz Honda, cuando llueve madera", Icon = "🌳" },
 	PararrayosMiasma = { Text = "Los pararrayos de Lastre bajo la lluvia ácida", Icon = "⚡" },
 	ApagonVertice = { Text = "El apagón de Distrito Cero, mirando al suelo", Icon = "🌑" },
+	-- La Deriva (expansión espacial)
+	Misericordia = { Text = "Las trescientas camas vacías de la Misericordia", Icon = "✚" },
 	DeudasDeRafa = { Text = "La huida por el Zoco del Viento con los cobradores de Hierro detrás", Icon = "💸" },
 	AguaDeTodos = { Text = "Los bidones de Pozo Hondo, repartidos sin derramar una gota", Icon = "💧" },
 	CementerioDeslizadores = { Text = "Las piezas del Cementerio de Deslizadores para el motor de Nina", Icon = "⚙" },
