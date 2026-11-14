@@ -260,10 +260,16 @@ function Joystick.init()
 	if not touch then
 		return
 	end
-	-- Sin el joystick de Roblox (y sin su botón de saltar: el nuestro está en el racimo)
-	local ok = pcall(function()
-		player.DevTouchMovementMode = Enum.DevTouchMovementMode.Scriptable
-	end)
+	-- Sin el joystick de Roblox (y sin su botón de saltar: el nuestro está en el racimo).
+	-- (14-11-2026) Roblox ya no deja cambiar DevTouchMovementMode desde el cliente («Insufficent
+	-- permissions»): ahora viene puesto en StarterPlayer (default.project.json) y aquí solo se mira. Si el
+	-- sitio es viejo y no lo trae, se intenta como antes.
+	local ok = player.DevTouchMovementMode == Enum.DevTouchMovementMode.Scriptable
+	if not ok then
+		ok = pcall(function()
+			player.DevTouchMovementMode = Enum.DevTouchMovementMode.Scriptable
+		end)
+	end
 	if not ok then
 		warn("[Joystick] No se pudo cambiar el control táctil: se queda el joystick de Roblox")
 		return

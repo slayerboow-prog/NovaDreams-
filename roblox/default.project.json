@@ -188,7 +188,8 @@
         }
       },
       "$properties": {
-        "EnableMouseLockOption": false
+        "EnableMouseLockOption": false,
+        "DevTouchMovementMode": "Scriptable"
       }
     },
     "Lighting": {
