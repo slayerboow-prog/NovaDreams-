@@ -1466,7 +1466,13 @@ do
 	local changed = PW.setupLooks()
 	local same = library:FindFirstChild("EspacioProfundo")
 	check(same == sky and sky.SkyboxFt == imageOf[skyFt] and sky.SkyboxUp == imageOf[skyUp], ("tras Images.resolve: el MISMO Sky con las caras ya en imagen (%s)"):format(tostring(sky and sky.SkyboxFt)))
-	check(table.find(changed, "EspacioProfundo") ~= nil and #library:GetChildren() == 2, "se avisa del cambio y no se duplican los cielos")
+	local skyCount = 0
+	for _, prefix in L.load("src/shared/Cosmos/EspacioLook").Skies do
+		if L.load("src/shared/Cosmos/EspacioLook").skyFaces(Ids, prefix) then
+			skyCount += 1
+		end
+	end
+	check(table.find(changed, "EspacioProfundo") ~= nil and #library:GetChildren() == skyCount, ("se avisa del cambio y no se duplican los cielos (%d de %d)"):format(#library:GetChildren(), skyCount))
 	local again = PW.setupLooks()
 	check(table.find(again, "EspacioProfundo") == nil, "una tercera vez sin cambios no toca nada")
 	-- Main.server llama a setupLooks SIEMPRE tras resolve (antes solo si convertía alguno)

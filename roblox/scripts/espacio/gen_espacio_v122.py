@@ -183,21 +183,36 @@ def gen_valmar():
     d, lat = G.sphere_dirs(W, H)
     v = (np.arange(H, dtype=np.float32) + 0.5) / H
     vv = np.repeat(v[:, None], W, 1)
-    p = (d[..., 0] * 1.5, d[..., 1] * 1.5, d[..., 2] * 1.5)
-    e = fbm(warp(p, 0.65, 1.2, 41), 7, 1.0, seed=1101)
-    detail = fbm(p, 6, 6.0, seed=1103)
-    # Océano: azul profundo con bajíos más claros cerca de la costa
-    ocean = mix_palette([(0.0, col(6, 34, 96)), (0.42, col(10, 64, 150)), (0.5, col(24, 100, 178))], e)
-    land_mask = smooth(0.52, 0.54, e + (detail - 0.5) * 0.05)
-    hum = fbm(p, 5, 2.4, seed=1105)
-    land = mix_palette([(0.0, col(196, 168, 112)), (0.35, col(150, 140, 84)), (0.55, col(64, 112, 52)), (1.0, col(30, 82, 40))], hum)
-    land *= (0.85 + 0.25 * detail)[..., None]
-    mount = smooth(0.66, 0.78, e)
-    land = land * (1 - 0.5 * mount[..., None]) + mount[..., None] * col(120, 104, 90) * 0.5
+    # (v153, imagen del dueño: planeta azul vivo con ARCHIPIÉLAGOS verdes, playas, lagunas turquesa y
+    # trozos de ciudad en cuadrícula; nada de desiertos marrones ni casquete de hielo)
+    p = (d[..., 0] * 2.6, d[..., 1] * 2.6, d[..., 2] * 2.6)
+    e = fbm(warp(p, 0.55, 1.4, 41), 7, 1.0, seed=1101)
+    detail = fbm(p, 6, 7.0, seed=1103)
+    e = e + (detail - 0.5) * 0.06
+    # Océano: azul intenso; más claro (turquesa) en los bajíos junto a las islas
+    ocean = mix_palette([(0.0, col(8, 40, 130)), (0.38, col(14, 72, 190)), (0.5, col(26, 120, 214)),
+                         (0.56, col(40, 190, 210)), (0.595, col(110, 225, 215))], e)
+    land_mask = smooth(0.595, 0.605, e)
+    beach = smooth(0.595, 0.605, e) * (1 - smooth(0.607, 0.62, e))
+    hum = fbm(p, 5, 3.0, seed=1105)
+    land = mix_palette([(0.0, col(70, 150, 50)), (0.45, col(46, 132, 44)), (0.7, col(28, 104, 40)), (1.0, col(18, 80, 34))], hum)
+    land *= (0.8 + 0.35 * fbm(p, 4, 22.0, seed=1107))[..., None]  # copas de árboles
+    land = land * (1 - beach[..., None]) + beach[..., None] * col(236, 220, 170)
+    # Trozos de ciudad: cuadrícula de manzanas grises con calles, en el centro de algunas islas
+    lon = np.arctan2(d[..., 0], d[..., 2])
+    latr = np.arcsin(np.clip(d[..., 1], -1, 1))
+    gx, gy = lon * 180.0, latr * 180.0
+    blocks = (np.abs(np.sin(gx * 2.2)) > 0.32) & (np.abs(np.sin(gy * 2.2)) > 0.32)
+    city = smooth(0.64, 0.68, e) * smooth(0.56, 0.62, fbm(p, 4, 4.0, seed=1109))
+    roofs = mix_palette([(0, col(150, 156, 164)), (0.5, col(200, 204, 210)), (1, col(120, 126, 136))], fbm(p, 3, 60.0, seed=1111))
+    cityc = np.where(blocks[..., None], roofs, col(62, 70, 74))
+    park = fbm(p, 3, 30.0, seed=1113) > 0.62
+    cityc = np.where(park[..., None], land, cityc)
+    land = land * (1 - city[..., None]) + cityc * city[..., None]
     world = ocean * (1 - land_mask[..., None]) + land * land_mask[..., None]
-    # Hielo en el polo de abajo
-    ice = smooth(0.9, 0.95, vv + (detail - 0.5) * 0.04)
-    world = world * (1 - ice[..., None]) + ice[..., None] * col(236, 242, 250)
+    # (oleaje blanco en el borde de la costa)
+    surf = np.exp(-((e - 0.593) ** 2) / 0.00002) * 0.5
+    world = world * (1 - surf[..., None]) + surf[..., None] * col(240, 250, 250)
     # La isla de verdad (casquete de arriba) se queda tal cual; se funde hacia el mundo nuevo
     keep = smooth(0.48, 0.4, vv)
     # (el mar de la textura vieja junto a la isla se oscurece un poco para casar con el océano nuevo)

@@ -2236,12 +2236,20 @@ do
 	-- 1. Sin bruma (Atmosphere) en cuanto se ve el cielo del espacio: con ella Roblox pinta debajo del
 	-- horizonte su color liso (el «suelo azul» de la captura) y vela los planetas
 	local full = EZ.flags({ Zone = "Espacio", Space = 1, PlanetMix = 0 })
-	local trans = EZ.flags({ Zone = "Transicion", Space = 0.7, PlanetMix = 0 })
+	local trans = EZ.flags({ Zone = "Transicion", Space = 0.9, PlanetMix = 0 })
+	local fog = EZ.flags({ Zone = "Transicion", Space = 0.55, PlanetMix = 0 })
 	local entering = EZ.flags({ Zone = "Entrada", Space = 1, Planet = "Tefra", PlanetMix = 0.3 })
 	local surface = EZ.flags({ Zone = "Planeta", Space = 1, Planet = "Tefra", PlanetMix = 1 })
 	local valmar = EZ.flags({ Zone = "Valmar", Space = 0, PlanetMix = 0 })
 	check(not full.Atmosphere and not full.ColorCorrection and full.Sky == "Espacio", "espacio: sin bruma ni etalonaje de Valmar, cielo del espacio")
-	check(trans.Sky == "Espacio" and not trans.Atmosphere, "transición con el cielo del espacio ya puesto: tampoco la bruma (sin «suelo azul» debajo del horizonte)")
+	check(trans.Sky == "Espacio" and not trans.Atmosphere, "transición con el cielo del espacio ya puesto (pasada la barrera): tampoco la bruma (sin «suelo azul» debajo del horizonte)")
+	-- (v153) La barrera de niebla: en lo más espeso, bruma blanca y velo que tapan el cambio de cielo
+	check(fog.Atmosphere, "barrera de niebla: dentro, la bruma sigue puesta")
+	local LY = L.load("src/shared/Cosmos/Layers")
+	check(LY.barrier(0) == 0 and LY.barrier(1) == 0 and LY.barrier(0.55) > 0.99, "barrera: nada abajo ni arriba, blanca en medio")
+	check(LY.spaceVisible(0.5) == 0 and LY.spaceVisible(1) == 1, "los planetas no se ven por debajo de la barrera")
+	local key = EZ.applyKey({ Density = 0.3, Veil = 0, Haze = 1, Offset = 0.1, Glare = 0.2 }, { Zone = "Transicion", Space = 0.55, PlanetMix = 0 })
+	check((key.Veil or 0) > 0.8 and key.Density > 0.7, ("barrera: velo y bruma espesos (velo %.2f, bruma %.2f)"):format(key.Veil or 0, key.Density or 0))
 	check(entering.Sky == "Espacio" and not entering.Atmosphere, "empezando a entrar en Tefra (mezcla 0,3): cielo del espacio y sin bruma")
 	check(surface.Atmosphere and valmar.Atmosphere, "en la superficie de Tefra y en Valmar, su bruma de siempre")
 	local key = EZ.applyKey({ Density = 0.3, Haze = 1, AtmColor = roblox.Color3.fromRGB(199, 216, 238), Decay = roblox.Color3.fromRGB(90, 124, 170), Glare = 0.3 }, { Zone = "Espacio", Space = 1, PlanetMix = 0 })

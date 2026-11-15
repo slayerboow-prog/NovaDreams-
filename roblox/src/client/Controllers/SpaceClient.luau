@@ -592,7 +592,8 @@ local function step(_dt: number)
 		aimId = nil
 		setAction(nil, nil)
 	end
-	updatePlanets(camPos, blend, t, aimed)
+	-- (las estrellas de los planetas, solo por encima de la barrera de niebla: Layers.spaceVisible)
+	updatePlanets(camPos, Layers.spaceVisible(blend), t, aimed)
 end
 
 ---------------------------------------------------------------------

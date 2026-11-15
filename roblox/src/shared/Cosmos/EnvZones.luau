@@ -311,7 +311,8 @@ function EnvZones.flags(env: Env, prev: Flags?): Flags
 		SkySlots = if planetSky then (planet :: PlanetProfile).Sky elseif spaceSky then EnvZones.SpaceSky else nil,
 		-- (con el cielo del espacio puesto, nunca la bruma: Roblox pinta debajo del horizonte su color liso
 		-- —el «suelo azul» de la v121— y vela los planetas; en la transición se ve un instante antes)
-		Atmosphere = not fullSpace and not spaceSky,
+		-- (dentro de la barrera de niebla sí: la niebla blanca tapa el cambio de cielo)
+		Atmosphere = (not fullSpace and not spaceSky) or (not planetSky and env.PlanetMix < 0.05 and Layers.barrier(env.Space) > 0.05),
 		Clouds = clouds,
 		ColorCorrection = not fullSpace and not spaceSky,
 		Rift = valmar and not over(env.Space, p.Rift == false, 0.35, 0.25),
@@ -405,6 +406,8 @@ function EnvZones.underwaterKey(k: { [string]: any }, look: { [string]: any }?):
 	return out
 end
 
+EnvZones.BarrierColor = rgb(226, 234, 244) -- (la niebla de la barrera: blanco un poco azulado)
+
 -- La luz de la hora (con todo lo de Valmar ya puesto) → la de la zona. Va la última.
 function EnvZones.applyKey(k: { [string]: any }, env: Env?): { [string]: any }
 	if not env or env.Zone == "Arena" then
@@ -415,6 +418,23 @@ function EnvZones.applyKey(k: { [string]: any }, env: Env?): { [string]: any }
 		k = mixInto(k, EnvZones.underwaterKey(k, env.SeaLook), under)
 	end
 	local out = mixInto(k, EnvZones.Space, env.Space)
+	-- La barrera de niebla entre la atmósfera de Valmar y el espacio (Layers.barrier): blanco, se ve la
+	-- nave y poco más. El velo (Controllers/RainVeil) tapa el cielo y la bruma lo cercano.
+	local wall = if not env.Planet and (env.Zone == "Transicion" or env.Zone == "Valmar" or env.Zone == "Espacio") then Layers.barrier(env.Space) else 0
+	if wall > 0.001 then
+		out = table.clone(out)
+		local white = EnvZones.BarrierColor
+		out.Veil = math.max(out.Veil or 0, 0.9 * wall)
+		out.VeilColor = white
+		out.Density = (out.Density or 0) + (0.82 - (out.Density or 0)) * wall
+		out.Offset = (out.Offset or 0) * (1 - wall)
+		out.AtmColor = (out.AtmColor or white):Lerp(white, wall)
+		out.Decay = (out.Decay or white):Lerp(rgb(170, 190, 215), wall)
+		out.Haze = (out.Haze or 0) + (3 - (out.Haze or 0)) * wall
+		out.Glare = (out.Glare or 0) * (1 - wall)
+		out.Ambient = (out.Ambient or rgb(0, 0, 0)):Lerp(rgb(150, 160, 180), wall * 0.7)
+		out.Outdoor = (out.Outdoor or rgb(0, 0, 0)):Lerp(rgb(200, 210, 225), wall * 0.7)
+	end
 	local planet = EnvZones.planet(env.Planet)
 	if planet and env.PlanetMix > 0 then
 		out = mixInto(out, planet.Mood, env.PlanetMix)

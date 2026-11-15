@@ -84,7 +84,7 @@ return {
 	nubes_fronda = "rbxassetid://107594682819155",
 	nubes_lontana = "rbxassetid://115886071240250",
 	nubes_marena = "rbxassetid://135069154548069",
-	nubes_valmar = "rbxassetid://83351002585316",
+	nubes_valmar = "rbxassetid://110513727570022",
 	planeta_fronda = "rbxassetid://72368015334012",
 	planeta_lontana = "rbxassetid://116313311350382",
 	planeta_marena = "rbxassetid://126185676042014",
@@ -98,5 +98,5 @@ return {
 	roca_lontana_normal = "rbxassetid://84643508609549",
 	roca_lontana_roughness = "rbxassetid://100554397578050",
 	valmar_planeta = "rbxassetid://97917749681406",
-	valmar_tierra = "rbxassetid://126816161734242",
+	valmar_tierra = "rbxassetid://137845503705135",
 } :: { [string]: string }

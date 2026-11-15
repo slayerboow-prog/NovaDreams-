@@ -80,6 +80,27 @@ function Layers.skyBlend(y: number): number
 	return t * t * (3 - 2 * t)
 end
 
+-- (v153, el dueño: «no hay nada que diferencie la atmósfera del espacio») La BARRERA DE NIEBLA: una capa
+-- de nubes blancas en mitad de la alta atmósfera (unos 650-860 m) que hay que atravesar para salir al
+-- espacio. Tapa el momento en que el cielo azul pasa al negro (EnvZones.flags cambia el cielo con
+-- Space entre 0,5 y 0,6, justo en lo más espeso): antes se veía el salto de golpe, y volando a esa
+-- altura el cielo parpadeaba entre azul y negro. Da 0 fuera y 1 en lo más espeso (blend = skyBlend).
+Layers.BarrierIn = { 0.25, 0.45 } -- (blend) empieza a espesarse → blanco del todo
+Layers.BarrierOut = { 0.65, 0.85 } -- (blend) empieza a aclararse → ya se ve el espacio
+local function smoothstep(a: number, b: number, x: number): number
+	local t = math.clamp((x - a) / (b - a), 0, 1)
+	return t * t * (3 - 2 * t)
+end
+function Layers.barrier(blend: number): number
+	return smoothstep(Layers.BarrierIn[1], Layers.BarrierIn[2], blend) * (1 - smoothstep(Layers.BarrierOut[1], Layers.BarrierOut[2], blend))
+end
+
+-- Cuánto se ven las cosas del espacio (los planetas, sus esferas): nada por debajo de la barrera
+-- (en el cielo azul no se cuelan planetas gigantes) y del todo al salir de ella.
+function Layers.spaceVisible(blend: number): number
+	return smoothstep(Layers.BarrierOut[1] - 0.1, Layers.BarrierOut[2], blend)
+end
+
 -- ¿Dentro de la columna del espacio de Valmar (en planta)?
 function Layers.inColumn(pos: Vector3, margin: number?): boolean
 	local m = margin or 0

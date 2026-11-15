@@ -1085,7 +1085,8 @@ local function step(dt: number)
 		envEntry = nil
 	end
 	setSurface(surface, camPos, surfaceId)
-	updateBodies(camPos, if surface then 0 else blend, t)
+	-- (las esferas de los planetas, solo por encima de la barrera de niebla: Layers.spaceVisible)
+	updateBodies(camPos, if surface then 0 else Layers.spaceVisible(blend), t)
 	if surface and not cur then
 		checkLava(t)
 	end

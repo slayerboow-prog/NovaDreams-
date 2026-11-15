@@ -1341,7 +1341,15 @@ local function step(dt: number)
 			elseif e == "Space" or e == "Atmos" then
 				a.Mode = e
 				setSpace(e == "Space")
-				if a.World == "Cosmos" then
+				-- (sin repetir el aviso si vuelas justo en el borde: como mucho uno cada 10 s; vídeo del dueño v152)
+				local now = os.clock()
+				local quiet = now - ((a :: any).ModeToastAt or -math.huge) < 10
+				if not quiet then
+					(a :: any).ModeToastAt = now
+				end
+				if quiet then
+					-- nada
+				elseif a.World == "Cosmos" then
 					Hud.toast("Hint", if e == "Space" then "🌌 Sales de la atmósfera: ya no hay gravedad. Arriba, el espacio." else "⛰ Vuelves a la atmósfera de Valmar: hay gravedad")
 				else
 					Hud.toast("Hint", if e == "Space" then "🌌 Espacio: sin gravedad. ¡Cuidado con los asteroides!" else "⛰ De vuelta a la atmósfera: hay gravedad")
