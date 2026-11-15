@@ -142,7 +142,7 @@ function PlanetMetroBuilder.build(parent: Instance, S: any, opts: { [string]: an
 	end
 
 	local root = Builder.model("Metropoli", parent)
-	local stats = { Parts = 0, Buildings = 0, Lamps = 0, Districts = 0, Bridges = 0 }
+	local stats = { Parts = 0, Buildings = 0, Lamps = 0, Districts = 0, Bridges = 0, Meshes = 0, MeshBuildings = 0, Props = 0 }
 	local folders: { [string]: Model } = {}
 	local function folderFor(id: string): Model
 		local f = folders[id]
@@ -195,6 +195,186 @@ function PlanetMetroBuilder.build(parent: Instance, S: any, opts: { [string]: an
 	end
 	local function glow(part: BasePart)
 		PlanetCityBuilder.nightGlow(part, part.Color, L.WindowNight or rgb(255, 210, 150))
+	end
+
+	---------------------------------------------------------------------
+	-- Edificios y objetos de calle de Blender (World/PlanetCityMeshes): con detalle de cerca (zócalos, balcones,
+	-- tuberías, toldos, azoteas con depósitos y antenas…). Si la malla no está, se queda el edificio de piezas.
+	---------------------------------------------------------------------
+	local MESH_OF: { [string]: { [string]: string } } = {
+		Vertice = { Bloque = "VerticeBloque", Torre = "VerticeTorre", Rascacielos = "VerticeTorre", Casa = "VerticeCasa" },
+		Tefra = { Bloque = "TefraBloque", Torre = "TefraBloque", Casa = "TefraCasa" },
+		Siroco = { Bloque = "SirocoBloque", Casa = "SirocoCasa" },
+		Talasa = { Bloque = "TalasaBloque", Casa = "TalasaCasa" },
+		Nivalis = { Bloque = "NivalisBloque", Casa = "NivalisCasa" },
+		Miasma = { Bloque = "MiasmaBloque", Torre = "MiasmaBloque", Casa = "MiasmaCasa" },
+	}
+	local PROPS: { [string]: { string } } = {
+		Tefra = { "CalleCajas", "CalleTuberias", "CalleGenerador", "CalleCajas", "CalleVehiculo" },
+		Siroco = { "CalleCajas", "CallePuesto", "CalleVehiculo", "CalleJardinera", "CallePuesto" },
+		Talasa = { "CalleVehiculo", "CalleJardinera", "CallePuesto", "CalleJardinera" },
+		Nivalis = { "CalleCajas", "CalleJardinera", "CalleGenerador", "CallePuesto" },
+		Umbria = { "CalleCajas", "CalleJardinera", "CalleCajas" },
+		Miasma = { "CalleTuberias", "CalleGenerador", "CalleCajas", "CalleVehiculo", "CalleTuberias" },
+		Vertice = { "CalleVehiculo", "CallePuesto", "CalleGenerador", "CalleJardinera", "CalleVehiculo" },
+	}
+	local CityMeshes = require(script.Parent.PlanetCityMeshes)
+	local templates: { [string]: any } = {}
+	if type(options.Meshes) == "table" then
+		templates = options.Meshes
+	elseif options.Meshes ~= false then
+		local want: { [string]: boolean } = {}
+		for _, name in MESH_OF[planet] or {} do
+			want[name] = true
+		end
+		for _, name in PROPS[planet] or {} do
+			want[name] = true
+		end
+		for name in want do
+			if CityMeshes.has(name) then
+				templates[name] = CityMeshes.load(name)
+				if yield then
+					yield()
+				end
+			end
+		end
+	end
+	local COLLIDER = { Cuerpo = true, Alto = true, Torre = true, Zocalo = true }
+	local STRUCT = { Cimientos = true, Plataforma = true, Barandilla = true, Pilote = true, Puntal = true }
+	local PROP_BODY: { [string]: { any } } = {
+		CalleCajas = { rgb(128, 96, 62), Enum.Material.WoodPlanks },
+		CalleGenerador = { rgb(170, 120, 40), Enum.Material.Metal },
+		CalleJardinera = { rgb(128, 126, 122), Enum.Material.Concrete },
+	}
+	local function meshStyle(wall: Color3, strip: Color3, body: string?, bodyColor: Color3?, bodyMat: Enum.Material?)
+		return function(group: string, p: BasePart, _sec: string)
+			p.CastShadow = group ~= "Luz" and group ~= "Cristal"
+			if group == "Cuerpo" then
+				p.Material = bodyMat or wallMat
+				p.Color = bodyColor or wall
+				if not bodyColor then
+					skin(p, body)
+				end
+			elseif group == "Cristal" then
+				p.Material = Enum.Material.Glass
+				p.Color = L.Window
+				p.Transparency = 0.2
+			elseif group == "Luz" then
+				p.Material = Enum.Material.Neon
+				p.Color = strip
+			elseif group == "Metal" then
+				p.Material = Enum.Material.Metal
+				p.Color = L.Metal
+			elseif group == "Techo" then
+				p.Material = Enum.Material.Slate
+				p.Color = L.Roof
+			elseif group == "Nieve" then
+				p.Material = Enum.Material.Snow
+				p.Color = L.Snow or rgb(244, 248, 254)
+			elseif group == "Toldo" then
+				p.Material = Enum.Material.Fabric
+				p.Color = L.Awning or L.Accent
+			elseif group == "Hoja" then
+				p.Material = Enum.Material.Grass
+				p.Color = L.Leaf
+			end
+		end
+	end
+	-- Cambia el edificio de piezas de un solar por su malla: las piezas del cuerpo se quedan, invisibles, para
+	-- los choques (andar, la nave); lo demás de piezas se quita
+	local function meshify(m: Model, lot: any, cf: CFrame, w: number, d: number, r: () -> number): boolean
+		local name = MESH_OF[planet] and MESH_OF[planet][lot.Kind]
+		local tpl = name and templates[name]
+		if not tpl then
+			return false
+		end
+		if lot.Kind == "Torre" and (planet == "Nivalis" or planet == "Talasa" or planet == "Umbria") then
+			return false -- (torres redondas: se quedan como están)
+		end
+		local h = if lot.Kind == "Casa" then lot.Floors * FH else lot.Height
+		for _, ch in m:GetChildren() do
+			if ch:IsA("BasePart") then
+				if COLLIDER[ch.Name] then
+					ch.Transparency = 1
+					ch.CastShadow = false
+					if ch.Name == "Alto" or ch.Name == "Torre" then
+						ch.Size = V3(w, ch.Size.Y, d)
+					end
+				elseif not STRUCT[ch.Name] then
+					ch:Destroy()
+				end
+			end
+		end
+		local wall = L.Walls[1 + math.floor(r() * #L.Walls)]
+		local strip = if L.Neon then L.Neon[1 + math.floor(r() * #L.Neon)] else (L.Strip or L.Glow)
+		local lit = r() < 0.65
+		local _, parts = CityMeshes.place(tpl, m, cf, w, d, h, meshStyle(wall, strip, BODY_SKIN[planet]))
+		for _, p in parts do
+			if lit and string.find(p.Name, "_Cristal$") then
+				glow(p)
+			end
+		end
+		stats.Meshes += #parts
+		stats.MeshBuildings += 1
+		return true
+	end
+	-- Un objeto de calle junto al edificio (deslizador aparcado, cajas, tuberías, generador, puesto, jardinera):
+	-- delante si cabe sin pisar la calle; si no, a un lado
+	local function streetProp(m: Model, lot: any, cf: CFrame, w: number, d: number, r: () -> number)
+		local list = PROPS[planet]
+		if not list or r() > 0.62 then
+			return
+		end
+		local name = list[1 + math.floor(r() * #list)]
+		local tpl = templates[name]
+		if not tpl then
+			return
+		end
+		local side = if r() < 0.5 then -1 else 1
+		local tries = { { side * w * 0.3, -d / 2 - 8.5, 0 }, { side * (w / 2 + 6), -d * 0.15, math.pi / 2 }, { -side * (w / 2 + 6), d * 0.15, math.pi / 2 } }
+		if deck then
+			-- (en plataformas: en una esquina de la suya, si el edificio deja sitio)
+			local rc = lot.Rect
+			tries = {}
+			for _, c in { { rc.X0 + 4.5, rc.Z0 + 4.5 }, { rc.X1 - 4.5, rc.Z0 + 4.5 }, { rc.X0 + 4.5, rc.Z1 - 4.5 }, { rc.X1 - 4.5, rc.Z1 - 4.5 } } do
+				local q = cf:PointToObjectSpace(W(c[1], c[2], lot.Base))
+				table.insert(tries, { q.X, q.Z, if math.abs(q.X) > w / 2 + 2.5 then math.pi / 2 else 0 })
+			end
+			if side < 0 then
+				tries[1], tries[4] = tries[4], tries[1]
+			end
+		end
+		for _, o in tries do
+			local p = (cf * CFrame.new(o[1], 0, o[2])).Position
+			local lx, lz = p.X - O.X, p.Z - O.Z
+			local ok, y = false, lot.Base
+			if deck then
+				ok = (math.abs(o[1]) > w / 2 + 4 or math.abs(o[2]) > d / 2 + 4) and name ~= "CalleVehiculo"
+					or (math.abs(o[1]) > w / 2 + 6.5 or math.abs(o[2]) > d / 2 + 6.5)
+			else
+				y = M.groundY(lx, lz)
+				ok = not M.streetAt(lx, lz) and M.lotAt(lx, lz, 3) == nil and math.abs(y - lot.Base) < 2.5
+			end
+			if ok then
+				local body = PROP_BODY[name]
+				local hull = if L.Neon then L.Neon[1 + math.floor(r() * #L.Neon)] else L.Accent
+				local wall = L.Walls[1 + math.floor(r() * #L.Walls)]
+				local bodyColor: Color3 = if body then body[1] elseif name == "CalleVehiculo" then hull else wall
+				local bodyMat: Enum.Material = if body then body[2] elseif name == "CalleVehiculo" then Enum.Material.Metal else wallMat
+				local info = tpl.Info
+				local pcf = CFrame.new(W(lx, lz, y)) * (cf - cf.Position) * CFrame.Angles(0, o[3], 0)
+				local pm, parts = CityMeshes.place(tpl, m, pcf, info.W, info.D, info.Base, meshStyle(wall, L.Strip or L.Glow, nil, bodyColor, bodyMat))
+				pm.Name = "Calle_" .. name
+				for _, part in parts do
+					if string.find(part.Name, "_Cuerpo$") or string.find(part.Name, "_Metal$") then
+						part.CanCollide = true
+					end
+				end
+				stats.Props += 1
+				stats.Meshes += #parts
+				return
+			end
+		end
 	end
 
 	---------------------------------------------------------------------
@@ -856,6 +1036,17 @@ function PlanetMetroBuilder.build(parent: Instance, S: any, opts: { [string]: an
 			warn("[PlanetMetroBuilder] " .. planet .. " " .. lot.Kind .. ": " .. tostring(err))
 		end
 		dress(m, lot.Kind)
+		if next(templates) ~= nil then
+			local okMesh, errMesh = pcall(function()
+				meshify(m, lot, cf, w, d, r)
+				if lot.Kind ~= "Plaza" and lot.Kind ~= "Parque" and lot.Kind ~= "Mercado" and lot.Kind ~= "Jardin" then
+					streetProp(m, lot, cf, w, d, r)
+				end
+			end)
+			if not okMesh then
+				warn("[PlanetMetroBuilder] malla de " .. planet .. " " .. lot.Kind .. ": " .. tostring(errMesh))
+			end
+		end
 		if lot.Kind ~= "Plaza" and lot.Kind ~= "Parque" then
 			stats.Buildings += 1
 			Builder.streamable(m)
