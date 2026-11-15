@@ -29,7 +29,8 @@ Tefra.City = TefraCity
 Tefra.Id = "Tefra"
 Tefra.Name = "Tefra"
 Tefra.Origin = Vector3.new(-25000, 0, 25000)
-Tefra.Half = 1536
+Tefra.Half = 2560
+Tefra.CoreHalf = 1536 -- (la ciudad y lo de siempre; de ahí a Half, las tierras salvajes de las bestias)
 Tefra.Seed = 66
 Tefra.WaterY = 34
 Tefra.ArriveY = 1400
@@ -266,7 +267,7 @@ end
 
 -- ¿Sitio bueno para poner algo? (en tierra, poco empinado, dentro de la zona jugable)
 function Tefra.goodSpot(lx: number, lz: number, maxSlope: number, gap: number): boolean
-	if math.max(math.abs(lx), math.abs(lz)) > Tefra.Half * 0.78 then
+	if math.max(math.abs(lx), math.abs(lz)) > math.max(Tefra.CoreHalf * 0.78, Tefra.Half - 420) then
 		return false
 	end
 	-- (ni mineral ni flora dentro de la ciudad ni en su bajada)
@@ -295,8 +296,8 @@ function Tefra.nodes(): { Node }
 	local tries = 0
 	while #out < Tefra.NodeCount and tries < 2000 do
 		tries += 1
-		local lx = (r() * 2 - 1) * Tefra.Half * 0.75
-		local lz = (r() * 2 - 1) * Tefra.Half * 0.75
+		local lx = (r() * 2 - 1) * Tefra.CoreHalf * 0.75
+		local lz = (r() * 2 - 1) * Tefra.CoreHalf * 0.75
 		if Tefra.goodSpot(lx, lz, 0.5, 30) then
 			local ok = true
 			for _, n in out do
@@ -345,8 +346,8 @@ function Tefra.decor(kind: string, count: number?): { { [string]: any } }
 	local tries = 0
 	while #out < n and tries < n * 12 do
 		tries += 1
-		local lx = (r() * 2 - 1) * Tefra.Half * 0.8
-		local lz = (r() * 2 - 1) * Tefra.Half * 0.8
+		local lx = (r() * 2 - 1) * Tefra.CoreHalf * 0.8
+		local lz = (r() * 2 - 1) * Tefra.CoreHalf * 0.8
 		local maxSlope = if kind == "Roca" then 0.9 else 0.55
 		if Tefra.goodSpot(lx, lz, maxSlope, if kind == "Roca" then 12 else 18) then
 			local x, z = Tefra.Origin.X + lx, Tefra.Origin.Z + lz
@@ -462,6 +463,7 @@ Tefra.Surface = {
 	Id = Tefra.Id,
 	Origin = Tefra.Origin,
 	Half = Tefra.Half,
+	CoreHalf = Tefra.CoreHalf,
 	ArriveY = Tefra.ArriveY,
 	ClimbY = Tefra.ClimbY,
 	CeilingY = Tefra.CeilingY,

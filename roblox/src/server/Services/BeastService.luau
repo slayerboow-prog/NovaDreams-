@@ -31,7 +31,7 @@ local Items = require(ReplicatedStorage.Shared.Items)
 local BeastService = {}
 
 BeastService.Tick = 0.2
-BeastService.MaxPerPlanet = 36
+BeastService.MaxPerPlanet = 60
 BeastService.GetUpSeconds = 7
 BeastService.BulletMul = 1.5 -- las armas de fuego contra las bestias (como con los enemigos de misión, algo menos)
 BeastService.BossTakes = 0.7 -- el jefe encaja menos
@@ -51,6 +51,8 @@ type Beast = {
 	Hp: number,
 	Max: number,
 	Damage: { [Player]: number },
+	Hit: number?,
+	Reward: number?,
 	Target: Player?,
 	NextWander: number,
 	NextBite: number,
@@ -191,10 +193,14 @@ local function spawnAt(S: any, lair: { [string]: any }): Beast?
 	local root = model.PrimaryPart :: BasePart
 	local hum = model:FindFirstChildOfClass("Humanoid") :: Humanoid
 	model:PivotTo(CFrame.new(O.X + lx, ground + hum.HipHeight + root.Size.Y / 2 + 0.5, O.Z + lz) * CFrame.Angles(0, math.random() * 6.28, 0))
-	local hp = sp.Hp
+	-- (zona de caza: cuanto más lejos de la ciudad, más nivel)
+	local zone = Bestiary.zone(lair.Tier)
+	local boss = sp.Boss == true
+	local hp = math.floor(sp.Hp * (if boss then 1 else zone.Hp) + 0.5)
 	model:SetAttribute("InvasionTarget", "Bestia:" .. serial)
 	model:SetAttribute("Bestia", lair.Species)
-	model:SetAttribute("BeastName", sp.Name)
+	model:SetAttribute("BeastName", if boss then sp.Name else Bestiary.leveledName(sp.Name, lair.Tier))
+	model:SetAttribute("Nivel", if boss then nil else zone.Level)
 	model:SetAttribute("MaxHp", hp)
 	model:SetAttribute("EnemyMaxHealth", hp)
 	model:SetAttribute("Boss", sp.Boss == true)
@@ -216,6 +222,8 @@ local function spawnAt(S: any, lair: { [string]: any }): Beast?
 		Hp = hp,
 		Max = hp,
 		Damage = {},
+		Hit = if boss then 1 else zone.Damage,
+		Reward = if boss then 1 else zone.Reward,
 		Target = nil,
 		NextWander = now() + math.random() * 3,
 		NextBite = 0,
@@ -406,7 +414,7 @@ local function stomp(b: Beast)
 		for _, p in Players:GetPlayers() do
 			local root = rootOf(p)
 			if root and huntable(p) and (root.Position - center).Magnitude <= radius then
-				hurt(b, p, b.Sp.Damage * 1.6)
+				hurt(b, p, b.Sp.Damage * (b.Hit or 1) * 1.6)
 			end
 		end
 	end)
@@ -422,7 +430,8 @@ local function giveLoot(player: Player, b: Beast)
 	local InventoryService = require(script.Parent.InventoryService) :: any
 	local data0 = dataOf(player)
 	local worn = Crafting.stats(data0 and data0.Items, data0 and data0.Refine)
-	local loot = Bestiary.loot(b.Species, math.random, worn.Luck)
+	local reward = b.Reward or 1
+	local loot = Bestiary.loot(b.Species, math.random, worn.Luck + (reward - 1) * 0.25)
 	local parts = {}
 	for id, n in loot do
 		local ok = InventoryService.add(player, id, n)
@@ -431,7 +440,7 @@ local function giveLoot(player: Player, b: Beast)
 			table.insert(parts, ("%s %d %s"):format(item and item.Icon or "📦", n, item and item.Name or id))
 		end
 	end
-	local cash = b.Sp.Money or 0
+	local cash = math.floor((b.Sp.Money or 0) * reward + 0.5)
 	if cash > 0 then
 		money(player, cash)
 	end
@@ -510,6 +519,17 @@ local function die(b: Beast, killer: Player?)
 	end)
 end
 
+-- Las bestias vivas a menos de `radius` de un punto (las habilidades de cazador: Services/HunterSkillService)
+function BeastService.near(pos: Vector3, radius: number): { Model }
+	local out: { Model } = {}
+	for model, b in beasts do
+		if not b.Dead and (b.Root.Position - pos).Magnitude <= radius then
+			table.insert(out, model)
+		end
+	end
+	return out
+end
+
 -- El daño a una bestia (CombatService.beastHit). Devuelve (contado, daño hecho, caída)
 function BeastService.hit(attacker: Player?, model: Instance, amount: number, info: { [string]: any }?): (boolean, number, boolean)
 	local node: Instance? = model
@@ -532,7 +552,7 @@ function BeastService.hit(attacker: Player?, model: Instance, amount: number, in
 	if i.Melee or i.Heavy then
 		-- golpes: tu mejor arma blanca y la poción de fuerza
 		local data = dataOf(attacker)
-		n *= 1 + Crafting.bladeOf(data and data.Items, data and data.Refine) + buff(attacker, "Fuerza") + Crafting.hunterBonus(data and data.Hunter and data.Hunter.Xp)
+		n *= 1 + Crafting.bladeOf(data and data.Items, data and data.Refine) + buff(attacker, "Fuerza") + buff(attacker, "Furia") + Crafting.hunterBonus(data and data.Hunter and data.Hunter.Xp)
 	elseif i.Weapon then
 		n *= BeastService.BulletMul
 	end
@@ -617,7 +637,7 @@ local function think(b: Beast, t: number)
 		end
 		if flat.Magnitude <= reach and t >= b.NextBite and math.abs(troot.Position.Y - b.Root.Position.Y) < 12 + b.Root.Size.Y then
 			b.NextBite = t + BeastService.BiteCooldown
-			hurt(b, target, b.Sp.Damage)
+			hurt(b, target, b.Sp.Damage * (b.Hit or 1))
 		end
 		if b.Sp.Boss and t >= b.NextStomp and flat.Magnitude < 34 then
 			b.NextStomp = t + 7

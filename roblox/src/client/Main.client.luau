@@ -327,6 +327,9 @@ task.spawn(FridgeUI.init) -- nevera de casa: lo que hay dentro (comer, coger) y 
 safeInit("AmbientShips", function() -- las naves que vuelan sobre las ciudades de los planetas
 	require(script.Parent.Controllers.AmbientShips).init()
 end)
+safeInit("HunterSkillsUI", function() -- las habilidades de cazador (Services/HunterSkillService)
+	require(script.Parent.Controllers.HunterSkillsUI).init()
+end)
 safeInit("CraftingUI", function() -- el Taller: fabricar armas, armaduras, pociones y herramientas (Services/CraftingService)
 	require(script.Parent.Controllers.CraftingUI).init()
 end)

@@ -331,6 +331,7 @@ local order = {
 	"TefraJobService", -- Tefra: fundidor, desactivador, bombero de coladas, correo de túnel, rescatista e ingeniero (tablones «Trabajar»)
 	"PlanetHazardService", -- marco común de los planetas: la desventaja de cada uno (toxinas, sed…) con su medidor (docs/planetas/marco-planetas.md)
 	"BeastService", -- las bestias de los planetas, sus jefes escondidos y los alijos (shared/Cosmos/Bestiary)
+	"HunterSkillService", -- las habilidades de cazador contra las bestias (shared/HunterSkills)
 	"CraftingService", -- el Taller: fabricar armas, armaduras, pociones y herramientas (shared/Crafting)
 	"PlanetPerilService", -- los peligros del terreno de cada planeta (arenas movedizas, hielo fino, rayos, ráfagas…: shared/Cosmos/TerrainPerils)
 	"PlanetJobService", -- marco común de los planetas: sus oficios hechos con datos (tablones «Trabajar» de cada barrio)

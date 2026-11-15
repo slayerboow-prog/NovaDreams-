@@ -2,6 +2,7 @@
 -- (shared/Crafting; Services/BeastService, Services/CraftingService). lune run scripts/test-bestias.luau
 
 local fs = require("@lune/fs")
+local Vector3 = require("@lune/roblox").Vector3
 local L = require("./lib/ModuleLoader")
 local check = L.check
 
@@ -65,9 +66,31 @@ for _, id in Registry.Order do
 	end
 	check(ok, id .. ": guaridas y alijos fuera de la ciudad, del agua y de los puntos de interés")
 	check(spread, id .. ": repartidos (ninguno pegado a otro)")
+	-- zonas de caza: cuatro anillos de manadas, cada vez más lejos y con más nivel
+	local perTier, dist = {}, {}
+	for _, l in p.Lairs do
+		perTier[l.Tier] = (perTier[l.Tier] or 0) + 1
+		dist[l.Tier] = (dist[l.Tier] or 0) + math.sqrt(l.X ^ 2 + l.Z ^ 2)
+	end
+	local zonesOk = #p.Lairs >= 30
+	for tier = 1, #Bestiary.Zones do
+		zonesOk = zonesOk and (perTier[tier] or 0) >= 6
+		if tier > 2 and perTier[tier] and perTier[tier - 1] then
+			zonesOk = zonesOk and dist[tier] / perTier[tier] > dist[tier - 1] / perTier[tier - 1]
+		end
+	end
+	check(zonesOk, ("%s: cuatro zonas de caza, más lejos cuanto más nivel (%d manadas)"):format(id, #p.Lairs))
+	check(S.Half >= S.CoreHalf + 800, id .. ": tierras salvajes alrededor de la ciudad")
 	local again = Bestiary.places(S)
 	check(again.Lairs[1].X == p.Lairs[1].X, id .. ": siempre en el mismo sitio")
 end
+
+local zOk = #Bestiary.Zones == 4
+for i = 2, #Bestiary.Zones do
+	local z0, z1 = Bestiary.Zones[i - 1], Bestiary.Zones[i]
+	zOk = zOk and z1.Level > z0.Level and z1.Hp > z0.Hp and z1.Damage > z0.Damage and z1.Reward > z0.Reward
+end
+check(zOk and Bestiary.leveledName("Rondador de ceniza", 2) == "Rondador de ceniza nv. 15" and Bestiary.zone(99).Level == 35, "cada zona pide más y da más; el nombre lleva su nivel")
 
 print("🎁 Botín")
 local function seq(values: { number }): () -> number
@@ -184,6 +207,23 @@ check(Crafting.benchHas("Mochila", Crafting.recipe("EspadaTrofeo")), "desde la m
 local craftSrc = fs.readFile("src/server/Services/CraftingService.luau")
 check(string.find(craftSrc, 'action == "Refine"', 1, true) ~= nil and string.find(craftSrc, 'action == "OpenBag"', 1, true) ~= nil, "el servidor atiende «mejorar» y «abrir desde la mochila»")
 check(string.find(fs.readFile("src/client/Controllers/InventoryUI.luau"), "openFromBag", 1, true) ~= nil, "la mochila tiene su botón de fabricar")
+
+print("🌀 Habilidades de cazador")
+local Skills = L.load("src/shared/HunterSkills")
+local skOk, lastLevel = #Skills.List >= 4, 0
+for _, sk in Skills.List do
+	skOk = skOk and sk.Level > lastLevel and sk.Cooldown > 0 and (sk.Kind == "Buff" or sk.Power > 1) and #sk.Key == 1
+	lastLevel = sk.Level
+end
+check(skOk, "cuatro habilidades, cada una con más nivel que la anterior, con su espera y su tecla")
+local tajo = Skills.get("TajoCircular")
+check(not Skills.unlocked(tajo, 1) and Skills.unlocked(tajo, 2) and Skills.remaining(tajo, nil, 10) == 0 and Skills.remaining(tajo, 10, 13) == 5 and Skills.remaining(tajo, 10, 30) == 0, "se desbloquean por nivel y tienen que esperar para repetirse")
+local dashSk = Skills.get("Embestida")
+local from, dir = Vector3.new(0, 5, 0), Vector3.new(0, 0, -1)
+check(Skills.inDash(dashSk, from, dir, Vector3.new(1, 5, -20)) and not Skills.inDash(dashSk, from, dir, Vector3.new(12, 5, -20)) and not Skills.inDash(dashSk, from, dir, Vector3.new(0, 5, 20)) and not Skills.inDash(dashSk, from, dir, Vector3.new(0, 5, -60)), "la embestida alcanza lo que cruzas, no lo de los lados ni lo de detrás")
+local skillSrc = fs.readFile("src/server/Services/HunterSkillService.luau")
+check(string.find(skillSrc, "Beasts.near(from, reach)", 1, true) ~= nil and string.find(fs.readFile("src/server/Services/BeastService.luau"), 'buff(attacker, "Furia")', 1, true) ~= nil, "el servidor hace el daño a las bestias cercanas y cuenta la furia")
+check(string.find(fs.readFile("src/server/Main.server.luau"), '"HunterSkillService"', 1, true) ~= nil and string.find(fs.readFile("src/client/Main.client.luau"), "HunterSkillsUI", 1, true) ~= nil, "las habilidades están conectadas en el servidor y en el cliente")
 
 print("🔌 Conexiones")
 local combat = fs.readFile("src/server/Services/CombatService.luau")

@@ -1,0 +1,165 @@
+-- HunterSkillService: las HABILIDADES DE CAZADOR (shared/HunterSkills) contra las bestias de los planetas.
+--
+--   * El cliente (Controllers/HunterSkillsUI) pide «Use» con el id; aquí se comprueba TODO: que estés en un
+--     planeta, en pie, con el nivel de cazador que pide y que haya pasado su espera. El daño lo hace
+--     Services/BeastService.hit (que ya cuenta tu arma, sus mejoras, tus accesorios y tu nivel).
+--   * «Area»: a las bestias de alrededor. «Dash»: te lanza hacia delante y golpea lo que cruzas.
+--     «Buff»: el atributo BuffFuria / BuffFuriaHasta que lee BeastService.
+--   * Cada uso deja un destello sencillo (un anillo de luz que crece) para que se vea.
+-- Remoto «HunterSkill»: cliente → «Use» (id); servidor → «Used» (id, espera) o «No» (id, texto).
+
+local Players = game:GetService("Players")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local TweenService = game:GetService("TweenService")
+
+local Combat = require(ReplicatedStorage.Shared.Combat)
+local Crafting = require(ReplicatedStorage.Shared.Crafting)
+local HunterSkills = require(ReplicatedStorage.Shared.HunterSkills)
+
+local HunterSkillService = {}
+
+local Remote: RemoteEvent? = nil
+local used: { [Player]: { [string]: number } } = {}
+
+local function beastService(): any
+	return require(script.Parent.BeastService)
+end
+
+local function dataOf(player: Player): { [string]: any }?
+	local ok, d = pcall(function()
+		return (require(script.Parent.DataService) :: any).get(player)
+	end)
+	return if ok then d else nil
+end
+
+function HunterSkillService.levelOf(player: Player): number
+	local d = dataOf(player)
+	return Crafting.hunterLevel(d and type(d.Hunter) == "table" and d.Hunter.Xp or 0)
+end
+
+local function ring(at: Vector3, radius: number, color: Color3)
+	local p = Instance.new("Part")
+	p.Name = "HabilidadFx"
+	p.Shape = Enum.PartType.Cylinder
+	p.Anchored = true
+	p.CanCollide = false
+	p.CanQuery = false
+	p.CanTouch = false
+	p.CastShadow = false
+	p.Material = Enum.Material.Neon
+	p.Color = color
+	p.Transparency = 0.35
+	p.Size = Vector3.new(0.4, 4, 4)
+	p.CFrame = CFrame.new(at) * CFrame.Angles(0, 0, math.pi / 2)
+	p.Parent = workspace
+	TweenService:Create(p, TweenInfo.new(0.45, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), { Size = Vector3.new(0.4, radius * 2, radius * 2), Transparency = 1 }):Play()
+	task.delay(0.6, function()
+		p:Destroy()
+	end)
+end
+
+-- Usa una habilidad. now: para las pruebas. Devuelve (ok, texto o nil, bestias alcanzadas)
+function HunterSkillService.use(player: Player, id: any, now: number?): (boolean, string?, number)
+	local sk = HunterSkills.get(id)
+	if not sk then
+		return false, "Habilidad desconocida.", 0
+	end
+	local character = player.Character
+	local root = character and character:FindFirstChild("HumanoidRootPart") :: BasePart?
+	local hum = character and character:FindFirstChildOfClass("Humanoid")
+	if not root or not hum or hum.Health <= 0 or player:GetAttribute("KO") or player:GetAttribute("Fallen") then
+		return false, nil, 0
+	end
+	if type(player:GetAttribute("Planeta")) ~= "string" then
+		return false, "Las habilidades de cazador son para las bestias de los planetas.", 0
+	end
+	if not HunterSkills.unlocked(sk, HunterSkillService.levelOf(player)) then
+		return false, ("%s se desbloquea con nivel de cazador %d."):format(sk.Name, sk.Level), 0
+	end
+	local t = now or os.clock()
+	used[player] = used[player] or {}
+	if HunterSkills.remaining(sk, used[player][sk.Id], t) > 0 then
+		return false, nil, 0
+	end
+	used[player][sk.Id] = t
+	local hits = 0
+	if sk.Kind == "Buff" then
+		player:SetAttribute("BuffFuria", sk.Amount)
+		player:SetAttribute("BuffFuriaHasta", workspace:GetServerTimeNow() + sk.Seconds)
+		ring(root.Position - Vector3.new(0, 2.5, 0), 8, Color3.fromRGB(255, 120, 40))
+	else
+		local Beasts = beastService()
+		local base = Combat.Damage[#Combat.Damage] * sk.Power
+		local from = root.Position
+		local look = root.CFrame.LookVector
+		local dir = Vector3.new(look.X, 0, look.Z)
+		dir = if dir.Magnitude > 0.01 then dir.Unit else Vector3.new(0, 0, -1)
+		local reach = if sk.Kind == "Dash" then sk.Distance + 8 else sk.Radius
+		for _, model in Beasts.near(from, reach) do
+			if hits >= sk.MaxTargets then
+				break
+			end
+			local pos = (model :: Model):GetPivot().Position
+			local inside = if sk.Kind == "Dash" then HunterSkills.inDash(sk, from, dir, pos) else (pos - from).Magnitude <= sk.Radius
+			if inside then
+				local counted = Beasts.hit(player, model, base, { Melee = true, Heavy = true, Skill = sk.Id })
+				if counted then
+					hits += 1
+				end
+			end
+		end
+		if sk.Kind == "Dash" then
+			-- el empujón hacia delante (el cliente manda en su personaje: se lo pide el remoto «Used»)
+			ring(from - Vector3.new(0, 2.5, 0), 6, Color3.fromRGB(120, 220, 255))
+			ring(from + dir * sk.Distance * 0.6 - Vector3.new(0, 2.5, 0), 6, Color3.fromRGB(120, 220, 255))
+		else
+			ring(from - Vector3.new(0, 2.5, 0), sk.Radius, if sk.Id == "GolpeSismico" then Color3.fromRGB(255, 200, 90) else Color3.fromRGB(200, 230, 255))
+		end
+	end
+	return true, nil, hits
+end
+
+function HunterSkillService.init()
+	local remotes = ReplicatedStorage:WaitForChild("Remotes")
+	local found = remotes:FindFirstChild("HunterSkill")
+	if not found then
+		local r = Instance.new("RemoteEvent")
+		r.Name = "HunterSkill"
+		r.Parent = remotes
+		found = r
+	end
+	Remote = found :: RemoteEvent
+	;(Remote :: RemoteEvent).OnServerEvent:Connect(function(player, action, id)
+		if action == "Use" then
+			local sk = HunterSkills.get(id)
+			local ok, text = HunterSkillService.use(player, id)
+			if ok and sk then
+				(Remote :: RemoteEvent):FireClient(player, "Used", sk.Id, sk.Cooldown)
+			elseif text then
+				(Remote :: RemoteEvent):FireClient(player, "No", id, text)
+			end
+		end
+	end)
+	local function publish(player: Player)
+		player:SetAttribute("NivelCazador", HunterSkillService.levelOf(player))
+	end
+	Players.PlayerAdded:Connect(function(p)
+		task.delay(6, function()
+			if p.Parent then
+				publish(p)
+			end
+		end)
+	end)
+	for _, p in Players:GetPlayers() do
+		task.delay(6, function()
+			if p.Parent then
+				publish(p)
+			end
+		end)
+	end
+	Players.PlayerRemoving:Connect(function(p)
+		used[p] = nil
+	end)
+end
+
+return HunterSkillService

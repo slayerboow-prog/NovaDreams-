@@ -162,8 +162,26 @@ Bestiary.IsletTop = 3 -- studs sobre el agua
 
 Bestiary.Respawn = 90 -- segundos para que una bestia vuelva a su guarida
 Bestiary.BossRespawn = 1200 -- el jefe: 20 minutos
-Bestiary.PackMin, Bestiary.PackMax = 3, 5
-Bestiary.LairsPerSpecies = 3
+Bestiary.PackMin, Bestiary.PackMax = 4, 6
+Bestiary.LairsPerSpecies = 3 -- (las de siempre, junto a la ciudad: zona 1)
+-- ZONAS DE CAZA: las tierras salvajes se reparten en anillos alrededor de la ciudad. Cuanto más lejos, más
+-- nivel: las bestias aguantan y pegan más, y dan más experiencia, dinero y botín.
+--   Level: el nivel que se enseña · Hp / Damage / Reward: por cuánto se multiplica lo de la especie
+Bestiary.Zones = {
+	{ Name = "Afueras", Level = 5, Hp = 1, Damage = 1, Reward = 1 },
+	{ Name = "Campo abierto", Level = 15, Hp = 1.8, Damage = 1.35, Reward = 1.8 },
+	{ Name = "Tierras lejanas", Level = 25, Hp = 3, Damage = 1.75, Reward = 3 },
+	{ Name = "Confines", Level = 35, Hp = 4.8, Damage = 2.2, Reward = 4.6 },
+}
+Bestiary.PacksPerZone = 10 -- manadas en cada anillo de las tierras salvajes (zonas 2, 3 y 4)
+
+function Bestiary.zone(tier: number?): { [string]: any }
+	return Bestiary.Zones[math.clamp(math.floor(tonumber(tier) or 1), 1, #Bestiary.Zones)]
+end
+-- «Rondador de ceniza nv. 15»
+function Bestiary.leveledName(name: string, tier: number?): string
+	return ("%s nv. %d"):format(name, Bestiary.zone(tier).Level)
+end
 Bestiary.CachesPerPlanet = 8
 Bestiary.CacheCooldown = 20 * 3600 -- un alijo se abre otra vez a las 20 horas (cada jugador el suyo)
 Bestiary.Leash = 120 -- una bestia no persigue a nadie más allá de esto desde su guarida
@@ -298,10 +316,11 @@ function Bestiary.places(S: any): { [string]: any }
 		end
 		return true
 	end
-	local function find(gap: number, minR: number, maxSlope: number): (number?, number?)
+	local core = S.CoreHalf or S.Half
+	local function find(gap: number, minR: number, maxSlope: number, maxR: number?): (number?, number?)
 		for _ = 1, 3000 do
 			local a = r() * math.pi * 2
-			local d = minR + r() * (S.Half * 0.74 - minR)
+			local d = minR + r() * ((maxR or core * 0.74) - minR)
 			local lx, lz = math.cos(a) * d, math.sin(a) * d
 			if far(lx, lz, gap) and (S.goodSpot(lx, lz, maxSlope, 26) or (water and wetOk(lx, lz))) then
 				return lx, lz
@@ -318,7 +337,7 @@ function Bestiary.places(S: any): { [string]: any }
 		return g, nil
 	end
 	-- el jefe: lejos de todo, en un sitio llano para pelear
-	local bx, bz = find(300, S.Half * 0.5, 0.35)
+	local bx, bz = find(300, core * 0.5, 0.35)
 	if not bx then
 		bx, bz = find(200, 300, 0.5)
 	end
@@ -347,11 +366,44 @@ function Bestiary.places(S: any): { [string]: any }
 					Islet = islet,
 					Count = Bestiary.PackMin + math.floor(r() * (Bestiary.PackMax - Bestiary.PackMin + 1)),
 					Look = LAIR_LOOK[id] or "Roca",
+					Tier = 1,
 					Name = ("%s de %s"):format(names[1 + (si + k) % #names], (sp.Name:gsub("^%a+ ", function(w)
 						return w
 					end)):lower()),
 				})
 				table.insert(taken, { lx, lz })
+			end
+		end
+	end
+	-- las tierras salvajes: anillos de manadas cada vez más fuertes, de la ciudad hacia fuera
+	local outer = S.Half - 440
+	local inner = core * 0.74
+	if outer > inner + 200 then
+		local rings = #Bestiary.Zones - 1
+		local step = (outer - inner) / rings
+		for tier = 2, #Bestiary.Zones do
+			local r0, r1 = inner + (tier - 2) * step, inner + (tier - 1) * step
+			for k = 1, Bestiary.PacksPerZone do
+				local sid = list[1 + (k + tier) % #list]
+				local sp = Bestiary.Species[sid]
+				local lx, lz = find(150, r0, 0.6, r1)
+				if lx then
+					local names = LAIR_NAMES[sp.Body] or LAIR_NAMES.Cuadrupedo
+					local ly, islet = y(lx, lz)
+					table.insert(out.Lairs, {
+						Id = ("%s_Z%d_%d"):format(id, tier, k),
+						Species = sid,
+						X = lx,
+						Z = lz,
+						Y = ly,
+						Islet = islet,
+						Count = Bestiary.PackMin + math.floor(r() * (Bestiary.PackMax - Bestiary.PackMin + 1)),
+						Look = LAIR_LOOK[id] or "Roca",
+						Tier = tier,
+						Name = ("%s (%s)"):format(names[1 + (k + tier) % #names], Bestiary.Zones[tier].Name:lower()),
+					})
+					table.insert(taken, { lx, lz })
+				end
 			end
 		end
 	end

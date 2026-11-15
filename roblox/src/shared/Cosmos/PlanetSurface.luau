@@ -65,6 +65,9 @@ function PlanetSurface.new(def: { [string]: any }): { [string]: any }
 	end
 	S.Origin = def.Origin
 	S.Half = def.Half or 1024
+	-- Lo de siempre (la ciudad, sus vetas y su decorado) cabe en CoreHalf; de ahí a Half, las TIERRAS SALVAJES:
+	-- terreno abierto para las bestias (shared/Cosmos/Bestiary)
+	S.CoreHalf = math.min(def.CoreHalf or S.Half, S.Half)
 	S.Seed = def.Seed or 7
 	S.WaterY = def.WaterY or 20
 	S.ArriveY = def.ArriveY or 1100
@@ -125,7 +128,7 @@ function PlanetSurface.new(def: { [string]: any }): { [string]: any }
 		end
 		-- el borde: colinas grandes que cierran la zona (la niebla tapa lo de detrás)
 		local edge = math.max(math.abs(lx), math.abs(lz)) / S.Half
-		h += (T.Edge or 260) * smooth(0.8, 1.0, edge)
+		h += (T.Edge or 260) * smooth(math.max(0.8, 1 - 380 / S.Half), 1.0, edge)
 		return h
 	end
 
@@ -232,7 +235,7 @@ function PlanetSurface.new(def: { [string]: any }): { [string]: any }
 		return true
 	end
 	function S.goodSpot(lx: number, lz: number, maxSlope: number, gap: number): boolean
-		if math.max(math.abs(lx), math.abs(lz)) > S.Half * 0.78 then
+		if math.max(math.abs(lx), math.abs(lz)) > math.max(S.CoreHalf * 0.78, S.Half - 420) then
 			return false
 		end
 		if City and City.inside(lx, lz, City.Blend) then
@@ -264,8 +267,8 @@ function PlanetSurface.new(def: { [string]: any }): { [string]: any }
 		end
 		while #out < S.NodeCount and tries < 2000 do
 			tries += 1
-			local lx = (r() * 2 - 1) * S.Half * 0.75
-			local lz = (r() * 2 - 1) * S.Half * 0.75
+			local lx = (r() * 2 - 1) * S.CoreHalf * 0.75
+			local lz = (r() * 2 - 1) * S.CoreHalf * 0.75
 			if S.goodSpot(lx, lz, 0.5, 30) then
 				local ok = true
 				for _, n in out do
@@ -314,8 +317,8 @@ function PlanetSurface.new(def: { [string]: any }): { [string]: any }
 		local maxSlope = S.DecorSlope[kind] or 0.6
 		while #out < n and tries < n * 12 do
 			tries += 1
-			local lx = (r() * 2 - 1) * S.Half * 0.8
-			local lz = (r() * 2 - 1) * S.Half * 0.8
+			local lx = (r() * 2 - 1) * S.CoreHalf * 0.8
+			local lz = (r() * 2 - 1) * S.CoreHalf * 0.8
 			if S.goodSpot(lx, lz, maxSlope, 14) then
 				local x, z = O.X + lx, O.Z + lz
 				table.insert(out, { Kind = kind, Pos = Vector3.new(x, S.heightAt(x, z), z), Size = 3 + r() ^ 2 * 16, Turn = r() * math.pi * 2, Roll = r() })

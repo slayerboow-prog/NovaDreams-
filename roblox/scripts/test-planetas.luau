@@ -1577,7 +1577,7 @@ do
 		local S = PlanetRegistry.get(id)
 		okSurf = okSurf and S ~= nil and S.Origin == PlanetRegistry.Slots[id] and PlanetBodies.ById[id] ~= nil and S.Surface and S.Surface.Id == id
 		if S and id ~= "Tefra" then
-			okSurf = okSurf and S.Half <= 1536 and Planets.EarlyAccess[id] == true
+			okSurf = okSurf and S.CoreHalf <= 1536 and S.Half <= 3072 and Planets.EarlyAccess[id] == true
 		end
 	end
 	check(okSurf, "cada planeta del registro tiene su superficie en su hueco, su cuerpo en el espacio y (los nuevos) acceso como Tefra")
