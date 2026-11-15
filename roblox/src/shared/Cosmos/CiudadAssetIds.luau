@@ -24,6 +24,10 @@ return {
 		CalleGenerador = "rbxassetid://78617068177814",
 		CallePuesto = "rbxassetid://83197601006645",
 		CalleJardinera = "rbxassetid://121541844517049",
+		CiudadNave = "rbxassetid://99302723616167",
+		CiudadCupula = "rbxassetid://101680077523333",
+		CiudadTorre = "rbxassetid://82661028166408",
+		UmbriaChoza = "rbxassetid://132649995705088",
 	},
 	Texturas = {
 	},

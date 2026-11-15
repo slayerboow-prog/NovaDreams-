@@ -205,10 +205,18 @@ function PlanetMetroBuilder.build(parent: Instance, S: any, opts: { [string]: an
 		Vertice = { Bloque = "VerticeBloque", Torre = "VerticeTorre", Rascacielos = "VerticeTorre", Casa = "VerticeCasa" },
 		Tefra = { Bloque = "TefraBloque", Torre = "TefraBloque", Casa = "TefraCasa" },
 		Siroco = { Bloque = "SirocoBloque", Casa = "SirocoCasa" },
-		Talasa = { Bloque = "TalasaBloque", Casa = "TalasaCasa" },
-		Nivalis = { Bloque = "NivalisBloque", Casa = "NivalisCasa" },
+		Talasa = { Bloque = "TalasaBloque", Casa = "TalasaCasa", Torre = "CiudadTorre" },
+		Nivalis = { Bloque = "NivalisBloque", Casa = "NivalisCasa", Torre = "CiudadTorre" },
 		Miasma = { Bloque = "MiasmaBloque", Torre = "MiasmaBloque", Casa = "MiasmaCasa" },
+		Umbria = { Choza = "UmbriaChoza" },
 	}
+	-- (para todos los planetas: naves y hangares, y los edificios de cúpula)
+	for _, map in MESH_OF do
+		map.Nave = "CiudadNave"
+		map.Cupula = "CiudadCupula"
+	end
+	local ROUND_KIND = { Cupula = true, Choza = true }
+	local FLOORS_KIND = { Casa = true, Cupula = true }
 	local PROPS: { [string]: { string } } = {
 		Tefra = { "CalleCajas", "CalleTuberias", "CalleGenerador", "CalleCajas", "CalleVehiculo" },
 		Siroco = { "CalleCajas", "CallePuesto", "CalleVehiculo", "CalleJardinera", "CallePuesto" },
@@ -289,10 +297,11 @@ function PlanetMetroBuilder.build(parent: Instance, S: any, opts: { [string]: an
 		if not tpl then
 			return false
 		end
-		if lot.Kind == "Torre" and (planet == "Nivalis" or planet == "Talasa" or planet == "Umbria") then
-			return false -- (torres redondas: se quedan como están)
+		if ROUND_KIND[lot.Kind] or name == "CiudadTorre" then
+			w = math.min(w, d) -- (redondos: el diámetro es el lado corto del solar)
+			d = w
 		end
-		local h = if lot.Kind == "Casa" then lot.Floors * FH else lot.Height
+		local h = if FLOORS_KIND[lot.Kind] then lot.Floors * FH else lot.Height
 		local E = tpl.Info.Enter
 		for _, ch in m:GetChildren() do
 			if ch:IsA("BasePart") then
@@ -385,7 +394,8 @@ function PlanetMetroBuilder.build(parent: Instance, S: any, opts: { [string]: an
 		local wall = L.Walls[1 + math.floor(r() * #L.Walls)]
 		local strip = if L.Neon then L.Neon[1 + math.floor(r() * #L.Neon)] else (L.Strip or L.Glow)
 		local lit = r() < 0.65
-		local _, parts = CityMeshes.place(tpl, m, cf, w, d, h, meshStyle(wall, strip, BODY_SKIN[planet]))
+		local housing = HOUSING[lot.Kind] or ROUND_KIND[lot.Kind]
+		local _, parts = CityMeshes.place(tpl, m, cf, w, d, h, meshStyle(wall, strip, if housing then BODY_SKIN[planet] else (TECH_SKIN[planet] or "CiudadPanel")))
 		for _, p in parts do
 			if lit and string.find(p.Name, "_Cristal$") then
 				glow(p)

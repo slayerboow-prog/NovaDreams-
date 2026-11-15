@@ -52,6 +52,7 @@ TINTS = {
     "Nivalis": {"Cuerpo": (0.52, 0.56, 0.64), "Luz": (0.6, 0.9, 1.0), "Metal": (0.25, 0.28, 0.36), "Techo": (0.2, 0.25, 0.4)},
     "Miasma": {"Cuerpo": (0.36, 0.4, 0.36), "Luz": (0.45, 1.0, 0.2), "Metal": (0.22, 0.24, 0.22), "Techo": (0.3, 0.33, 0.3)},
     "Vertice": {"Cuerpo": (0.16, 0.16, 0.24), "Luz": (1.0, 0.2, 0.75), "Metal": (0.1, 0.1, 0.15), "Techo": (0.1, 0.1, 0.14), "Cristal": (0.15, 0.3, 0.55)},
+    "Umbria": {"Cuerpo": (0.45, 0.32, 0.2), "Luz": (0.6, 1.0, 0.5), "Metal": (0.3, 0.2, 0.12), "Techo": (0.2, 0.42, 0.18)},
     "Calle": {"Cuerpo": (0.7, 0.3, 0.2), "Luz": (0.3, 0.9, 1.0), "Metal": (0.3, 0.32, 0.36), "Toldo": (0.2, 0.45, 0.6)},
 }
 
@@ -382,6 +383,18 @@ def furnish(E, style, home):
         cyl((px, py, z + 0.9), 1.4, 3.6, "Luz", n=12)
         cyl((px, py, z + 5.7), 2.1, 0.6, "Metal", n=14)
         cyl((px, py, z + 6.3), 0.5, top - z - 6.3, "Metal", n=8)
+    elif style == "Nave":  # carga apilada: botes hexagonales con juntas de luz
+        for i, (dx, dy, zz) in enumerate(((0, 0, 0), (-3.2, 0.3, 0), (-1.6, 0.2, 3.1), (0.2, -3.2, 0))):
+            cyl((px + dx, py + dy, z + zz), 1.5, 3, "Cuerpo", n=6, rot=(0, 0, i * 0.4))
+            cyl((px + dx, py + dy, z + zz + 1.4), 1.56, 0.2, "Luz", n=6, rot=(0, 0, i * 0.4))
+            cyl((px + dx, py + dy, z + zz + 3), 1.3, 0.2, "Metal", n=6, rot=(0, 0, i * 0.4))
+    elif style == "Umbria":  # semillero: vainas que brillan colgadas de un tallo
+        cyl((px, py, z), 1.6, 0.6, "Metal", n=8)
+        o = cyl((px, py, z + 0.5), 0.35, 5.4, "Hoja", n=6, r2=0.15)
+        for i in range(5):
+            a = i * 1.26
+            sphere((px + math.cos(a) * 1.3, py + math.sin(a) * 1.3, z + 2 + i * 0.8), 0.6, "Luz", seg=8, rings=5, squash=(1, 1, 1.5))
+            sphere((px + math.cos(a) * 1.3, py + math.sin(a) * 1.3, z + 2.9 + i * 0.8), 0.8, "Hoja", seg=8, rings=5, squash=(1, 1, 0.3))
     else:  # Vértice: proyector de hologramas
         cyl((px, py, z), 1.7, 1, "Metal", n=14)
         cyl((px, py, z + 1), 0.3, 4.4, "Luz", n=8, r2=1.5)
@@ -1147,6 +1160,173 @@ def calle_jardinera():
     box((0, -1.75, 2.3), (7, 0.25, 1.2), "Cristal")
 
 
+def half_pipe(c, r, L, hz, group, n=10):
+    """Bóveda de medio cañón a lo largo de Y (largo L), ancho 2r y alto hz, con la BASE centrada en c."""
+    v = []
+    for y in (-L / 2, L / 2):
+        for i in range(n + 1):
+            a = PI * i / n
+            v.append((r * math.cos(a), y, hz * math.sin(a)))
+    f = []
+    for i in range(n):
+        f.append((i, i + 1, n + 1 + i + 1, n + 1 + i))
+    f.append(tuple(range(n, -1, -1)))
+    f.append(tuple(range(n + 1, 2 * n + 2)))
+    f.append((0, n + 1, 2 * n + 1, n))
+    return mesh_obj(v, f, group, c)
+
+
+# ---------------------------------------------------------------------------
+# Para todos los planetas (el color y el material los pone cada uno)
+# ---------------------------------------------------------------------------
+def ciudad_nave():
+    """Nave industrial / hangar: portón grande abierto, bóveda, costillas, tuberías y luces de pista."""
+    sec("Base")
+    body(box((0, 0, 7), (30, 30, 14), "Cuerpo", bevel=0.2))
+    half_pipe((0, 0, 14), 15, 30.6, 6.4, "Techo")
+    for y in (-15.2, -7.6, 0, 7.6, 15.2):
+        for sx in (-1, 1):
+            box((sx * 15.25, y, 7), (0.7, 0.9, 14), "Metal")
+        half_pipe((0, y, 14.05), 15.35, 0.9, 6.75, "Metal", n=8)
+    # el marco del portón, con balizas
+    for sx in (-1, 1):
+        box((sx * 6.9, -15.5, 5.6), (1.4, 1.2, 11.2), "Metal", bevel=0.15)
+        box((sx * 6.9, -16.15, 5.6), (0.4, 0.2, 10), "Luz")
+        box((sx * 11.6, -15.3, 3.4), (4, 0.5, 2.6), "Metal", bevel=0.1)  # rejillas
+        for i in range(3):
+            box((sx * 11.6, -15.6, 2.6 + i * 0.8), (3.4, 0.2, 0.25), "Cuerpo")
+        pipe_v(sx * 15.9, 11, 0, 14, 0.7)
+        cyl((sx * 9, -19, 0), 0.5, 0.25, "Luz", n=8)  # luces de pista
+        cyl((sx * 9, -23, 0), 0.5, 0.25, "Luz", n=8)
+    box((0, -15.5, 11.8), (15.2, 1.2, 1.4), "Metal", bevel=0.15)
+    box((0, -16.15, 11.8), (12, 0.2, 0.7), "Luz")
+    box((0, -15.4, 16.4), (10, 0.5, 2.4), "Metal")
+    box((0, -15.7, 16.4), (9, 0.2, 1.7), "Luz")
+    pipe_x(-15, 15, 15.9, 9, 0.8, flanges=3)
+    for x in (-6, 6):
+        cyl((x, 6, 19.2), 1.3, 3, "Metal", n=8)
+        cyl((x, 6, 22), 1.5, 0.5, "Luz", n=8)
+    tank(-17.6, -4, 0, 2, 5)
+    enter("Nave", 15, -15, 15, 13, dw=12, dh=10.4)
+
+
+def ciudad_cupula():
+    """Edificio de cúpula: tambor redondo con anillo de cristal, cúpula con nervios y aguja de luz."""
+    sec("Base")
+    body(cyl((0, 0, 0), 16.2, 2.4, "Cuerpo", n=20, r2=15))
+    body(cyl((0, 0, 2.4), 15, 11.6, "Cuerpo", n=20))
+    cyl((0, 0, 13), 15.5, 1, "Metal", n=20)
+    cyl((0, 0, 12.6), 15.6, 0.35, "Luz", n=20)
+    for i in range(8):
+        a = i * PI / 4 + PI / 8
+        box((math.cos(a) * 15.2, math.sin(a) * 15.2, 7), (1.3, 1.1, 14), "Metal", rot=(0, 0, a), bevel=0.15)
+    for sx in (-1, 1):
+        box((sx * 4.9, -15.3, 5), (1.2, 1.6, 10), "Metal", bevel=0.2)
+        box((sx * 4.9, -16.15, 5), (0.35, 0.2, 9), "Luz")
+        cyl((sx * 7, -18.5, 0), 0.9, 1.2, "Metal", n=8)
+        gem((sx * 7, -18.5, 2.6), 0.6, "Luz")
+    box((0, -15.3, 10.4), (11, 1.6, 1.2), "Metal", bevel=0.2)
+    box((0, -16.15, 10.4), (8, 0.2, 0.5), "Luz")
+    sec("Medio")
+    cyl((0, 0, 14), 14.6, 10, "Cuerpo", n=20)
+    cyl((0, 0, 16.6), 14.75, 4.6, "Cristal", n=20)
+    cyl((0, 0, 23), 15.2, 0.8, "Metal", n=20)
+    cyl((0, 0, 14.2), 14.85, 0.3, "Luz", n=20)
+    for i in range(8):
+        a = i * PI / 4 + PI / 8
+        box((math.cos(a) * 14.8, math.sin(a) * 14.8, 19), (1.0, 0.9, 10), "Metal", rot=(0, 0, a), bevel=0.12)
+    sec("Tope")
+    cyl((0, 0, 24), 15.4, 1, "Metal", n=20)
+    cyl((0, 0, 24.9), 15.5, 0.3, "Luz", n=20)
+    sphere((0, 0, 25), 14.4, "Techo", seg=16, rings=8, hemi=True, squash=(1, 1, 0.9))
+    for i in range(8):
+        a = i * PI / 4
+        for k in range(4):
+            t0, t1 = k / 4 * PI / 2 * 0.92, (k + 1) / 4 * PI / 2 * 0.92
+            p0 = Vector((math.cos(a) * math.cos(t0) * 14.5, math.sin(a) * math.cos(t0) * 14.5, 25 + math.sin(t0) * 13.05))
+            p1 = Vector((math.cos(a) * math.cos(t1) * 14.5, math.sin(a) * math.cos(t1) * 14.5, 25 + math.sin(t1) * 13.05))
+            d = p1 - p0
+            o = box(((p0 + p1) / 2)[:], (0.6, 0.6, d.length + 0.2), "Metal")
+            o.rotation_mode = "QUATERNION"
+            o.rotation_quaternion = Vector((0, 0, 1)).rotation_difference(d.normalized())
+    cyl((0, 0, 37.6), 1.8, 1, "Metal", n=8)
+    cyl((0, 0, 38.6), 0.5, 6, "Luz", n=6, r2=0.08)
+    torus((0, 0, 40.6), 1.6, 0.14, "Luz")
+    enter("Vertice", 15, -15, 15, 12, round_=True)
+
+
+def ciudad_torre():
+    """Torre redonda: zócalo con contrafuertes, tramos con anillo de ventanas y balcón, y remate en aguja."""
+    sec("Base")
+    body(cyl((0, 0, 0), 16.4, 3, "Cuerpo", n=16, r2=15))
+    body(cyl((0, 0, 3), 15, 11, "Cuerpo", n=16))
+    for i in range(6):
+        a = i * PI / 3
+        o = frustum((math.cos(a) * 15.6, math.sin(a) * 15.6, 0), 3, 3.4, 1.6, 2, 14, "Cuerpo")
+        o.rotation_euler = (0, 0, a + PI / 2)
+    cyl((0, 0, 13.2), 15.5, 0.8, "Metal", n=16)
+    for sx in (-1, 1):
+        box((sx * 4.8, -15.3, 5), (1.2, 1.6, 10), "Metal", bevel=0.2)
+        box((sx * 4.8, -16.15, 6.6), (0.5, 0.3, 1.6), "Luz")
+    box((0, -15.3, 10.4), (10.8, 1.6, 1.2), "Metal", bevel=0.2)
+    sec("Medio")
+    cyl((0, 0, 14), 14.4, 16, "Cuerpo", n=16)
+    cyl((0, 0, 19.4), 14.55, 3.4, "Cristal", n=16)
+    cyl((0, 0, 18.8), 14.9, 0.5, "Metal", n=16)
+    cyl((0, 0, 22.8), 14.9, 0.5, "Metal", n=16)
+    cyl((0, 0, 28.6), 16.4, 0.6, "Metal", n=16)  # balcón en anillo
+    cyl((0, 0, 28.4), 16.5, 0.2, "Luz", n=16)
+    for i in range(8):
+        a = i * PI / 4
+        box((math.cos(a) * 16.2, math.sin(a) * 16.2, 29.8), (0.3, 0.3, 2), "Metal", rot=(0, 0, a))
+        box((math.cos(a) * 14.5, math.sin(a) * 14.5, 22), (0.9, 0.9, 16), "Metal", rot=(0, 0, a))
+    sec("Tope")
+    cyl((0, 0, 30), 14.4, 1.4, "Cuerpo", n=16)
+    cyl((0, 0, 31.4), 14.4, 2.4, "Cuerpo", n=16, r2=17)
+    cyl((0, 0, 33.8), 17, 1.2, "Metal", n=16)
+    cyl((0, 0, 34.2), 17.15, 0.35, "Luz", n=16)
+    cyl((0, 0, 35), 15.6, 15, "Techo", n=16, r2=2)
+    cyl((0, 0, 45.2), 5.4, 4.9, "Nieve", n=16, r2=2.05)
+    cyl((0, 0, 50), 2.2, 0.8, "Metal", n=8)
+    cyl((0, 0, 50.8), 0.5, 8, "Luz", n=6, r2=0.08)
+    for i in range(4):
+        a = i * PI / 2 + PI / 4
+        cyl((math.cos(a) * 15.4, math.sin(a) * 15.4, 35), 1.2, 5, "Techo", n=6, r2=0.05)
+    enter("Talasa", 15, -15, 15, 12, round_=True)
+
+
+def umbria_choza():
+    """Choza de Raíz Honda: sobre zancos, de madera viva, con tejado de hojas, lianas y farolillos de bulbo."""
+    sec("Base")
+    for i in range(6):
+        a = i * PI / 3 + PI / 6
+        o = cyl((math.cos(a) * 10.5, math.sin(a) * 10.5, -1), 0.8, 7.2, "Metal", n=6)
+        o.rotation_euler = (math.sin(a) * 0.08, -math.cos(a) * 0.08, 0)
+    cyl((0, 0, 5.2), 13.4, 0.8, "Metal", n=14)
+    cyl((0, 0, 5.05), 13.5, 0.15, "Luz", n=14)
+    body(cyl((0, 0, 6), 11, 9, "Cuerpo", n=14))
+    for z in (7.2, 13.6):
+        cyl((0, 0, z), 11.25, 0.5, "Metal", n=14)
+    for i in range(3):  # ojos de buey
+        a = PI / 2 + (i - 1) * 2.1 + 1.05
+        cyl((math.cos(a) * 10.9, math.sin(a) * 10.9, 10.4), 1.4, 0.4, "Cristal", n=8, rot=(PI / 2, 0, a - PI / 2))
+    for sx in (-1, 1):
+        box((sx * 4.4, -11, 10.4), (0.9, 1.2, 8.8), "Metal", bevel=0.2)
+        o = cyl((sx * 5.6, -12.2, 6), 0.12, 6, "Hoja", n=6)
+        sphere((sx * 5.6, -12.2, 12.4), 0.7, "Luz", seg=8, rings=5, squash=(1, 1, 1.3))
+        sphere((sx * 5.6, -12.2, 13.3), 0.9, "Hoja", seg=8, rings=5, squash=(1, 1, 0.3))
+    # tejado de hojas en tres faldones y su remate
+    for i, (r0, r1, zz, hh) in enumerate(((14.4, 9.4, 15, 3.4), (10.6, 5.6, 17.8, 3.4), (6.6, 0.3, 20.6, 4.6))):
+        cyl((0, 0, zz), r0, hh, "Techo", n=14, r2=r1)
+    cyl((0, 0, 14.6), 14.5, 0.3, "Hoja", n=14)
+    sphere((0, 0, 25.6), 0.8, "Luz", seg=8, rings=5, squash=(1, 1, 1.4))
+    for i in range(5):  # lianas
+        a = i * 1.26 + 0.6
+        cyl((math.cos(a) * 13.8, math.sin(a) * 13.8, 9 + (i % 2)), 0.14, 6 - (i % 2), "Hoja", n=6)
+        sphere((math.cos(a) * 13.8, math.sin(a) * 13.8, 9 + (i % 2)), 0.5, "Hoja", seg=8, rings=5)
+    enter("Umbria", 11, -11, 11, 14.4, floor=6.2, dw=7, dh=7.6, round_=True, home=True)
+
+
 # nombre, función, estilo de la vista previa, medidas nominales (W, D y la altura de cada sección)
 ASSETS = [
     ("VerticeBloque", vertice_bloque, "Vertice", dict(W=30, D=30, Base=14, Mid=20, Top=10)),
@@ -1162,6 +1342,10 @@ ASSETS = [
     ("NivalisCasa", nivalis_casa, "Nivalis", dict(W=26, D=26, Base=20, Mid=0, Top=0)),
     ("MiasmaBloque", miasma_bloque, "Miasma", dict(W=30, D=30, Base=14, Mid=20, Top=4)),
     ("MiasmaCasa", miasma_casa, "Miasma", dict(W=26, D=26, Base=20, Mid=0, Top=0)),
+    ("CiudadNave", ciudad_nave, "Miasma", dict(W=30, D=30, Base=16, Mid=0, Top=0)),
+    ("CiudadCupula", ciudad_cupula, "Talasa", dict(W=30, D=30, Base=14, Mid=10, Top=1)),
+    ("CiudadTorre", ciudad_torre, "Nivalis", dict(W=30, D=30, Base=14, Mid=16, Top=5)),
+    ("UmbriaChoza", umbria_choza, "Umbria", dict(W=28, D=28, Base=22, Mid=0, Top=0)),
     ("CalleVehiculo", calle_vehiculo, "Calle", dict(W=12, D=7, Base=4, Mid=0, Top=0)),
     ("CalleCajas", calle_cajas, "Calle", dict(W=9, D=7, Base=5, Mid=0, Top=0)),
     ("CalleTuberias", calle_tuberias, "Calle", dict(W=12, D=6, Base=8, Mid=0, Top=0)),
@@ -1295,7 +1479,7 @@ def finish(kind, tint):
         bpy.ops.object.transform_apply(location=True, rotation=True, scale=True)
         o.name = f"{kind}_{key}"
         o.data.name = o.name
-        if not ENTER[0] or not key.startswith("Base_"):
+        if group != "Forro":
             bpy.ops.object.mode_set(mode="EDIT")
             bpy.ops.mesh.select_all(action="SELECT")
             bpy.ops.mesh.normals_make_consistent(inside=False)

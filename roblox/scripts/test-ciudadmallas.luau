@@ -47,7 +47,7 @@ for name, info in Malla do
 	check(tris <= 10000, ("%s: ligero (%d triángulos)"):format(name, tris))
 	check(secs.Base and (info.Mid == 0 or (secs.Medio and secs.Tope)), name .. ": tiene sus secciones")
 end
-check(#names >= 19, ("edificios y objetos de calle (%d)"):format(#names))
+check(#names >= 23, ("edificios y objetos de calle (%d)"):format(#names))
 local uploaded = 0
 for _, name in names do
 	if Meshes.idOf((Ids.Mallas or {})[name]) then
@@ -144,14 +144,14 @@ for _, id in { "Vertice", "Siroco", "Talasa", "Umbria" } do
 	check(ok and model ~= nil, id .. ": la ciudad se construye con mallas " .. (if ok then "" else tostring(model)))
 	if ok then
 		if id == "Umbria" then
-			check(stats.MeshBuildings == 0 and stats.Props > 10, ("%s: sin edificios de malla, con objetos de calle (%d)"):format(id, stats.Props))
+			check(stats.MeshBuildings > 50 and stats.Props > 10, ("%s: chozas de malla (%d) y objetos de calle (%d)"):format(id, stats.MeshBuildings, stats.Props))
 		else
 			check(stats.MeshBuildings > 100, ("%s: edificios de malla (%d)"):format(id, stats.MeshBuildings))
 			check(stats.Props > 40, ("%s: objetos de calle (%d)"):format(id, stats.Props))
 		end
 		check(stats.Meshes < 9500, ("%s: mallas contenidas (%d)"):format(id, stats.Meshes))
 		check(stats.Parts < 14000, ("%s: piezas contenidas (%d)"):format(id, stats.Parts))
-		if id ~= "Umbria" then
+		if true then
 			check(stats.Enterable == stats.MeshBuildings, ("%s: se entra en todos los edificios de malla (%d)"):format(id, stats.Enterable or 0))
 		end
 		-- un edificio de malla conserva su choque (cuerpo invisible) y ya no tiene las franjas de piezas
@@ -187,7 +187,7 @@ for _, id in { "Vertice", "Siroco", "Talasa", "Umbria" } do
 				end
 			end
 		end
-		if id ~= "Umbria" then
+		if true then
 			check(found and not leftovers, id .. ": lo de piezas se quita")
 			check(floorOk and walls == 5, ("%s: planta baja con suelo, muros (%d) y dintel"):format(id, walls))
 			check(doorOpen, ("%s: de la puerta al centro de la habitación no hay nada en medio (%d)"):format(id, blocked))
