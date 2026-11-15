@@ -124,7 +124,7 @@ S.Kit = "NivalisKit"
 -- Su cielo y su luz (nombres de shared/DayGrade): noche eterna, estrellas, luz de luna azul y el verde de
 -- la aurora en las caras que miran al norte; bruma fría y brillo en el hielo. Nunca el cielo de Valmar.
 S.Env = {
-	Sky = { "EspacioProfundo", "Original" },
+	Sky = { "CieloNivalis", "EspacioProfundo", "Original" },
 	Clouds = false,
 	Mood = {
 		Brightness = 0.95,

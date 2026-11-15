@@ -23,7 +23,17 @@ local EspacioLook = {}
 -- (al revés de su nombre). Antes iban cruzadas y el cielo del espacio se veía con cortes entre caras.
 -- Las caras de arriba y abajo van además giradas (eso lo hace el generador: gen.py FACES).
 EspacioLook.SkyFaces = { SkyboxBk = "bk", SkyboxDn = "dn", SkyboxFt = "ft", SkyboxLf = "rt", SkyboxRt = "lf", SkyboxUp = "up" }
-EspacioLook.Skies = { EspacioProfundo = "cielo_nebulosa", CieloTefra = "cielo_tefra" }
+EspacioLook.Skies = {
+	EspacioProfundo = "cielo_nebulosa",
+	CieloTefra = "cielo_tefra",
+	-- (los otros seis, con su planeta gigante al fondo: scripts/espacio/gen_cielos_planetas.py)
+	CieloSiroco = "cielo_siroco",
+	CieloTalasa = "cielo_talasa",
+	CieloNivalis = "cielo_nivalis",
+	CieloUmbria = "cielo_umbria",
+	CieloMiasma = "cielo_miasma",
+	CieloVertice = "cielo_vertice",
+}
 -- (v122, referencia del dueño) Cielo nuevo del espacio, más vivo: nebulosas moradas, azules y rosas, Vía
 -- Láctea brillante y muchas más estrellas (scripts/espacio/gen_espacio_v122.py). Hasta que se suba, el
 -- de antes («cielo_espacio»): nunca un cielo a medias ni el azul de serie.

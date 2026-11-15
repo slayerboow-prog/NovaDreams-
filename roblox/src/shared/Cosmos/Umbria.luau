@@ -111,7 +111,7 @@ S.Kit = "UmbriaKit"
 -- Su cielo y su luz: penumbra verde y dorada bajo las copas, niebla húmeda y las setas que brillan
 S.Env = {
 	-- (hoja de estética del dueño: jungla de día, cielo azul verdoso con nubes, colores vivos y luces cian)
-	Sky = { "CieloTalasa", "Original" },
+	Sky = { "CieloUmbria", "CieloTalasa", "Original" },
 	Clouds = true,
 	Mood = {
 		Brightness = 2.6,

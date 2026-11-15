@@ -51,6 +51,58 @@ a nadie.
 | roca_lontana_color.png | Roca de Lontana: color | 1024×1024 | scripts/espacio/gen.py | CC0 (propio) |
 | roca_lontana_normal.png | Roca de Lontana: relieve (OpenGL) | 1024×1024 | scripts/espacio/gen.py | CC0 (propio) |
 | roca_lontana_roughness.png | Roca de Lontana: rugosidad | 1024×1024 | scripts/espacio/gen.py | CC0 (propio) |
+| cielo_ocrea_bk.jpg | Cielo de Siroco (atrás) | 1024×1024 | scripts/espacio/gen_cielos_planetas.py | CC0 (propio) |
+| cielo_ocrea_dn.jpg | Cielo de Siroco (abajo) | 1024×1024 | scripts/espacio/gen_cielos_planetas.py | CC0 (propio) |
+| cielo_ocrea_ft.jpg | Cielo de Siroco (delante, con el planeta gigante) | 1024×1024 | scripts/espacio/gen_cielos_planetas.py | CC0 (propio) |
+| cielo_ocrea_lf.jpg | Cielo de Siroco (izquierda) | 1024×1024 | scripts/espacio/gen_cielos_planetas.py | CC0 (propio) |
+| cielo_ocrea_rt.jpg | Cielo de Siroco (derecha) | 1024×1024 | scripts/espacio/gen_cielos_planetas.py | CC0 (propio) |
+| cielo_ocrea_up.jpg | Cielo de Siroco (arriba) | 1024×1024 | scripts/espacio/gen_cielos_planetas.py | CC0 (propio) |
+| cielo_marena_bk.jpg | Cielo de Tálasa (atrás) | 1024×1024 | scripts/espacio/gen_cielos_planetas.py | CC0 (propio) |
+| cielo_marena_dn.jpg | Cielo de Tálasa (abajo) | 1024×1024 | scripts/espacio/gen_cielos_planetas.py | CC0 (propio) |
+| cielo_marena_ft.jpg | Cielo de Tálasa (delante, con el planeta gigante) | 1024×1024 | scripts/espacio/gen_cielos_planetas.py | CC0 (propio) |
+| cielo_marena_lf.jpg | Cielo de Tálasa (izquierda) | 1024×1024 | scripts/espacio/gen_cielos_planetas.py | CC0 (propio) |
+| cielo_marena_rt.jpg | Cielo de Tálasa (derecha) | 1024×1024 | scripts/espacio/gen_cielos_planetas.py | CC0 (propio) |
+| cielo_marena_up.jpg | Cielo de Tálasa (arriba) | 1024×1024 | scripts/espacio/gen_cielos_planetas.py | CC0 (propio) |
+| cielo_velaria_bk.jpg | Cielo de Nivalis (atrás) | 1024×1024 | scripts/espacio/gen_cielos_planetas.py | CC0 (propio) |
+| cielo_velaria_dn.jpg | Cielo de Nivalis (abajo) | 1024×1024 | scripts/espacio/gen_cielos_planetas.py | CC0 (propio) |
+| cielo_velaria_ft.jpg | Cielo de Nivalis (delante, con el planeta gigante) | 1024×1024 | scripts/espacio/gen_cielos_planetas.py | CC0 (propio) |
+| cielo_velaria_lf.jpg | Cielo de Nivalis (izquierda) | 1024×1024 | scripts/espacio/gen_cielos_planetas.py | CC0 (propio) |
+| cielo_velaria_rt.jpg | Cielo de Nivalis (derecha) | 1024×1024 | scripts/espacio/gen_cielos_planetas.py | CC0 (propio) |
+| cielo_velaria_up.jpg | Cielo de Nivalis (arriba) | 1024×1024 | scripts/espacio/gen_cielos_planetas.py | CC0 (propio) |
+| cielo_fronda_bk.jpg | Cielo de Umbria (atrás) | 1024×1024 | scripts/espacio/gen_cielos_planetas.py | CC0 (propio) |
+| cielo_fronda_dn.jpg | Cielo de Umbria (abajo) | 1024×1024 | scripts/espacio/gen_cielos_planetas.py | CC0 (propio) |
+| cielo_fronda_ft.jpg | Cielo de Umbria (delante, con el planeta gigante) | 1024×1024 | scripts/espacio/gen_cielos_planetas.py | CC0 (propio) |
+| cielo_fronda_lf.jpg | Cielo de Umbria (izquierda) | 1024×1024 | scripts/espacio/gen_cielos_planetas.py | CC0 (propio) |
+| cielo_fronda_rt.jpg | Cielo de Umbria (derecha) | 1024×1024 | scripts/espacio/gen_cielos_planetas.py | CC0 (propio) |
+| cielo_fronda_up.jpg | Cielo de Umbria (arriba) | 1024×1024 | scripts/espacio/gen_cielos_planetas.py | CC0 (propio) |
+| cielo_zefira_bk.jpg | Cielo de Miasma (atrás) | 1024×1024 | scripts/espacio/gen_cielos_planetas.py | CC0 (propio) |
+| cielo_zefira_dn.jpg | Cielo de Miasma (abajo) | 1024×1024 | scripts/espacio/gen_cielos_planetas.py | CC0 (propio) |
+| cielo_zefira_ft.jpg | Cielo de Miasma (delante, con el planeta gigante) | 1024×1024 | scripts/espacio/gen_cielos_planetas.py | CC0 (propio) |
+| cielo_zefira_lf.jpg | Cielo de Miasma (izquierda) | 1024×1024 | scripts/espacio/gen_cielos_planetas.py | CC0 (propio) |
+| cielo_zefira_rt.jpg | Cielo de Miasma (derecha) | 1024×1024 | scripts/espacio/gen_cielos_planetas.py | CC0 (propio) |
+| cielo_zefira_up.jpg | Cielo de Miasma (arriba) | 1024×1024 | scripts/espacio/gen_cielos_planetas.py | CC0 (propio) |
+| cielo_mercadia_bk.jpg | Cielo de Vértice (atrás) | 1024×1024 | scripts/espacio/gen_cielos_planetas.py | CC0 (propio) |
+| cielo_mercadia_dn.jpg | Cielo de Vértice (abajo) | 1024×1024 | scripts/espacio/gen_cielos_planetas.py | CC0 (propio) |
+| cielo_mercadia_ft.jpg | Cielo de Vértice (delante, con el planeta gigante) | 1024×1024 | scripts/espacio/gen_cielos_planetas.py | CC0 (propio) |
+| cielo_mercadia_lf.jpg | Cielo de Vértice (izquierda) | 1024×1024 | scripts/espacio/gen_cielos_planetas.py | CC0 (propio) |
+| cielo_mercadia_rt.jpg | Cielo de Vértice (derecha) | 1024×1024 | scripts/espacio/gen_cielos_planetas.py | CC0 (propio) |
+| cielo_mercadia_up.jpg | Cielo de Vértice (arriba) | 1024×1024 | scripts/espacio/gen_cielos_planetas.py | CC0 (propio) |
+| ciudad_panel_color.png | Ciudades, chapa de paneles: color | 1024×1024 | scripts/espacio/gen_ciudad.py | CC0 (propio) |
+| ciudad_panel_normal.png | Ciudades, chapa de paneles: relieve (OpenGL) | 1024×1024 | scripts/espacio/gen_ciudad.py | CC0 (propio) |
+| ciudad_panel_roughness.png | Ciudades, chapa de paneles: rugosidad | 1024×1024 | scripts/espacio/gen_ciudad.py | CC0 (propio) |
+| ciudad_panel_metalness.png | Ciudades, chapa de paneles: metal | 1024×1024 | scripts/espacio/gen_ciudad.py | CC0 (propio) |
+| ciudad_fachada_color.png | Ciudades, fachada con ventanas: color | 1024×1024 | scripts/espacio/gen_ciudad.py | CC0 (propio) |
+| ciudad_fachada_normal.png | Ciudades, fachada con ventanas: relieve (OpenGL) | 1024×1024 | scripts/espacio/gen_ciudad.py | CC0 (propio) |
+| ciudad_fachada_roughness.png | Ciudades, fachada con ventanas: rugosidad | 1024×1024 | scripts/espacio/gen_ciudad.py | CC0 (propio) |
+| ciudad_fachada_metalness.png | Ciudades, fachada con ventanas: metal | 1024×1024 | scripts/espacio/gen_ciudad.py | CC0 (propio) |
+| ciudad_piedra_color.png | Ciudades, piedra tallada: color | 1024×1024 | scripts/espacio/gen_ciudad.py | CC0 (propio) |
+| ciudad_piedra_normal.png | Ciudades, piedra tallada: relieve (OpenGL) | 1024×1024 | scripts/espacio/gen_ciudad.py | CC0 (propio) |
+| ciudad_piedra_roughness.png | Ciudades, piedra tallada: rugosidad | 1024×1024 | scripts/espacio/gen_ciudad.py | CC0 (propio) |
+| ciudad_piedra_metalness.png | Ciudades, piedra tallada: metal | 1024×1024 | scripts/espacio/gen_ciudad.py | CC0 (propio) |
+| ciudad_suelo_color.png | Ciudades, losas de plaza: color | 1024×1024 | scripts/espacio/gen_ciudad.py | CC0 (propio) |
+| ciudad_suelo_normal.png | Ciudades, losas de plaza: relieve (OpenGL) | 1024×1024 | scripts/espacio/gen_ciudad.py | CC0 (propio) |
+| ciudad_suelo_roughness.png | Ciudades, losas de plaza: rugosidad | 1024×1024 | scripts/espacio/gen_ciudad.py | CC0 (propio) |
+| ciudad_suelo_metalness.png | Ciudades, losas de plaza: metal | 1024×1024 | scripts/espacio/gen_ciudad.py | CC0 (propio) |
 | cielo_nebulosa_bk.jpg | Cielo del espacio v122: nebulosas moradas, azules y rosas, Vía Láctea (atrás, +Z) | 1024×1024 | scripts/espacio/gen_espacio_v122.py | CC0 (propio) |
 | cielo_nebulosa_dn.jpg | Cielo del espacio v122 (abajo: también nebulosa, nunca un suelo) | 1024×1024 | scripts/espacio/gen_espacio_v122.py | CC0 (propio) |
 | cielo_nebulosa_ft.jpg | Cielo del espacio v122 (delante, −Z) | 1024×1024 | scripts/espacio/gen_espacio_v122.py | CC0 (propio) |
