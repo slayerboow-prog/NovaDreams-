@@ -44,7 +44,7 @@ for name, info in Malla do
 	for key in info.Parts do
 		secs[string.match(key, "^(%a+)_") or "?"] = true
 	end
-	check(tris <= 8000, ("%s: ligero (%d triángulos)"):format(name, tris))
+	check(tris <= 10000, ("%s: ligero (%d triángulos)"):format(name, tris))
 	check(secs.Base and (info.Mid == 0 or (secs.Medio and secs.Tope)), name .. ": tiene sus secciones")
 end
 check(#names >= 19, ("edificios y objetos de calle (%d)"):format(#names))
@@ -60,7 +60,17 @@ print("📐 Colocar una malla en un solar")
 for _, flip in { false, true } do
 	local label = if flip then " (llegó girada)" else ""
 	local tpl = Meshes.prepare("TefraBloque", fake("TefraBloque", flip))
-	check(tpl ~= nil and #tpl.Entries == 11, "plantilla con sus 11 mallas" .. label)
+	local nBase, nMid, nTop = 0, 0, 0
+	for key in Malla.TefraBloque.Parts do
+		if string.sub(key, 1, 5) == "Base_" then
+			nBase += 1
+		elseif string.sub(key, 1, 6) == "Medio_" then
+			nMid += 1
+		else
+			nTop += 1
+		end
+	end
+	check(tpl ~= nil and #tpl.Entries == nBase + nMid + nTop, "plantilla con todas sus mallas" .. label)
 	if not tpl then
 		continue
 	end
@@ -73,18 +83,26 @@ for _, flip in { false, true } do
 	-- 54 de alto: base 14 + dos tramos de 16 (20 → 0.8) + tope 8
 	local sb, n, sm, st = Meshes.layout(tpl.Info, 54)
 	check(sb == 1 and n == 2 and math.abs(sm - 0.8) < 0.01 and st == 1, "54 studs = base + 2 tramos + tope" .. label)
-	check(#parts == 3 + 4 * 2 + 4, ("los tramos «Medio» se repiten (%d mallas)"):format(#parts) .. label)
+	check(#parts == nBase + nMid * 2 + nTop, ("los tramos «Medio» se repiten (%d mallas)"):format(#parts) .. label)
 	local door, bodyTop, lo = nil, 0, math.huge
 	for _, p in parts do
-		if p.Name == "TefraBloque_Base_Luz" then
-			door = p
+		if p.Name == "TefraBloque_Base_Forro" then
+			door = p -- (el forro llega hasta el hueco de la puerta: su centro queda hacia el frente… o centrado)
 		end
 		if string.find(p.Name, "_Cuerpo$") then
 			bodyTop = math.max(bodyTop, p.CFrame.Position.Y + p.Size.Y / 2)
 		end
 		lo = math.min(lo, p.CFrame.Position.Y - p.Size.Y / 2)
 	end
-	check(door ~= nil and door.CFrame.Position.Z < 2000 - 14 and math.abs(door.CFrame.Position.X - 1000) < 1, "la puerta queda al frente (hacia -Z)" .. label)
+	local frontMost, backMost = math.huge, -math.huge
+	for _, p in parts do
+		if string.find(p.Name, "_Base_") then
+			frontMost = math.min(frontMost, p.CFrame.Position.Z - p.Size.Z / 2)
+			backMost = math.max(backMost, p.CFrame.Position.Z + p.Size.Z / 2)
+		end
+	end
+	-- (delante sobresalen el escalón y los contrafuertes: más que por detrás)
+	check(door ~= nil and (2000 - frontMost) > (backMost - 2000) + 1, ("el frente queda hacia -Z (%.1f delante, %.1f detrás)"):format(2000 - frontMost, backMost - 2000) .. label)
 	check(math.abs(lo - 50) < 0.3, "apoyado en el suelo del solar" .. label)
 	check(bodyTop > 50 + 54 and bodyTop < 50 + 54 + 12, ("la azotea queda a la altura del solar (%.1f)"):format(bodyTop - 50) .. label)
 	check(seen.Cuerpo and seen.Luz and seen.Metal and seen.Cristal and seen.Techo, "cada grupo recibe su material" .. label)
@@ -131,25 +149,48 @@ for _, id in { "Vertice", "Siroco", "Talasa", "Umbria" } do
 			check(stats.MeshBuildings > 100, ("%s: edificios de malla (%d)"):format(id, stats.MeshBuildings))
 			check(stats.Props > 40, ("%s: objetos de calle (%d)"):format(id, stats.Props))
 		end
-		check(stats.Meshes < 9000, ("%s: mallas contenidas (%d)"):format(id, stats.Meshes))
+		check(stats.Meshes < 9500, ("%s: mallas contenidas (%d)"):format(id, stats.Meshes))
+		check(stats.Parts < 14000, ("%s: piezas contenidas (%d)"):format(id, stats.Parts))
+		if id ~= "Umbria" then
+			check(stats.Enterable == stats.MeshBuildings, ("%s: se entra en todos los edificios de malla (%d)"):format(id, stats.Enterable or 0))
+		end
 		-- un edificio de malla conserva su choque (cuerpo invisible) y ya no tiene las franjas de piezas
-		local found, collider, leftovers = false, false, false
+		local found, leftovers, doorOpen, walls, floorOk, blocked = false, false, true, 0, false, 0
 		for _, d in model:GetDescendants() do
 			if d.ClassName == "Model" and string.sub(d.Name, 1, 6) == "Malla_" and not found then
 				found = true
-				for _, ch in (d.Parent :: any):GetChildren() do
-					if ch:IsA("BasePart") then
-						if ch.Name == "Cuerpo" or ch.Name == "Zocalo" then
-							collider = collider or ch.Transparency == 1
-						elseif ch.Name == "Ventanas" or ch.Name == "Franja" or ch.Name == "Puerta" then
-							leftovers = true
+				local lotModel = d.Parent :: any
+				local floor = lotModel:FindFirstChild("SueloInterior")
+				local lintel = lotModel:FindFirstChild("Dintel")
+				floorOk = floor ~= nil and floor.Transparency == 0 and lintel ~= nil
+				if floor and lintel then
+					-- el camino de la puerta al centro de la habitación, a la altura de una persona: libre
+					local a = Vector3.new(lintel.CFrame.Position.X, floor.CFrame.Position.Y + 3, lintel.CFrame.Position.Z)
+					local b = Vector3.new(floor.CFrame.Position.X, a.Y, floor.CFrame.Position.Z)
+					for _, ch in lotModel:GetChildren() do
+						if ch:IsA("BasePart") and ch.Name ~= "SueloInterior" and ch.Name ~= "LuzInterior" and ch.Name ~= "RampaPuerta" then
+							if string.sub(ch.Name, 1, 4) == "Muro" then
+								walls += 1
+							end
+							if ch.Name == "Ventanas" or ch.Name == "Franja" or ch.Name == "Puerta" then
+								leftovers = true
+							end
+							for step = 0, 10 do
+								local q = ch.CFrame:PointToObjectSpace(a:Lerp(b, step / 10))
+								if math.abs(q.X) < ch.Size.X / 2 and math.abs(q.Y) < ch.Size.Y / 2 and math.abs(q.Z) < ch.Size.Z / 2 then
+									doorOpen = false
+									blocked += 1
+								end
+							end
 						end
 					end
 				end
 			end
 		end
 		if id ~= "Umbria" then
-			check(found and collider and not leftovers, id .. ": el cuerpo de piezas queda invisible para chocar y lo demás se quita")
+			check(found and not leftovers, id .. ": lo de piezas se quita")
+			check(floorOk and walls == 5, ("%s: planta baja con suelo, muros (%d) y dintel"):format(id, walls))
+			check(doorOpen, ("%s: de la puerta al centro de la habitación no hay nada en medio (%d)"):format(id, blocked))
 		end
 	end
 end

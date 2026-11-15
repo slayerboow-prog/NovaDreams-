@@ -241,14 +241,10 @@ function PlanetMetroBuilder.build(parent: Instance, S: any, opts: { [string]: an
 	end
 	local COLLIDER = { Cuerpo = true, Alto = true, Torre = true, Zocalo = true }
 	local STRUCT = { Cimientos = true, Plataforma = true, Barandilla = true, Pilote = true, Puntal = true }
-	local PROP_BODY: { [string]: { any } } = {
-		CalleCajas = { rgb(128, 96, 62), Enum.Material.WoodPlanks },
-		CalleGenerador = { rgb(170, 120, 40), Enum.Material.Metal },
-		CalleJardinera = { rgb(128, 126, 122), Enum.Material.Concrete },
-	}
+	local PROP_BODY: { [string]: { any } } = {}
 	local function meshStyle(wall: Color3, strip: Color3, body: string?, bodyColor: Color3?, bodyMat: Enum.Material?)
 		return function(group: string, p: BasePart, _sec: string)
-			p.CastShadow = group ~= "Luz" and group ~= "Cristal"
+			p.CastShadow = group == "Cuerpo" or group == "Techo" -- (sombras solo de lo grande: más ligero)
 			if group == "Cuerpo" then
 				p.Material = bodyMat or wallMat
 				p.Color = bodyColor or wall
@@ -277,6 +273,11 @@ function PlanetMetroBuilder.build(parent: Instance, S: any, opts: { [string]: an
 			elseif group == "Hoja" then
 				p.Material = Enum.Material.Grass
 				p.Color = L.Leaf
+			elseif group == "Forro" then
+				-- (las paredes de dentro: lisas y más claras que la fachada)
+				p.Material = Enum.Material.SmoothPlastic
+				p.Color = wall:Lerp(Color3.new(1, 1, 1), 0.3)
+				p.CastShadow = false
 			end
 		end
 	end
@@ -292,9 +293,10 @@ function PlanetMetroBuilder.build(parent: Instance, S: any, opts: { [string]: an
 			return false -- (torres redondas: se quedan como están)
 		end
 		local h = if lot.Kind == "Casa" then lot.Floors * FH else lot.Height
+		local E = tpl.Info.Enter
 		for _, ch in m:GetChildren() do
 			if ch:IsA("BasePart") then
-				if COLLIDER[ch.Name] then
+				if COLLIDER[ch.Name] and not E then
 					ch.Transparency = 1
 					ch.CastShadow = false
 					if ch.Name == "Alto" or ch.Name == "Torre" then
@@ -302,8 +304,83 @@ function PlanetMetroBuilder.build(parent: Instance, S: any, opts: { [string]: an
 					end
 				elseif not STRUCT[ch.Name] then
 					ch:Destroy()
+					stats.Parts -= 1
 				end
 			end
+		end
+		if E then
+			-- Se ENTRA en la planta baja: suelo, muros con el hueco de la puerta, techo (lo de arriba, macizo), los
+			-- muebles que chocan y una luz. Todo invisible menos el suelo: lo que se ve es la malla.
+			local info = tpl.Info
+			local kx, kz = w / info.W, d / info.D
+			local sb = CityMeshes.layout(info, h)
+			local shrink = if E.Round then 0.9 else 1
+			local hx, y0, y1 = E.HX * shrink, E.Y0 * shrink, E.Y1 * shrink
+			local t = E.T * (if E.Round then 1.6 else 1)
+			-- (coordenadas de Blender: x, y = fondo con el frente en -y, z = alto → las del solar: -x, z, y)
+			local function col(name: string, x0: number, x1: number, ya: number, yb: number, z0: number, z1: number, visible: boolean?): BasePart
+				local part = Builder.part({
+					Name = name,
+					Size = V3(math.max(0.2, math.abs(x1 - x0) * kx), math.max(0.2, math.abs(z1 - z0) * sb), math.max(0.2, math.abs(yb - ya) * kz)),
+					CFrame = cf * CFrame.new(-(x0 + x1) / 2 * kx, (z0 + z1) / 2 * sb, (ya + yb) / 2 * kz),
+					Color = L.Ground,
+					Material = if haveSkin.CiudadSuelo then Enum.Material.Pavement else Enum.Material.Slate,
+					Transparency = if visible then 0 else 1,
+					CastShadow = false,
+					Parent = m,
+				})
+				stats.Parts += 1
+				return part
+			end
+			local floor = col("SueloInterior", -hx, hx, y0, y1, E.Floor - 0.6, E.Floor + 0.05, true)
+			if haveSkin.CiudadSuelo then
+				floor.MaterialVariant = "CiudadSuelo"
+			end
+			col("MuroIzq", -hx, -hx + t, y0, y1, E.Floor, E.Top)
+			col("MuroDer", hx - t, hx, y0, y1, E.Floor, E.Top)
+			col("MuroFondo", -hx, hx, y1 - t, y1, E.Floor, E.Top)
+			col("MuroFrenteA", -hx, -E.DoorW / 2, y0, y0 + t, E.Floor, E.Top)
+			col("MuroFrenteB", E.DoorW / 2, hx, y0, y0 + t, E.Floor, E.Top)
+			col("Dintel", -E.DoorW / 2, E.DoorW / 2, y0, y0 + t, E.Floor + E.DoorH, E.Top)
+			local topY = E.Top * sb
+			if h - topY > 0.5 then
+				Builder.part({ Name = "Cuerpo", Size = V3(w, h - topY, d), CFrame = cf * CFrame.new(0, (h + topY) / 2, 0), Transparency = 1, CastShadow = false, Parent = m })
+				stats.Parts += 1
+			end
+			for i, sd in E.Solids do
+				col("Mueble" .. i, sd[1] - sd[4] / 2, sd[1] + sd[4] / 2, sd[2] - sd[5] / 2, sd[2] + sd[5] / 2, sd[3] - sd[6] / 2, sd[3] + sd[6] / 2)
+			end
+			local lamp = col("LuzInterior", -0.5, 0.5, (y0 + y1) / 2 - 0.5, (y0 + y1) / 2 + 0.5, E.Top - 2.2, E.Top - 1.2)
+			lamp.CanCollide = false
+			lamp.CanQuery = false
+			local pl = Instance.new("PointLight")
+			pl.Color = L.WindowNight or L.Lamp
+			pl.Range = 22
+			pl.Brightness = 0.9
+			pl.Shadows = false
+			pl.Parent = lamp
+			-- la rampa de la puerta, si el suelo de dentro queda más alto que el de fuera
+			local floorY = lot.Base + E.Floor * sb
+			local outP = (cf * CFrame.new(0, 0, y0 * kz - 4)).Position
+			local gy = if deck then lot.Base else math.max(M.groundY(outP.X - O.X, outP.Z - O.Z), lot.Base - 12)
+			local diff = floorY - gy
+			if diff > 0.45 then
+				local len = math.clamp(diff * 1.9, 3, 16)
+				local ang = math.atan2(diff, len)
+				local slab = Builder.part({
+					Name = "RampaPuerta",
+					Size = V3(E.DoorW * kx + 1, 0.5, math.sqrt(len * len + diff * diff) + 0.6),
+					CFrame = cf * CFrame.new(0, E.Floor * sb - diff / 2 - 0.25, y0 * kz - len / 2) * CFrame.Angles(-ang, 0, 0),
+					Color = L.Ground,
+					Material = Enum.Material.Metal,
+					Transparency = if E.Ramp then 1 else 0,
+					CastShadow = false,
+					Parent = m,
+				})
+				slab:SetAttribute("Diff", diff)
+				stats.Parts += 1
+			end
+			stats.Enterable = (stats.Enterable or 0) + 1
 		end
 		local wall = L.Walls[1 + math.floor(r() * #L.Walls)]
 		local strip = if L.Neon then L.Neon[1 + math.floor(r() * #L.Neon)] else (L.Strip or L.Glow)

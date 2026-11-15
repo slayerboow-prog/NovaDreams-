@@ -32,6 +32,7 @@ PI = math.pi
 
 G = {}  # "Seccion_Grupo" -> [objetos]
 SEC = ["Base"]
+ENTER = [None]  # la planta baja en la que se entra (la pone enter() en cada edificio)
 
 PREVIEW = {
     "Cuerpo": ((0.8, 0.82, 0.86), 0.0, 0.6, 0.0),
@@ -42,6 +43,7 @@ PREVIEW = {
     "Nieve": ((0.95, 0.97, 1.0), 0.0, 0.9, 0.0),
     "Toldo": ((0.75, 0.3, 0.2), 0.0, 0.9, 0.0),
     "Hoja": ((0.2, 0.5, 0.25), 0.0, 0.85, 0.0),
+    "Forro": ((0.78, 0.74, 0.68), 0.0, 0.9, 0.0),
 }
 TINTS = {
     "Tefra": {"Cuerpo": (0.2, 0.17, 0.17), "Luz": (1.0, 0.35, 0.08), "Metal": (0.1, 0.09, 0.09), "Techo": (0.13, 0.11, 0.12), "Cristal": (0.3, 0.12, 0.06)},
@@ -58,6 +60,7 @@ def reset():
     bpy.ops.wm.read_factory_settings(use_empty=True)
     G.clear()
     SEC[0] = "Base"
+    ENTER[0] = None
 
 
 def sec(name):
@@ -90,6 +93,9 @@ def box(c, size, group, rot=(0, 0, 0), bevel=0.0):
 
 def cyl(c, r, h, group, n=16, rot=(0, 0, 0), r2=None, bevel=0.0):
     """Cilindro (o cono si r2) con la BASE en c; el eje es +Z girado con rot."""
+    # (ligero para el móvil: lo fino, con pocas caras)
+    big = max(r, r2 or 0)
+    n = min(n, 6) if big < 0.9 else min(n, 8) if big < 2 else min(n, 12) if big < 6 else min(n, 20)
     if r2 is None:
         bpy.ops.mesh.primitive_cylinder_add(vertices=n, radius=r, depth=h, location=(0, 0, 0))
     else:
@@ -104,6 +110,8 @@ def cyl(c, r, h, group, n=16, rot=(0, 0, 0), r2=None, bevel=0.0):
 
 
 def sphere(c, r, group, seg=20, rings=10, hemi=False, squash=(1, 1, 1)):
+    if seg > 4:
+        seg, rings = (min(seg, 8), min(rings, 5)) if r < 1.6 else (min(seg, 10), min(rings, 6)) if r < 4 else (min(seg, 16), min(rings, 8))
     bpy.ops.mesh.primitive_uv_sphere_add(segments=seg, ring_count=rings, radius=r, location=c)
     o = bpy.context.active_object
     if squash != (1, 1, 1):
@@ -121,6 +129,7 @@ def sphere(c, r, group, seg=20, rings=10, hemi=False, squash=(1, 1, 1)):
 
 
 def torus(c, R, r, group, n=32, m=8, rot=(0, 0, 0)):
+    n, m = (min(n, 12), 4) if R < 6 else (min(n, 20), 4)
     bpy.ops.mesh.primitive_torus_add(major_radius=R, minor_radius=r, major_segments=n, minor_segments=m, location=c, rotation=rot)
     return _keep(bpy.context.active_object, group)
 
@@ -243,13 +252,150 @@ def tank(x, y, z, r, h, group="Metal", legs=True):
         for a in range(3):
             cyl((x + math.cos(a * 2.1) * r * 0.7, y + math.sin(a * 2.1) * r * 0.7, z), 0.25, 0.9, "Metal", n=6)
 
+def body(o):
+    """Marca el CUERPO de la planta baja: se vacía por dentro (se entra) y se le abre la puerta."""
+    o["body"] = 1
+    return o
+
+
+def enter(style, hx, y0, y1, top, floor=0.3, dw=8.0, dh=9.0, t=1.2, round_=False, ramp=False, home=False):
+    """La planta baja en la que se entra: hueco de hx (medio ancho) × [y0, y1] (frente y fondo, por fuera) entre
+    floor y top, con la puerta (dw × dh) en el centro del frente. La amuebla y lo apunta para el manifiesto."""
+    E = dict(hx=hx, y0=y0, y1=y1, top=top, floor=floor, dw=dw, dh=dh, t=t, round=round_, ramp=ramp, solids=[])
+    ENTER[0] = E
+    prev = SEC[0]
+    sec("Base")
+    furnish(E, style, home)
+    sec(prev)
+
+
+def gem(c, r, group="Luz", tall=1.5):
+    """Cristal flotante (un octaedro)."""
+    return sphere(c, r, group, seg=4, rings=2, squash=(1, 1, tall))
+
+
+def hover(c, r, h, group="Metal", n=14):
+    """Algo que flota: un disco con su anillo de luz por debajo."""
+    cyl(c, r, h, group, n=n)
+    cyl((c[0], c[1], c[2] - 0.18), r * 0.8, 0.12, "Luz", n=n)
+
+
+def furnish(E, style, home):
+    """Decoración de otra galaxia: nada de camas, mesas ni estanterías de la Tierra. Lámpara que flota, círculo
+    de luz en el suelo, cápsula de descanso o consola con hologramas, celdas hexagonales, mesa y asientos que
+    levitan y la máquina propia del planeta."""
+    t = E["t"]
+    hx, y0, y1, z, top = E["hx"] - t, E["y0"] + t, E["y1"] - t, E["floor"], E["top"]
+    if E["round"]:
+        k = 0.7
+        cy, hy = (y0 + y1) / 2, (y1 - y0) / 2 * k
+        hx, y0, y1 = hx * k, cy - hy, cy + hy
+    S = E["solids"]
+
+    def solid(c, size):
+        S.append([round(v, 2) for v in (*c, *size)])
+
+    cy = (y0 + y1) / 2
+    # lámpara: un anillo y un núcleo que flotan bajo el techo
+    torus((0, cy, top - 1.7), 2.3, 0.22, "Luz", n=24, m=6)
+    gem((0, cy, top - 1.7), 0.8, "Luz")
+    torus((0, cy, top - 0.5), 1.2, 0.15, "Metal", n=16, m=6)
+    # el suelo: un círculo de luz con su placa
+    cyl((0, cy - 1, z + 0.02), 3.6, 0.08, "Luz", n=24)
+    cyl((0, cy - 1, z + 0.03), 3.3, 0.1, "Metal", n=24)
+    cyl((0, cy - 1, z + 0.04), 1.2, 0.12, "Luz", n=16)
+    if home:
+        # cápsula de descanso: base con borde de luz y cúpula de cristal
+        bx, by = -hx + 4.4, y1 - 2.8
+        box((bx, by, z + 0.75), (7.8, 4.2, 1.1), "Metal", bevel=0.45)
+        box((bx, by, z + 0.25), (8.1, 4.5, 0.2), "Luz")
+        sphere((bx, by, z + 1.3), 2, "Cristal", seg=16, rings=8, hemi=True, squash=(1.85, 0.98, 0.95))
+        box((bx + 0.2, by, z + 1.45), (6.4, 3, 0.4), "Toldo", bevel=0.2)
+        cyl((bx - 4.6, by, z), 0.5, 4.4, "Metal", n=8)
+        gem((bx - 4.6, by, z + 5.3), 0.6, "Luz")
+        solid((bx, by, z + 1.5), (7.8, 4.2, 3))
+    else:
+        # consola inclinada con hologramas flotando encima y una pantalla grande al fondo
+        cw, by = hx * 1.1, y1 - 4.2
+        frustum((0, by, z + 0.5), cw, 2.4, cw - 1, 1.3, 2.7, "Metal")
+        box((0, by, z + 0.3), (cw + 0.4, 2.8, 0.25), "Luz")
+        box((0, by - 0.95, z + 2.2), (cw - 2, 0.12, 1.2), "Luz", rot=(math.radians(-22), 0, 0))
+        for i in range(3):
+            gem((-cw * 0.3 + i * cw * 0.3, by, z + 4.6 + (i % 2) * 0.5), 0.55, ("Luz", "Cristal", "Luz")[i])
+            cyl((-cw * 0.3 + i * cw * 0.3, by, z + 3.25), 0.5, 0.12, "Luz", n=10)
+        solid((0, by, z + 1.7), (cw, 2.4, 3.4))
+        box((0, y1 - 0.2, z + 7.4), (8.4, 0.3, 3.6), "Metal", bevel=0.1)
+        box((0, y1 - 0.4, z + 7.4), (7.6, 0.12, 2.9), "Luz")
+    # celdas hexagonales en la pared izquierda, con núcleos de luz y de cristal
+    sx_, sl = -hx + 0.7, min(9, (y1 - y0) * 0.4)
+    sy = cy - 1.5
+    for r_ in range(3):
+        for i in range(3):
+            yy = sy - sl / 2 + (i + 0.5 + (r_ % 2) * 0.5) * sl / 3.5
+            zz = z + 1.5 + r_ * 2.25
+            cyl((sx_ - 0.7, yy, zz), 1.3, 1.5, "Metal", n=6, rot=(0, PI / 2, 0))
+            cyl((sx_ + 0.75, yy, zz), 0.85, 0.15, ("Luz", "Cristal", "Hoja")[(i + r_) % 3], n=6, rot=(0, PI / 2, 0))
+    solid((sx_, sy, z + 3.8), (1.5, sl, 7.6))
+    # mesa y asientos que levitan, con un cristal girando encima
+    tx, ty = hx - 4.4, y0 + 5.2
+    hover((tx, ty, z + 2.3), 2.3, 0.25, "Cristal")
+    torus((tx, ty, z + 2.3), 2.35, 0.14, "Metal", n=20, m=6)
+    gem((tx, ty, z + 3.7), 0.6, "Luz")
+    for a in (0.4, 2.5, 4.6):
+        px_, py_ = tx + math.cos(a) * 3.3, ty + math.sin(a) * 3.3
+        sphere((px_, py_, z + 1.25), 0.95, "Metal", seg=12, rings=8, squash=(1, 1, 0.5))
+        cyl((px_, py_, z + 0.55), 0.6, 0.12, "Luz", n=10)
+    solid((tx, ty, z + 1.3), (4.4, 4.4, 2.6))
+    # la máquina propia del planeta, al fondo a la derecha
+    px, py = hx - 2.5, y1 - 2.4
+    if style == "Tefra":  # crisol de magma con su brazo
+        cyl((px, py, z), 2.1, 2.6, "Cuerpo", n=8, r2=1.6)
+        cyl((px, py, z + 2.6), 1.9, 0.5, "Luz", n=8)
+        cyl((px, py, z + 2.4), 2.2, 0.5, "Metal", n=8)
+        cyl((px, py, z + 5.4), 0.9, top - z - 5.4, "Metal", n=8, r2=1.5)
+        for i in range(3):
+            gem((px - 3 - i * 0.8, py + 0.8 - i * 0.7, z + 0.7 + i * 0.25), 0.55 + i * 0.1, "Luz", 1.2)
+    elif style == "Siroco":  # urnas de energía con aros de luz
+        for i, (dx, dy, r) in enumerate(((0, 0, 1.5), (-2.7, 0.4, 1.1), (0.3, -2.5, 0.9))):
+            sphere((px + dx, py + dy, z + r * 1.25), r, "Techo", seg=10, rings=8, squash=(1, 1, 1.3))
+            torus((px + dx, py + dy, z + r * 1.25), r * 1.02, 0.12, "Luz", n=14, m=6)
+            gem((px + dx, py + dy, z + r * 2.9), r * 0.28, "Luz")
+    elif style == "Talasa":  # tubo de vida marina
+        cyl((px, py, z), 2, 0.6, "Metal", n=14)
+        cyl((px, py, z + 0.6), 1.8, 5.6, "Cristal", n=14)
+        cyl((px, py, z + 0.8), 1.3, 4.6, "Luz", n=12)
+        cyl((px, py, z + 6.2), 2, 0.5, "Metal", n=14)
+        torus((px, py, z + 3.4), 2.1, 0.12, "Luz", n=16, m=6)
+    elif style == "Nivalis":  # racimo de cristales que da calor
+        cyl((px, py, z), 2.2, 0.6, "Metal", n=6)
+        for i in range(6):
+            a = i * 1.05
+            rr = 0 if i == 0 else 1.2
+            o = cyl((px + math.cos(a) * rr, py + math.sin(a) * rr, z + 0.5), 0.75 - (i % 3) * 0.12, 5.4 - (i % 4) * 0.9, "Cristal", n=6, r2=0.05)
+            if i > 0:
+                o.rotation_euler = (math.sin(a) * 0.3, -math.cos(a) * 0.3, 0)
+        gem((px, py, z + 1.6), 1.0, "Luz", 1.0)
+        torus((px, py, z + 0.7), 2.3, 0.12, "Luz", n=16, m=6)
+    elif style == "Miasma":  # depósito de filtrado
+        cyl((px, py, z), 2.1, 0.7, "Metal", n=14)
+        cyl((px, py, z + 0.7), 1.8, 5, "Cristal", n=14)
+        cyl((px, py, z + 0.9), 1.4, 3.6, "Luz", n=12)
+        cyl((px, py, z + 5.7), 2.1, 0.6, "Metal", n=14)
+        cyl((px, py, z + 6.3), 0.5, top - z - 6.3, "Metal", n=8)
+    else:  # Vértice: proyector de hologramas
+        cyl((px, py, z), 1.7, 1, "Metal", n=14)
+        cyl((px, py, z + 1), 0.3, 4.4, "Luz", n=8, r2=1.5)
+        torus((px, py, z + 3.4), 1.5, 0.14, "Luz", n=20, m=6)
+        gem((px, py, z + 6.4), 0.9, "Luz")
+    solid((px, py, z + 2.5), (4, 3.6, 5))
+
 
 # ---------------------------------------------------------------------------
 # VÉRTICE: neón y cristal
 # ---------------------------------------------------------------------------
 def vertice_bloque():
     sec("Base")
-    box((0, 0, 7), (30, 30, 14), "Cuerpo", bevel=0.25)
+    body(body(box((0, 0, 7), (30, 30, 14), "Cuerpo", bevel=0.25)))
     box((0, -15.1, 5.2), (17, 0.4, 9), "Cristal")
     box((0, -15.25, 4.6), (5.4, 0.5, 8.6), "Metal")
     box((0, -15.4, 4.4), (4.2, 0.4, 7.6), "Cristal")
@@ -302,11 +448,12 @@ def vertice_bloque():
     dish(5, -5, 43.6, 2.2)
     for i in range(3):
         box((-12 + i * 2.2, -12.5, 35.9), (1.8, 3.6, 1.8), "Metal", bevel=0.1)
+    enter("Vertice", 15, -15, 15, 12.4)
 
 
 def vertice_torre():
     sec("Base")
-    box((0, 0, 8), (30, 30, 16), "Cuerpo", bevel=0.3)
+    body(box((0, 0, 8), (30, 30, 16), "Cuerpo", bevel=0.3))
     fs = faces4(30, 30)
     for fi in (0, 2, 3):
         on_face(fs[fi], 0, 6.6, 0.15, (22, 0.4, 11.4), "Cristal")
@@ -357,11 +504,12 @@ def vertice_torre():
         a = i * PI / 2 + PI / 4
         cyl((math.cos(a) * 12.5, math.sin(a) * 12.5, 47), 0.3, 7, "Metal", n=6, r2=0.1)
         sphere((math.cos(a) * 12.5, math.sin(a) * 12.5, 54), 0.5, "Luz", seg=8, rings=6)
+    enter("Vertice", 15, -15, 15, 14)
 
 
 def vertice_casa():
     sec("Base")
-    box((0, 0, 10), (26, 26, 20), "Cuerpo", bevel=0.25)
+    body(box((0, 0, 10), (26, 26, 20), "Cuerpo", bevel=0.25))
     box((0, -13.1, 4.6), (20, 0.4, 8), "Cristal")
     box((0, -13.3, 4.2), (4.6, 0.5, 8.2), "Metal")
     box((0, -14.8, 9.6), (22, 3.6, 0.4), "Toldo", rot=(math.radians(-10), 0, 0))
@@ -383,6 +531,7 @@ def vertice_casa():
     box((6, -3, 21.4), (5, 4, 2.6), "Metal", bevel=0.15)
     antenna(9, 4, 20.1, 9)
     pipe_v(-13.5, 10, 0, 20, 0.45)
+    enter("Vertice", 13, -13, 13, 10.4, dw=7, dh=8.4, home=True)
 
 
 # ---------------------------------------------------------------------------
@@ -390,7 +539,7 @@ def vertice_casa():
 # ---------------------------------------------------------------------------
 def tefra_bloque():
     sec("Base")
-    frustum((0, 0, 0), 32, 32, 30, 30, 14, "Cuerpo")
+    body(frustum((0, 0, 0), 32, 32, 30, 30, 14, "Cuerpo"))
     box((0, -15.7, 4.6), (8, 0.8, 9.2), "Metal", bevel=0.2)
     box((0, -16.15, 4.6), (0.3, 0.3, 9), "Cuerpo")
     for sx in (-1, 1):
@@ -437,11 +586,12 @@ def tefra_bloque():
     cyl((9.5, 9.5, 35.6), 1.7, 13, "Metal", n=10)
     cyl((9.5, 9.5, 47.6), 1.95, 0.9, "Luz", n=10)
     cyl((9.5, 9.5, 41), 2.1, 0.5, "Metal", n=10)
+    enter("Tefra", 15, -15, 15, 12.4)
 
 
 def tefra_casa():
     sec("Base")
-    frustum((0, 0, 0), 27.5, 27.5, 26, 26, 20, "Cuerpo")
+    body(frustum((0, 0, 0), 27.5, 27.5, 26, 26, 20, "Cuerpo"))
     box((0, -13.7, 4), (5, 0.7, 8), "Metal", bevel=0.2)
     box((0, -13.9, 8.9), (6.4, 0.9, 1.2), "Cuerpo", bevel=0.1)
     box((0, -13.75, 9.9), (4, 0.4, 0.6), "Luz")
@@ -464,6 +614,7 @@ def tefra_casa():
     pipe_v(-13.9, 6, 0, 20, 0.6)
     box((-9, -15, 1.3), (3, 3, 2.6), "Metal", bevel=0.15)
     cyl((9, -15, 0), 1.3, 3.2, "Metal", n=10)
+    enter("Tefra", 13, -13, 13, 10.6, dw=7, dh=8.4, home=True)
 
 
 # ---------------------------------------------------------------------------
@@ -476,8 +627,8 @@ def arch_door(y, w, h, group="Metal", depth=0.6):
 
 def siroco_bloque():
     sec("Base")
-    box((0, 0, 7), (30, 30, 14), "Cuerpo", bevel=0.4)
-    box((0, 0, 0.7), (31.4, 31.4, 1.4), "Cuerpo", bevel=0.2)
+    body(box((0, 0, 7), (30, 30, 14), "Cuerpo", bevel=0.4))
+    body(box((0, 0, 0.7), (31.4, 31.4, 1.4), "Cuerpo", bevel=0.2))
     arch_door(-15.25, 6, 10)
     box((0, -15.5, 5), (7.6, 0.5, 10.6), "Cuerpo")
     cyl((0, -15.25, 7), 3.8, 0.5, "Cuerpo", n=16, rot=(PI / 2, 0, 0))
@@ -530,12 +681,13 @@ def siroco_bloque():
         box((10, 7.4, 41.5 + i * 1.5), (4.6, 0.3, 0.6), "Metal")
         box((6.9, 10.5, 41.5 + i * 1.5), (0.3, 4.6, 0.6), "Metal")
     box((10, 10.5, 45.5), (7, 7, 0.7), "Cuerpo")
+    enter("Siroco", 15, -15, 15, 12.4, dh=9.6)
 
 
 def siroco_casa():
     sec("Base")
-    box((0, 0, 10), (26, 26, 20), "Cuerpo", bevel=0.45)
-    box((0, 0, 0.6), (27.2, 27.2, 1.2), "Cuerpo", bevel=0.2)
+    body(box((0, 0, 10), (26, 26, 20), "Cuerpo", bevel=0.45))
+    body(box((0, 0, 0.6), (27.2, 27.2, 1.2), "Cuerpo", bevel=0.2))
     arch_door(-13.3, 5, 8.6)
     box((0, -13.2, 4.4), (6.4, 0.5, 9.2), "Cuerpo")
     cyl((0, -12.95, 6.1), 3.2, 0.5, "Cuerpo", n=16, rot=(PI / 2, 0, 0))
@@ -561,6 +713,7 @@ def siroco_casa():
         sphere((sx * 9.6, -14.6, 1.2), 1.15, "Techo", seg=10, rings=8, squash=(1, 1, 1.3))
     box((-9.6, -14.4, 3.6), (0.3, 0.3, 2), "Hoja")
     sphere((-9.6, -14.6, 4.6), 1.3, "Hoja", seg=8, rings=6, squash=(1, 1, 0.7))
+    enter("Siroco", 13, -13, 13, 10.6, dw=7, dh=8.4, home=True)
 
 
 # ---------------------------------------------------------------------------
@@ -568,9 +721,9 @@ def siroco_casa():
 # ---------------------------------------------------------------------------
 def talasa_bloque():
     sec("Base")
-    cyl((0, 0, 0), 16.4, 3, "Cuerpo", n=32, r2=15)
-    cyl((0, 0, 3), 15, 11, "Cuerpo", n=32)
-    cyl((0, 0, 4.2), 15.15, 6.4, "Cristal", n=32)
+    body(cyl((0, 0, 0), 16.4, 3, "Cuerpo", n=32, r2=15))
+    body(cyl((0, 0, 3), 15, 11, "Cuerpo", n=32))
+    body(cyl((0, 0, 4.2), 15.15, 6.4, "Cristal", n=32))
     box((0, -15.1, 4.8), (6.4, 1.4, 8.4), "Metal", bevel=0.5)
     box((0, -15.75, 4.4), (4.6, 0.4, 7), "Cristal")
     box((0, -15.8, 9.4), (7, 0.4, 0.5), "Luz")
@@ -609,13 +762,14 @@ def talasa_bloque():
     for i in range(3):
         a = i * 2.1 + 0.5
         dish(math.cos(a) * 14.8, math.sin(a) * 14.8, 38.8, 1.5)
+    enter("Talasa", 15, -15, 15, 12, round_=True)
 
 
 def talasa_casa():
     sec("Base")
-    cyl((0, 0, 0), 13.6, 2, "Cuerpo", n=28, r2=12.6)
-    cyl((0, 0, 2), 12.6, 12, "Cuerpo", n=28)
-    cyl((0, 0, 5), 12.75, 5.4, "Cristal", n=28)
+    body(cyl((0, 0, 0), 13.6, 2, "Cuerpo", n=28, r2=12.6))
+    body(cyl((0, 0, 2), 12.6, 12, "Cuerpo", n=28))
+    body(cyl((0, 0, 5), 12.75, 5.4, "Cristal", n=28))
     box((0, -12.7, 4.4), (5.4, 1.4, 7.6), "Metal", bevel=0.5)
     box((0, -13.35, 4), (3.8, 0.4, 6.2), "Cristal")
     cyl((0, 0, 13.6), 12.9, 0.45, "Luz", n=28)
@@ -631,6 +785,7 @@ def talasa_casa():
     for sx in (-1, 1):
         box((sx * 9.5, -11.2, 1.3), (3.6, 2, 2.6), "Cuerpo", rot=(0, 0, sx * 0.5), bevel=0.6)
         sphere((sx * 9.5, -11.2, 3.1), 1.4, "Hoja", seg=8, rings=6, squash=(1.1, 0.7, 0.8))
+    enter("Talasa", 12.6, -12.6, 12.6, 11.4, dw=7, dh=8.4, round_=True, home=True)
 
 
 # ---------------------------------------------------------------------------
@@ -648,7 +803,7 @@ def lancet(face, u, z, ww, wh, depth=0.3):
 def nivalis_bloque():
     sec("Base")
     box((0, 0, 7), (30, 30, 14), "Cuerpo", bevel=0.25)
-    box((0, 0, 0.8), (31.6, 31.6, 1.6), "Cuerpo", bevel=0.2)
+    body(box((0, 0, 0.8), (31.6, 31.6, 1.6), "Cuerpo", bevel=0.2))
     box((0, -15.25, 3.6), (6, 0.6, 7.2), "Metal")
     frustum((0, -15.25, 7.2), 6, 0.6, 0.05, 0.6, 3.6, "Metal")
     box((0, -15.5, 3.9), (7.4, 0.5, 7.8), "Cuerpo")
@@ -706,12 +861,13 @@ def nivalis_bloque():
     box((0, -13.45, 38.4), (2.4, 0.3, 3), "Cristal")
     box((9, 6, 41), (3, 3, 9), "Cuerpo", bevel=0.15)
     box((9, 6, 45.7), (3.6, 3.6, 0.5), "Nieve", bevel=0.15)
+    enter("Nivalis", 15, -15, 15, 12.4)
 
 
 def nivalis_casa():
     sec("Base")
-    box((0, 0, 10), (26, 26, 20), "Cuerpo", bevel=0.2)
-    box((0, 0, 0.7), (27.4, 27.4, 1.4), "Cuerpo", bevel=0.2)
+    body(box((0, 0, 10), (26, 26, 20), "Cuerpo", bevel=0.2))
+    body(box((0, 0, 0.7), (27.4, 27.4, 1.4), "Cuerpo", bevel=0.2))
     box((0, -13.25, 3.6), (4.6, 0.6, 7.2), "Metal")
     frustum((0, -13.25, 7.2), 4.6, 0.6, 0.05, 0.6, 2.8, "Metal")
     box((0, -15, 9.6), (8, 3.6, 0.4), "Techo", rot=(math.radians(-22), 0, 0))
@@ -744,6 +900,7 @@ def nivalis_casa():
     box((-12, -14.6, 1.2), (2.4, 2.4, 2.4), "Metal", bevel=0.1)
     cyl((-9, -14.8, 0), 1.1, 2.8, "Metal", n=10)
     box((-10.6, -14.7, 2.9), (5.6, 3, 0.35), "Nieve", bevel=0.12)
+    enter("Nivalis", 13, -13, 13, 10.2, dw=7, dh=8.4, home=True)
 
 
 # ---------------------------------------------------------------------------
@@ -751,7 +908,7 @@ def nivalis_casa():
 # ---------------------------------------------------------------------------
 def miasma_bloque():
     sec("Base")
-    box((0, 0, 7.6), (30, 30, 12.8), "Cuerpo", bevel=0.15)
+    body(box((0, 0, 7.6), (30, 30, 12.8), "Cuerpo", bevel=0.15))
     for sx in (-1, 1):
         for sy in (-1, 1):
             box((sx * 13.4, sy * 13.4, 0.8), (4.4, 4.4, 1.6), "Metal", bevel=0.15)
@@ -822,6 +979,7 @@ def miasma_bloque():
     pipe_x(-10, 9.5, -2.4, 36.2, 0.7, flanges=3)
     cyl((0, 0, 35), 0.3, 17, "Metal", n=6, r2=0.08)
     sphere((0, 0, 52.4), 1.1, "Luz", seg=8, rings=6)
+    enter("Miasma", 15, -15, 15, 12.6, floor=1.5, dh=8.6, ramp=True)
 
 
 def miasma_casa():
@@ -831,7 +989,7 @@ def miasma_casa():
             cyl((sx * 11, sy * 11, 0), 0.8, 3, "Metal", n=8)
             box((sx * 11, sy * 11, 0.3), (2.6, 2.6, 0.6), "Metal")
     box((0, 0, 3.3), (27, 27, 0.6), "Metal")
-    box((0, 1, 8.4), (26, 22, 9.6), "Cuerpo", bevel=0.15)  # contenedor de abajo
+    body(box((0, 1, 8.4), (26, 22, 9.6), "Cuerpo", bevel=0.15))  # contenedor de abajo
     box((-3, -1, 16.6), (20, 20, 6.8), "Cuerpo", bevel=0.15)  # contenedor de arriba, desplazado
     for i in range(9):
         box((-12 + i * 3, -10.1, 8.4), (0.5, 0.4, 9.2), "Metal")
@@ -859,6 +1017,7 @@ def miasma_casa():
     antenna(2, 3, 20, 8)
     box((4, 9.5, 14), (7, 5, 0.3), "Metal")  # terraza
     box((7.4, 9.5, 15.3), (0.2, 5, 0.2), "Metal")
+    enter("Miasma", 13, -10, 12, 12.6, floor=3.9, dw=7, dh=8, ramp=True, home=True)
 
 
 # ---------------------------------------------------------------------------
@@ -888,20 +1047,25 @@ def calle_vehiculo():
 
 
 def calle_cajas():
+    """Contenedores de carga de otra galaxia: botes hexagonales con juntas de luz, cápsulas y un dron de carga."""
     sec("Base")
-    box((0, 0, 1.6), (3.2, 3.2, 3.2), "Cuerpo", bevel=0.12)
-    box((3.5, 0.4, 1.3), (2.6, 2.6, 2.6), "Cuerpo", rot=(0, 0, 0.3), bevel=0.12)
-    box((0.3, 0.2, 4.3), (2.2, 2.2, 2.2), "Cuerpo", rot=(0, 0, 0.5), bevel=0.1)
-    for c, s in (((0, 0, 1.6), 3.3), ((3.5, 0.4, 1.3), 2.7)):
-        box((c[0], c[1], c[2]), (s, 0.4, s), "Metal", rot=(0, 0, 0.3 if s < 3 else 0))
-        box((c[0], c[1], c[2]), (0.4, s, s), "Metal", rot=(0, 0, 0.3 if s < 3 else 0))
-    for x, y in ((-3.2, 0.6), (-3.4, -2.2), (-1, -2.9)):
-        cyl((x, y, 0), 1.15, 3.2, "Metal", n=12)
-        cyl((x, y, 0.9), 1.22, 0.25, "Luz" if (x, y) == (-3.2, 0.6) else "Metal", n=12)
-        cyl((x, y, 2.3), 1.22, 0.25, "Metal", n=12)
-    o = box((3.2, -2.6, 0.9), (4.4, 2.6, 1.8), "Toldo", rot=(0.1, 0, -0.2), bevel=0.5)  # sacos bajo lona
-    box((1.6, 2.9, 0.25), (4.4, 3, 0.5), "Metal")  # palé
-    box((1.6, 2.9, 1.2), (4, 2.6, 1.4), "Cuerpo", bevel=0.1)
+    for (x, y, r, h, a) in ((0, 0, 1.7, 3.4, 0), (3.3, 0.5, 1.4, 2.8, 0.4), (-3.2, 0.7, 1.5, 3.0, 0.2)):
+        cyl((x, y, 0), r, h, "Cuerpo", n=6, rot=(0, 0, a), bevel=0.1)
+        cyl((x, y, h * 0.5 - 0.1), r * 1.03, 0.2, "Luz", n=6, rot=(0, 0, a))
+        cyl((x, y, h), r * 0.85, 0.3, "Metal", n=6, rot=(0, 0, a))
+        cyl((x, y, 0), r * 1.06, 0.3, "Metal", n=6, rot=(0, 0, a))
+    cyl((0.2, 0.3, 3.7), 1.2, 2.2, "Cuerpo", n=6, rot=(0, 0, 0.5), bevel=0.1)
+    cyl((0.2, 0.3, 4.7), 1.24, 0.16, "Luz", n=6, rot=(0, 0, 0.5))
+    for y in (-2.7, 2.9):  # cápsulas tumbadas
+        cyl((-2.2, y, 0.9), 0.85, 4.4, "Metal", n=10, rot=(0, PI / 2, 0))
+        sphere((-2.2, y, 0.9), 0.85, "Metal", seg=10, rings=6)
+        sphere((2.2, y, 0.9), 0.85, "Metal", seg=10, rings=6)
+        cyl((-0.6, y, 0.9), 0.9, 1.2, "Cristal", n=10, rot=(0, PI / 2, 0))
+        cyl((-0.4, y, 0.9), 0.6, 0.8, "Luz", n=8, rot=(0, PI / 2, 0))
+    # dron de carga flotando
+    sphere((3.6, -1.6, 5), 0.9, "Metal", seg=12, rings=8, squash=(1.3, 1.3, 0.6))
+    cyl((3.6, -1.6, 4.5), 0.5, 0.15, "Luz", n=10)
+    sphere((3.6, -2.7, 5), 0.3, "Luz", seg=8, rings=6)
 
 
 def calle_tuberias():
@@ -924,61 +1088,63 @@ def calle_tuberias():
 
 
 def calle_generador():
+    """Celda de energía: un núcleo de luz dentro de cristal, sujeto por tres garras, con cristales cargándose."""
     sec("Base")
-    box((0, 0, 0.35), (8, 4.6, 0.7), "Metal", bevel=0.1)
-    box((0, 0, 2.6), (7, 3.8, 3.8), "Cuerpo", bevel=0.2)
-    for i in range(6):
-        box((-2.2 + i * 0.5 - 1, -1.95, 2.6), (0.22, 0.2, 2.6), "Metal")
-    box((2.2, -1.95, 3), (1.8, 0.2, 1.6), "Metal")
-    box((2.2, -2.06, 3.3), (1.3, 0.1, 0.5), "Luz")
-    for k in range(3):
-        box((1.7 + k * 0.5, -2.06, 2.5), (0.25, 0.1, 0.25), "Luz")
-    cyl((-2.4, 0.6, 4.5), 0.4, 2.6, "Metal", n=8)
-    cyl((-2.4, 0.6, 7.1), 0.55, 0.6, "Metal", n=8, rot=(0, math.radians(50), 0))
-    cyl((1.4, 0, 4.5), 1.3, 0.5, "Metal", n=12)
-    box((1.4, 0, 5.1), (2.2, 0.2, 0.2), "Metal")
-    box((1.4, 0, 5.1), (0.2, 2.2, 0.2), "Metal")
-    for i, x in enumerate((5.2, 6.2)):
-        box((x, -0.8 + i * 1.5, 1.0), (0.9, 1.4, 2), "Toldo", bevel=0.12)
-        box((x, -0.8 + i * 1.5, 2.15), (0.3, 0.6, 0.3), "Metal")
-    cyl((-4.6, -1.2, 0.2), 0.14, 3.2, "Metal", n=6, rot=(0, math.radians(72), 0.6))  # cable
-    cyl((-4.2, 1.4, 0.2), 0.14, 2.6, "Metal", n=6, rot=(0, math.radians(78), -0.5))
+    cyl((0, 0, 0), 2.6, 0.7, "Metal", n=6, bevel=0.1)
+    cyl((0, 0, 0.7), 1.5, 5, "Cristal", n=12)
+    cyl((0, 0, 0.9), 1.0, 4.6, "Luz", n=10)
+    cyl((0, 0, 5.7), 1.9, 0.6, "Metal", n=6)
+    gem((0, 0, 7.2), 0.7, "Luz")
+    torus((0, 0, 3.2), 2.1, 0.16, "Luz", n=20, m=6)
+    for i in range(3):
+        a = i * 2.094 + 0.5
+        cx, cy = math.cos(a) * 2.1, math.sin(a) * 2.1
+        box((cx, cy, 3.2), (0.5, 0.7, 5.6), "Cuerpo", rot=(0, 0, a), bevel=0.12)
+        box((math.cos(a) * 1.75, math.sin(a) * 1.75, 6), (1.2, 0.6, 0.5), "Cuerpo", rot=(0, 0, a))
+    for i, (x, y, h) in enumerate(((3.9, 0.6, 2.4), (4.6, -0.9, 1.7), (-4.2, 0.4, 2.0))):
+        cyl((x, y, 0), 0.75, 0.4, "Metal", n=6)
+        cyl((x, y, 0.4), 0.5, h, "Toldo", n=6, r2=0.05)
+        cyl((x, y, 0.4), 0.56, 0.12, "Luz", n=6)
+    cyl((1.2, 1.2, 0.15), 0.14, 3.2, "Metal", n=6, rot=(0, PI / 2, 0.2))
+    cyl((-1.2, -1.0, 0.15), 0.14, 3.2, "Metal", n=6, rot=(0, -PI / 2, 0.15))
 
 
 def calle_puesto():
+    """Puesto de hologramas: columna central, techo que flota y pantallas de luz alrededor."""
     sec("Base")
-    box((0, 0, 0.25), (7, 4.6, 0.5), "Metal", bevel=0.1)
-    box((0, 0.9, 3), (6.4, 2.4, 5), "Cuerpo", bevel=0.15)
-    box((0, -0.9, 2), (6.4, 1.4, 3), "Cuerpo", bevel=0.12)
-    box((0, -1.1, 3.6), (6.8, 1.9, 0.3), "Metal")
-    box((0, -0.34, 4.9), (5.2, 0.15, 1.9), "Luz")  # pantalla
-    box((0, -0.3, 4.9), (5.6, 0.3, 2.3), "Metal")
-    box((0, -1.4, 6.4), (7.6, 5, 0.25), "Toldo", rot=(math.radians(-12), 0, 0))
-    for sx in (-1, 1):
-        box((sx * 3.5, -3.3, 3), (0.25, 0.25, 6), "Metal")
-        box((sx * 2, -1, 4), (1.2, 0.9, 0.5), "Toldo", bevel=0.1)  # género
-    cyl((0.2, -1.1, 3.75), 0.5, 0.9, "Cristal", n=10)
-    box((0, 0.9, 5.8), (6.8, 2.8, 0.5), "Metal")
-    box((0, -0.5, 6.9), (4.4, 0.3, 1.0), "Luz")
-    cyl((4.4, 1, 0), 0.9, 2.2, "Metal", n=10)  # bidón
-    box((-4.6, 0.6, 0.9), (1.6, 1.6, 1.8), "Cuerpo", bevel=0.1)
+    cyl((0, 0, 0), 3.4, 0.4, "Metal", n=8)
+    cyl((0, 0, 0.4), 3.1, 0.12, "Luz", n=8)
+    cyl((0, 0, 0.4), 0.9, 5.2, "Cuerpo", n=8, r2=0.6)
+    cyl((0, 0, 2.6), 2.6, 0.35, "Cuerpo", n=8, bevel=0.08)  # mostrador en anillo
+    cyl((0, 0, 2.45), 2.7, 0.12, "Luz", n=8)
+    cyl((0, 0, 6.6), 3.8, 0.4, "Toldo", n=8, r2=1.2)  # techo que flota
+    cyl((0, 0, 6.45), 3.5, 0.12, "Luz", n=8)
+    gem((0, 0, 7.9), 0.6, "Luz")
+    for i in range(4):
+        a = i * PI / 2 + PI / 4
+        box((math.cos(a) * 2.9, math.sin(a) * 2.9, 4.6), (0.1, 2.4, 1.6), "Luz", rot=(0, 0, a))
+        gem((math.cos(a + 0.8) * 1.8, math.sin(a + 0.8) * 1.8, 3.4), 0.3, ("Cristal", "Luz")[i % 2])
+    hover((4.6, 0.8, 1.3), 1.0, 0.5)  # asiento flotante
 
 
 def calle_jardinera():
+    """Planta de otro mundo en su vaina, con bulbos que brillan, y un banco que levita."""
     sec("Base")
-    box((0, 0, 0.9), (9, 3, 1.8), "Cuerpo", bevel=0.2)
-    box((0, 0, 1.75), (8.2, 2.2, 0.3), "Metal")
-    for x, r in ((-2.8, 1.5), (0, 1.9), (2.9, 1.4)):
-        sphere((x, 0, 2.6 + r * 0.4), r, "Hoja", seg=10, rings=6, squash=(1, 0.8, 0.9))
-    cyl((0, 0, 1.8), 0.3, 3.2, "Metal", n=6)
-    sphere((0, 0, 5.6), 1.7, "Hoja", seg=10, rings=6, squash=(1, 1, 0.8))
-    # banco pegado
-    box((0, -2.6, 1.3), (7, 1.7, 0.3), "Metal", bevel=0.08)
-    box((0, -1.85, 2.3), (7, 0.25, 1.4), "Metal")
-    for sx in (-1, 1):
-        box((sx * 3, -2.6, 0.6), (0.4, 1.5, 1.2), "Cuerpo")
-        box((sx * 4.2, 0, 2.2), (0.3, 0.3, 0.9), "Metal")
-        sphere((sx * 4.2, 0, 2.9), 0.45, "Luz", seg=8, rings=6)
+    sphere((0, 0.6, 0.9), 2.4, "Cuerpo", seg=14, rings=8, squash=(1.5, 0.8, 0.5))
+    cyl((0, 0.6, 1.2), 2.6, 0.2, "Luz", n=16)
+    cyl((0, 0.6, 1.25), 2.4, 0.25, "Metal", n=16)
+    for i, (dx, lean, h) in enumerate(((-2.2, -0.35, 4.2), (-0.7, -0.1, 5.6), (0.9, 0.15, 4.8), (2.3, 0.4, 3.6))):
+        o = cyl((dx, 0.6, 1.3), 0.28, h, "Hoja", n=6, r2=0.1)
+        o.rotation_euler = (0, lean, 0)
+        tx, tz = dx + math.sin(lean) * h, 1.3 + math.cos(lean) * h
+        sphere((tx, 0.6, tz), 0.55 + (i % 2) * 0.15, "Luz", seg=10, rings=6)
+        sphere((tx, 0.6, tz - 0.5), 0.9, "Hoja", seg=8, rings=6, squash=(1.2, 1.2, 0.25))
+    for dx in (-3.2, 3.2):
+        sphere((dx, 0.6, 1.9), 0.8, "Hoja", seg=8, rings=6, squash=(1, 1, 1.4))
+    # banco que levita
+    box((0, -2.6, 1.4), (7, 1.8, 0.35), "Metal", bevel=0.15)
+    box((0, -2.6, 1.15), (6.2, 1.2, 0.12), "Luz")
+    box((0, -1.75, 2.3), (7, 0.25, 1.2), "Cristal")
 
 
 # nombre, función, estilo de la vista previa, medidas nominales (W, D y la altura de cada sección)
@@ -1025,7 +1191,94 @@ def tris_of(o):
     return sum(len(p.vertices) - 2 for p in o.data.polygons)
 
 
+def _only(o):
+    bpy.ops.object.select_all(action="DESELECT")
+    o.select_set(True)
+    bpy.context.view_layer.objects.active = o
+
+
+def _cutter(lo, hi, radius=None):
+    if radius:
+        bpy.ops.mesh.primitive_cylinder_add(vertices=48, radius=radius, depth=hi[2] - lo[2], location=(0, 0, (lo[2] + hi[2]) / 2))
+        return bpy.context.active_object
+    bpy.ops.mesh.primitive_cube_add(size=1, location=[(a + b) / 2 for a, b in zip(lo, hi)])
+    o = bpy.context.active_object
+    o.scale = [b - a for a, b in zip(lo, hi)]
+    bpy.ops.object.transform_apply(location=False, rotation=False, scale=True)
+    return o
+
+
+def _boolean(o, cutter):
+    _only(o)
+    m = o.modifiers.new("corte", "BOOLEAN")
+    m.operation = "DIFFERENCE"
+    m.object = cutter
+    m.solver = "EXACT"
+    bpy.ops.object.modifier_apply(modifier=m.name)
+
+
+def carve(E):
+    """Vacía la planta baja (los cuerpos marcados) y abre la puerta en todo lo que la tape. Las caras de dentro
+    pasan al grupo «Forro» (las paredes de la habitación)."""
+    t, z0, z1 = E["t"], E["floor"], E["top"]
+    hx, y0, y1 = E["hx"], E["y0"], E["y1"]
+    deep = t + (1.6 if E["round"] else 0.3)
+    dlo, dhi = (-E["dw"] / 2, y0 - 1.0, z0), (E["dw"] / 2, y0 + deep, z0 + E["dh"])
+    door = _cutter(dlo, dhi)
+    if E["round"]:
+        cav = _cutter((0, 0, z0), (0, 0, z1), radius=hx - t)
+    else:
+        cav = _cutter((-hx + t, y0 + t, z0), (hx - t, y1 - t, z1))
+
+    def inside(c):
+        if not (z0 - 0.02 <= c.z <= z1 + 0.02):
+            return False
+        if E["round"]:
+            return math.hypot(c.x, c.y) <= hx - t + 0.02
+        return abs(c.x) <= hx - t + 0.02 and y0 + t - 0.02 <= c.y <= y1 - t + 0.02
+
+    lining = []
+    for key in [k for k in G if k.startswith("Base_")]:
+        keep = []
+        for o in G[key]:
+            _only(o)
+            bpy.ops.object.convert(target="MESH")
+            bpy.ops.object.transform_apply(location=True, rotation=True, scale=True)
+            is_body = bool(o.get("body"))
+            if is_body:
+                _boolean(o, cav)
+            lo, hi = bounds([o])
+            if is_body or all(lo[i] < dhi[i] and hi[i] > dlo[i] for i in range(3)):
+                _boolean(o, door)
+            if len(o.data.polygons) == 0:
+                bpy.data.objects.remove(o, do_unlink=True)
+                continue
+            if is_body:
+                copy = o.copy()
+                copy.data = o.data.copy()
+                bpy.context.scene.collection.objects.link(copy)
+                for obj, want in ((o, False), (copy, True)):
+                    bm = bmesh.new()
+                    bm.from_mesh(obj.data)
+                    drop = [f for f in bm.faces if inside(f.calc_center_median()) != want]
+                    bmesh.ops.delete(bm, geom=drop, context="FACES")
+                    bm.to_mesh(obj.data)
+                    bm.free()
+                if len(copy.data.polygons) > 0:
+                    lining.append(copy)
+                else:
+                    bpy.data.objects.remove(copy, do_unlink=True)
+            keep.append(o)
+        G[key] = keep
+    if lining:
+        G["Base_Forro"] = lining
+    bpy.data.objects.remove(door, do_unlink=True)
+    bpy.data.objects.remove(cav, do_unlink=True)
+
+
 def finish(kind, tint):
+    if ENTER[0]:
+        carve(ENTER[0])
     joined = []
     for key, objs in G.items():
         if not objs:
@@ -1042,10 +1295,11 @@ def finish(kind, tint):
         bpy.ops.object.transform_apply(location=True, rotation=True, scale=True)
         o.name = f"{kind}_{key}"
         o.data.name = o.name
-        bpy.ops.object.mode_set(mode="EDIT")
-        bpy.ops.mesh.select_all(action="SELECT")
-        bpy.ops.mesh.normals_make_consistent(inside=False)
-        bpy.ops.object.mode_set(mode="OBJECT")
+        if not ENTER[0] or not key.startswith("Base_"):
+            bpy.ops.object.mode_set(mode="EDIT")
+            bpy.ops.mesh.select_all(action="SELECT")
+            bpy.ops.mesh.normals_make_consistent(inside=False)
+            bpy.ops.object.mode_set(mode="OBJECT")
         t = tris_of(o)
         if t > MAX_TRIS:
             dec = o.modifiers.new("simplificar", "DECIMATE")
@@ -1140,7 +1394,7 @@ def main():
         center = [round((lo.x + hi.x) / 2, 3), round((lo.z + hi.z) / 2, 3), round(-(lo.y + hi.y) / 2, 3)]
         size = [round(hi.x - lo.x, 3), round(hi.z - lo.z, 3), round(hi.y - lo.y, 3)]
         tris = sum(p["tris"] for p in parts.values())
-        manifest[kind] = {"parts": parts, "center": center, "size": size, "tris": tris, "dims": dims, "probe": probe}
+        manifest[kind] = {"parts": parts, "center": center, "size": size, "tris": tris, "dims": dims, "probe": probe, "enter": ENTER[0]}
         print(f"  {kind}: {tris} triángulos en {len(parts)} mallas, tamaño {size}, prueba {probe} ({probe_score:.1f})")
         if do_render:
             render(os.path.join(DOCS, kind + ".jpg"), lo, hi)
@@ -1150,6 +1404,9 @@ def main():
            "-- Por pieza: Center y Size de todo (studs, respecto al centro de la base; el frente queda en +Z), las medidas",
            "-- nominales (W, D y la altura de las secciones Base, Mid y Top), y de cada malla «<Seccion>_<Grupo>» su centro",
            "-- (C) y tamaño (S). Probe: la malla más descentrada en Z (para saber hacia dónde quedó el frente al importar).",
+           "-- Enter: la planta baja en la que se entra, en coordenadas de Blender (x, y = fondo con el frente en -y, z = alto):",
+           "-- medio ancho HX, frente Y0 y fondo Y1 (por fuera), suelo y techo, puerta, grosor del muro y los muebles que chocan",
+           "-- (Solids: centro x, y, z y tamaño x, y, z).",
            "-- Lo usa World/PlanetCityMeshes.",
            "return {"]
     for kind in sorted(manifest):
@@ -1158,6 +1415,11 @@ def main():
         lua.append(f"\t{kind} = {{")
         lua.append(f"\t\tCenter = Vector3.new({c[0]}, {c[1]}, {c[2]}), Size = Vector3.new({s[0]}, {s[1]}, {s[2]}), Tris = {m['tris']},")
         lua.append(f"\t\tW = {d['W']}, D = {d['D']}, Base = {d['Base']}, Mid = {d['Mid']}, Top = {d['Top']}, Probe = \"{m['probe']}\",")
+        e = m.get("enter")
+        if e:
+            solids = ", ".join("{ " + ", ".join(str(v) for v in sd) + " }" for sd in e["solids"])
+            lua.append(f"\t\tEnter = {{ HX = {e['hx']}, Y0 = {e['y0']}, Y1 = {e['y1']}, Floor = {e['floor']}, Top = {e['top']}, DoorW = {e['dw']}, DoorH = {e['dh']}, T = {e['t']}, Round = {'true' if e['round'] else 'false'}, Ramp = {'true' if e['ramp'] else 'false'},")
+            lua.append(f"\t\t\tSolids = {{ {solids} }} }},")
         lua.append("\t\tParts = {")
         for key in sorted(m["parts"]):
             p = m["parts"][key]
