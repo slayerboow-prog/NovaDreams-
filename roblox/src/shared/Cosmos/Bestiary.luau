@@ -194,15 +194,41 @@ function Bestiary.species(id: string): { [string]: any }?
 	return Bestiary.Species[id]
 end
 
+
+-- Lo que solo suelta cada especie (shared/Crafting: cascos, escudos, botas y accesorios) y las piedras de
+-- mejorar el equipo: de pulir (cualquier bestia, a veces) y de temple y esencia estelar (los jefes).
+Bestiary.Unique = {
+	Rondador = "PelajeCeniza", EscarabajoLava = "CaparazonLava", GusanoColada = "EscoriaViva",
+	ChacalDuna = "GarraDuna", EscorpionSal = "VenenoSal", SerpienteArena = "PielArena",
+	CangrejoNacar = "PinzaNacar", AnguilaArrecife = "OrganoElectrico", FocaColmillo = "GrasaAbisal",
+	LoboEscarcha = "PelajeEscarcha", AranaHielo = "HiloHielo", OsoLanudo = "LanaGruesa",
+	PanteraLiana = "GarraLiana", AvispaEnjambre = "AguijonEnjambre", EscarabajoCorteza = "CortezaViva",
+	RataChatarra = "DienteCobre", MedusaGas = "VelaGas", BuitreRayo = "PlumaRayo",
+	RataCloaca = "ColaCable", DronRebelde = "NucleoDron", CocodriloAliviadero = "EscamaCromo",
+}
+for id, sp in Bestiary.Species do
+	if sp.Boss then
+		table.insert(sp.Drops, { "PiedraTemple", 1, 2, 1 })
+		table.insert(sp.Drops, { "EsenciaEstelar", 1, 1, 0.6 })
+		table.insert(sp.Drops, { "PiedraPulir", 2, 4, 1 })
+	else
+		if Bestiary.Unique[id] then
+			table.insert(sp.Drops, { Bestiary.Unique[id], 1, 1, 0.4 })
+		end
+		table.insert(sp.Drops, { "PiedraPulir", 1, 1, 0.18 })
+	end
+end
+
 -- Lo que suelta una bestia (repetible con roll: una función 0..1)
-function Bestiary.loot(id: string, roll: () -> number): { [string]: number }
+function Bestiary.loot(id: string, roll: () -> number, luck: number?): { [string]: number }
 	local sp = Bestiary.Species[id]
 	local out: { [string]: number } = {}
 	if not sp then
 		return out
 	end
 	for _, d in sp.Drops do
-		if roll() <= d[4] then
+		-- (la suerte de tus accesorios sube lo que no cae siempre)
+		if roll() <= (if d[4] < 1 then d[4] * (1 + (luck or 0)) else d[4]) then
 			local n = d[2] + math.floor(roll() * (d[3] - d[2] + 1))
 			if n > 0 then
 				out[d[1]] = (out[d[1]] or 0) + n

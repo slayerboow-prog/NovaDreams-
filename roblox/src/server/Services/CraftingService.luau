@@ -71,11 +71,78 @@ local function nameOf(id: string): string
 	return if ore then "⛏ " .. ore.Name else id
 end
 
+-- Lo que el libro enseña además de los materiales: mejoras, dinero y nivel de cazador
+local function extraOf(player: Player): { [string]: any }
+	local d = data(player)
+	return {
+		Refine = d and d.Refine or {},
+		Money = d and d.Money or 0,
+		Xp = d and type(d.Hunter) == "table" and d.Hunter.Xp or 0,
+	}
+end
+
 function CraftingService.openFor(player: Player, bench: string, at: Vector3?)
 	open[player] = { Bench = bench, At = at }
 	if Remote then
-		Remote:FireClient(player, "Open", { Bench = bench, Have = haveOf(player) })
+		Remote:FireClient(player, "Open", { Bench = bench, Have = haveOf(player), Extra = extraOf(player) })
 	end
+end
+
+-- MEJORAR un objeto de equipo (+1). Se puede en cualquier sitio, desde la mochila. roll: para las pruebas.
+-- Devuelve (ok, texto, resultado "Ok" | "Fail" | "Saved" | "Drop" | nil)
+function CraftingService.refine(player: Player, id: any, roll: number?): (boolean, string, string?)
+	if type(id) ~= "string" or not Crafting.isEquip(id) then
+		return false, "Eso no se puede mejorar.", nil
+	end
+	local d = data(player)
+	if not d then
+		return false, "Tus datos aún no han cargado.", nil
+	end
+	if (tonumber(d.Items and d.Items[id]) or 0) < 1 then
+		return false, "No llevas ese objeto en la mochila.", nil
+	end
+	local t = os.clock()
+	if lastCraft[player] and t - lastCraft[player] < 0.35 then
+		return false, "Despacio…", nil
+	end
+	lastCraft[player] = t
+	d.Refine = if type(d.Refine) == "table" then d.Refine else {}
+	local level = Crafting.refineOf(d.Refine, id)
+	local step = Crafting.refineStep(level)
+	if not step then
+		return false, "Ya está al máximo (+" .. Crafting.MaxRefine .. ").", nil
+	end
+	local have = Crafting.have(d)
+	if (have[step.Stone] or 0) < step.Stones then
+		return false, ("Te falta: %s %d/%d"):format(nameOf(step.Stone), have[step.Stone] or 0, step.Stones), nil
+	end
+	if (tonumber(d.Money) or 0) < step.Money then
+		return false, ("Te falta dinero: cuesta %d €."):format(step.Money), nil
+	end
+	local DataService = require(script.Parent.DataService) :: any
+	if not DataService.spend(player, step.Money) then
+		return false, ("Te falta dinero: cuesta %d €."):format(step.Money), nil
+	end
+	if not inv().remove(player, step.Stone, step.Stones) then
+		DataService.addMoney(player, step.Money)
+		return false, "No se han podido gastar las piedras.", nil
+	end
+	local hasSeal = (tonumber(d.Items and d.Items.SelloHerrero) or 0) > 0
+	local newLevel, outcome = Crafting.refineRoll(level, roll or math.random(), hasSeal)
+	if outcome == "Saved" then
+		inv().remove(player, "SelloHerrero", 1)
+	end
+	d.Refine[id] = if newLevel > 0 then newLevel else nil
+	local item = Items.get(id)
+	local name = (item and item.Icon or "") .. " " .. Crafting.refinedName(item and item.Name or id, newLevel)
+	if outcome == "Ok" then
+		return true, ("✨ ¡Mejora conseguida! %s"):format(name), outcome
+	elseif outcome == "Saved" then
+		return false, ("🔏 La mejora ha fallado, pero el Sello del herrero ha protegido tu objeto: %s"):format(name), outcome
+	elseif outcome == "Drop" then
+		return false, ("💥 La mejora ha fallado y el objeto ha bajado un nivel: %s"):format(name), outcome
+	end
+	return false, ("La mejora ha fallado. Tu objeto sigue igual: %s"):format(name), outcome
 end
 
 -- Gasta `n` de un material: los minerales, primero de la bodega de la nave y luego de la mochila
@@ -264,7 +331,14 @@ function CraftingService.init()
 		if action == "Craft" then
 			local ok, text = CraftingService.craft(player, a, b)
 			;(Remote :: RemoteEvent):FireClient(player, "Result", ok, text)
-			;(Remote :: RemoteEvent):FireClient(player, "Have", haveOf(player))
+			;(Remote :: RemoteEvent):FireClient(player, "Have", haveOf(player), extraOf(player))
+		elseif action == "Refine" then
+			local ok, text = CraftingService.refine(player, a)
+			;(Remote :: RemoteEvent):FireClient(player, "Result", ok, text)
+			;(Remote :: RemoteEvent):FireClient(player, "Have", haveOf(player), extraOf(player))
+		elseif action == "OpenBag" then
+			-- fabricar y mejorar desde la mochila, en cualquier sitio
+			CraftingService.openFor(player, "Mochila", nil)
 		elseif action == "Close" then
 			open[player] = nil
 		end

@@ -784,7 +784,7 @@ local function buildWindow()
 	local header = create("Frame", { Size = UDim2.new(1, 0, 0, headerHeight), BackgroundTransparency = 1, LayoutOrder = 1, ZIndex = 11, Parent = window })
 	local title = label("🎒  Mochila", header, 1)
 	title.TextSize = 22
-	title.Size = UDim2.new(1, -140, 1, 0)
+	title.Size = UDim2.new(1, -290, 1, 0)
 	local close = mcButton("✖  Cerrar", header, 2)
 	close.Name = "Close"
 	close.AnchorPoint = Vector2.new(1, 0)
@@ -794,6 +794,23 @@ local function buildWindow()
 	close.BackgroundColor3 = Color3.fromRGB(170, 50, 64)
 	close.Activated:Connect(function()
 		InventoryUI.close()
+	end)
+	-- Fabricar y mejorar el equipo sin ir a ningún Taller
+	local craft = mcButton("🛠  Fabricar", header, 2)
+	craft.Name = "Craft"
+	craft.AnchorPoint = Vector2.new(1, 0)
+	craft.Position = UDim2.new(1, -(if Theme.isTouch() then 138 else 124), 0, 0)
+	craft.Size = UDim2.fromOffset(if Theme.isTouch() then 140 else 128, headerHeight)
+	craft.TextSize = 16
+	craft.BackgroundColor3 = Color3.fromRGB(60, 120, 200)
+	craft.Activated:Connect(function()
+		InventoryUI.close()
+		local ok, CraftingUI = pcall(function()
+			return require(script.Parent.CraftingUI) :: any
+		end)
+		if ok and CraftingUI.openFromBag then
+			CraftingUI.openFromBag()
+		end
 	end)
 
 	-- Parte de arriba: tu personaje (girando) y los detalles del objeto

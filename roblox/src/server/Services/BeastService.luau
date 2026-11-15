@@ -330,7 +330,7 @@ local function hurt(b: Beast, player: Player, amount: number)
 		return
 	end
 	local data = dataOf(player)
-	local dmg = Crafting.damageTaken(amount, Crafting.defenseOf(data and data.Items), buff(player, "Piedra"))
+	local dmg = Crafting.damageTaken(amount, Crafting.defenseOf(data and data.Items, data and data.Refine), buff(player, "Piedra"))
 	if hum.Health - dmg > 1 then
 		hum.Health -= dmg
 		return
@@ -420,7 +420,9 @@ end
 
 local function giveLoot(player: Player, b: Beast)
 	local InventoryService = require(script.Parent.InventoryService) :: any
-	local loot = Bestiary.loot(b.Species, math.random)
+	local data0 = dataOf(player)
+	local worn = Crafting.stats(data0 and data0.Items, data0 and data0.Refine)
+	local loot = Bestiary.loot(b.Species, math.random, worn.Luck)
 	local parts = {}
 	for id, n in loot do
 		local ok = InventoryService.add(player, id, n)
@@ -439,6 +441,22 @@ local function giveLoot(player: Player, b: Beast)
 		c.Kills[b.Species] = (c.Kills[b.Species] or 0) + 1
 		if b.Sp.Boss then
 			c.Bosses[b.Species] = (c.Bosses[b.Species] or 0) + 1
+		end
+		-- nivel de cazador: experiencia por la bestia (más cuanto más aguanta)
+		data.Hunter = if type(data.Hunter) == "table" then data.Hunter else { Xp = 0 }
+		local before = Crafting.hunterLevel(data.Hunter.Xp)
+		data.Hunter.Xp = (tonumber(data.Hunter.Xp) or 0) + Crafting.killXp(b.Max, b.Sp.Boss)
+		local after = Crafting.hunterLevel(data.Hunter.Xp)
+		player:SetAttribute("NivelCazador", after)
+		if after > before then
+			tell(player, "Success", ("⭐ ¡Nivel de cazador %d! Tus golpes a las bestias hacen un %d %% más."):format(after, math.floor(Crafting.hunterBonus(data.Hunter.Xp) * 100 + 0.5)))
+		end
+	end
+	-- el vigor de tus pendientes: recuperas vida cuando cae la bestia
+	if worn.Vigor > 0 then
+		local _, hum = rootOf(player)
+		if hum and hum.Health > 0 then
+			hum.Health = math.min(hum.MaxHealth, hum.Health + worn.Vigor)
 		end
 	end
 	local text = ("%s %s cae. %s%s"):format(b.Sp.Icon or "🦴", b.Sp.Name, if #parts > 0 then "Botín: " .. table.concat(parts, ", ") else "", if cash > 0 then (" · +%d €"):format(cash) else "")
@@ -514,7 +532,7 @@ function BeastService.hit(attacker: Player?, model: Instance, amount: number, in
 	if i.Melee or i.Heavy then
 		-- golpes: tu mejor arma blanca y la poción de fuerza
 		local data = dataOf(attacker)
-		n *= 1 + Crafting.bladeOf(data and data.Items) + buff(attacker, "Fuerza")
+		n *= 1 + Crafting.bladeOf(data and data.Items, data and data.Refine) + buff(attacker, "Fuerza") + Crafting.hunterBonus(data and data.Hunter and data.Hunter.Xp)
 	elseif i.Weapon then
 		n *= BeastService.BulletMul
 	end

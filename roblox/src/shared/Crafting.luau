@@ -24,7 +24,7 @@ Crafting.Benches = {
 	Forja = { Name = "Forja", Icon = "🔨" },
 	Alquimia = { Name = "Alquimia", Icon = "⚗️" },
 }
-Crafting.Categories = { "Armas", "Armaduras", "Pociones", "Herramientas", "Munición", "Materiales" }
+Crafting.Categories = { "Armas", "Armaduras", "Accesorios", "Pociones", "Herramientas", "Munición", "Materiales" }
 
 -- { Id, Nombre, Icono, Descripción }
 Crafting.Materials = {
@@ -57,6 +57,39 @@ Crafting.Materials = {
 	{ "LingoteCobalto", "Lingote de cobalto", "🟦", "Cobalto fundido: más ligero y más duro que el hierro." },
 	{ "CuerdaTrenzada", "Cuerda trenzada", "🧶", "Seda y cuero trenzados. Para mangos, arcos y correas." },
 	{ "Polvora", "Pólvora casera", "🧂", "Glándula seca y molida con azufre. Para hacer munición." },
+	-- lo que solo suelta UNA bestia (hay que ir a por ella: cascos, escudos, botas y accesorios)
+	{ "PelajeCeniza", "Pelaje de ceniza", "🐺", "Del Rondador de ceniza (Tefra). No arde." },
+	{ "CaparazonLava", "Caparazón de lava", "🐞", "Del Escarabajo de lava (Tefra). Todavía está tibio." },
+	{ "EscoriaViva", "Escoria viva", "🔥", "Del Gusano de colada (Tefra). Se mueve un poco si la miras." },
+	{ "GarraDuna", "Garra de duna", "🐾", "Del Chacal de duna (Siroco). Afilada por la arena." },
+	{ "VenenoSal", "Veneno de sal", "🧪", "Del Escorpión de sal (Siroco). Cristaliza al aire." },
+	{ "PielArena", "Piel de arena", "🐍", "De la Serpiente de arena (Siroco). Flexible y áspera." },
+	{ "PinzaNacar", "Pinza de nácar", "🦀", "Del Cangrejo de nácar (Tálasa). Corta el acero." },
+	{ "OrganoElectrico", "Órgano eléctrico", "⚡", "De la Anguila de arrecife (Tálasa). Da calambre." },
+	{ "GrasaAbisal", "Grasa abisal", "💧", "De la Foca colmilluda (Tálasa). Aísla del frío y del agua." },
+	{ "PelajeEscarcha", "Pelaje de escarcha", "🐺", "Del Lobo de escarcha (Nivalis). Siempre está frío." },
+	{ "HiloHielo", "Hilo de hielo", "🕷", "De la Araña de hielo (Nivalis). Transparente y durísimo." },
+	{ "LanaGruesa", "Lana gruesa", "🐻", "Del Oso lanudo (Nivalis). Abriga más que tres abrigos." },
+	{ "GarraLiana", "Garra de liana", "🐆", "De la Pantera de liana (Umbría). Curva como un anzuelo." },
+	{ "AguijonEnjambre", "Aguijón del Enjambre", "🐝", "De la Avispa del Enjambre (Umbría). Zumba solo." },
+	{ "CortezaViva", "Corteza viva", "🌿", "Del Escarabajo de corteza (Umbría). Sigue creciendo." },
+	{ "DienteCobre", "Diente de cobre", "🐀", "De la Rata de chatarra (Miasma). Come cables." },
+	{ "VelaGas", "Vela de gas", "🎐", "De la Medusa de gas (Miasma). Flota si la sueltas." },
+	{ "PlumaRayo", "Pluma de rayo", "🦅", "Del Buitre de rayo (Miasma). Chisporrotea." },
+	{ "ColaCable", "Cola de cable", "🐀", "De la Rata de cloaca (Vértice). Mitad cola, mitad cable." },
+	{ "NucleoDron", "Núcleo de dron", "🤖", "Del Dron rebelde (Vértice). Parpadea en rojo." },
+	{ "EscamaCromo", "Escama de cromo", "🐊", "Del Cocodrilo de aliviadero (Vértice). Te ves reflejado." },
+	-- más intermedios
+	{ "PlacaReforzada", "Placa reforzada", "🔩", "Hierro y quitina en capas. Para cascos y escudos." },
+	{ "HiloEnergia", "Hilo de energía", "🧵", "Seda cargada con plata de rayo. Para collares." },
+	{ "NucleoMenor", "Núcleo menor", "💠", "Un chip dentro de un cristal. Para pendientes y aparatos." },
+	{ "TinteAlquimico", "Tinte alquímico", "⚗️", "Glándula y savia. Para pulseras y grabados." },
+	{ "FiltroCarbon", "Filtro de carbón", "⬛", "Hueso quemado y cuero. Para botas y máscaras." },
+	-- para MEJORAR el equipo (+1, +2, +3…)
+	{ "PiedraPulir", "Piedra de pulir", "🔘", "La sueltan las bestias. Con ella se mejora el equipo de +0 a +4." },
+	{ "PiedraTemple", "Piedra de temple", "💎", "De los jefes, o fundiendo piedras de pulir. Para mejorar de +4 a +9." },
+	{ "EsenciaEstelar", "Esencia estelar", "✨", "Solo la sueltan los jefes. Para sellos y pendientes." },
+	{ "SelloHerrero", "Sello del herrero", "🔏", "Si una mejora falla, el sello se gasta y tu objeto NO baja de nivel." },
 }
 
 -- Los objetos que se fabrican (Kind de shared/Items): armaduras (Armor), armas blancas (Blade), pociones
@@ -75,6 +108,20 @@ Crafting.Gear = {
 	{ Id = "LanzaEscama", Name = "Lanza de escama", Icon = "🔱", Kind = "Blade", Blade = 0.65, Level = 3, Desc = "Punta de escama y mango de cobalto: +65 % contra las bestias." },
 	{ Id = "EspadaCristal", Name = "Espada de cristal solar", Icon = "⚔️", Kind = "Blade", Blade = 0.9, Level = 4, Desc = "Brilla un poco al golpear: +90 % contra las bestias." },
 	{ Id = "EspadaTrofeo", Name = "Hoja de los jefes", Icon = "🗡", Kind = "Blade", Blade = 1.3, Level = 5, Desc = "Forjada con trofeos de jefe: +130 % contra las bestias." },
+	-- Cascos, escudos y botas (cada uno en su hueco: se suman a la armadura)
+	{ Id = "CascoCeniza", Name = "Casco de ceniza", Icon = "⛑", Kind = "Armor", Slot = "Casco", Defense = 0.05, Level = 2, Desc = "Casco: un 5 % menos de daño, además de tu armadura." },
+	{ Id = "CascoCromo", Name = "Casco de cromo", Icon = "⛑", Kind = "Armor", Slot = "Casco", Defense = 0.09, Level = 4, Desc = "Casco: un 9 % menos de daño, además de tu armadura." },
+	{ Id = "EscudoNacar", Name = "Escudo de nácar", Icon = "🛡", Kind = "Armor", Slot = "Escudo", Defense = 0.06, Level = 2, Desc = "Escudo: un 6 % menos de daño, además de tu armadura." },
+	{ Id = "EscudoCorteza", Name = "Escudo de corteza viva", Icon = "🛡", Kind = "Armor", Slot = "Escudo", Defense = 0.1, Level = 4, Desc = "Escudo: un 10 % menos de daño, además de tu armadura." },
+	{ Id = "BotasDuna", Name = "Botas de duna", Icon = "👢", Kind = "Armor", Slot = "Botas", Defense = 0.04, Level = 2, Desc = "Botas: un 4 % menos de daño, además de tu armadura." },
+	{ Id = "BotasEscarcha", Name = "Botas de escarcha", Icon = "👢", Kind = "Armor", Slot = "Botas", Defense = 0.07, Level = 3, Desc = "Botas: un 7 % menos de daño, además de tu armadura." },
+	-- Accesorios (collar, pulsera y pendientes: uno de cada)
+	{ Id = "CollarEnjambre", Name = "Collar del Enjambre", Icon = "📿", Kind = "Accessory", Slot = "Collar", Blade = 0.1, Level = 2, Desc = "Collar: +10 % a tus golpes contra las bestias." },
+	{ Id = "CollarTormenta", Name = "Collar de tormenta", Icon = "📿", Kind = "Accessory", Slot = "Collar", Blade = 0.18, Level = 4, Desc = "Collar: +18 % a tus golpes contra las bestias." },
+	{ Id = "PulseraCobre", Name = "Pulsera de cobre", Icon = "⭕", Kind = "Accessory", Slot = "Pulsera", Luck = 0.1, Level = 2, Desc = "Pulsera: las bestias sueltan botín raro un 10 % más a menudo." },
+	{ Id = "PulseraVeneno", Name = "Pulsera de veneno", Icon = "⭕", Kind = "Accessory", Slot = "Pulsera", Blade = 0.08, Luck = 0.08, Level = 3, Desc = "Pulsera: +8 % a tus golpes y un 8 % más de botín raro." },
+	{ Id = "PendientesHielo", Name = "Pendientes de hielo", Icon = "💍", Kind = "Accessory", Slot = "Pendientes", Vigor = 12, Level = 2, Desc = "Pendientes: recuperas 12 de vida cada vez que cae una bestia." },
+	{ Id = "PendientesEstelares", Name = "Pendientes estelares", Icon = "💍", Kind = "Accessory", Slot = "Pendientes", Vigor = 24, Defense = 0.04, Level = 5, Desc = "Pendientes: recuperas 24 de vida por bestia y un 4 % menos de daño." },
 	-- Pociones
 	{ Id = "PocionCuracion", Name = "Poción de curación", Icon = "🧪", Kind = "Potion", Effect = "Heal", Amount = 50, Level = 1, Desc = "Úsala desde la mochila: te cura 50 de vida al momento." },
 	{ Id = "PocionRegeneracion", Name = "Poción de regeneración", Icon = "💚", Kind = "Potion", Effect = "Regen", Amount = 4, Seconds = 25, Level = 2, Desc = "Te cura 4 de vida por segundo durante 25 segundos." },
@@ -116,6 +163,28 @@ Crafting.Recipes = {
 	{ Id = "ArmaduraHueso", Makes = 1, Bench = "Forja", Category = "Armaduras", Level = 3, Needs = { Hueso = 6, LingoteHierro = 3, Cuero = 2 } },
 	{ Id = "ArmaduraPlanetaria", Makes = 1, Bench = "Forja", Category = "Armaduras", Level = 4, Needs = { HieloEterno = 2, NacarAbisal = 2, SaviaAmbar = 2, LingoteCobalto = 3 } },
 	{ Id = "ArmaduraTrofeo", Makes = 1, Bench = "Forja", Category = "Armaduras", Level = 5, Needs = { CorazonHielo = 1, PerlaLeviatan = 1, CuernoEscarabajo = 1, PlacaRecaudador = 1, OjoTormenta = 1 } },
+	-- Cascos, escudos y botas
+	{ Id = "CascoCeniza", Makes = 1, Bench = "Forja", Category = "Armaduras", Level = 2, Needs = { PelajeCeniza = 3, CaparazonLava = 2, PlacaReforzada = 1 } },
+	{ Id = "CascoCromo", Makes = 1, Bench = "Forja", Category = "Armaduras", Level = 4, Needs = { EscamaCromo = 3, NucleoDron = 1, PlacaReforzada = 2 } },
+	{ Id = "EscudoNacar", Makes = 1, Bench = "Forja", Category = "Armaduras", Level = 2, Needs = { PinzaNacar = 3, GrasaAbisal = 1, PlacaReforzada = 1 } },
+	{ Id = "EscudoCorteza", Makes = 1, Bench = "Forja", Category = "Armaduras", Level = 4, Needs = { CortezaViva = 4, EscoriaViva = 2, LingoteCobalto = 2 } },
+	{ Id = "BotasDuna", Makes = 1, Bench = "Mesa", Category = "Armaduras", Level = 2, Needs = { PielArena = 3, GarraDuna = 2, CuerdaTrenzada = 1 } },
+	{ Id = "BotasEscarcha", Makes = 1, Bench = "Mesa", Category = "Armaduras", Level = 3, Needs = { PelajeEscarcha = 3, LanaGruesa = 2, FiltroCarbon = 1 } },
+	-- Accesorios
+	{ Id = "CollarEnjambre", Makes = 1, Bench = "Mesa", Category = "Accesorios", Level = 2, Needs = { AguijonEnjambre = 3, GarraLiana = 1, HiloEnergia = 1 } },
+	{ Id = "CollarTormenta", Makes = 1, Bench = "Forja", Category = "Accesorios", Level = 4, Needs = { PlumaRayo = 3, OrganoElectrico = 2, HiloEnergia = 2 } },
+	{ Id = "PulseraCobre", Makes = 1, Bench = "Mesa", Category = "Accesorios", Level = 2, Needs = { DienteCobre = 4, ColaCable = 2, TinteAlquimico = 1 } },
+	{ Id = "PulseraVeneno", Makes = 1, Bench = "Alquimia", Category = "Accesorios", Level = 3, Needs = { VenenoSal = 3, VelaGas = 2, TinteAlquimico = 1 } },
+	{ Id = "PendientesHielo", Makes = 1, Bench = "Mesa", Category = "Accesorios", Level = 2, Needs = { HiloHielo = 3, NucleoMenor = 1 } },
+	{ Id = "PendientesEstelares", Makes = 1, Bench = "Forja", Category = "Accesorios", Level = 5, Needs = { NucleoMenor = 2, HiloHielo = 2, EsenciaEstelar = 1 } },
+	-- Más intermedios y lo de mejorar
+	{ Id = "PlacaReforzada", Makes = 1, Bench = "Forja", Category = "Materiales", Level = 2, Needs = { LingoteHierro = 2, Quitina = 2 } },
+	{ Id = "HiloEnergia", Makes = 1, Bench = "Mesa", Category = "Materiales", Level = 2, Needs = { Seda = 2, PlataRayo = 1 } },
+	{ Id = "NucleoMenor", Makes = 1, Bench = "Mesa", Category = "Materiales", Level = 3, Needs = { ChipUsado = 1, Cristal = 1 } },
+	{ Id = "TinteAlquimico", Makes = 2, Bench = "Alquimia", Category = "Materiales", Level = 2, Needs = { Glandula = 1, SaviaAmbar = 1 } },
+	{ Id = "FiltroCarbon", Makes = 1, Bench = "Mesa", Category = "Materiales", Level = 1, Needs = { Hueso = 2, Cuero = 1 } },
+	{ Id = "PiedraTemple", Makes = 1, Bench = "Forja", Category = "Materiales", Level = 3, Needs = { PiedraPulir = 5 } },
+	{ Id = "SelloHerrero", Makes = 1, Bench = "Forja", Category = "Materiales", Level = 4, Needs = { PiedraTemple = 2, EsenciaEstelar = 1 } },
 	-- Pociones
 	{ Id = "PocionCuracion", Makes = 2, Bench = "Mesa", Category = "Pociones", Level = 1, Needs = { Glandula = 1, SaviaAmbar = 0 } },
 	{ Id = "PocionRegeneracion", Makes = 1, Bench = "Alquimia", Category = "Pociones", Level = 2, Needs = { Glandula = 2, SaviaAmbar = 1 } },
@@ -154,9 +223,10 @@ function Crafting.gear(id: string): { [string]: any }?
 	return gearById[id]
 end
 
--- ¿Se puede hacer en este banco? (los Talleres de las ciudades tienen todos: bench = "Taller")
+-- ¿Se puede hacer en este banco? (los Talleres de las ciudades tienen todos: bench = "Taller"; desde la
+-- mochila —bench = "Mochila"— también se fabrica todo, en cualquier sitio)
 function Crafting.benchHas(bench: string, recipe: { [string]: any }): boolean
-	return bench == "Taller" or bench == recipe.Bench
+	return bench == "Taller" or bench == "Mochila" or bench == recipe.Bench
 end
 
 -- Cuántas veces se puede fabricar con lo que hay (have: { [objeto] = cantidad })
@@ -203,26 +273,147 @@ function Crafting.have(data: { [string]: any }): { [string]: number }
 	return out
 end
 
--- La mejor armadura y la mejor arma blanca que lleva alguien (items: data.Items)
-function Crafting.defenseOf(items: { [string]: number }?): number
-	local best = 0
-	for id, n in items or {} do
-		local g = gearById[id]
-		if g and g.Kind == "Armor" and type(n) == "number" and n > 0 then
-			best = math.max(best, g.Defense)
-		end
+---------------------------------------------------------------------
+-- EQUIPO: un objeto por hueco (el mejor que lleves en la mochila se usa solo) y MEJORAS +0…+9
+---------------------------------------------------------------------
+Crafting.Slots = { "Arma", "Armadura", "Casco", "Escudo", "Botas", "Collar", "Pulsera", "Pendientes" }
+Crafting.SlotIcons = { Arma = "⚔️", Armadura = "🛡", Casco = "⛑", Escudo = "🛡", Botas = "👢", Collar = "📿", Pulsera = "⭕", Pendientes = "💍" }
+Crafting.MaxRefine = 9
+Crafting.RefineBonus = 0.1 -- cada +1 sube un 10 % lo que da el objeto (+9 = casi el doble)
+Crafting.MaxDefense = 0.7
+
+function Crafting.slotOf(g: { [string]: any }): string?
+	if g.Slot then
+		return g.Slot
 	end
-	return best
+	return if g.Kind == "Blade" then "Arma" elseif g.Kind == "Armor" then "Armadura" else nil
 end
-function Crafting.bladeOf(items: { [string]: number }?): number
-	local best = 0
+
+-- ¿Es equipo (se puede mejorar)?
+function Crafting.isEquip(id: string): boolean
+	local g = gearById[id]
+	return g ~= nil and Crafting.slotOf(g) ~= nil
+end
+
+function Crafting.refineOf(refine: { [string]: any }?, id: string): number
+	local n = refine and tonumber(refine[id]) or 0
+	return math.clamp(math.floor(n), 0, Crafting.MaxRefine)
+end
+
+-- Lo que da un objeto con su mejora: { Blade, Defense, Luck, Vigor }
+function Crafting.gearStats(id: string, level: number?): { [string]: number }
+	local g = gearById[id]
+	local k = 1 + Crafting.RefineBonus * (level or 0)
+	return {
+		Blade = (g and g.Blade or 0) * k,
+		Defense = (g and g.Defense or 0) * k,
+		Luck = (g and g.Luck or 0) * k,
+		Vigor = math.floor((g and g.Vigor or 0) * k + 0.5),
+	}
+end
+
+local function power(st: { [string]: number }): number
+	return st.Blade + st.Defense * 2 + st.Luck + st.Vigor / 100
+end
+
+-- Todo lo que llevas puesto: el mejor objeto de cada hueco (con su mejora), sumado.
+-- → { Blade, Defense, Luck, Vigor, Worn = { [hueco] = id } }
+function Crafting.stats(items: { [string]: number }?, refine: { [string]: any }?): { [string]: any }
+	local best: { [string]: { Id: string, St: { [string]: number }, P: number } } = {}
 	for id, n in items or {} do
 		local g = gearById[id]
-		if g and g.Kind == "Blade" and type(n) == "number" and n > 0 then
-			best = math.max(best, g.Blade)
+		local slot = g and Crafting.slotOf(g)
+		if g and slot and type(n) == "number" and n > 0 then
+			local st = Crafting.gearStats(id, Crafting.refineOf(refine, id))
+			local p = power(st)
+			local cur = best[slot]
+			if not cur or p > cur.P or (p == cur.P and id < cur.Id) then
+				best[slot] = { Id = id, St = st, P = p }
+			end
 		end
 	end
-	return best
+	local out: { [string]: any } = { Blade = 0, Defense = 0, Luck = 0, Vigor = 0, Worn = {} }
+	for slot, b in best do
+		out.Blade += b.St.Blade
+		out.Defense += b.St.Defense
+		out.Luck += b.St.Luck
+		out.Vigor += b.St.Vigor
+		out.Worn[slot] = b.Id
+	end
+	out.Defense = math.min(out.Defense, Crafting.MaxDefense)
+	return out
+end
+
+function Crafting.defenseOf(items: { [string]: number }?, refine: { [string]: any }?): number
+	return Crafting.stats(items, refine).Defense
+end
+function Crafting.bladeOf(items: { [string]: number }?, refine: { [string]: any }?): number
+	return Crafting.stats(items, refine).Blade
+end
+
+-- Los pasos de mejora: para llegar a +i hace falta esto. Chance: probabilidad de que salga bien.
+-- Si falla, se pierden las piedras y el dinero; a partir de +5 el objeto además BAJA un nivel, salvo que lleves
+-- un Sello del herrero (se gasta él). Nunca se rompe el objeto.
+Crafting.RefineSteps = {
+	{ Chance = 1.0, Money = 200, Stone = "PiedraPulir", Stones = 1 },
+	{ Chance = 0.95, Money = 400, Stone = "PiedraPulir", Stones = 1 },
+	{ Chance = 0.9, Money = 700, Stone = "PiedraPulir", Stones = 2 },
+	{ Chance = 0.8, Money = 1200, Stone = "PiedraPulir", Stones = 3 },
+	{ Chance = 0.7, Money = 2000, Stone = "PiedraTemple", Stones = 1 },
+	{ Chance = 0.6, Money = 3200, Stone = "PiedraTemple", Stones = 1 },
+	{ Chance = 0.5, Money = 5000, Stone = "PiedraTemple", Stones = 2 },
+	{ Chance = 0.4, Money = 8000, Stone = "PiedraTemple", Stones = 2 },
+	{ Chance = 0.3, Money = 12000, Stone = "PiedraTemple", Stones = 3 },
+}
+Crafting.RefineDropFrom = 5 -- intentar +5 o más: si falla, baja uno
+
+-- El paso para subir desde `level` (nil si ya está al máximo)
+function Crafting.refineStep(level: number): { [string]: any }?
+	return Crafting.RefineSteps[level + 1]
+end
+
+-- El resultado de un intento. roll: 0..1. → (nivel nuevo, "Ok" | "Fail" | "Saved" | "Drop")
+function Crafting.refineRoll(level: number, roll: number, hasSeal: boolean): (number, string)
+	local step = Crafting.refineStep(level)
+	if not step then
+		return level, "Fail"
+	end
+	if roll < step.Chance then
+		return level + 1, "Ok"
+	end
+	if level + 1 >= Crafting.RefineDropFrom then
+		if hasSeal then
+			return level, "Saved"
+		end
+		return math.max(0, level - 1), "Drop"
+	end
+	return level, "Fail"
+end
+
+-- El nombre con su mejora: «Lanza de escama +3»
+function Crafting.refinedName(name: string, level: number): string
+	return if level > 0 then ("%s +%d"):format(name, level) else name
+end
+
+---------------------------------------------------------------------
+-- NIVEL DE CAZADOR: experiencia por cada bestia. Cada nivel, +2 % a tus golpes contra las bestias.
+---------------------------------------------------------------------
+Crafting.MaxHunter = 60
+Crafting.HunterDamage = 0.02
+
+function Crafting.killXp(hp: number, boss: boolean?): number
+	return math.max(1, math.floor(hp / 8 + 0.5)) * (if boss then 2 else 1)
+end
+-- La experiencia que hace falta para ESTAR en un nivel
+function Crafting.hunterNeed(level: number): number
+	return 50 * (level - 1) ^ 2
+end
+function Crafting.hunterLevel(xp: number?): number
+	local x = math.max(0, tonumber(xp) or 0)
+	return math.clamp(math.floor(math.sqrt(x / 50)) + 1, 1, Crafting.MaxHunter)
+end
+function Crafting.hunterBonus(xp: number?): number
+	return (Crafting.hunterLevel(xp) - 1) * Crafting.HunterDamage
 end
 
 -- El daño que te llega de una bestia (armadura + piel de piedra, nunca menos del 25 %)

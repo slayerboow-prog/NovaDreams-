@@ -129,6 +129,62 @@ check(hold.Cuero == 2 and hold.Hierro == 5, "los minerales de la bodega de la na
 check(Crafting.defenseOf({ ArmaduraCuero = 1, ArmaduraEscamas = 1 }) == 0.3 and Crafting.bladeOf({ HachaHueso = 1 }) == 0.45, "vale la mejor armadura y la mejor arma que lleves")
 check(Crafting.damageTaken(100, 0.55, 0.25) == 25 and Crafting.damageTaken(10, 0, 0) == 10, "la armadura baja el daño, pero nunca a menos de un 25 %")
 
+print("💎 Materiales, equipo y mejoras")
+check(#Crafting.Materials >= 50, ("al menos 50 materiales distintos (%d)"):format(#Crafting.Materials))
+local uniqueOk, nUnique = true, 0
+for sp, mat in Bestiary.Unique do
+	nUnique += 1
+	uniqueOk = uniqueOk and Bestiary.Species[sp] ~= nil and Items.get(mat) ~= nil
+end
+check(uniqueOk and nUnique == 21, "cada bestia normal suelta un material solo suyo")
+local slots = {}
+for _, g in Crafting.Gear do
+	local slot = Crafting.slotOf(g)
+	if slot then
+		slots[slot] = (slots[slot] or 0) + 1
+	end
+end
+local allSlots = true
+for _, slot in Crafting.Slots do
+	allSlots = allSlots and (slots[slot] or 0) >= 2
+end
+check(allSlots, "armas, armadura, casco, escudo, botas, collar, pulsera y pendientes: al menos dos de cada")
+local bag = { ArmaduraCuero = 1, ArmaduraEscamas = 1, CascoCeniza = 1, EscudoNacar = 1, HachaHueso = 1, CollarEnjambre = 1, PulseraCobre = 1, PendientesHielo = 1 }
+local worn = Crafting.stats(bag, {})
+check(math.abs(worn.Defense - 0.41) < 1e-6 and math.abs(worn.Blade - 0.55) < 1e-6 and math.abs(worn.Luck - 0.1) < 1e-6 and worn.Vigor == 12 and worn.Worn.Armadura == "ArmaduraEscamas", "se suma lo mejor de cada hueco")
+local up = Crafting.stats(bag, { HachaHueso = 9, ArmaduraCuero = 9 })
+check(math.abs(up.Blade - (0.45 * 1.9 + 0.1)) < 1e-6 and up.Worn.Armadura == "ArmaduraEscamas", "un arma +9 pega casi el doble; una armadura floja +9 no gana a una buena")
+check(Crafting.stats({ ArmaduraTrofeo = 1, CascoCromo = 1, EscudoCorteza = 1, BotasEscarcha = 1 }, { ArmaduraTrofeo = 9 }).Defense == Crafting.MaxDefense, "la defensa tiene tope")
+check(#Crafting.RefineSteps == Crafting.MaxRefine and Crafting.refineStep(9) == nil, "nueve pasos de mejora, de +0 a +9")
+local chancesDown, stonesKnown = true, true
+for i, st in Crafting.RefineSteps do
+	chancesDown = chancesDown and (i == 1 or st.Chance <= Crafting.RefineSteps[i - 1].Chance) and st.Money > 0
+	stonesKnown = stonesKnown and Items.get(st.Stone) ~= nil
+end
+check(chancesDown and stonesKnown, "cada mejora es más difícil y más cara que la anterior")
+local l1, o1 = Crafting.refineRoll(0, 0.999, false)
+local l2, o2 = Crafting.refineRoll(2, 0.99, false)
+local l3, o3 = Crafting.refineRoll(6, 0.99, false)
+local l4, o4 = Crafting.refineRoll(6, 0.99, true)
+local l5, o5 = Crafting.refineRoll(6, 0.1, false)
+check(l1 == 1 and o1 == "Ok", "la primera mejora sale siempre")
+check(l2 == 2 and o2 == "Fail", "fallar por debajo de +5 no baja el objeto")
+check(l3 == 5 and o3 == "Drop" and l4 == 6 and o4 == "Saved" and l5 == 7 and o5 == "Ok", "de +5 en adelante un fallo baja un nivel, salvo con el Sello del herrero")
+check(Crafting.refinedName("Lanza de escama", 3) == "Lanza de escama +3" and Crafting.refinedName("Lanza", 0) == "Lanza", "el nombre lleva su mejora")
+check(Crafting.hunterLevel(0) == 1 and Crafting.hunterLevel(50) == 2 and Crafting.hunterLevel(1e9) == Crafting.MaxHunter and Crafting.hunterBonus(200) == 0.04, "el nivel de cazador sube con la experiencia y da daño")
+check(Crafting.killXp(160) == 20 and Crafting.killXp(3200, true) == 800, "las bestias duras dan más experiencia; los jefes, el doble")
+local lucky, plain = 0, 0
+for i = 1, 400 do
+	local r1, r2 = Bestiary.rng(i), Bestiary.rng(i)
+	plain += Bestiary.loot("Rondador", r1).PelajeCeniza or 0
+	lucky += Bestiary.loot("Rondador", r2, 0.5).PelajeCeniza or 0
+end
+check(plain > 100 and lucky > plain, ("la suerte hace caer más botín raro (%d → %d de 400)"):format(plain, lucky))
+check(Crafting.benchHas("Mochila", Crafting.recipe("EspadaTrofeo")), "desde la mochila se fabrica todo, en cualquier sitio")
+local craftSrc = fs.readFile("src/server/Services/CraftingService.luau")
+check(string.find(craftSrc, 'action == "Refine"', 1, true) ~= nil and string.find(craftSrc, 'action == "OpenBag"', 1, true) ~= nil, "el servidor atiende «mejorar» y «abrir desde la mochila»")
+check(string.find(fs.readFile("src/client/Controllers/InventoryUI.luau"), "openFromBag", 1, true) ~= nil, "la mochila tiene su botón de fabricar")
+
 print("🔌 Conexiones")
 local combat = fs.readFile("src/server/Services/CombatService.luau")
 check(string.find(combat, "CombatService.beastHit", 1, true) ~= nil and string.find(combat, "local hook = targetHook(model)", 1, true) ~= nil, "los golpes y las balas a una bestia van a BeastService")

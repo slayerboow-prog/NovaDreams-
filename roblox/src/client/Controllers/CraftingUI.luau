@@ -24,7 +24,8 @@ local rgb = Color3.fromRGB
 local gui: ScreenGui
 local panel: Frame?
 local remote: RemoteEvent
-local state = { Bench = "Taller", Have = {} :: { [string]: number }, Tab = "Armas" }
+local state = { Bench = "Taller", Have = {} :: { [string]: number }, Tab = "Armas", Extra = {} :: { [string]: any } }
+local REFINE_TAB = "Mejorar"
 local render: (() -> ())? = nil
 
 local ORE_NAMES = { Hierro = "⛏ Hierro", Cobalto = "⛏ Cobalto", Cristal = "⛏ Cristal", Obsidiana = "⛏ Obsidiana" }
@@ -66,7 +67,12 @@ local function open()
 		close(true)
 	end)
 	local side = Theme.touchWindow(frame, closeButton, not keep)
-	local benchName = if state.Bench == "Mesa" then "🧰 Mesa plegable (solo recetas de Mesa)" else "🛠 Taller · Mesa, Forja y Alquimia"
+	local benchName = if state.Bench == "Mesa" then "🧰 Mesa plegable (solo recetas de Mesa)" elseif state.Bench == "Mochila" then "🎒 Fabricar y mejorar" else "🛠 Taller · Mesa, Forja y Alquimia"
+	do
+		local xp = tonumber(state.Extra.Xp) or 0
+		local lvl = Crafting.hunterLevel(xp)
+		benchName ..= ("  ·  ⭐ Cazador nv. %d"):format(lvl)
+	end
 	Theme.title({ Size = UDim2.new(1, -(side + 6), 0, 26), Text = benchName, TextSize = 18, TextTruncate = Enum.TextTruncate.AtEnd, Parent = frame })
 	local top = math.max(34, side + 2)
 	-- pestañas
@@ -81,7 +87,9 @@ local function open()
 				ch:Destroy()
 			end
 		end
-		for i, cat in Crafting.Categories do
+		local tabNames = table.clone(Crafting.Categories)
+		table.insert(tabNames, 1, REFINE_TAB)
+		for i, cat in tabNames do
 			local b = Theme.button({ Size = UDim2.fromOffset(if Theme.isTouch() then 118 else 104, 32), Text = cat, TextSize = 14, LayoutOrder = i, Parent = tabs })
 			if cat == state.Tab then
 				b.BackgroundColor3 = rgb(70, 130, 210)
@@ -98,6 +106,69 @@ local function open()
 			end
 		end
 		local order = 0
+		if state.Tab == REFINE_TAB then
+			-- MEJORAR: tu equipo, con su nivel (+0…+9), lo que da ahora y lo que cuesta el siguiente
+			local refine = if type(state.Extra.Refine) == "table" then state.Extra.Refine else {}
+			local money = tonumber(state.Extra.Money) or 0
+			local worn = Crafting.stats(state.Have, refine)
+			local head = create("Frame", { Size = UDim2.new(1, -8, 0, 46), BackgroundColor3 = rgb(30, 40, 62), BackgroundTransparency = 0.1, LayoutOrder = 0, Parent = list })
+			Theme.corner(8).Parent = head
+			Theme.padding(8).Parent = head
+			Theme.label({ Size = UDim2.fromScale(1, 1), TextWrapped = true, TextSize = 13, Text = ("Llevas puesto: ⚔️ +%d %% golpes · 🛡 −%d %% daño · 🍀 +%d %% botín · 💚 +%d vida por bestia. Se usa solo lo mejor de cada hueco que lleves en la mochila."):format(math.floor(worn.Blade * 100 + 0.5), math.floor(worn.Defense * 100 + 0.5), math.floor(worn.Luck * 100 + 0.5), worn.Vigor), Parent = head })
+			local owned = {}
+			for _, g in Crafting.Gear do
+				if Crafting.isEquip(g.Id) and (state.Have[g.Id] or 0) > 0 then
+					table.insert(owned, g)
+				end
+			end
+			if #owned == 0 then
+				local empty = create("Frame", { Size = UDim2.new(1, -8, 0, 60), BackgroundTransparency = 1, LayoutOrder = 1, Parent = list })
+				Theme.label({ Size = UDim2.fromScale(1, 1), TextWrapped = true, TextSize = 14, TextColor3 = C.Muted, Text = "Todavía no llevas equipo. Fabrica un arma, una armadura o un accesorio en las otras pestañas y vuelve aquí para mejorarlo.", Parent = empty })
+			end
+			for _, g in owned do
+				order += 1
+				local level = Crafting.refineOf(refine, g.Id)
+				local step = Crafting.refineStep(level)
+				local slot = Crafting.slotOf(g) or ""
+				local isWorn = worn.Worn[slot] == g.Id
+				local card = create("Frame", { Size = UDim2.new(1, -8, 0, if Theme.isTouch() then 92 else 84), BackgroundColor3 = if isWorn then rgb(28, 44, 40) else rgb(24, 30, 46), BackgroundTransparency = 0.15, LayoutOrder = order, Parent = list })
+				Theme.corner(8).Parent = card
+				Theme.padding(8).Parent = card
+				local st = Crafting.gearStats(g.Id, level)
+				local bits = {}
+				if st.Blade > 0 then
+					table.insert(bits, ("⚔️ +%d %%"):format(math.floor(st.Blade * 100 + 0.5)))
+				end
+				if st.Defense > 0 then
+					table.insert(bits, ("🛡 −%d %%"):format(math.floor(st.Defense * 100 + 0.5)))
+				end
+				if st.Luck > 0 then
+					table.insert(bits, ("🍀 +%d %%"):format(math.floor(st.Luck * 100 + 0.5)))
+				end
+				if st.Vigor > 0 then
+					table.insert(bits, ("💚 +%d"):format(st.Vigor))
+				end
+				Theme.label({ Size = UDim2.new(1, -150, 0, 22), Text = ("%s %s"):format(g.Icon, Crafting.refinedName(g.Name, level)), TextSize = 16, TextColor3 = if level >= 7 then rgb(255, 200, 90) elseif level >= 4 then rgb(140, 200, 255) else C.Text, TextTruncate = Enum.TextTruncate.AtEnd, Parent = card })
+				Theme.label({ Position = UDim2.fromOffset(0, 22), Size = UDim2.new(1, -150, 0, 16), Text = ("%s %s%s · %s"):format(Crafting.SlotIcons[slot] or "", slot, if isWorn then " (puesto)" else "", table.concat(bits, " · ")), TextSize = 12, TextColor3 = C.Muted, Parent = card })
+				if step then
+					local haveStone = state.Have[step.Stone] or 0
+					local okStone, okMoney = haveStone >= step.Stones, money >= step.Money
+					local risk = if level + 1 >= Crafting.RefineDropFrom then " Si falla, baja un nivel (el 🔏 Sello lo evita)." else ""
+					Theme.label({ Position = UDim2.fromOffset(0, 40), Size = UDim2.new(1, -150, 0, 34), RichText = true, TextWrapped = true, TextSize = 12, TextYAlignment = Enum.TextYAlignment.Top, Text = ('A +%d: %s <font color="%s">%d/%d</font> · <font color="%s">%d €</font> · acierto %d %%.%s'):format(level + 1, short(step.Stone), if okStone then "#8CF09A" else "#FF7A6E", haveStone, step.Stones, if okMoney then "#8CF09A" else "#FF7A6E", step.Money, math.floor(step.Chance * 100 + 0.5), risk), Parent = card })
+					local btn = Theme.button({ AnchorPoint = Vector2.new(1, 0.5), Position = UDim2.new(1, 0, 0.5, 0), Size = UDim2.fromOffset(136, if Theme.isTouch() then 44 else 36), Text = ("Mejorar a +%d"):format(level + 1), TextSize = 14, Parent = card })
+					if not (okStone and okMoney) then
+						btn.BackgroundColor3 = rgb(60, 62, 70)
+						btn.TextColor3 = rgb(150, 150, 160)
+					end
+					btn.Activated:Connect(function()
+						SoundFx.play("MenuOk")
+						remote:FireServer("Refine", g.Id)
+					end)
+				else
+					Theme.label({ Position = UDim2.fromOffset(0, 40), Size = UDim2.new(1, -150, 0, 30), Text = "Al máximo: no se puede mejorar más.", TextSize = 12, TextColor3 = rgb(255, 200, 90), Parent = card })
+				end
+			end
+		end
 		for _, r in Crafting.Recipes do
 			if r.Category == state.Tab then
 				order += 1
@@ -152,7 +223,7 @@ local function open()
 	render = draw
 	draw()
 	-- se cierra solo si te alejas (de la mesa plegable no: va contigo)
-	if state.Bench ~= "Mesa" then
+	if state.Bench ~= "Mesa" and state.Bench ~= "Mochila" then
 		local root = player.Character and player.Character:FindFirstChild("HumanoidRootPart") :: BasePart?
 		local origin = root and root.Position
 		task.spawn(function()
@@ -164,6 +235,13 @@ local function open()
 				end
 			end
 		end)
+	end
+end
+
+-- Abre el libro desde la mochila (fabricar y mejorar en cualquier sitio)
+function CraftingUI.openFromBag()
+	if remote then
+		remote:FireServer("OpenBag")
 	end
 end
 
@@ -184,11 +262,15 @@ function CraftingUI.init()
 	remote = ReplicatedStorage:WaitForChild("Remotes"):WaitForChild("Crafting") :: RemoteEvent
 	remote.OnClientEvent:Connect(function(kind: string, a: any, b: any)
 		if kind == "Open" and type(a) == "table" then
-			state.Bench = if a.Bench == "Mesa" then "Mesa" else "Taller"
+			state.Bench = if a.Bench == "Mesa" then "Mesa" elseif a.Bench == "Mochila" then "Mochila" else "Taller"
 			state.Have = if type(a.Have) == "table" then a.Have else {}
+			state.Extra = if type(a.Extra) == "table" then a.Extra else {}
 			open()
 		elseif kind == "Have" and type(a) == "table" then
 			state.Have = a
+			if type(b) == "table" then
+				state.Extra = b
+			end
 			if render then
 				render()
 			end
