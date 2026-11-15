@@ -61,6 +61,9 @@ type Beast = {
 	Dead: boolean,
 	LastSeen: number,
 	Announced: boolean?,
+	Static: boolean?, -- (una esquirla de la Grieta: no se mueve ni muerde)
+	Waves: { [number]: boolean }?,
+	Tier: number?,
 }
 
 local beasts: { [Model]: Beast } = {}
@@ -278,6 +281,121 @@ local function aliveCount(planet: string): number
 	return n
 end
 
+---------------------------------------------------------------------
+-- Esquirlas de la Grieta (shared/Cosmos/Bestiary.Shard): se rompen a golpes y sueltan oleadas
+---------------------------------------------------------------------
+local shardAt: { [string]: number } = {} -- (por esquirla: cuándo vuelve a caer)
+local waveOf: { [string]: { [string]: any } } = {} -- (la «guarida» de las oleadas de cada esquirla)
+
+local function spawnShard(S: any, shard: { [string]: any }): Beast?
+	local BeastKit = require(script.Parent.Parent.World.Kit.BeastKit) :: any
+	serial += 1
+	local O = S.Origin
+	local ground = if shard.Islet then O.Y + shard.Y else S.heightAt(O.X + shard.X, O.Z + shard.Z)
+	local model: Model = BeastKit.shard(CFrame.new(O.X + shard.X, ground - 1, O.Z + shard.Z), shard.Tier)
+	local zone = Bestiary.zone(shard.Tier)
+	local sp = Bestiary.Shard
+	local hp = math.floor(sp.Hp * zone.Hp + 0.5)
+	model:SetAttribute("InvasionTarget", "Bestia:" .. serial)
+	model:SetAttribute("Bestia", sp.Id)
+	model:SetAttribute("BeastName", Bestiary.leveledName(sp.Name, shard.Tier))
+	model:SetAttribute("Nivel", zone.Level)
+	model:SetAttribute("MaxHp", hp)
+	model:SetAttribute("EnemyMaxHealth", hp)
+	model:SetAttribute("Boss", false)
+	model:SetAttribute("Esquirla", true)
+	model.Parent = beastFolder(S.Id)
+	local root = model.PrimaryPart :: BasePart
+	local b: Beast = {
+		N = serial,
+		Model = model,
+		Root = root,
+		Humanoid = model:FindFirstChildOfClass("Humanoid") :: Humanoid,
+		Species = sp.Id,
+		Sp = sp,
+		Planet = S.Id,
+		S = S,
+		Lair = shard,
+		Home = Vector3.new(O.X + shard.X, ground, O.Z + shard.Z),
+		Hp = hp,
+		Max = hp,
+		Damage = {},
+		Hit = 0,
+		Reward = zone.Reward,
+		Target = nil,
+		NextWander = math.huge,
+		NextBite = math.huge,
+		NextStomp = math.huge,
+		Dead = false,
+		LastSeen = now(),
+		Static = true,
+		Waves = {},
+		Tier = shard.Tier,
+	}
+	setHp(b)
+	beasts[model] = b
+	byLair[shard.Id] = { b }
+	return b
+end
+
+-- Una oleada: bestias de la zona de la esquirla salen a su alrededor y van a por quien la está rompiendo
+local function shardWave(b: Beast, index: number, attacker: Player?)
+	local shard = b.Lair
+	local wave = waveOf[shard.Id]
+	if not wave then
+		wave = { Id = shard.Id .. "_Oleada", Species = shard.Species, X = shard.X, Z = shard.Z, Y = shard.Y, Islet = shard.Islet, Tier = shard.Tier, Count = 0 }
+		waveOf[shard.Id] = wave
+	end
+	local n = Bestiary.Shard.WaveSize[index] or 3
+	for _ = 1, n do
+		if aliveCount(b.Planet) >= BeastService.MaxPerPlanet + 16 then
+			break
+		end
+		local nb = spawnAt(b.S, wave)
+		if nb then
+			nb.Target = attacker
+		end
+	end
+	if attacker then
+		tell(attacker, "Error", ("💎 ¡La esquirla se agrieta y suelta una oleada! (%d de %d)"):format(index, #Bestiary.Shard.Waves))
+	end
+end
+BeastService.shardWave = shardWave
+
+local function manageShards(S: any)
+	local places = Bestiary.places(S)
+	local O = S.Origin
+	local t = now()
+	for _, shard in places.Shards or {} do
+		local pos = Vector3.new(O.X + shard.X, O.Y + shard.Y, O.Z + shard.Z)
+		local list = byLair[shard.Id] or {}
+		local alive = list[1] and not list[1].Dead
+		if playersNear(pos, Bestiary.Active) then
+			if alive then
+				list[1].LastSeen = t
+			elseif (shardAt[shard.Id] or 0) <= t then
+				spawnShard(S, shard)
+			end
+		elseif alive and not playersNear(pos, Bestiary.Despawn) and t - list[1].LastSeen > 40 then
+			despawn(list[1])
+		end
+		-- (las bestias de sus oleadas también se recogen si no queda nadie cerca)
+		local wave = waveOf[shard.Id]
+		local waveList = wave and byLair[wave.Id]
+		if waveList and not playersNear(pos, Bestiary.Despawn) then
+			for i = #waveList, 1, -1 do
+				if not waveList[i].Dead and t - waveList[i].LastSeen > 40 then
+					despawn(waveList[i])
+				end
+			end
+		elseif waveList then
+			for _, wb in waveList do
+				wb.LastSeen = t
+			end
+		end
+	end
+end
+
 local function manageLairs(S: any)
 	local places = Bestiary.places(S)
 	local O = S.Origin
@@ -437,7 +555,7 @@ local function giveLoot(player: Player, b: Beast)
 		worn.Luck += ((Progression :: any).stat(player, "Suerte") or 0) * 0.01
 	end
 	local reward = b.Reward or 1
-	local loot = Bestiary.loot(b.Species, math.random, worn.Luck + (reward - 1) * 0.25)
+	local loot = if b.Static then Bestiary.shardLoot(b.Tier, b.Planet, math.random) else Bestiary.loot(b.Species, math.random, worn.Luck + (reward - 1) * 0.25)
 	local parts = {}
 	for id, n in loot do
 		local ok = InventoryService.add(player, id, n)
@@ -507,6 +625,12 @@ local function die(b: Beast, killer: Player?)
 			if p:GetAttribute("Planeta") == b.Planet then
 				tell(p, "Success", ("👑 ¡%s ha caído! Vuelve a su guarida dentro de un rato."):format(b.Sp.Name))
 			end
+		end
+	end
+	if b.Static then
+		shardAt[b.Lair.Id] = now() + Bestiary.ShardRespawn
+		for _, p in got do
+			tell(p, "Success", "💎 ¡Has roto la esquirla de la Grieta! Volverá a caer otra dentro de un rato.")
 		end
 	end
 	-- vuelve a su hora
@@ -580,6 +704,14 @@ function BeastService.hit(attacker: Player?, model: Instance, amount: number, in
 	-- se enfada con quien le pega (si no está demasiado lejos de casa)
 	b.Target = attacker
 	setHp(b)
+	if b.Static and b.Waves and b.Hp > 0 then
+		for idx, th in Bestiary.Shard.Waves do
+			if not b.Waves[idx] and b.Hp / b.Max <= th then
+				b.Waves[idx] = true
+				shardWave(b, idx, attacker)
+			end
+		end
+	end
 	if b.Hp <= 0 then
 		die(b, attacker)
 		return true, n, true
@@ -610,6 +742,9 @@ local function think(b: Beast, t: number)
 	if b.Dead or not b.Model.Parent then
 		forget(b)
 		return
+	end
+	if b.Static then
+		return -- (una esquirla: ni se mueve ni muerde)
 	end
 	-- (si se cae o se atasca muy lejos, vuelve a su guarida)
 	if b.Root.Position.Y < b.Home.Y - 40 or (b.Root.Position - b.Home).Magnitude > Bestiary.Leash * 2.5 then
@@ -761,6 +896,10 @@ function BeastService._step(dt: number)
 	local t = now()
 	for _, b in built do
 		manageLairs(b.S)
+		local okS, errS = pcall(manageShards, b.S)
+		if not okS then
+			warn("[BeastService] esquirlas: " .. tostring(errS))
+		end
 	end
 	for _, b in beasts do
 		local ok, err = pcall(think, b, t)

@@ -3,6 +3,7 @@
 
 local fs = require("@lune/fs")
 local Vector3 = require("@lune/roblox").Vector3
+local CFrame = require("@lune/roblox").CFrame
 local L = require("./lib/ModuleLoader")
 local check = L.check
 
@@ -81,6 +82,12 @@ for _, id in Registry.Order do
 	end
 	check(zonesOk, ("%s: cuatro zonas de caza, más lejos cuanto más nivel (%d manadas)"):format(id, #p.Lairs))
 	check(S.Half >= S.CoreHalf + 800, id .. ": tierras salvajes alrededor de la ciudad")
+	local shardTiers, shardOk = {}, #p.Shards >= 8
+	for _, sh in p.Shards do
+		shardTiers[sh.Tier] = (shardTiers[sh.Tier] or 0) + 1
+		shardOk = shardOk and Bestiary.Species[sh.Species] ~= nil and not (S.City.inside(sh.X, sh.Z, 30))
+	end
+	check(shardOk and (shardTiers[1] or 0) >= 1 and (shardTiers[4] or 0) >= 2, ("%s: esquirlas de la Grieta en todas las zonas (%d)"):format(id, #p.Shards))
 	local again = Bestiary.places(S)
 	check(again.Lairs[1].X == p.Lairs[1].X, id .. ": siempre en el mismo sitio")
 end
@@ -91,6 +98,20 @@ for i = 2, #Bestiary.Zones do
 	zOk = zOk and z1.Level > z0.Level and z1.Hp > z0.Hp and z1.Damage > z0.Damage and z1.Reward > z0.Reward
 end
 check(zOk and Bestiary.leveledName("Rondador de ceniza", 2) == "Rondador de ceniza nv. 15" and Bestiary.zone(99).Level == 35, "cada zona pide más y da más; el nombre lleva su nivel")
+
+local sl1 = Bestiary.shardLoot(1, "Tefra", function() return 0.99 end)
+local sl4 = Bestiary.shardLoot(4, "Tefra", function() return 0.01 end)
+check((sl1.PiedraPulir or 0) >= 3 and (sl4.PiedraPulir or 0) > (sl1.PiedraPulir or 0) - 3 and sl4.PiedraTemple == 1 and sl4.EsenciaEstelar == 1 and (sl4.BrasaViva or 0) >= 1, "las esquirlas rotas dan piedras de mejorar y más cuanto más lejos")
+local knownLoot = true
+for k in sl4 do
+	knownLoot = knownLoot and known(k)
+end
+check(knownLoot and #Bestiary.Shard.Waves == 3 and #Bestiary.Shard.WaveSize == 3, "lo que dan existe y sueltan tres oleadas")
+local BeastKitShard = L.load("src/server/World/Kit/BeastKit")
+local okShard, shardModel = pcall(BeastKitShard.shard, CFrame.new(0, 0, 0), 3)
+check(okShard and shardModel.PrimaryPart ~= nil and shardModel.PrimaryPart.Anchored and shardModel:FindFirstChildOfClass("Humanoid") ~= nil, "la esquirla se dibuja quieta y con humanoide (los golpes la encuentran) " .. (if okShard then "" else tostring(shardModel)))
+local bsSrc = fs.readFile("src/server/Services/BeastService.luau")
+check(string.find(bsSrc, "shardWave(b, idx, attacker)", 1, true) ~= nil and string.find(bsSrc, "pcall(manageShards, b.S)", 1, true) ~= nil and string.find(bsSrc, "Bestiary.shardLoot(b.Tier", 1, true) ~= nil, "el servidor saca las esquirlas, suelta las oleadas y reparte su botín")
 
 print("🎁 Botín")
 local function seq(values: { number }): () -> number

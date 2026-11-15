@@ -175,6 +175,34 @@ Bestiary.Zones = {
 }
 Bestiary.PacksPerZone = 10 -- manadas en cada anillo de las tierras salvajes (zonas 2, 3 y 4)
 
+-- ESQUIRLAS DE LA GRIETA: cristales que cayeron del cielo en las zonas de caza. Se rompen a golpes; al ir
+-- perdiendo vida sueltan OLEADAS de bestias de su zona, y al romperse dan mucho botín. Vuelven a caer al rato.
+Bestiary.Shard = { Id = "Esquirla", Name = "Esquirla de la Grieta", Icon = "💎", Hp = 1400, Money = 120,
+	Waves = { 0.75, 0.5, 0.25 }, WaveSize = { 3, 4, 5 }, Colors = { Body = rgb(150, 90, 255), Belly = rgb(80, 40, 160), Glow = rgb(190, 140, 255) } }
+Bestiary.ShardsPerZone = { 2, 3, 3, 3 }
+Bestiary.ShardRespawn = 300 -- segundos
+
+-- Lo que da una esquirla rota (más cuanto más lejos esté su zona)
+function Bestiary.shardLoot(tier: number?, planet: string?, roll: () -> number): { [string]: number }
+	local t = math.clamp(math.floor(tonumber(tier) or 1), 1, 4)
+	local out: { [string]: number } = {}
+	out.PiedraPulir = 2 + t + math.floor(roll() * 3)
+	if roll() < 0.25 * t then
+		out.PiedraTemple = 1
+	end
+	if t >= 3 and roll() < 0.15 * (t - 2) then
+		out.EsenciaEstelar = 1
+	end
+	local rare = planet and Bestiary.Rare[planet]
+	if rare then
+		out[rare] = 1 + math.floor(roll() * t)
+	end
+	local commons = { "Cuero", "Colmillo", "Quitina", "Escama", "Glandula", "Hueso", "Seda" }
+	local pick = commons[1 + math.floor(roll() * #commons)]
+	out[pick] = (out[pick] or 0) + 2 + t
+	return out
+end
+
 function Bestiary.zone(tier: number?): { [string]: any }
 	return Bestiary.Zones[math.clamp(math.floor(tonumber(tier) or 1), 1, #Bestiary.Zones)]
 end
@@ -285,7 +313,7 @@ function Bestiary.places(S: any): { [string]: any }
 		return cache[id]
 	end
 	local list = Bestiary.ByPlanet[id]
-	local out = { Lairs = {}, Boss = nil :: any, Caches = {} }
+	local out = { Lairs = {}, Boss = nil :: any, Caches = {}, Shards = {} }
 	cache[id] = out
 	if not list then
 		return out
@@ -402,6 +430,30 @@ function Bestiary.places(S: any): { [string]: any }
 						Tier = tier,
 						Name = ("%s (%s)"):format(names[1 + (k + tier) % #names], Bestiary.Zones[tier].Name:lower()),
 					})
+					table.insert(taken, { lx, lz })
+				end
+			end
+		end
+	end
+	-- las esquirlas de la Grieta: unas pocas en cada zona de caza
+	do
+		local outer2 = S.Half - 440
+		local inner2 = core * 0.74
+		local rings = #Bestiary.Zones - 1
+		local step = if outer2 > inner2 + 200 then (outer2 - inner2) / rings else 0
+		for tier = 1, #Bestiary.Zones do
+			local r0, r1
+			if tier == 1 or step <= 0 then
+				r0, r1 = 220, inner2
+			else
+				r0, r1 = inner2 + (tier - 2) * step, inner2 + (tier - 1) * step
+			end
+			for k = 1, Bestiary.ShardsPerZone[tier] or 2 do
+				local lx, lz = find(130, r0, 0.5, r1)
+				if lx then
+					local sy, islet = y(lx, lz)
+					table.insert(out.Shards, { Id = ("%s_E%d_%d"):format(id, tier, k), X = lx, Z = lz, Y = sy, Islet = islet, Tier = tier,
+						Species = list[1 + (k + tier) % #list], Name = ("%s (%s)"):format(Bestiary.Shard.Name, Bestiary.Zones[tier].Name:lower()) })
 					table.insert(taken, { lx, lz })
 				end
 			end

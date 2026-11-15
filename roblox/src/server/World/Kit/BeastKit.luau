@@ -376,4 +376,65 @@ function BeastKit.bench(parent: Instance, cf: CFrame, colors: { [string]: Color3
 	return m
 end
 
+-- Una ESQUIRLA DE LA GRIETA (shared/Cosmos/Bestiary.Shard): un cristal violeta enorme clavado en el suelo, con
+-- trozos que flotan alrededor y luz. Lleva un Humanoid (para que los golpes y la puntería la encuentren), pero
+-- no se mueve: su raíz está anclada. cf: el suelo, en el centro.
+function BeastKit.shard(cf: CFrame, tier: number?): Model
+	local t = math.clamp(tier or 1, 1, 4)
+	local k = 0.85 + t * 0.15
+	local m = Instance.new("Model")
+	m.Name = "Esquirla"
+	local glow = Color3.fromRGB(190, 140, 255)
+	local deep = Color3.fromRGB(110, 60, 220)
+	local root = Instance.new("Part")
+	root.Name = "HumanoidRootPart"
+	root.Size = V3(7, 16, 7) * k
+	root.CFrame = cf * CFrame.new(0, 8 * k, 0) * CFrame.Angles(0.12, 0.4, -0.08)
+	root.Color = deep
+	root.Material = Enum.Material.Glass
+	root.Transparency = 0.15
+	root.Anchored = true
+	root.CanCollide = true
+	root.Parent = m
+	local core = Builder.decor({ Name = "Nucleo", Size = V3(3.2, 12, 3.2) * k, CFrame = root.CFrame, Color = glow, Material = Enum.Material.Neon, Parent = m })
+	local light = Instance.new("PointLight")
+	light.Color = glow
+	light.Range = 34
+	light.Brightness = 2.2
+	light.Shadows = false
+	light.Parent = core
+	local r = Random.new(math.floor(cf.Position.X * 7 + cf.Position.Z))
+	for i = 1, 5 do
+		local a = i / 5 * math.pi * 2
+		local h = r:NextNumber(5, 9) * k
+		Builder.decor({ Name = "Punta", Size = V3(2.2, h, 2.2) * 1, CFrame = cf * CFrame.new(math.cos(a) * 4.5 * k, h / 2 - 0.5, math.sin(a) * 4.5 * k) * CFrame.Angles(math.sin(a) * 0.5, 0, -math.cos(a) * 0.5), Color = if i % 2 == 0 then deep else glow, Material = if i % 2 == 0 then Enum.Material.Glass else Enum.Material.Neon, Parent = m })
+	end
+	for i = 1, 6 do
+		local a = i / 6 * math.pi * 2 + 0.3
+		Builder.decor({ Name = "Roca", Size = V3(1.6, 1.6, 1.6) * r:NextNumber(0.7, 1.4), CFrame = cf * CFrame.new(math.cos(a) * 8 * k, r:NextNumber(6, 14) * k, math.sin(a) * 8 * k) * CFrame.Angles(r:NextNumber(0, 6), r:NextNumber(0, 6), 0), Color = Color3.fromRGB(40, 32, 56), Material = Enum.Material.Basalt, Parent = m })
+	end
+	local pe = Instance.new("ParticleEmitter")
+	pe.Name = "Chispas"
+	pe.Color = ColorSequence.new(glow)
+	pe.LightEmission = 1
+	pe.Size = NumberSequence.new({ NumberSequenceKeypoint.new(0, 0.6), NumberSequenceKeypoint.new(1, 0) })
+	pe.Lifetime = NumberRange.new(1, 2)
+	pe.Rate = 8
+	pe.Speed = NumberRange.new(2, 5)
+	pe.SpreadAngle = Vector2.new(180, 180)
+	pe.Parent = core
+	local humanoid = Instance.new("Humanoid")
+	humanoid.WalkSpeed = 0
+	humanoid.JumpPower = 0
+	humanoid.MaxHealth = 1e6
+	humanoid.Health = 1e6
+	humanoid.BreakJointsOnDeath = false
+	humanoid.RequiresNeck = false
+	humanoid.DisplayDistanceType = Enum.HumanoidDisplayDistanceType.None
+	humanoid.HealthDisplayType = Enum.HumanoidHealthDisplayType.AlwaysOff
+	humanoid.Parent = m
+	m.PrimaryPart = root
+	return m
+end
+
 return BeastKit
