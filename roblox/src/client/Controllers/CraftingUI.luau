@@ -26,6 +26,10 @@ local panel: Frame?
 local remote: RemoteEvent
 local state = { Bench = "Taller", Have = {} :: { [string]: number }, Tab = "Armas", Extra = {} :: { [string]: any } }
 local REFINE_TAB = "Mejorar"
+local GEAR_TAB = "Equipo"
+local SKILL_TAB = "Habilidades"
+local HunterSkills = require(ReplicatedStorage.Shared.HunterSkills)
+local Combat = require(ReplicatedStorage.Shared.Combat)
 local render: (() -> ())? = nil
 
 local ORE_NAMES = { Hierro = "⛏ Hierro", Cobalto = "⛏ Cobalto", Cristal = "⛏ Cristal", Obsidiana = "⛏ Obsidiana" }
@@ -67,7 +71,7 @@ local function open()
 		close(true)
 	end)
 	local side = Theme.touchWindow(frame, closeButton, not keep)
-	local benchName = if state.Bench == "Mesa" then "🧰 Mesa plegable (solo recetas de Mesa)" elseif state.Bench == "Mochila" then "🎒 Fabricar y mejorar" else "🛠 Taller · Mesa, Forja y Alquimia"
+	local benchName = if state.Bench == "Mesa" then "🧰 Mesa plegable (solo recetas de Mesa)" elseif state.Bench == "Mochila" then "🎒 Equipo y fabricar" else "🛠 Taller · Mesa, Forja y Alquimia"
 	do
 		local xp = tonumber(state.Extra.Xp) or 0
 		local lvl = Crafting.hunterLevel(xp)
@@ -89,6 +93,8 @@ local function open()
 		end
 		local tabNames = table.clone(Crafting.Categories)
 		table.insert(tabNames, 1, REFINE_TAB)
+		table.insert(tabNames, 1, SKILL_TAB)
+		table.insert(tabNames, 1, GEAR_TAB)
 		for i, cat in tabNames do
 			local b = Theme.button({ Size = UDim2.fromOffset(if Theme.isTouch() then 118 else 104, 32), Text = cat, TextSize = 14, LayoutOrder = i, Parent = tabs })
 			if cat == state.Tab then
@@ -106,7 +112,60 @@ local function open()
 			end
 		end
 		local order = 0
-		if state.Tab == REFINE_TAB then
+		local function row(height: number, color: Color3?): Frame
+			order += 1
+			local f = create("Frame", { Size = UDim2.new(1, -8, 0, height), BackgroundColor3 = color or rgb(24, 30, 46), BackgroundTransparency = 0.15, LayoutOrder = order, Parent = list })
+			Theme.corner(8).Parent = f
+			Theme.padding(8).Parent = f
+			return f
+		end
+		if state.Tab == GEAR_TAB then
+			-- EQUIPO: lo que llevas en cada hueco (lo mejor de tu mochila) y lo que suma todo
+			local refine = if type(state.Extra.Refine) == "table" then state.Extra.Refine else {}
+			local worn = Crafting.stats(state.Have, refine)
+			local xp = tonumber(state.Extra.Xp) or 0
+			local lvl = Crafting.hunterLevel(xp)
+			local nextNeed = Crafting.hunterNeed(lvl + 1)
+			local head = row(70, rgb(30, 40, 62))
+			local style = Combat.weaponStyle(state.Extra.Style)
+			Theme.label({ Size = UDim2.fromScale(1, 1), TextWrapped = true, TextSize = 13, RichText = true, TextYAlignment = Enum.TextYAlignment.Top, Text = ("<b>⭐ Cazador nivel %d</b>  (%d / %d de experiencia)\nEstilo de golpe: <b>%s</b>%s\n⚔️ +%d %% golpes · 🛡 −%d %% daño · 🍀 +%d %% botín raro · 💚 +%d vida por bestia"):format(lvl, xp, if lvl >= Crafting.MaxHunter then xp else nextNeed, style.Name, if style.Text then " · " .. style.Text else "", math.floor((worn.Blade + Crafting.hunterBonus(xp)) * 100 + 0.5), math.floor(worn.Defense * 100 + 0.5), math.floor(worn.Luck * 100 + 0.5), worn.Vigor), Parent = head })
+			for _, slot in Crafting.Slots do
+				local id = worn.Worn[slot]
+				local f = row(if Theme.isTouch() then 44 else 38)
+				local item = id and Items.get(id)
+				local text = if item then ("%s %s"):format(item.Icon, Crafting.refinedName(item.Name, Crafting.refineOf(refine, id))) else "— vacío —"
+				Theme.label({ Size = UDim2.fromScale(0.34, 1), Text = ("%s %s"):format(Crafting.SlotIcons[slot] or "", slot), TextSize = 14, TextColor3 = C.Muted, Parent = f })
+				Theme.label({ Position = UDim2.fromScale(0.34, 0), Size = UDim2.fromScale(0.66, 1), Text = text, TextSize = 14, TextTruncate = Enum.TextTruncate.AtEnd, TextColor3 = if id then C.Text else C.Muted, Parent = f })
+			end
+			local tip = row(40, rgb(20, 26, 40))
+			Theme.label({ Size = UDim2.fromScale(1, 1), TextWrapped = true, TextSize = 12, TextColor3 = C.Muted, Text = "Se usa solo lo mejor de cada hueco que lleves en la mochila. En los planetas se ve puesto y tu arma cambia cómo golpeas.", Parent = tip })
+		elseif state.Tab == SKILL_TAB then
+			-- HABILIDADES: subir de rango con los puntos de habilidad (uno por nivel de cazador)
+			local ranks = if type(state.Extra.Skills) == "table" then state.Extra.Skills else {}
+			local lvl = Crafting.hunterLevel(tonumber(state.Extra.Xp) or 0)
+			local left = HunterSkills.pointsLeft(lvl, ranks)
+			local head = row(46, rgb(30, 40, 62))
+			Theme.label({ Size = UDim2.fromScale(1, 1), TextWrapped = true, TextSize = 13, RichText = true, Text = ("<b>Puntos de habilidad: %d</b>  · Ganas uno por cada nivel de cazador. Cada rango: +12 %% de fuerza y algo menos de espera. Rango 10 = Maestra."):format(left), Parent = head })
+			for _, sk in HunterSkills.List do
+				local unlocked = HunterSkills.unlocked(sk, lvl)
+				local rank = HunterSkills.rankOf(ranks, sk.Id)
+				local f = row(if Theme.isTouch() then 80 else 72)
+				Theme.label({ Size = UDim2.new(1, -150, 0, 22), Text = ("%s %s · %s"):format(sk.Icon, sk.Name, if unlocked then HunterSkills.rankName(rank) else ("nivel %d"):format(sk.Level)), TextSize = 15, TextColor3 = if not unlocked then C.Muted elseif rank >= HunterSkills.MaxRank then rgb(255, 200, 90) else C.Text, Parent = f })
+				local detail = if sk.Kind == "Buff" then ("+%d %% de daño %d s"):format(math.floor(HunterSkills.buffAmount(sk, rank) * 100 + 0.5), sk.Seconds) else ("fuerza ×%.1f"):format(HunterSkills.power(sk, rank))
+				Theme.label({ Position = UDim2.fromOffset(0, 22), Size = UDim2.new(1, -150, 0, 34), TextWrapped = true, TextYAlignment = Enum.TextYAlignment.Top, Text = ("%s %s · espera %d s · tecla %s"):format(sk.Desc, detail, math.floor(HunterSkills.cooldown(sk, rank) + 0.5), sk.Key), TextSize = 12, TextColor3 = C.Muted, Parent = f })
+				if unlocked and rank < HunterSkills.MaxRank then
+					local btn = Theme.button({ AnchorPoint = Vector2.new(1, 0.5), Position = UDim2.new(1, 0, 0.5, 0), Size = UDim2.fromOffset(136, if Theme.isTouch() then 44 else 36), Text = ("Subir a %d"):format(rank + 1), TextSize = 14, Parent = f })
+					if left < 1 then
+						btn.BackgroundColor3 = rgb(60, 62, 70)
+						btn.TextColor3 = rgb(150, 150, 160)
+					end
+					btn.Activated:Connect(function()
+						SoundFx.play("MenuOk")
+						remote:FireServer("SkillUp", sk.Id)
+					end)
+				end
+			end
+		elseif state.Tab == REFINE_TAB then
 			-- MEJORAR: tu equipo, con su nivel (+0…+9), lo que da ahora y lo que cuesta el siguiente
 			local refine = if type(state.Extra.Refine) == "table" then state.Extra.Refine else {}
 			local money = tonumber(state.Extra.Money) or 0
@@ -121,6 +180,20 @@ local function open()
 					table.insert(owned, g)
 				end
 			end
+			-- (y las armas de fuego que lleves: cada +1, un 8 % más contra las bestias con esa arma)
+			local guns = {}
+			for id, n in state.Have do
+				if Crafting.isGun(id) and n > 0 then
+					local item = Items.get(id)
+					table.insert(guns, { Id = id, Name = item and item.Name or id, Icon = item and item.Icon or "🔫", Gun = true })
+				end
+			end
+			table.sort(guns, function(a, b)
+				return a.Id < b.Id
+			end)
+			for _, g in guns do
+				table.insert(owned, g)
+			end
 			if #owned == 0 then
 				local empty = create("Frame", { Size = UDim2.new(1, -8, 0, 60), BackgroundTransparency = 1, LayoutOrder = 1, Parent = list })
 				Theme.label({ Size = UDim2.fromScale(1, 1), TextWrapped = true, TextSize = 14, TextColor3 = C.Muted, Text = "Todavía no llevas equipo. Fabrica un arma, una armadura o un accesorio en las otras pestañas y vuelve aquí para mejorarlo.", Parent = empty })
@@ -129,13 +202,16 @@ local function open()
 				order += 1
 				local level = Crafting.refineOf(refine, g.Id)
 				local step = Crafting.refineStep(level)
-				local slot = Crafting.slotOf(g) or ""
+				local slot = if g.Gun then "Fuego" else (Crafting.slotOf(g) or "")
 				local isWorn = worn.Worn[slot] == g.Id
 				local card = create("Frame", { Size = UDim2.new(1, -8, 0, if Theme.isTouch() then 92 else 84), BackgroundColor3 = if isWorn then rgb(28, 44, 40) else rgb(24, 30, 46), BackgroundTransparency = 0.15, LayoutOrder = order, Parent = list })
 				Theme.corner(8).Parent = card
 				Theme.padding(8).Parent = card
-				local st = Crafting.gearStats(g.Id, level)
+				local st = if g.Gun then { Blade = 0, Defense = 0, Luck = 0, Vigor = 0 } else Crafting.gearStats(g.Id, level)
 				local bits = {}
+				if g.Gun then
+					table.insert(bits, ("🔫 +%d %% a las bestias"):format(math.floor(level * Crafting.GunBonus * 100 + 0.5)))
+				end
 				if st.Blade > 0 then
 					table.insert(bits, ("⚔️ +%d %%"):format(math.floor(st.Blade * 100 + 0.5)))
 				end

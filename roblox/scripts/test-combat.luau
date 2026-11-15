@@ -372,7 +372,7 @@ do
 	check(MeleeHit.knock("King") == 0 and MeleeHit.knock("Grunt", true) > MeleeHit.knock("Grunt"), "los pequeños se apartan (más con un golpe fuerte); el rey, nada")
 	local cs = fs.readFile("src/server/Services/CombatService.luau")
 	check(cs:find('if kind == "Attack" or kind == "Light" then\n\t\treturn strike(state, "Light", false)', 1, true) ~= nil, "el cliente solo dice «he pegado» (ni daño ni a quién): el servidor no lee lo que mande de más")
-	check(cs:find("Combat.readyMove(state.LastMove, state.LastAt, now, Combat.ReadySlack)", 1, true) ~= nil and cs:find("local ok, extra = pcall(invasion, state.Player, root.Position, look", 1, true) ~= nil, "con la misma pausa entre golpes y desde la posición del personaje en el servidor")
+	check(cs:find("Combat.readyMove(state.LastMove, state.LastAt, now, Combat.ReadySlack, style.Speed)", 1, true) ~= nil and cs:find("local ok, extra = pcall(invasion, state.Player, root.Position, look", 1, true) ~= nil, "con la misma pausa entre golpes y desde la posición del personaje en el servidor")
 	check(cs:find('Remote:FireAllClients("XenoHit"', 1, true) ~= nil, "al dar: chispa y sonido para todos (sin sangre)")
 	local cc = fs.readFile("src/client/Controllers/CombatController.luau")
 	check(cc:find("not armed() or CombatController.alienClose()", 1, true) ~= nil, "en el móvil, con un arma en la mano, «Atacar» sale si tienes un alienígena al alcance del puño")

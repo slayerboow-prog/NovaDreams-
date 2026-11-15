@@ -225,6 +225,55 @@ local skillSrc = fs.readFile("src/server/Services/HunterSkillService.luau")
 check(string.find(skillSrc, "Beasts.near(from, reach)", 1, true) ~= nil and string.find(fs.readFile("src/server/Services/BeastService.luau"), 'buff(attacker, "Furia")', 1, true) ~= nil, "el servidor hace el daño a las bestias cercanas y cuenta la furia")
 check(string.find(fs.readFile("src/server/Main.server.luau"), '"HunterSkillService"', 1, true) ~= nil and string.find(fs.readFile("src/client/Main.client.luau"), "HunterSkillsUI", 1, true) ~= nil, "las habilidades están conectadas en el servidor y en el cliente")
 
+print("🗡 Estilos de arma, rangos y equipo visible")
+local Combat = L.load("src/shared/Combat")
+local stylesOk = true
+for id, st in Combat.WeaponOf do
+	stylesOk = stylesOk and Crafting.gear(id) ~= nil and Crafting.gear(id).Kind == "Blade" and Combat.WeaponStyles[st] ~= nil
+end
+check(stylesOk and Combat.styleOfWeapon(nil) == "" and Combat.weaponStyle("").Speed == 1, "cada arma blanca tiene su estilo de golpe; sin arma, puños")
+local knife, axe, spear = Combat.WeaponStyles.Cuchillo, Combat.WeaponStyles.Hacha, Combat.WeaponStyles.Lanza
+check(knife.Speed < 1 and axe.Speed > 1 and axe.BeastMul > knife.BeastMul and spear.Reach > axe.Reach, "el cuchillo es rápido, el hacha pesa y la lanza llega lejos")
+check(Combat.readyMove("L1", 0, 0.16, 1, knife.Speed) and not Combat.readyMove("L1", 0, 0.16, 1, 1) and not Combat.readyMove("L1", 0, 0.22, 1, axe.Speed), "el estilo cambia la pausa entre golpes")
+local ranks = { TajoCircular = 4 }
+check(Skills.rankOf(ranks, "TajoCircular") == 4 and Skills.rankOf(ranks, "Furia") == 1 and Skills.pointsLeft(10, ranks) == 6 and Skills.pointsLeft(1, nil) == 0, "rangos de habilidad: se gastan los puntos de cazador")
+check(Skills.power(tajo, 10) > Skills.power(tajo, 1) * 2 and Skills.cooldown(tajo, 10) < tajo.Cooldown and Skills.rankName(10) == "Maestra", "cada rango pega más y espera menos; rango 10 = Maestra")
+check(Crafting.isEquip("Arma_Pistola") and Crafting.isGun("Arma_Fusil") and not Crafting.isGun("LanzaEscama") and math.abs(Crafting.gunBonus({ Arma_Pistola = 5 }, "Pistola") - 0.4) < 1e-6 and Crafting.gunBonus({}, "Pistola") == 0, "las armas de fuego también se mejoran (+8 % por nivel con esa arma)")
+local roblox = require("@lune/roblox")
+local function limb(m, name, size)
+	local p = roblox.Instance.new("Part")
+	p.Name = name
+	p.Size = size
+	p.Parent = m
+	return p
+end
+local body = roblox.Instance.new("Model")
+for name, size in { Head = Vector3.new(1.2, 1.2, 1.2), UpperTorso = Vector3.new(2, 1.6, 1), RightHand = Vector3.new(0.6, 0.4, 0.6), LeftLowerArm = Vector3.new(0.6, 1, 0.6), RightLowerArm = Vector3.new(0.6, 1, 0.6), LeftFoot = Vector3.new(0.6, 0.4, 1), RightFoot = Vector3.new(0.6, 0.4, 1) } do
+	limb(body, name, size)
+end
+local GearLook = L.load("src/server/World/Kit/GearLook")
+local okLook, folder = pcall(GearLook.apply, body, { Arma = "EspadaTrofeo", Armadura = "ArmaduraEscamas", Casco = "CascoCromo", Escudo = "EscudoNacar", Botas = "BotasDuna", Collar = "CollarEnjambre", Pulsera = "PulseraCobre", Pendientes = "PendientesHielo" }, { EspadaTrofeo = 8 })
+local glowing, loose = false, false
+if okLook then
+	for _, d in folder:GetDescendants() do
+		if d:IsA("ParticleEmitter") then
+			glowing = true
+		end
+		if d:IsA("BasePart") and (d.CanCollide or not d.Massless) then
+			loose = true
+		end
+	end
+end
+check(okLook and #folder:GetChildren() >= 15 and glowing and not loose, "el equipo se ve en el personaje (sin chocar ni pesar) y el arma +8 brilla " .. (if okLook then "" else tostring(folder)))
+local missing = true
+for _, id in { "ArmaduraCuero", "CascoCeniza", "CuchilloColmillo", "PendientesEstelares" } do
+	missing = missing and GearLook.Colors[id] ~= nil
+end
+check(missing, "cada pieza de equipo tiene su color")
+check(string.find(fs.readFile("src/server/Services/InventoryService.luau"), "data.Refine[id] = nil", 1, true) ~= nil, "la mejora es de tu copia: si te quedas sin ella, se va")
+check(string.find(fs.readFile("src/server/Services/CombatService.luau"), "style.Targets", 1, true) ~= nil and string.find(fs.readFile("src/client/Controllers/CombatController.luau"), "EstiloArma", 1, true) ~= nil, "el servidor y el cliente usan el estilo de arma")
+check(string.find(fs.readFile("src/server/Main.server.luau"), '"GearService"', 1, true) ~= nil, "el equipo visible está conectado")
+
 print("🔌 Conexiones")
 local combat = fs.readFile("src/server/Services/CombatService.luau")
 check(string.find(combat, "CombatService.beastHit", 1, true) ~= nil and string.find(combat, "local hook = targetHook(model)", 1, true) ~= nil, "los golpes y las balas a una bestia van a BeastService")

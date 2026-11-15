@@ -78,6 +78,8 @@ local function extraOf(player: Player): { [string]: any }
 		Refine = d and d.Refine or {},
 		Money = d and d.Money or 0,
 		Xp = d and type(d.Hunter) == "table" and d.Hunter.Xp or 0,
+		Skills = d and type(d.Hunter) == "table" and d.Hunter.Skills or {},
+		Style = player:GetAttribute("EstiloArma") or "",
 	}
 end
 
@@ -335,6 +337,13 @@ function CraftingService.init()
 		elseif action == "Refine" then
 			local ok, text = CraftingService.refine(player, a)
 			;(Remote :: RemoteEvent):FireClient(player, "Result", ok, text)
+			;(Remote :: RemoteEvent):FireClient(player, "Have", haveOf(player), extraOf(player))
+		elseif action == "SkillUp" then
+			local okS, Skill = pcall(require, script.Parent.HunterSkillService)
+			if okS then
+				local ok, text = (Skill :: any).rankUp(player, a)
+				;(Remote :: RemoteEvent):FireClient(player, "Result", ok, text)
+			end
 			;(Remote :: RemoteEvent):FireClient(player, "Have", haveOf(player), extraOf(player))
 		elseif action == "OpenBag" then
 			-- fabricar y mejorar desde la mochila, en cualquier sitio

@@ -25,6 +25,7 @@ local TweenService = game:GetService("TweenService")
 
 local Bestiary = require(ReplicatedStorage.Shared.Cosmos.Bestiary)
 local PlanetRegistry = require(ReplicatedStorage.Shared.Cosmos.PlanetRegistry)
+local Combat = require(ReplicatedStorage.Shared.Combat)
 local Crafting = require(ReplicatedStorage.Shared.Crafting)
 local Items = require(ReplicatedStorage.Shared.Items)
 
@@ -430,6 +431,11 @@ local function giveLoot(player: Player, b: Beast)
 	local InventoryService = require(script.Parent.InventoryService) :: any
 	local data0 = dataOf(player)
 	local worn = Crafting.stats(data0 and data0.Items, data0 and data0.Refine)
+	-- (la Suerte del personaje también ayuda: +1 % de botín raro por punto)
+	local okP, Progression = pcall(require, script.Parent.ProgressionService)
+	if okP then
+		worn.Luck += ((Progression :: any).stat(player, "Suerte") or 0) * 0.01
+	end
 	local reward = b.Reward or 1
 	local loot = Bestiary.loot(b.Species, math.random, worn.Luck + (reward - 1) * 0.25)
 	local parts = {}
@@ -457,6 +463,10 @@ local function giveLoot(player: Player, b: Beast)
 		data.Hunter.Xp = (tonumber(data.Hunter.Xp) or 0) + Crafting.killXp(b.Max, b.Sp.Boss)
 		local after = Crafting.hunterLevel(data.Hunter.Xp)
 		player:SetAttribute("NivelCazador", after)
+		-- y experiencia del personaje (sube su nivel y da puntos de atributos, como cualquier cosa de tu vida)
+		if okP then
+			pcall((Progression :: any).addXp, player, math.max(1, math.floor(Crafting.killXp(b.Max, b.Sp.Boss) / 2)), nil)
+		end
 		if after > before then
 			tell(player, "Success", ("⭐ ¡Nivel de cazador %d! Tus golpes a las bestias hacen un %d %% más."):format(after, math.floor(Crafting.hunterBonus(data.Hunter.Xp) * 100 + 0.5)))
 		end
@@ -553,8 +563,13 @@ function BeastService.hit(attacker: Player?, model: Instance, amount: number, in
 		-- golpes: tu mejor arma blanca y la poción de fuerza
 		local data = dataOf(attacker)
 		n *= 1 + Crafting.bladeOf(data and data.Items, data and data.Refine) + buff(attacker, "Fuerza") + buff(attacker, "Furia") + Crafting.hunterBonus(data and data.Hunter and data.Hunter.Xp)
+		-- (el estilo de tu arma: el hacha pesa más, el cuchillo menos pero más seguido)
+		if not i.Skill then
+			n *= Combat.weaponStyle(attacker:GetAttribute("EstiloArma")).BeastMul
+		end
 	elseif i.Weapon then
-		n *= BeastService.BulletMul
+		local data = dataOf(attacker)
+		n *= BeastService.BulletMul * (1 + Crafting.gunBonus(data and data.Refine, i.Weapon) + Crafting.hunterBonus(data and data.Hunter and data.Hunter.Xp))
 	end
 	if b.Sp.Boss then
 		n *= BeastService.BossTakes

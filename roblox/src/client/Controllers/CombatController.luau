@@ -238,7 +238,7 @@ local function swing(kind: string, charged: boolean?): boolean
 	end
 	local now = os.clock()
 	-- Misma pausa que el servidor, para que la animación no vaya por delante del golpe
-	if not Combat.readyMove(localLast, localLastAt, now) then
+	if not Combat.readyMove(localLast, localLastAt, now, nil, Combat.weaponStyle(player:GetAttribute("EstiloArma")).Speed) then
 		return false
 	end
 	local name, chain = Combat.nextMove(localChain, kind, now, charged, HitReaction.isFloating())

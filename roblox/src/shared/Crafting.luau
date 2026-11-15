@@ -289,8 +289,24 @@ function Crafting.slotOf(g: { [string]: any }): string?
 	return if g.Kind == "Blade" then "Arma" elseif g.Kind == "Armor" then "Armadura" else nil
 end
 
+-- Armas de fuego («Arma_<id>» de shared/Weapons): también se mejoran; cada +1 hace un 8 % más de daño a las
+-- bestias con ESA arma
+Crafting.GunBonus = 0.08
+function Crafting.isGun(id: string): boolean
+	return type(id) == "string" and string.sub(id, 1, 5) == "Arma_"
+end
+function Crafting.gunBonus(refine: { [string]: any }?, weaponId: string?): number
+	if type(weaponId) ~= "string" then
+		return 0
+	end
+	return Crafting.refineOf(refine, "Arma_" .. weaponId) * Crafting.GunBonus
+end
+
 -- ¿Es equipo (se puede mejorar)?
 function Crafting.isEquip(id: string): boolean
+	if Crafting.isGun(id) then
+		return true
+	end
 	local g = gearById[id]
 	return g ~= nil and Crafting.slotOf(g) ~= nil
 end

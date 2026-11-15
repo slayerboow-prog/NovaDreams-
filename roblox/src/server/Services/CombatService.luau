@@ -740,7 +740,9 @@ end
 
 local function strike(state: State, kind: string, charged: boolean?): string?
 	local now = os.clock()
-	if not canAct(state, now) or not Combat.readyMove(state.LastMove, state.LastAt, now, Combat.ReadySlack) then
+	-- (tu estilo de arma en los planetas: Services/GearService → EstiloArma)
+	local style = Combat.weaponStyle(state.Player and state.Player:GetAttribute("EstiloArma"))
+	if not canAct(state, now) or not Combat.readyMove(state.LastMove, state.LastAt, now, Combat.ReadySlack, style.Speed) then
 		return nil
 	end
 	local model = modelOf(state) :: Model
@@ -761,7 +763,7 @@ local function strike(state: State, kind: string, charged: boolean?): string?
 	-- Todos ven el golpe (el que pega ya lo está animando en su pantalla)
 	Remote:FireAllClients("Swing", refOf(state), name)
 
-	local reach = if state.Lock then Combat.LockReach else 0
+	local reach = (if state.Lock then Combat.LockReach else 0) + style.Reach
 	local look = flatLook(root)
 	local list = victimsOf(model, root, reach)
 	-- La invasión va aparte (su tamaño de verdad, compensación de lag y sin atravesar paredes)
@@ -781,7 +783,7 @@ local function strike(state: State, kind: string, charged: boolean?): string?
 	end
 	local hits = 0
 	for _, target in list do
-		if hits >= Combat.MaxTargets then
+		if hits >= style.Targets then
 			break
 		end
 		local _, targetRoot = parts(target)

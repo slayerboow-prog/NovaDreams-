@@ -31,6 +31,36 @@ function HunterSkills.get(id: any): { [string]: any }?
 	return if type(id) == "string" then byId[id] else nil
 end
 
+-- RANGOS: cada habilidad empieza en rango 1 al desbloquearse y sube hasta el 10 («Maestra») con PUNTOS DE
+-- HABILIDAD: uno por cada nivel de cazador desde el 2. Cada rango: +12 % de fuerza y −3 % de espera.
+HunterSkills.MaxRank = 10
+HunterSkills.PerRank = 0.12
+HunterSkills.CooldownPerRank = 0.03
+
+function HunterSkills.rankOf(ranks: { [string]: any }?, id: string): number
+	return math.clamp(math.floor(tonumber(ranks and ranks[id]) or 1), 1, HunterSkills.MaxRank)
+end
+function HunterSkills.power(sk: { [string]: any }, rank: number): number
+	return (sk.Power or 0) * (1 + HunterSkills.PerRank * (rank - 1))
+end
+function HunterSkills.buffAmount(sk: { [string]: any }, rank: number): number
+	return (sk.Amount or 0) * (1 + HunterSkills.PerRank * (rank - 1))
+end
+function HunterSkills.cooldown(sk: { [string]: any }, rank: number): number
+	return sk.Cooldown * (1 - HunterSkills.CooldownPerRank * (rank - 1))
+end
+-- Puntos que quedan por gastar: (nivel de cazador − 1) menos los rangos ya subidos
+function HunterSkills.pointsLeft(hunterLevel: number, ranks: { [string]: any }?): number
+	local spent = 0
+	for _, sk in HunterSkills.List do
+		spent += HunterSkills.rankOf(ranks, sk.Id) - 1
+	end
+	return math.max(0, (hunterLevel - 1) - spent)
+end
+function HunterSkills.rankName(rank: number): string
+	return if rank >= HunterSkills.MaxRank then "Maestra" else ("Rango %d"):format(rank)
+end
+
 function HunterSkills.unlocked(sk: { [string]: any }, hunterLevel: number): boolean
 	return hunterLevel >= sk.Level
 end

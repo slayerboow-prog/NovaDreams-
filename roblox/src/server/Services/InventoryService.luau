@@ -150,6 +150,10 @@ function InventoryService.remove(player: Player, id: string, count: number?): bo
 	end
 	local left = have - (count or 1)
 	data.Items[id] = if left > 0 then left else nil
+	-- (la mejora +1…+9 es de la copia que llevas: si te quedas sin ninguna, se va con ella)
+	if left <= 0 and type(data.Refine) == "table" then
+		data.Refine[id] = nil
+	end
 	sync(player)
 	return true
 end

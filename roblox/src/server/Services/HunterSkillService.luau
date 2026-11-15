@@ -32,6 +32,38 @@ local function dataOf(player: Player): { [string]: any }?
 	return if ok then d else nil
 end
 
+function HunterSkillService.rankOf(player: Player, id: string): number
+	local d = dataOf(player)
+	return HunterSkills.rankOf(d and type(d.Hunter) == "table" and d.Hunter.Skills or nil, id)
+end
+
+-- Gasta un punto de habilidad en subir un rango. Devuelve (ok, texto)
+function HunterSkillService.rankUp(player: Player, id: any): (boolean, string)
+	local sk = HunterSkills.get(id)
+	if not sk then
+		return false, "Habilidad desconocida."
+	end
+	local d = dataOf(player)
+	if not d then
+		return false, "Tus datos aún no han cargado."
+	end
+	d.Hunter = if type(d.Hunter) == "table" then d.Hunter else { Xp = 0 }
+	d.Hunter.Skills = if type(d.Hunter.Skills) == "table" then d.Hunter.Skills else {}
+	local level = Crafting.hunterLevel(d.Hunter.Xp)
+	if not HunterSkills.unlocked(sk, level) then
+		return false, ("%s se desbloquea con nivel de cazador %d."):format(sk.Name, sk.Level)
+	end
+	local rank = HunterSkills.rankOf(d.Hunter.Skills, sk.Id)
+	if rank >= HunterSkills.MaxRank then
+		return false, sk.Name .. " ya es Maestra."
+	end
+	if HunterSkills.pointsLeft(level, d.Hunter.Skills) < 1 then
+		return false, "No te quedan puntos de habilidad: sube de nivel de cazador."
+	end
+	d.Hunter.Skills[sk.Id] = rank + 1
+	return true, ("%s %s: %s"):format(sk.Icon, sk.Name, HunterSkills.rankName(rank + 1))
+end
+
 function HunterSkillService.levelOf(player: Player): number
 	local d = dataOf(player)
 	return Crafting.hunterLevel(d and type(d.Hunter) == "table" and d.Hunter.Xp or 0)
@@ -78,18 +110,20 @@ function HunterSkillService.use(player: Player, id: any, now: number?): (boolean
 	end
 	local t = now or os.clock()
 	used[player] = used[player] or {}
-	if HunterSkills.remaining(sk, used[player][sk.Id], t) > 0 then
+	local rank = HunterSkillService.rankOf(player, sk.Id)
+	local last = used[player][sk.Id]
+	if last and t - last < HunterSkills.cooldown(sk, rank) then
 		return false, nil, 0
 	end
 	used[player][sk.Id] = t
 	local hits = 0
 	if sk.Kind == "Buff" then
-		player:SetAttribute("BuffFuria", sk.Amount)
+		player:SetAttribute("BuffFuria", HunterSkills.buffAmount(sk, rank))
 		player:SetAttribute("BuffFuriaHasta", workspace:GetServerTimeNow() + sk.Seconds)
 		ring(root.Position - Vector3.new(0, 2.5, 0), 8, Color3.fromRGB(255, 120, 40))
 	else
 		local Beasts = beastService()
-		local base = Combat.Damage[#Combat.Damage] * sk.Power
+		local base = Combat.Damage[#Combat.Damage] * HunterSkills.power(sk, rank)
 		local from = root.Position
 		local look = root.CFrame.LookVector
 		local dir = Vector3.new(look.X, 0, look.Z)
@@ -134,7 +168,7 @@ function HunterSkillService.init()
 			local sk = HunterSkills.get(id)
 			local ok, text = HunterSkillService.use(player, id)
 			if ok and sk then
-				(Remote :: RemoteEvent):FireClient(player, "Used", sk.Id, sk.Cooldown)
+				(Remote :: RemoteEvent):FireClient(player, "Used", sk.Id, HunterSkills.cooldown(sk, HunterSkillService.rankOf(player, sk.Id)))
 			elseif text then
 				(Remote :: RemoteEvent):FireClient(player, "No", id, text)
 			end

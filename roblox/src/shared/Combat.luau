@@ -190,13 +190,38 @@ function Combat.nextMove(chain: Chain, kind: string, now: number, charged: boole
 	return "H1", reset
 end
 
--- ¿Se puede dar ya otro golpe? (la pausa es la Recovery del anterior; slack < 1 para el servidor)
-function Combat.readyMove(last: string?, lastAt: number, now: number, slack: number?): boolean
+-- ¿Se puede dar ya otro golpe? (la pausa es la Recovery del anterior; slack < 1 para el servidor; speed: la
+-- de tu estilo de arma, Combat.WeaponStyles)
+function Combat.readyMove(last: string?, lastAt: number, now: number, slack: number?, speed: number?): boolean
 	local move = last and Combat.Moves[last]
 	if not move then
 		return true
 	end
-	return now - lastAt >= move.Recovery * (slack or 1)
+	return now - lastAt >= move.Recovery * (slack or 1) * (speed or 1)
+end
+
+---------------------------------------------------------------------
+-- ESTILOS DE ARMA (en los planetas, con un arma de shared/Crafting en la mochila; los pone Services/GearService
+-- en el atributo EstiloArma). Cambian el ritmo del combo, el alcance, a cuántos alcanzas y el daño a las bestias.
+--   Speed: pausa entre golpes (menos = más rápido) · Reach: studs de alcance de más · Targets: a cuántos de
+--   una vez · BeastMul: daño a las bestias
+---------------------------------------------------------------------
+Combat.WeaponStyles = {
+	Cuchillo = { Name = "Cuchillo", Speed = 0.75, Reach = 0, Targets = 2, BeastMul = 0.85, Text = "Golpes muy rápidos." },
+	Hacha = { Name = "Hacha", Speed = 1.3, Reach = 1, Targets = 3, BeastMul = 1.45, Text = "Lenta, pero cada golpe pesa." },
+	Lanza = { Name = "Lanza", Speed = 1.05, Reach = 4, Targets = 3, BeastMul = 1.05, Text = "Llegas mucho más lejos." },
+	Espada = { Name = "Espada", Speed = 0.95, Reach = 1.5, Targets = 4, BeastMul = 1.1, Text = "Equilibrada: alcanza a varios a la vez." },
+}
+Combat.WeaponOf = { CuchilloColmillo = "Cuchillo", HachaHueso = "Hacha", LanzaEscama = "Lanza", EspadaCristal = "Espada", EspadaTrofeo = "Espada" }
+
+-- El estilo de un arma («» = puños)
+function Combat.styleOfWeapon(id: string?): string
+	return (id and Combat.WeaponOf[id]) or ""
+end
+
+-- Los números de un estilo (con puños: lo normal)
+function Combat.weaponStyle(name: any): { [string]: any }
+	return (type(name) == "string" and Combat.WeaponStyles[name]) or { Name = "Puños", Speed = 1, Reach = 0, Targets = Combat.MaxTargets, BeastMul = 1 }
 end
 
 -- Daño de un golpe del estilo nuevo (fuerza y gimnasio como siempre; defendido pasa BlockFactor)

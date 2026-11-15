@@ -24,6 +24,7 @@ local gui: ScreenGui
 local remote: RemoteEvent
 local buttons: { [string]: { Button: TextButton, Cover: Frame, Count: TextLabel, Lock: TextLabel } } = {}
 local readyAt: { [string]: number } = {}
+local total: { [string]: number } = {}
 
 local function level(): number
 	return tonumber(player:GetAttribute("NivelCazador")) or 1
@@ -91,7 +92,7 @@ local function refresh()
 		b.Count.Visible = unlocked and left > 0
 		if left > 0 then
 			b.Count.Text = tostring(math.ceil(left))
-			b.Cover.Size = UDim2.fromScale(1, math.clamp(left / sk.Cooldown, 0, 1))
+			b.Cover.Size = UDim2.fromScale(1, math.clamp(left / (total[sk.Id] or sk.Cooldown), 0, 1))
 		end
 		b.Button.BackgroundColor3 = if not unlocked then rgb(40, 42, 50) elseif left > 0 then rgb(34, 44, 66) else rgb(50, 110, 190)
 		b.Button.TextTransparency = if unlocked then 0 else 0.6
@@ -142,7 +143,8 @@ function HunterSkillsUI.init()
 	remote.OnClientEvent:Connect(function(kind: string, id: any, extra: any)
 		local sk = HunterSkills.get(id)
 		if kind == "Used" and sk then
-			readyAt[sk.Id] = os.clock() + (tonumber(extra) or sk.Cooldown)
+			total[sk.Id] = tonumber(extra) or sk.Cooldown
+			readyAt[sk.Id] = os.clock() + total[sk.Id]
 			if sk.Kind == "Dash" then
 				dash(sk)
 			end
