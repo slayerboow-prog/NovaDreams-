@@ -1327,6 +1327,135 @@ def umbria_choza():
     enter("Umbria", 11, -11, 11, 14.4, floor=6.2, dw=7, dh=7.6, round_=True, home=True)
 
 
+def ciudad_fundicion():
+    """Fundición: nave de ladrillo oscuro con tres chimeneas con brasa, boca del horno encendida, tuberías y
+    rejillas; dentro se entra por el portón."""
+    sec("Base")
+    body(box((0, 0, 9), (30, 30, 18), "Cuerpo", bevel=0.2))
+    gable((0, 0, 18), 31, 30.6, 6, "Techo")
+    for y in (-10, 0, 10):
+        box((0, y, 21.6), (31.4, 0.8, 0.5), "Metal")
+    for x, y, h in ((9, 8, 22), (12, -3, 28), (6, -10, 18)):
+        cyl((x, y, 18), 2.2, h, "Cuerpo", n=10)
+        cyl((x, y, 18 + h - 1.6), 2.45, 1.2, "Luz", n=10)
+        cyl((x, y, 18 + h * 0.5), 2.5, 0.6, "Metal", n=10)
+    for sx in (-1, 1):
+        box((sx * 7.2, -15.4, 5.6), (1.6, 1.2, 11.2), "Metal", bevel=0.15)
+        box((sx * 11.6, -15.3, 3.4), (4, 0.5, 2.6), "Metal", bevel=0.1)
+        for i in range(3):
+            box((sx * 11.6, -15.6, 2.6 + i * 0.8), (3.4, 0.2, 0.25), "Cuerpo")
+        pipe_v(sx * 15.9, 9, 0, 18, 0.9)
+    box((0, -15.5, 11.8), (16, 1.2, 1.4), "Metal", bevel=0.15)
+    box((0, -15.6, 13.4), (10, 0.4, 1.6), "Luz")
+    pipe_x(-15, 15, 15.9, 12, 1.1, flanges=4)
+    tank(-17.8, 2, 0, 2.2, 7, "Metal")
+    box((-17.8, 2, 5), (4.8, 0.2, 0.3), "Luz")
+    for x in (-10, 10):
+        cyl((x, -18.5, 0), 0.7, 0.4, "Luz", n=8)
+    enter("Tefra", 15, -15, 15, 15, dw=12, dh=10.4)
+
+
+def ciudad_bunker():
+    """Búnker: hormigón con muros en talud, aspilleras con luz, sacos terreros, puerta blindada y antena."""
+    sec("Base")
+    body(frustum((0, 0, 0), 32, 32, 27, 27, 16, "Cuerpo"))
+    box((0, 0, 16.6), (28.4, 28.4, 1.2), "Cuerpo", bevel=0.3)
+    fs = faces4(29.5, 29.5)
+    for fi in range(4):
+        on_face(fs[fi], 0, 11.6, 0.0, (22, 0.6, 1.0), "Luz")
+        on_face(fs[fi], 0, 11.6, 0.2, (24, 0.6, 2.0), "Metal")
+    for sx in (-1, 1):
+        for i in range(3):
+            box((sx * (10 + (i % 2)), -18.6 + i * 0.2, 0.7 + i * 1.3), (7, 2.6, 1.3), "Toldo", rot=(0, 0, sx * 0.08), bevel=0.5)
+        box((sx * 5.4, -15.3, 4.6), (1.2, 1.4, 9.2), "Metal", bevel=0.15)
+    box((0, -15.4, 9.8), (12, 1.4, 1.2), "Metal", bevel=0.15)
+    box((0, -15.6, 11.1), (6, 0.3, 0.6), "Luz")
+    antenna(9, 8, 17.2, 14)
+    dish(-8, 7, 17.2, 2.4)
+    box((0, 0, 18.4), (8, 8, 2.4), "Metal", bevel=0.2)
+    cyl((0, 0, 20.8), 1.2, 0.6, "Luz", n=10)
+    enter("Nave", 13.5, -14.6, 14.6, 13.6, dw=8, dh=9)
+
+
+def ciudad_aguja():
+    """Aguja: base con vestíbulo, tramos redondos con costillas y núcleo de luz, y remate en punta muy alto."""
+    sec("Base")
+    body(box((0, 0, 7), (22, 22, 14), "Cuerpo", bevel=0.4))
+    box((0, 0, 0.6), (23.6, 23.6, 1.2), "Metal", bevel=0.2)
+    for sx in (-1, 1):
+        box((sx * 4.8, -11.2, 5), (1.2, 1.4, 10), "Metal", bevel=0.2)
+        box((sx * 11.2, -11.2, 7), (0.5, 0.5, 14), "Luz")
+    box((0, -11.2, 10.6), (10.6, 1.4, 1.2), "Metal", bevel=0.2)
+    box((0, -11.4, 12.4), (8, 0.3, 1.4), "Luz")
+    cyl((0, 0, 13.6), 11.6, 0.8, "Metal", n=16)
+    sec("Medio")
+    cyl((0, 0, 14), 9, 20, "Cuerpo", n=12)
+    cyl((0, 0, 15), 9.3, 18, "Luz", n=12)
+    cyl((0, 0, 14), 9.1, 20, "Cristal", n=12)
+    for i in range(4):
+        a = i * PI / 2 + PI / 4
+        box((math.cos(a) * 9.4, math.sin(a) * 9.4, 24), (1.6, 1.6, 20), "Metal", rot=(0, 0, a), bevel=0.2)
+    cyl((0, 0, 33.4), 10, 0.6, "Metal", n=12)
+    sec("Tope")
+    cyl((0, 0, 34), 9.6, 2, "Metal", n=12)
+    z = 36
+    for r, h in ((7.5, 6), (5.2, 6), (3, 6)):
+        cyl((0, 0, z), r, h, "Cuerpo", n=12, r2=r * 0.85)
+        cyl((0, 0, z + h - 0.5), r + 0.3, 0.5, "Luz", n=12)
+        z += h
+    cyl((0, 0, z), 1.2, 16, "Luz", n=8, r2=0.1)
+    torus((0, 0, z + 5), 3, 0.25, "Luz")
+    enter("Vertice", 11, -11, 11, 12, dw=7, dh=8.6)
+
+
+def ciudad_deposito():
+    """Depósito: tanque redondo sobre patas con su escalera, aros, tuberías y una ventana con el líquido que brilla."""
+    sec("Base")
+    box((0, 0, 1), (30, 30, 2), "Metal", bevel=0.2)
+    for i in range(4):
+        a = i * PI / 2 + PI / 4
+        cyl((math.cos(a) * 10, math.sin(a) * 10, 2), 0.8, 6, "Metal", n=8)
+    cyl((0, 0, 7), 13, 20, "Cuerpo", n=20)
+    for z in (8, 17, 26):
+        cyl((0, 0, z), 13.3, 0.8, "Metal", n=20)
+    box((0, -12.9, 15), (3, 0.6, 14), "Cristal")
+    box((0, -12.7, 13), (2.2, 0.6, 9), "Luz")
+    sphere((0, 0, 27), 13, "Techo", seg=16, rings=8, hemi=True, squash=(1, 1, 0.4))
+    cyl((0, 0, 31.6), 1.6, 1.6, "Metal", n=8)
+    for i in range(14):  # escalera
+        box((13.6, 4, 2.5 + i * 1.8), (0.25, 2.6, 0.25), "Metal")
+    for sy in (2.7, 5.3):
+        box((13.6, sy, 15), (0.3, 0.3, 26), "Metal")
+    pipe_x(-15, -13, -6, 6, 1.2, flanges=1)
+    pipe_v(-14.6, -6, 2, 4, 1.2)
+    cyl((-14.6, -6, 2), 1.6, 0.8, "Luz", n=10)
+    for sx in (-1, 1):
+        cyl((sx * 12, -14, 2), 0.5, 2.6, "Metal", n=6)
+        sphere((sx * 12, -14, 4.8), 0.5, "Luz", seg=8, rings=5)
+
+
+def ciudad_chatarra():
+    """Chatarrería: cobertizo de chapa ondulada con portón, montones de chatarra, un brazo grúa y luces."""
+    sec("Base")
+    body(box((0, 4, 7), (24, 18, 14), "Cuerpo", bevel=0.1))
+    for i in range(12):
+        box((-11 + i * 2, -5.1, 7), (0.3, 0.4, 13.6), "Metal")
+    o = box((0, 4, 14.8), (25, 19.6, 0.5), "Techo", rot=(math.radians(6), 0, 0))
+    box((0, -5.3, 11.8), (14, 1, 1.2), "Metal", bevel=0.1)
+    box((0, -5.5, 13), (8, 0.3, 0.6), "Luz")
+    for i, (x, y, sz) in enumerate(((-10, -11, 3.2), (-6, -13, 2.4), (9, -11, 3.6), (12, -7, 2.2), (6, -14, 2))):
+        box((x, y, sz * 0.5), (sz * 1.6, sz * 1.3, sz), "Metal", rot=(0.2 * i, 0.3, 0.5 * i), bevel=0.2)
+        box((x + 1, y + 0.5, sz * 1.1), (sz, sz * 0.8, sz * 0.6), "Cuerpo", rot=(0.4, 0.2 * i, 0.3), bevel=0.15)
+    cyl((-12, 9, 0), 0.9, 18, "Metal", n=8)
+    box((-6, 9, 18), (13, 1, 1), "Metal")
+    box((0.5, 9, 15.5), (0.2, 0.2, 5), "Metal")
+    box((0.5, 9, 12.8), (2.4, 2.4, 0.6), "Luz")
+    for x in (-8, 8):
+        cyl((x, -16, 0), 0.25, 5, "Metal", n=6)
+        sphere((x, -16, 5.2), 0.5, "Luz", seg=8, rings=5)
+    enter("Nave", 12, -5, 13, 12.8, dw=10, dh=10)
+
+
 # nombre, función, estilo de la vista previa, medidas nominales (W, D y la altura de cada sección)
 ASSETS = [
     ("VerticeBloque", vertice_bloque, "Vertice", dict(W=30, D=30, Base=14, Mid=20, Top=10)),
@@ -1346,6 +1475,11 @@ ASSETS = [
     ("CiudadCupula", ciudad_cupula, "Talasa", dict(W=30, D=30, Base=14, Mid=10, Top=1)),
     ("CiudadTorre", ciudad_torre, "Nivalis", dict(W=30, D=30, Base=14, Mid=16, Top=5)),
     ("UmbriaChoza", umbria_choza, "Umbria", dict(W=28, D=28, Base=22, Mid=0, Top=0)),
+    ("CiudadFundicion", ciudad_fundicion, "Tefra", dict(W=30, D=30, Base=18, Mid=0, Top=0)),
+    ("CiudadBunker", ciudad_bunker, "Miasma", dict(W=30, D=30, Base=16, Mid=0, Top=0)),
+    ("CiudadAguja", ciudad_aguja, "Vertice", dict(W=22, D=22, Base=14, Mid=20, Top=34)),
+    ("CiudadDeposito", ciudad_deposito, "Miasma", dict(W=30, D=30, Base=30, Mid=0, Top=0)),
+    ("CiudadChatarra", ciudad_chatarra, "Siroco", dict(W=26, D=30, Base=15, Mid=0, Top=0)),
     ("CalleVehiculo", calle_vehiculo, "Calle", dict(W=12, D=7, Base=4, Mid=0, Top=0)),
     ("CalleCajas", calle_cajas, "Calle", dict(W=9, D=7, Base=5, Mid=0, Top=0)),
     ("CalleTuberias", calle_tuberias, "Calle", dict(W=12, D=6, Base=8, Mid=0, Top=0)),

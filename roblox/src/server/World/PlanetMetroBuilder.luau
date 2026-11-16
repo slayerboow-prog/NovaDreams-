@@ -214,8 +214,13 @@ function PlanetMetroBuilder.build(parent: Instance, S: any, opts: { [string]: an
 	for _, map in MESH_OF do
 		map.Nave = "CiudadNave"
 		map.Cupula = "CiudadCupula"
+		map.Fundicion = "CiudadFundicion"
+		map.Bunker = "CiudadBunker"
+		map.Aguja = "CiudadAguja"
+		map.Tanque = "CiudadDeposito"
+		map.Chatarra = "CiudadChatarra"
 	end
-	local ROUND_KIND = { Cupula = true, Choza = true }
+	local ROUND_KIND = { Cupula = true, Choza = true, Tanque = true, Aguja = true }
 	local FLOORS_KIND = { Casa = true, Cupula = true }
 	local PROPS: { [string]: { string } } = {
 		Tefra = { "CalleCajas", "CalleTuberias", "CalleGenerador", "CalleCajas", "CalleVehiculo" },
@@ -238,6 +243,7 @@ function PlanetMetroBuilder.build(parent: Instance, S: any, opts: { [string]: an
 		for _, name in PROPS[planet] or {} do
 			want[name] = true
 		end
+		want.CallePuesto = true -- (los puestos de los mercados)
 		for name in want do
 			if CityMeshes.has(name) then
 				templates[name] = CityMeshes.load(name)
@@ -315,6 +321,19 @@ function PlanetMetroBuilder.build(parent: Instance, S: any, opts: { [string]: an
 					ch:Destroy()
 					stats.Parts -= 1
 				end
+			end
+		end
+		if not E then
+			-- (sin planta baja en la que entrar, p. ej. el depósito: un cuerpo invisible para chocar)
+			local hasBody = false
+			for _, ch in m:GetChildren() do
+				if ch:IsA("BasePart") and (ch.Name == "Cuerpo" or ch.Name == "Torre" or ch.Name == "Alto") then
+					hasBody = true
+				end
+			end
+			if not hasBody then
+				Builder.part({ Name = "Cuerpo", Size = V3(w * 0.9, h, d * 0.9), CFrame = cf * CFrame.new(0, h / 2, 0), Transparency = 1, CastShadow = false, Parent = m })
+				stats.Parts += 1
 			end
 		end
 		if E then
@@ -405,6 +424,40 @@ function PlanetMetroBuilder.build(parent: Instance, S: any, opts: { [string]: an
 		stats.MeshBuildings += 1
 		return true
 	end
+	-- Los MERCADOS: puestos de hologramas de malla en lugar de los de piezas (2 a 4, según el solar)
+	local function meshMarket(m: Model, lot: any, cf: CFrame, w: number, d: number, r: () -> number): boolean
+		local tpl = templates.CallePuesto
+		if lot.Kind ~= "Mercado" or not tpl then
+			return false
+		end
+		for _, ch in m:GetChildren() do
+			if ch:IsA("BasePart") and ch.Name ~= "Suelo" and not STRUCT[ch.Name] then
+				ch:Destroy()
+				stats.Parts -= 1
+			end
+		end
+		local cols = if w > 34 then 2 else 1
+		local rows = if d > 30 then 2 else 1
+		local hull = if L.Neon then L.Neon[1 + math.floor(r() * #L.Neon)] else L.Accent
+		for i = 1, cols do
+			for j = 1, rows do
+				local x = (i / (cols + 1) - 0.5) * w
+				local z = (j / (rows + 1) - 0.5) * d
+				local info = tpl.Info
+				local wall = L.Walls[1 + math.floor(r() * #L.Walls)]
+				local pm, parts = CityMeshes.place(tpl, m, cf * CFrame.new(x, 0.4, z) * CFrame.Angles(0, (r() - 0.5) * 0.5, 0), info.W, info.D, info.Base, meshStyle(wall, hull, nil, wall, wallMat))
+				pm.Name = "Puesto"
+				for _, part in parts do
+					if string.find(part.Name, "_Cuerpo$") then
+						part.CanCollide = true
+					end
+				end
+				stats.Meshes += #parts
+			end
+		end
+		return true
+	end
+
 	-- Un objeto de calle junto al edificio (deslizador aparcado, cajas, tuberías, generador, puesto, jardinera):
 	-- delante si cabe sin pisar la calle; si no, a un lado
 	local function streetProp(m: Model, lot: any, cf: CFrame, w: number, d: number, r: () -> number)
@@ -1125,7 +1178,9 @@ function PlanetMetroBuilder.build(parent: Instance, S: any, opts: { [string]: an
 		dress(m, lot.Kind)
 		if next(templates) ~= nil then
 			local okMesh, errMesh = pcall(function()
-				meshify(m, lot, cf, w, d, r)
+				if not meshMarket(m, lot, cf, w, d, r) then
+					meshify(m, lot, cf, w, d, r)
+				end
 				if lot.Kind ~= "Plaza" and lot.Kind ~= "Parque" and lot.Kind ~= "Mercado" and lot.Kind ~= "Jardin" then
 					streetProp(m, lot, cf, w, d, r)
 				end
@@ -1191,6 +1246,64 @@ function PlanetMetroBuilder.build(parent: Instance, S: any, opts: { [string]: an
 		end
 	end
 	stats.SkyBridges = bridges
+	-- CABLES entre edificios vecinos (como en la hoja de estética): un Beam que cuelga un poco entre dos azoteas
+	local CABLE_PLANETS = { Vertice = true, Miasma = true, Siroco = true, Tefra = true, Nivalis = true }
+	local cables = 0
+	if CABLE_PLANETS[planet] then
+		local cableFolder = Builder.model("Cables", root)
+		local anchor = Builder.part({ Name = "Anclajes", Size = V3(1, 1, 1), CFrame = CFrame.new(W(0, 0, -400)), Transparency = 1, CanCollide = false, CanQuery = false, CanTouch = false, Parent = cableFolder })
+		local cableColor = ColorSequence.new(if planet == "Vertice" then (L.Neon and L.Neon[2] or L.Strip or L.Glow) else rgb(28, 28, 32))
+		for i, a in lots do
+			if cables >= 220 then
+				break
+			end
+			if TALLK[a.Kind] or a.Kind == "Casa" then
+				-- (el vecino más cercano que quede a buena distancia: los solares no van en orden por el plano)
+				local bestJ, bestD = nil, math.huge
+				for j = i + 1, #lots do
+					local b = lots[j]
+					if (TALLK[b.Kind] or b.Kind == "Casa") and (i + j) % 2 == 0 then
+						local dd = (a.X - b.X) ^ 2 + (a.Z - b.Z) ^ 2
+						if dd < bestD and dd > ((a.W + b.W) / 2 + 2) ^ 2 then
+							bestJ, bestD = j, dd
+						end
+					end
+				end
+				for _, j in { bestJ } do
+					local b = lots[j]
+					if b then
+						local dist = math.sqrt((a.X - b.X) ^ 2 + (a.Z - b.Z) ^ 2)
+						if dist > (a.W + b.W) / 2 + 2 and dist < 70 then
+							local ha = math.min(a.Height, 60) * 0.85
+							local hb = math.min(b.Height, 60) * 0.85
+							local a0 = Instance.new("Attachment")
+							a0.WorldPosition = W(a.X, a.Z, a.Base + ha)
+							a0.Parent = anchor
+							local a1 = Instance.new("Attachment")
+							a1.WorldPosition = W(b.X, b.Z, b.Base + hb)
+							a1.Parent = anchor
+							local beam = Instance.new("Beam")
+							beam.Attachment0 = a0
+							beam.Attachment1 = a1
+							beam.Width0 = 0.25
+							beam.Width1 = 0.25
+							beam.Color = cableColor
+							beam.LightEmission = if planet == "Vertice" then 1 else 0
+							beam.Transparency = NumberSequence.new(0)
+							beam.CurveSize0 = -dist * 0.12
+							beam.CurveSize1 = dist * 0.12
+							beam.Segments = 8
+							beam.FaceCamera = true
+							beam.Parent = anchor
+							cables += 1
+							break
+						end
+					end
+				end
+			end
+		end
+	end
+	stats.Cables = cables
 
 	-- Pasarelas (Deck), con barandilla donde dan al vacío, y escaleras desde el agua (Tálasa)
 	if deck then

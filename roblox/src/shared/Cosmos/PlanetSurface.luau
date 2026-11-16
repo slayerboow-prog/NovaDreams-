@@ -26,6 +26,9 @@ local MetroStyles = require(script.Parent.MetroStyles)
 
 local PlanetSurface = {}
 
+local makeTrails = require(script.Parent.Trails).make
+PlanetSurface.makeTrails = makeTrails
+
 local function smooth(e0: number, e1: number, x: number): number
 	local t = math.clamp((x - e0) / (e1 - e0), 0, 1)
 	return t * t * (3 - 2 * t)
@@ -68,6 +71,8 @@ function PlanetSurface.new(def: { [string]: any }): { [string]: any }
 	-- Lo de siempre (la ciudad, sus vetas y su decorado) cabe en CoreHalf; de ahí a Half, las TIERRAS SALVAJES:
 	-- terreno abierto para las bestias (shared/Cosmos/Bestiary)
 	S.CoreHalf = math.min(def.CoreHalf or S.Half, S.Half)
+	S.WildDecorMul = def.WildDecorMul or 1.6 -- (en las tierras salvajes, más flora y rocas que alrededor de la ciudad)
+	S.Trails = makeTrails(S.CoreHalf, S.Half, (def.Seed or 7) * 37)
 	S.Seed = def.Seed or 7
 	S.WaterY = def.WaterY or 20
 	S.ArriveY = def.ArriveY or 1100
@@ -205,6 +210,10 @@ function PlanetSurface.new(def: { [string]: any }): { [string]: any }
 			if street then
 				return if avenue then (Metro.Style.AvenueMaterial or "Asphalt") else (Metro.Style.StreetMaterial or "Pavement")
 			end
+			-- los senderos de las tierras salvajes (con el material de las calles: el planeta ya lo pinta)
+			if s < 0.9 and S.Trails.at(lx, lz) then
+				return Metro.Style.StreetMaterial or "Pavement"
+			end
 		end
 		if def.materialAt then
 			return def.materialAt(lx, lz, y, s, S)
@@ -305,9 +314,13 @@ function PlanetSurface.new(def: { [string]: any }): { [string]: any }
 	end
 
 	-- Flora y rocas: { { Kind, Pos, Size, Turn, Roll } } (repetible)
-	function S.decor(kind: string, count: number?): { { [string]: any } }
+	-- wild = true: en las TIERRAS SALVAJES (el anillo de fuera), con S.WildDecorMul veces más
+	function S.decor(kind: string, count: number?, wild: boolean?): { { [string]: any } }
 		local n = count or S.DecorCounts[kind] or 0
-		local h = 0
+		if wild then
+			n = math.floor(n * S.WildDecorMul + 0.5)
+		end
+		local h = if wild then 777 else 0
 		for i = 1, #kind do
 			h = (h * 31 + string.byte(kind, i)) % 100000
 		end
@@ -317,9 +330,16 @@ function PlanetSurface.new(def: { [string]: any }): { [string]: any }
 		local maxSlope = S.DecorSlope[kind] or 0.6
 		while #out < n and tries < n * 12 do
 			tries += 1
-			local lx = (r() * 2 - 1) * S.CoreHalf * 0.8
-			local lz = (r() * 2 - 1) * S.CoreHalf * 0.8
-			if S.goodSpot(lx, lz, maxSlope, 14) then
+			local lx, lz
+			if wild then
+				local a = r() * math.pi * 2
+				local rr = S.CoreHalf * 0.8 + r() * math.max(0, S.Half - 440 - S.CoreHalf * 0.8)
+				lx, lz = math.cos(a) * rr, math.sin(a) * rr
+			else
+				lx = (r() * 2 - 1) * S.CoreHalf * 0.8
+				lz = (r() * 2 - 1) * S.CoreHalf * 0.8
+			end
+			if S.goodSpot(lx, lz, maxSlope, 14) and not S.Trails.at(lx, lz) then
 				local x, z = O.X + lx, O.Z + lz
 				table.insert(out, { Kind = kind, Pos = Vector3.new(x, S.heightAt(x, z), z), Size = 3 + r() ^ 2 * 16, Turn = r() * math.pi * 2, Roll = r() })
 			end

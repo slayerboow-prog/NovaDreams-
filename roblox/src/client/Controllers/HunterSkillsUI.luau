@@ -103,9 +103,13 @@ function HunterSkillsUI.init()
 	remote = ReplicatedStorage:WaitForChild("Remotes"):WaitForChild("HunterSkill") :: RemoteEvent
 	gui = create("ScreenGui", { Name = "HunterSkillsGui", ResetOnSpawn = false, IgnoreGuiInset = true, DisplayOrder = 3, Enabled = false, Parent = player:WaitForChild("PlayerGui") })
 	local touch = Theme.isTouch()
-	local size = if touch then 50 else 44
-	local column = create("Frame", { Name = "Skills", AnchorPoint = Vector2.new(0, 0.5), Position = UDim2.new(0, 8, 0.42, 0), Size = UDim2.fromOffset(size, (size + 8) * #HunterSkills.List), BackgroundTransparency = 1, Parent = gui })
-	create("UIListLayout", { Padding = UDim.new(0, 8), SortOrder = Enum.SortOrder.LayoutOrder, Parent = column })
+	local size = if touch then 46 else 44
+	-- (dos filas de tres, justo encima del joystick: debajo de la ficha del jugador, sin taparla; comprobado en
+	-- Studio con la pantalla del móvil, 15-11-2026)
+	local perRow = 3
+	local rows = math.ceil(#HunterSkills.List / perRow)
+	local column = create("Frame", { Name = "Skills", AnchorPoint = Vector2.new(0, 1), Position = UDim2.new(0, 10, 1, if touch then -112 else -150), Size = UDim2.fromOffset(perRow * (size + 6), rows * (size + 6)), BackgroundTransparency = 1, Parent = gui })
+	create("UIGridLayout", { CellSize = UDim2.fromOffset(size, size), CellPadding = UDim2.fromOffset(6, 6), FillDirection = Enum.FillDirection.Horizontal, FillDirectionMaxCells = perRow, SortOrder = Enum.SortOrder.LayoutOrder, Parent = column })
 	for i, sk in HunterSkills.List do
 		local btn = create("TextButton", { Name = sk.Id, Size = UDim2.fromOffset(size, size), BackgroundColor3 = rgb(50, 110, 190), BackgroundTransparency = 0.15, Text = sk.Icon, TextSize = if touch then 24 else 22, TextColor3 = rgb(255, 255, 255), AutoButtonColor = true, LayoutOrder = i, ClipsDescendants = true, Parent = column })
 		create("UICorner", { CornerRadius = UDim.new(1, 0), Parent = btn })

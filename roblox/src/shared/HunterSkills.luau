@@ -16,11 +16,18 @@ HunterSkills.List = {
 		Desc = "Giras y golpeas a todas las bestias que tengas alrededor." },
 	{ Id = "Embestida", Name = "Embestida", Icon = "💨", Key = "X", Level = 6, Cooldown = 12, Kind = "Dash", Distance = 30, Width = 8, Power = 3, MaxTargets = 6,
 		Desc = "Te lanzas hacia delante y golpeas a todo lo que cruzas." },
-	{ Id = "Furia", Name = "Furia del cazador", Icon = "🔥", Key = "C", Level = 12, Cooldown = 45, Kind = "Buff", Amount = 0.4, Seconds = 15,
+	{ Id = "Furia", Name = "Furia del cazador", Icon = "🔥", Key = "C", Level = 12, Cooldown = 45, Kind = "Buff", Buff = "Furia", Amount = 0.4, Seconds = 15,
 		Desc = "Durante 15 segundos tus golpes a las bestias hacen un 40 % más." },
 	{ Id = "GolpeSismico", Name = "Golpe sísmico", Icon = "💥", Key = "V", Level = 20, Cooldown = 30, Kind = "Area", Radius = 22, Power = 4.5, MaxTargets = 12,
 		Desc = "Golpeas el suelo: una onda alcanza a todas las bestias cercanas." },
+	{ Id = "Punteria", Name = "Puntería letal", Icon = "🎯", Key = "B", Level = 9, Cooldown = 35, Kind = "Buff", Buff = "Punteria", Amount = 0.5, Seconds = 12,
+		Desc = "Durante 12 segundos tus disparos a las bestias hacen un 50 % más." },
+	{ Id = "Coraza", Name = "Coraza de grieta", Icon = "🛡", Key = "N", Level = 15, Cooldown = 50, Kind = "Buff", Buff = "Coraza", Amount = 0.3, Seconds = 12,
+		Desc = "Durante 12 segundos las bestias te hacen un 30 % menos de daño." },
 }
+table.sort(HunterSkills.List, function(a, b)
+	return a.Level < b.Level
+end)
 
 local byId: { [string]: { [string]: any } } = {}
 for _, sk in HunterSkills.List do

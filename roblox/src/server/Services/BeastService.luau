@@ -157,6 +157,43 @@ function BeastService.buildWilds(S: any, folder: Instance): Instance?
 		islet(c, 10)
 		BeastKit.cache(root, c, cfAt(c.X, c.Z, if c.Islet then c.Y else nil))
 	end
+	-- los carteles de cada zona de caza, junto a los senderos (donde empieza cada anillo)
+	local trails = S.Trails
+	local core = S.CoreHalf or S.Half
+	if trails and not Bestiary.WaterLairs[S.Id] then
+		local inner, outer = core * 0.74, S.Half - 440
+		local rings = #Bestiary.Zones - 1
+		local step = (outer - inner) / rings
+		for k = 1, 4 do
+			for tier = 1, #Bestiary.Zones do
+				local rr = if tier == 1 then trails.R0 + 30 else inner + (tier - 2) * step + 20
+				if rr < trails.R1 then
+					local tx, tz = trails.point(k, rr)
+					local a = trails.angleAt(k, rr)
+					local sx, sz = tx + math.sin(a) * 14, tz - math.cos(a) * 14
+					local z = Bestiary.Zones[tier]
+					pcall(BeastKit.zoneSign, root, cfAt(sx, sz), ("%s · nv. %d"):format(z.Name, z.Level), tier)
+				end
+			end
+		end
+	end
+	-- ruinas de antes de la Grieta, repartidas por las tierras salvajes
+	do
+		local r = Random.new((S.Seed or 7) * 131)
+		local made = 0
+		for _ = 1, 400 do
+			if made >= 10 then
+				break
+			end
+			local a = r:NextNumber(0, math.pi * 2)
+			local rr = r:NextNumber(core * 0.8, S.Half - 460)
+			local lx, lz = math.cos(a) * rr, math.sin(a) * rr
+			if S.goodSpot(lx, lz, 0.35, 40) and not (trails and trails.at(lx, lz)) then
+				made += 1
+				pcall(BeastKit.ruin, root, cfAt(lx, lz), Bestiary.LairLook and Bestiary.LairLook[S.Id] or nil, made * 977 + math.floor(rr))
+			end
+		end
+	end
 	built[S.Id] = { S = S, Folder = folder }
 	return root
 end
@@ -457,7 +494,7 @@ local function hurt(b: Beast, player: Player, amount: number)
 		return
 	end
 	local data = dataOf(player)
-	local dmg = Crafting.damageTaken(amount, Crafting.defenseOf(data and data.Items, data and data.Refine), buff(player, "Piedra"))
+	local dmg = Crafting.damageTaken(amount, Crafting.defenseOf(data and data.Items, data and data.Refine), buff(player, "Piedra") + buff(player, "Coraza"))
 	if hum.Health - dmg > 1 then
 		hum.Health -= dmg
 		return
@@ -693,7 +730,7 @@ function BeastService.hit(attacker: Player?, model: Instance, amount: number, in
 		end
 	elseif i.Weapon then
 		local data = dataOf(attacker)
-		n *= BeastService.BulletMul * (1 + Crafting.gunBonus(data and data.Refine, i.Weapon) + Crafting.hunterBonus(data and data.Hunter and data.Hunter.Xp))
+		n *= BeastService.BulletMul * (1 + Crafting.gunBonus(data and data.Refine, i.Weapon) + Crafting.hunterBonus(data and data.Hunter and data.Hunter.Xp) + buff(attacker, "Punteria"))
 	end
 	if b.Sp.Boss then
 		n *= BeastService.BossTakes

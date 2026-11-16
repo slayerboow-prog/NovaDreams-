@@ -437,4 +437,51 @@ function BeastKit.shard(cf: CFrame, tier: number?): Model
 	return m
 end
 
+-- El CARTEL de una zona de caza, junto al sendero: poste, tabla con el nombre y el nivel, y una luz del color
+-- de la zona (verde, amarillo, naranja, rojo)
+BeastKit.ZoneColors = { Color3.fromRGB(110, 220, 120), Color3.fromRGB(240, 210, 80), Color3.fromRGB(255, 140, 60), Color3.fromRGB(240, 70, 70) }
+function BeastKit.zoneSign(parent: Instance, cf: CFrame, text: string, tier: number): Model
+	local m = Builder.model("CartelZona", parent)
+	local color = BeastKit.ZoneColors[math.clamp(tier, 1, 4)]
+	Builder.part({ Name = "Poste", Size = V3(0.8, 9, 0.8), CFrame = cf * CFrame.new(0, 4.5, 0), Color = Color3.fromRGB(70, 56, 44), Material = Enum.Material.Wood, Parent = m })
+	local board = Builder.part({ Name = "Tabla", Size = V3(9, 3.2, 0.4), CFrame = cf * CFrame.new(0, 7.4, 0), Color = Color3.fromRGB(40, 34, 30), Material = Enum.Material.Wood, Parent = m })
+	Builder.sign(board, text, Enum.NormalId.Front, color)
+	Builder.sign(board, text, Enum.NormalId.Back, color)
+	local lamp = Builder.decor({ Name = "Luz", Size = V3(9.2, 0.4, 0.5), CFrame = cf * CFrame.new(0, 9.2, 0), Color = color, Material = Enum.Material.Neon, Parent = m })
+	local pl = Instance.new("PointLight")
+	pl.Color = color
+	pl.Range = 16
+	pl.Brightness = 1.2
+	pl.Shadows = false
+	pl.Parent = lamp
+	return m
+end
+
+-- RUINAS de antes de la Grieta: muros rotos, columnas caídas y una losa con una marca que brilla un poco
+function BeastKit.ruin(parent: Instance, cf: CFrame, look: string?, seed: number): Model
+	local L = LOOK[look or "Roca"] or LOOK.Roca
+	local m = Builder.model("Ruina", parent)
+	local r = Random.new(seed)
+	Builder.part({ Name = "Losa", Size = V3(22, 1, 18), CFrame = cf * CFrame.new(0, 0, 0) * CFrame.Angles(r:NextNumber(-0.05, 0.05), 0, r:NextNumber(-0.05, 0.05)), Color = L.Second, Material = L.Mat, Parent = m })
+	for i = 1, 3 do
+		local h = r:NextNumber(4, 11)
+		Builder.part({ Name = "Muro", Size = V3(r:NextNumber(5, 9), h, 1.6), CFrame = cf * CFrame.new(r:NextNumber(-8, 8), h / 2, (i - 2) * 6) * CFrame.Angles(0, r:NextNumber(-0.4, 0.4), r:NextNumber(-0.12, 0.12)), Color = L.Main, Material = L.Mat, Parent = m })
+	end
+	for i = 1, 2 do
+		local h = r:NextNumber(6, 12)
+		local fallen = i == 2
+		local cfc = if fallen then cf * CFrame.new(r:NextNumber(-6, 6), 1.4, r:NextNumber(-6, 6)) * CFrame.Angles(0, r:NextNumber(0, 6), math.pi / 2) else cf * CFrame.new(r:NextNumber(-8, 8), h / 2, r:NextNumber(-7, 7))
+		local col = Builder.part({ Name = "Columna", Shape = Enum.PartType.Cylinder, Size = V3(h, 2.4, 2.4), CFrame = cfc * (if fallen then CFrame.new() else CFrame.Angles(0, 0, math.pi / 2)), Color = L.Main, Material = L.Mat, Parent = m })
+		col.Shape = Enum.PartType.Cylinder
+	end
+	local mark = Builder.decor({ Name = "Marca", Size = V3(4, 0.2, 4), CFrame = cf * CFrame.new(0, 0.6, 0), Color = Color3.fromRGB(170, 120, 255), Material = Enum.Material.Neon, Transparency = 0.3, Parent = m })
+	local pl = Instance.new("PointLight")
+	pl.Color = mark.Color
+	pl.Range = 12
+	pl.Brightness = 0.8
+	pl.Shadows = false
+	pl.Parent = mark
+	return m
+end
+
 return BeastKit

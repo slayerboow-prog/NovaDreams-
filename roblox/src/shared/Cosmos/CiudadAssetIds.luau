@@ -28,6 +28,11 @@ return {
 		CiudadCupula = "rbxassetid://101680077523333",
 		CiudadTorre = "rbxassetid://82661028166408",
 		UmbriaChoza = "rbxassetid://132649995705088",
+		CiudadFundicion = "rbxassetid://114622477420964",
+		CiudadBunker = "rbxassetid://113112622449808",
+		CiudadAguja = "rbxassetid://103825201819744",
+		CiudadDeposito = "rbxassetid://122162534276102",
+		CiudadChatarra = "rbxassetid://139879380819569",
 	},
 	Texturas = {
 	},

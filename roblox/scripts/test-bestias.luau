@@ -4,6 +4,7 @@
 local fs = require("@lune/fs")
 local Vector3 = require("@lune/roblox").Vector3
 local CFrame = require("@lune/roblox").CFrame
+local roblox = require("@lune/roblox")
 local L = require("./lib/ModuleLoader")
 local check = L.check
 
@@ -87,6 +88,23 @@ for _, id in Registry.Order do
 		shardTiers[sh.Tier] = (shardTiers[sh.Tier] or 0) + 1
 		shardOk = shardOk and Bestiary.Species[sh.Species] ~= nil and not (S.City.inside(sh.X, sh.Z, 30))
 	end
+	-- tierras salvajes con decorado y senderos
+	local T = S.Trails
+	local tx, tz = T.point(1, (T.R0 + T.R1) / 2)
+	local onTrail = T.at(tx, tz)
+	local offTrail = T.at(0, 0)
+	local wildN, kinds = 0, 0
+	for kind in S.DecorCounts do
+		kinds += 1
+		for _, d in S.decor(kind, nil, true) do
+			local lx, lz = d.Pos.X - S.Origin.X, d.Pos.Z - S.Origin.Z
+			if math.max(math.abs(lx), math.abs(lz)) > S.CoreHalf * 0.7 then
+				wildN += 1
+			end
+		end
+	end
+	check(onTrail and not offTrail and T.R1 > T.R0 + 500, id .. ": cuatro senderos de la ciudad a los confines")
+	check(kinds == 0 or Bestiary.WaterLairs[id] or wildN >= 10, ("%s: flora y rocas en las tierras salvajes (%d)"):format(id, wildN))
 	check(shardOk and (shardTiers[1] or 0) >= 1 and (shardTiers[4] or 0) >= 2, ("%s: esquirlas de la Grieta en todas las zonas (%d)"):format(id, #p.Shards))
 	local again = Bestiary.places(S)
 	check(again.Lairs[1].X == p.Lairs[1].X, id .. ": siempre en el mismo sitio")
@@ -112,6 +130,12 @@ local okShard, shardModel = pcall(BeastKitShard.shard, CFrame.new(0, 0, 0), 3)
 check(okShard and shardModel.PrimaryPart ~= nil and shardModel.PrimaryPart.Anchored and shardModel:FindFirstChildOfClass("Humanoid") ~= nil, "la esquirla se dibuja quieta y con humanoide (los golpes la encuentran) " .. (if okShard then "" else tostring(shardModel)))
 local bsSrc = fs.readFile("src/server/Services/BeastService.luau")
 check(string.find(bsSrc, "shardWave(b, idx, attacker)", 1, true) ~= nil and string.find(bsSrc, "pcall(manageShards, b.S)", 1, true) ~= nil and string.find(bsSrc, "Bestiary.shardLoot(b.Tier", 1, true) ~= nil, "el servidor saca las esquirlas, suelta las oleadas y reparte su botín")
+
+local BKit = L.load("src/server/World/Kit/BeastKit")
+local okSign, sign = pcall(BKit.zoneSign, roblox.Instance.new("Folder"), CFrame.new(0, 0, 0), "Campo abierto · nv. 15", 2)
+local okRuin, ruin = pcall(BKit.ruin, roblox.Instance.new("Folder"), CFrame.new(0, 0, 0), "Hielo", 42)
+check(okSign and okRuin and #sign:GetChildren() >= 3 and #ruin:GetChildren() >= 5, "carteles de zona y ruinas se dibujan " .. (if okSign then "" else tostring(sign)) .. (if okRuin then "" else tostring(ruin)))
+check(string.find(fs.readFile("src/server/World/PlanetWorld.luau"), "S.decor(kind, nil, wild)", 1, true) ~= nil and string.find(fs.readFile("src/server/Services/BeastService.luau"), "BeastKit.zoneSign", 1, true) ~= nil, "el mundo pone el decorado salvaje, los carteles y las ruinas")
 
 print("🎁 Botín")
 local function seq(values: { number }): () -> number
@@ -231,12 +255,13 @@ check(string.find(fs.readFile("src/client/Controllers/InventoryUI.luau"), "openF
 
 print("🌀 Habilidades de cazador")
 local Skills = L.load("src/shared/HunterSkills")
-local skOk, lastLevel = #Skills.List >= 4, 0
+local skOk, lastLevel = #Skills.List >= 6, 0
 for _, sk in Skills.List do
-	skOk = skOk and sk.Level > lastLevel and sk.Cooldown > 0 and (sk.Kind == "Buff" or sk.Power > 1) and #sk.Key == 1
+	skOk = skOk and sk.Level > lastLevel and sk.Cooldown > 0 and (if sk.Kind == "Buff" then sk.Buff ~= nil else sk.Power > 1) and #sk.Key == 1
 	lastLevel = sk.Level
 end
-check(skOk, "cuatro habilidades, cada una con más nivel que la anterior, con su espera y su tecla")
+check(skOk, "seis habilidades (golpes, armas de fuego y defensa), cada una con más nivel que la anterior")
+check(string.find(fs.readFile("src/server/Services/BeastService.luau"), 'buff(attacker, "Punteria")', 1, true) ~= nil and string.find(fs.readFile("src/server/Services/BeastService.luau"), 'buff(player, "Coraza")', 1, true) ~= nil, "la puntería sube los disparos y la coraza baja el daño")
 local tajo = Skills.get("TajoCircular")
 check(not Skills.unlocked(tajo, 1) and Skills.unlocked(tajo, 2) and Skills.remaining(tajo, nil, 10) == 0 and Skills.remaining(tajo, 10, 13) == 5 and Skills.remaining(tajo, 10, 30) == 0, "se desbloquean por nivel y tienen que esperar para repetirse")
 local dashSk = Skills.get("Embestida")
@@ -260,7 +285,6 @@ local ranks = { TajoCircular = 4 }
 check(Skills.rankOf(ranks, "TajoCircular") == 4 and Skills.rankOf(ranks, "Furia") == 1 and Skills.pointsLeft(10, ranks) == 6 and Skills.pointsLeft(1, nil) == 0, "rangos de habilidad: se gastan los puntos de cazador")
 check(Skills.power(tajo, 10) > Skills.power(tajo, 1) * 2 and Skills.cooldown(tajo, 10) < tajo.Cooldown and Skills.rankName(10) == "Maestra", "cada rango pega más y espera menos; rango 10 = Maestra")
 check(Crafting.isEquip("Arma_Pistola") and Crafting.isGun("Arma_Fusil") and not Crafting.isGun("LanzaEscama") and math.abs(Crafting.gunBonus({ Arma_Pistola = 5 }, "Pistola") - 0.4) < 1e-6 and Crafting.gunBonus({}, "Pistola") == 0, "las armas de fuego también se mejoran (+8 % por nivel con esa arma)")
-local roblox = require("@lune/roblox")
 local function limb(m, name, size)
 	local p = roblox.Instance.new("Part")
 	p.Name = name

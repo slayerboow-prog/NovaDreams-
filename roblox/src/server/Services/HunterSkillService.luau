@@ -118,9 +118,10 @@ function HunterSkillService.use(player: Player, id: any, now: number?): (boolean
 	used[player][sk.Id] = t
 	local hits = 0
 	if sk.Kind == "Buff" then
-		player:SetAttribute("BuffFuria", HunterSkills.buffAmount(sk, rank))
-		player:SetAttribute("BuffFuriaHasta", workspace:GetServerTimeNow() + sk.Seconds)
-		ring(root.Position - Vector3.new(0, 2.5, 0), 8, Color3.fromRGB(255, 120, 40))
+		local name = sk.Buff or "Furia"
+		player:SetAttribute("Buff" .. name, HunterSkills.buffAmount(sk, rank))
+		player:SetAttribute("Buff" .. name .. "Hasta", workspace:GetServerTimeNow() + sk.Seconds)
+		ring(root.Position - Vector3.new(0, 2.5, 0), 8, if name == "Coraza" then Color3.fromRGB(120, 200, 255) elseif name == "Punteria" then Color3.fromRGB(255, 230, 120) else Color3.fromRGB(255, 120, 40))
 	else
 		local Beasts = beastService()
 		local base = Combat.Damage[#Combat.Damage] * HunterSkills.power(sk, rank)

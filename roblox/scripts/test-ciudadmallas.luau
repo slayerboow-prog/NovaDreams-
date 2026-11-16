@@ -47,7 +47,7 @@ for name, info in Malla do
 	check(tris <= 10000, ("%s: ligero (%d triángulos)"):format(name, tris))
 	check(secs.Base and (info.Mid == 0 or (secs.Medio and secs.Tope)), name .. ": tiene sus secciones")
 end
-check(#names >= 23, ("edificios y objetos de calle (%d)"):format(#names))
+check(#names >= 28, ("edificios y objetos de calle (%d)"):format(#names))
 local uploaded = 0
 for _, name in names do
 	if Meshes.idOf((Ids.Mallas or {})[name]) then
@@ -149,7 +149,19 @@ for _, id in { "Vertice", "Siroco", "Talasa", "Umbria" } do
 			check(stats.MeshBuildings > 100, ("%s: edificios de malla (%d)"):format(id, stats.MeshBuildings))
 			check(stats.Props > 40, ("%s: objetos de calle (%d)"):format(id, stats.Props))
 		end
-		check(stats.Meshes < 9500, ("%s: mallas contenidas (%d)"):format(id, stats.Meshes))
+		check(stats.Meshes < 11000, ("%s: mallas contenidas (%d)"):format(id, stats.Meshes))
+		if id == "Vertice" or id == "Siroco" then
+			check((stats.Cables or 0) > 40, ("%s: cables entre edificios (%d)"):format(id, stats.Cables or 0))
+		end
+		local stalls = 0
+		for _, d in model:GetDescendants() do
+			if d.ClassName == "Model" and d.Name == "Puesto" then
+				stalls += 1
+			end
+		end
+		if id ~= "Umbria" then
+			check(stalls > 20, ("%s: mercados con puestos de malla (%d)"):format(id, stalls))
+		end
 		check(stats.Parts < 14000, ("%s: piezas contenidas (%d)"):format(id, stats.Parts))
 		if true then
 			check(stats.Enterable == stats.MeshBuildings, ("%s: se entra en todos los edificios de malla (%d)"):format(id, stats.Enterable or 0))

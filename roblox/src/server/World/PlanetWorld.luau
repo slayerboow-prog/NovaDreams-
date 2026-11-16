@@ -483,7 +483,7 @@ local function buildDecor(folder: Instance)
 	local flora = Instance.new("Folder")
 	flora.Name = "Flora"
 	flora.Parent = folder
-	for _, d in Tefra.decor("Pelusa") do
+	for _, d in Tefra.decor("Pelusa", nil, false) do
 		local h = d.Size * 1.6
 		cylinder(flora, "Tallo", CFrame.new(d.Pos + Vector3.new(0, h / 2, 0)), h, 0.35, rgb(120, 110, 118), Enum.Material.Wood, { CanCollide = false, CastShadow = false })
 		ball(flora, "Pelusa", d.Pos + Vector3.new(0, h + d.Size * 0.3, 0), d.Size, if d.Roll < 0.5 then rgb(236, 226, 236) else rgb(214, 206, 214), Enum.Material.Fabric, { CanCollide = false })
@@ -500,6 +500,22 @@ local function buildDecor(folder: Instance)
 	rocks.Parent = folder
 	for _, d in Tefra.decor("Roca") do
 		ball(rocks, "Roca", d.Pos + Vector3.new(0, d.Size * 0.15, 0), d.Size, if d.Roll < 0.6 then rgb(84, 76, 88) else rgb(120, 110, 120), Enum.Material.Basalt, { Variant = "TefraRoca" })
+	end
+	-- las tierras salvajes de alrededor (más rocas, arbustos y pelusa)
+	for _, d in Tefra.decor("Roca", nil, true) do
+		ball(rocks, "Roca", d.Pos + Vector3.new(0, d.Size * 0.15, 0), d.Size, if d.Roll < 0.6 then rgb(84, 76, 88) else rgb(120, 110, 120), Enum.Material.Basalt, { Variant = "TefraRoca" })
+	end
+	for _, d in Tefra.decor("Arbusto", nil, true) do
+		local col = if d.Roll < 0.5 then rgb(122, 112, 130) else rgb(140, 124, 120)
+		for k = 0, 2 do
+			local a = d.Turn + k * 2.1
+			ball(flora, "Arbusto", d.Pos + Vector3.new(math.cos(a) * d.Size * 0.35, d.Size * 0.3, math.sin(a) * d.Size * 0.35), d.Size * (0.7 + 0.15 * k), col, Enum.Material.Grass, { CanCollide = false })
+		end
+	end
+	for _, d in Tefra.decor("Pelusa", nil, true) do
+		local h = d.Size * 1.6
+		cylinder(flora, "Tallo", CFrame.new(d.Pos + Vector3.new(0, h / 2, 0)), h, 0.35, rgb(120, 110, 118), Enum.Material.Wood, { CanCollide = false, CastShadow = false })
+		ball(flora, "Pelusa", d.Pos + Vector3.new(0, h + d.Size * 0.3, 0), d.Size, if d.Roll < 0.5 then rgb(236, 226, 236) else rgb(214, 206, 214), Enum.Material.Fabric, { CanCollide = false })
 	end
 end
 
@@ -758,12 +774,15 @@ function PlanetWorld.buildPlanetProps(id: string): Instance?
 	local flora = Instance.new("Folder")
 	flora.Name = "Flora"
 	flora.Parent = folder
-	for kind in S.DecorCounts do
-		for _, d in S.decor(kind) do
-			if kit.decor then
-				kit.decor(flora, d)
-			else
-				ball(flora, kind, d.Pos + Vector3.new(0, d.Size * 0.15, 0), d.Size, rgb(110, 104, 100), Enum.Material.Slate)
+	-- (alrededor de la ciudad y, más, en las tierras salvajes)
+	for _, wild in { false, true } do
+		for kind in S.DecorCounts do
+			for _, d in S.decor(kind, nil, wild) do
+				if kit.decor then
+					kit.decor(flora, d)
+				else
+					ball(flora, kind, d.Pos + Vector3.new(0, d.Size * 0.15, 0), d.Size, rgb(110, 104, 100), Enum.Material.Slate)
+				end
 			end
 		end
 	end

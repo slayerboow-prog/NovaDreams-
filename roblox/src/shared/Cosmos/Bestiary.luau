@@ -154,6 +154,7 @@ local LAIR_NAMES = {
 	Bipedo = { "Percha", "Atalaya rota", "Nido alto" },
 }
 local LAIR_LOOK = { Tefra = "Roca", Siroco = "Arenisca", Talasa = "Coral", Nivalis = "Hielo", Umbria = "Raices", Miasma = "Chatarra", Vertice = "Chatarra" }
+Bestiary.LairLook = LAIR_LOOK
 
 -- Planetas casi sin tierra (Tálasa): guaridas y alijos sobre arrecifes de roca que salen del agua (los pone
 -- World/Kit/BeastKit; Islet = true y Y = la altura de su cima)

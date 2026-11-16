@@ -31,7 +31,9 @@ Tefra.Name = "Tefra"
 Tefra.Origin = Vector3.new(-25000, 0, 25000)
 Tefra.Half = 2560
 Tefra.CoreHalf = 1536 -- (la ciudad y lo de siempre; de ahí a Half, las tierras salvajes de las bestias)
+Tefra.WildDecorMul = 1.6
 Tefra.Seed = 66
+Tefra.Trails = require(script.Parent.Trails).make(Tefra.CoreHalf, Tefra.Half, Tefra.Seed * 37)
 Tefra.WaterY = 34
 Tefra.ArriveY = 1400
 Tefra.ClimbY = 1700
@@ -218,6 +220,10 @@ function Tefra.materialAt(x: number, z: number, h: number?, slope: number?): str
 		if street then
 			return if avenue then Tefra.Metro.Style.AvenueMaterial else Tefra.Metro.Style.StreetMaterial
 		end
+		-- los senderos de las tierras salvajes
+		if s < 0.9 and Tefra.Trails and Tefra.Trails.at(lx, lz) then
+			return Tefra.Metro.Style.StreetMaterial
+		end
 	end
 	if s > 1.25 then
 		return "Slate"
@@ -338,18 +344,28 @@ end
 -- Flora y rocas: { { Kind, Pos, Size, Turn } } (repetible). kind: "Pelusa" (plantas de semillas
 -- blandas: la «lluvia de pelusa»), "Arbusto" (redondo), "Roca" (peñasco con la textura de roca)
 Tefra.DecorCounts = { Pelusa = 110, Arbusto = 70, Roca = 80 }
-function Tefra.decor(kind: string, count: number?): { { [string]: any } }
+function Tefra.decor(kind: string, count: number?, wild: boolean?): { { [string]: any } }
 	local n = count or Tefra.DecorCounts[kind] or 0
+	if wild then
+		n = math.floor(n * Tefra.WildDecorMul + 0.5)
+	end
 	local seed = ({ Pelusa = 101, Arbusto = 202, Roca = 303 })[kind] or 404
-	local r = rng(Tefra.Seed * 1009 + seed)
+	local r = rng(Tefra.Seed * 1009 + seed + (if wild then 5000 else 0))
 	local out = {}
 	local tries = 0
 	while #out < n and tries < n * 12 do
 		tries += 1
-		local lx = (r() * 2 - 1) * Tefra.CoreHalf * 0.8
-		local lz = (r() * 2 - 1) * Tefra.CoreHalf * 0.8
+		local lx, lz
+		if wild then
+			local a = r() * math.pi * 2
+			local rr = Tefra.CoreHalf * 0.8 + r() * math.max(0, Tefra.Half - 440 - Tefra.CoreHalf * 0.8)
+			lx, lz = math.cos(a) * rr, math.sin(a) * rr
+		else
+			lx = (r() * 2 - 1) * Tefra.CoreHalf * 0.8
+			lz = (r() * 2 - 1) * Tefra.CoreHalf * 0.8
+		end
 		local maxSlope = if kind == "Roca" then 0.9 else 0.55
-		if Tefra.goodSpot(lx, lz, maxSlope, if kind == "Roca" then 12 else 18) then
+		if Tefra.goodSpot(lx, lz, maxSlope, if kind == "Roca" then 12 else 18) and not (Tefra.Trails and Tefra.Trails.at(lx, lz)) then
 			local x, z = Tefra.Origin.X + lx, Tefra.Origin.Z + lz
 			local size = if kind == "Roca" then 5 + r() ^ 2 * 22 elseif kind == "Arbusto" then 4 + r() * 6 else 3 + r() * 4
 			table.insert(out, { Kind = kind, Pos = Vector3.new(x, Tefra.heightAt(x, z), z), Size = size, Turn = r() * math.pi * 2, Roll = r() })
