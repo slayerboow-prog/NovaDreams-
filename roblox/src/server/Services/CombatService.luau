@@ -1400,6 +1400,11 @@ function CombatService.applyHit(attacker: Player, model: Model, info: HitInfo): 
 end
 
 -- ¿Puede pelear o recibir? (para las armas: mismas condiciones que los golpes)
+-- Personajes alrededor de un punto, los más cercanos primero (las habilidades fuera de los planetas)
+function CombatService.near(attacker: Model, center: Vector3, radius: number): { Model }
+	return modelsNear(attacker, center, radius)
+end
+
 function CombatService.canFight(player: Player): boolean
 	return canFight(player)
 end

@@ -102,9 +102,7 @@ function HunterSkillService.use(player: Player, id: any, now: number?): (boolean
 	if not root or not hum or hum.Health <= 0 or player:GetAttribute("KO") or player:GetAttribute("Fallen") then
 		return false, nil, 0
 	end
-	if type(player:GetAttribute("Planeta")) ~= "string" then
-		return false, "Las habilidades de cazador son para las bestias de los planetas.", 0
-	end
+	local onPlanet = type(player:GetAttribute("Planeta")) == "string"
 	if not HunterSkills.unlocked(sk, HunterSkillService.levelOf(player)) then
 		return false, ("%s se desbloquea con nivel de cazador %d."):format(sk.Name, sk.Level), 0
 	end
@@ -130,14 +128,24 @@ function HunterSkillService.use(player: Player, id: any, now: number?): (boolean
 		local dir = Vector3.new(look.X, 0, look.Z)
 		dir = if dir.Magnitude > 0.01 then dir.Unit else Vector3.new(0, 0, -1)
 		local reach = if sk.Kind == "Dash" then sk.Distance + 8 else sk.Radius
-		for _, model in Beasts.near(from, reach) do
+		-- en un planeta, contra las bestias; fuera (Valmar), contra quien haya cerca con las reglas de un golpe
+		-- (enemigos de misión, alienígenas de la Invasión, jugadores sin protección…)
+		local Fight = if onPlanet then nil else require(script.Parent.CombatService) :: any
+		local targets = if onPlanet then Beasts.near(from, reach) else Fight.near(character, from, reach)
+		for _, model in targets do
 			if hits >= sk.MaxTargets then
 				break
 			end
 			local pos = (model :: Model):GetPivot().Position
 			local inside = if sk.Kind == "Dash" then HunterSkills.inDash(sk, from, dir, pos) else (pos - from).Magnitude <= sk.Radius
 			if inside then
-				local counted = Beasts.hit(player, model, base, { Melee = true, Heavy = true, Skill = sk.Id })
+				local counted = false
+				if onPlanet then
+					counted = Beasts.hit(player, model, base, { Melee = true, Heavy = true, Skill = sk.Id })
+				else
+					local ok, res = pcall(Fight.applyHit, player, model, { Amount = base, Direction = (pos - from).Unit, Heavy = true, Weapon = sk.Name, At = pos })
+					counted = ok and res and res.Hit == true
+				end
 				if counted then
 					hits += 1
 				end

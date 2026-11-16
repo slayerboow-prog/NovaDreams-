@@ -1,5 +1,5 @@
 -- HunterSkillsUI (cliente): los botones de las HABILIDADES DE CAZADOR (shared/HunterSkills;
--- Services/HunterSkillService). Solo se ven en un planeta (atributo «Planeta»).
+-- Services/HunterSkillService). Se ven siempre.
 --   * Una columna de botones redondos en el borde izquierdo, a media altura (lejos del joystick, de la mochila
 --     y de los botones de la derecha). Cada uno: su icono, su tecla en el ordenador (Z, X, C, V), el nivel que
 --     pide si aún no la tienes y la cuenta atrás de su espera.
@@ -31,7 +31,7 @@ local function level(): number
 end
 
 local function onPlanet(): boolean
-	return type(player:GetAttribute("Planeta")) == "string"
+	return true -- (salen siempre: en Valmar pegan a enemigos de misión y alienígenas)
 end
 
 local function busy(): boolean
