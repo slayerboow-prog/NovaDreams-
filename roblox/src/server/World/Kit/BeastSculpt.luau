@@ -36,6 +36,11 @@ local function tools(x: Ctx)
 	-- «lupa»: lo que se monte entre S.head(...) y S.body() crece desde su centro (cabezas grandes del cartel)
 	local zoom: Opt? = nil
 	function S.head(center: Vector3, scale: number, offset: Vector3?, mirror: boolean?)
+		-- (las cabezas, a su tamaño: nada de cabezones; la lupa queda para las alas)
+		if not mirror then
+			zoom = nil
+			return
+		end
 		zoom = { C = center, S = scale, O = offset or Vector3.zero, Mirror = mirror }
 	end
 	function S.body()
@@ -91,15 +96,14 @@ local function tools(x: Ctx)
 	-- ojos en la cara (z = el plano de delante): bloque, brillo blanco y ceja enfadada
 	function S.eyes(ex: number, ey: number, z: number, w: number, h: number, color: Color3, o: Opt?)
 		local opt: Opt = o or {}
-		S.M("Ojo", V3(w, h, 0.08), V3(ex, ey, z - 0.03), color, { glow = opt.glow })
+		h = h * 0.65 -- (rasgados: mirada de depredador, no de peluche)
+		S.M("Cuenca", V3(w * 1.25, h * 1.9, 0.05), V3(ex, ey - h * 0.1, z - 0.01), rgb(14, 12, 12))
+		S.M("Ojo", V3(w, h, 0.08), V3(ex, ey, z - 0.03), color, { glow = opt.glow, rz = -8 })
 		if opt.pupil then
-			S.M("Pupila", V3(w * 0.45, h * 0.7, 0.06), V3(ex - w * 0.1, ey - h * 0.05, z - 0.08), opt.pupil)
-		end
-		if opt.glint ~= false then
-			S.M("Brillo", V3(w * 0.32, w * 0.32, 0.05), V3(ex + w * 0.2, ey + h * 0.18, z - 0.1), WHITE, { glow = opt.glow })
+			S.M("Pupila", V3(w * 0.18, h * 0.95, 0.06), V3(ex, ey, z - 0.08), opt.pupil)
 		end
 		if opt.brow then
-			S.M("Ceja", V3(w * 1.5, math.max(0.1, h * 0.38), 0.14), V3(ex - w * 0.05, ey + h * 0.5 + 0.08, z - 0.06), opt.brow, { rz = opt.browAngle or 20 })
+			S.M("Ceja", V3(w * 1.7, math.max(0.12, h * 0.75), 0.16), V3(ex - w * 0.05, ey + h * 0.75, z - 0.07), opt.brow, { rz = opt.browAngle or 26 })
 		end
 	end
 	function S.light(color: Color3, range: number)
@@ -147,7 +151,12 @@ local function wolf(S: Tools, c: Opt)
 	S.B("Mandibula", V3(0.85, 0.32, 0.75), V3(0, 0.46, -3.12), light)
 	S.B("Nariz", V3(0.38, 0.28, 0.2), V3(0, 0.9, -3.6), BLACK)
 	S.B("Boca", V3(0.7, 0.1, 0.05), V3(0, 0.63, -3.52), BLACK)
-	S.M("Colmillo", V3(0.1, 0.2, 0.1), V3(0.25, 0.52, -3.5), WHITE)
+	S.M("Colmillo", V3(0.1, 0.26, 0.1), V3(0.27, 0.5, -3.5), IVORY)
+	S.M("Diente", V3(0.08, 0.14, 0.08), V3(0.12, 0.55, -3.52), IVORY)
+	S.M("Encia", V3(0.3, 0.12, 0.05), V3(0.22, 0.7, -3.52), rgb(120, 40, 40))
+	if c.Scar then
+		S.B("Cicatriz", V3(0.07, 0.75, 0.05), V3(-0.4, 1.15, -2.84), rgb(160, 110, 110), { rz = -25 })
+	end
 	S.M("Mejilla", V3(0.3, 0.55, 0.7), V3(0.85, 0.6, -2.0), light, { wedge = true, ry = 180, rz = -10 })
 	S.eyes(0.4, 1.12, -2.8, 0.32, 0.26, c.Eye, { glow = true, brow = dark })
 	S.M("Oreja", V3(0.32, 0.8, 0.55), V3(0.5, 2.0, -1.95), body, { wedge = true, ry = 90 })
@@ -155,8 +164,10 @@ local function wolf(S: Tools, c: Opt)
 	S.B("Cana", V3(0.9, 0.35, 0.65), V3(0, 1.15, -2.95), body, { wedge = true })
 	S.body()
 	for _, z in { -1.05, 1.05 } do
-		local legs = S.M("Pata", V3(0.72, 1.5, 0.72), V3(0.55, -1.4, z), body)
-		S.M("Zarpa", V3(0.82, 0.32, 0.9), V3(0.55, -2.0, z - 0.06), light, { on = legs })
+		local legs = S.M("Pata", V3(0.62, 1.9, 0.62), V3(0.55, -1.6, z), body)
+		S.M("Zarpa", V3(0.7, 0.3, 0.85), V3(0.55, -2.4, z - 0.08), dark, { on = legs })
+		S.M("Garra", V3(0.08, 0.12, 0.2), V3(0.42, -2.47, z - 0.6), IVORY, { on = legs })
+		S.M("Garra", V3(0.08, 0.12, 0.2), V3(0.68, -2.47, z - 0.6), IVORY, { on = legs })
 		S.M("Pelo", V3(0.78, 0.4, 0.78), V3(0.55, -0.85, z), dark, { on = legs })
 	end
 	-- pelo: gorguera blanca a los lados del pecho, mechones en el lomo
@@ -371,9 +382,9 @@ local R: { [string]: Recipe } = {}
 -- BOSQUE ETÉREO ------------------------------------------------------
 R.LoboBosque = {
 	Root = V3(1.8, 1.5, 3.0),
-	Hip = 1.4,
+	Hip = 1.8,
 	Build = function(S)
-		wolf(S, { Body = rgb(128, 132, 142), Dark = rgb(82, 86, 98), Light = rgb(228, 230, 234), Eye = rgb(90, 175, 255) })
+		wolf(S, { Body = rgb(100, 102, 108), Dark = rgb(58, 60, 66), Light = rgb(190, 190, 186), Eye = rgb(255, 190, 60), Scar = true })
 	end,
 }
 
@@ -399,7 +410,7 @@ R.OsoGigante = {
 		S.M("Mejilla", V3(0.4, 0.9, 1.0), V3(1.15, 0.9, -2.5), dark)
 		S.M("Oreja", V3(0.75, 0.75, 0.75), V3(0.85, 2.25, -2.35), body, { ball = true })
 		S.M("OrejaDentro", V3(0.42, 0.42, 0.42), V3(0.85, 2.25, -2.62), tan, { ball = true })
-		S.eyes(0.5, 1.55, -3.4, 0.3, 0.28, BLACK, { brow = dark })
+		S.eyes(0.5, 1.55, -3.4, 0.3, 0.28, rgb(200, 120, 40), { glow = true, brow = dark })
 		S.body()
 		for _, z in { -1.3, 1.3 } do
 			local legs = S.M("Pata", V3(1.0, 1.4, 1.0), V3(0.9, -1.8, z), body)
@@ -508,10 +519,11 @@ R.SaqueadorNomada = { -- Bandido
 		S.M("Patilla", V3(0.2, 0.75, 1.2), V3(0.82, 2.05, 0.15), hair)
 		S.B("Flequillo", V3(0.55, 0.3, 0.15), V3(-0.35, 2.4, -0.76), hair)
 		S.B("Flequillo", V3(0.45, 0.25, 0.15), V3(0.3, 2.45, -0.76), hair)
-		S.B("Barba", V3(1.5, 0.55, 0.06), V3(0, 1.3, -0.76), rgb(150, 110, 82))
-		S.B("Boca", V3(0.5, 0.1, 0.05), V3(0, 1.4, -0.8), rgb(90, 40, 30))
-		S.B("Nariz", V3(0.25, 0.3, 0.15), V3(0, 1.68, -0.8), rgb(210, 160, 122))
-		S.eyes(0.35, 1.92, -0.75, 0.2, 0.25, BLACK, { brow = hair })
+		S.B("Panuelo", V3(1.66, 0.75, 1.56), V3(0, 1.38, 0), rgb(92, 30, 26))
+		S.B("Nudo", V3(0.4, 0.35, 0.3), V3(0, 1.5, 0.85), rgb(92, 30, 26))
+		S.B("Pico", V3(0.5, 0.5, 0.08), V3(0, 1.05, -0.8), rgb(80, 26, 22), { rz = 45 })
+		S.B("Cicatriz", V3(0.06, 0.55, 0.04), V3(0.32, 1.95, -0.77), rgb(170, 100, 90), { rz = 20 })
+		S.eyes(0.35, 1.92, -0.75, 0.22, 0.25, rgb(120, 100, 80), { brow = hair, browAngle = 18 })
 		S.body()
 		S.M("Hombrera", V3(1.0, 0.4, 1.0), V3(1.47, 0.82, 0), vest, { on = arms })
 		S.M("Brazal", V3(0.98, 0.45, 0.98), V3(1.47, -0.4, 0), boot, { on = arms })
@@ -567,15 +579,18 @@ R.SlimeToxico = {
 	Root = V3(2.6, 2.6, 2.6),
 	Hip = 0.2,
 	Build = function(S)
-		local green, core = rgb(120, 236, 80), rgb(62, 176, 42)
+		local green, core = rgb(88, 176, 52), rgb(40, 110, 30)
 		S.B("Cabeza", V3(3.0, 2.8, 3.0), V3(0, -0.1, 0), green, { alpha = 0.22 })
 		S.B("Nucleo", V3(2.2, 2.0, 2.2), V3(0, -0.3, 0.1), core, { alpha = 0.1 })
 		S.B("Reflejo", V3(0.9, 0.25, 0.06), V3(-0.8, 1.05, -1.53), rgb(220, 255, 200), { alpha = 0.2 })
-		S.M("Ojo", V3(0.5, 0.75, 0.06), V3(0.55, 0.25, -1.53), BLACK)
-		S.M("Brillo", V3(0.2, 0.2, 0.05), V3(0.62, 0.45, -1.57), WHITE)
-		S.M("BrilloPeq", V3(0.1, 0.1, 0.05), V3(0.45, 0.05, -1.57), WHITE)
-		S.B("Boca", V3(0.6, 0.12, 0.05), V3(0, -0.4, -1.54), rgb(25, 70, 20))
-		S.M("Comisura", V3(0.13, 0.13, 0.05), V3(0.34, -0.31, -1.54), rgb(25, 70, 20))
+		S.M("Ojo", V3(0.55, 0.3, 0.06), V3(0.55, 0.35, -1.53), rgb(230, 255, 60), { glow = true, rz = -15 })
+		S.M("Ceja", V3(0.75, 0.16, 0.06), V3(0.52, 0.6, -1.54), rgb(20, 50, 16), { rz = 25 })
+		S.B("Boca", V3(1.3, 0.45, 0.05), V3(0, -0.45, -1.53), rgb(14, 30, 10))
+		for i = -2, 2 do
+			S.B("Diente", V3(0.12, 0.2, 0.05), V3(i * 0.26, -0.3 - (i % 2) * 0.28, -1.56), rgb(220, 230, 190))
+		end
+		S.B("Craneo", V3(0.8, 0.7, 0.7), V3(0.3, -0.4, 0.5), IVORY, { alpha = 0.35 })
+		S.B("Hueso", V3(1.2, 0.15, 0.15), V3(-0.4, -0.9, 0.2), IVORY, { alpha = 0.35, rz = 30 })
 		for i, p in { V3(0.9, -1.45, -1.2), V3(-1.1, -1.45, 0.6), V3(0.3, -1.45, 1.2), V3(-0.6, 1.35, 0.4) } do
 			S.B("Gota", V3(0.45, 0.25, 0.45), p, green, { alpha = 0.2 })
 		end
@@ -693,7 +708,7 @@ R.GuardianDesierto = { -- Guardián de arena
 	Root = V3(3.0, 2.6, 1.8),
 	Hip = 1.5,
 	Build = function(S)
-		golem(S, { Main = rgb(198, 152, 72), Dark = rgb(146, 102, 46), Light = rgb(232, 192, 112), Glow = rgb(255, 214, 80), Crown = rgb(120, 84, 36) })
+		golem(S, { Main = rgb(170, 128, 70), Dark = rgb(118, 84, 44), Light = rgb(198, 160, 100), Glow = rgb(255, 214, 80), Crown = rgb(120, 84, 36) })
 	end,
 }
 
@@ -752,9 +767,9 @@ R.Cultista = {
 -- MONTAÑAS HELADAS ---------------------------------------------------
 R.LoboArtico = {
 	Root = V3(1.8, 1.5, 3.0),
-	Hip = 1.4,
+	Hip = 1.8,
 	Build = function(S)
-		wolf(S, { Body = rgb(226, 232, 240), Dark = rgb(168, 184, 206), Light = rgb(250, 252, 255), Eye = rgb(110, 205, 255), Frost = true })
+		wolf(S, { Body = rgb(208, 214, 222), Dark = rgb(132, 146, 166), Light = rgb(236, 240, 246), Eye = rgb(120, 220, 255), Frost = true })
 	end,
 }
 
@@ -762,7 +777,7 @@ R.GolemHielo = { -- Gigante de hielo
 	Root = V3(3.0, 2.8, 1.8),
 	Hip = 1.7,
 	Build = function(S)
-		local fur, light, dark, beard = rgb(104, 124, 172), rgb(160, 178, 214), rgb(64, 78, 120), rgb(206, 222, 240)
+		local fur, light, dark, beard = rgb(92, 106, 140), rgb(150, 162, 190), rgb(52, 60, 90), rgb(196, 206, 222)
 		local T, A = V3(3.0, 2.8, 1.8), V3(1.3, 2.6, 1.3)
 		local arms, legs = biped(S, { T = T, A = A, L = V3(1.3, 1.8, 1.3), Legs = fur, Arms = fur, LegX = 0.8 })
 		S.B("Tronco", T, V3(0, 0, 0), fur)
@@ -796,7 +811,7 @@ R.DracoHielo = { -- Dragón de hielo
 	Root = V3(2.0, 1.8, 3.4),
 	Hip = 1.6,
 	Build = function(S)
-		dragon(S, { Body = rgb(56, 118, 222), Belly = rgb(176, 214, 250), Spike = rgb(204, 236, 255), Dark = rgb(34, 70, 150), Eye = rgb(170, 240, 255), Wing = rgb(110, 175, 245), WingAlpha = 0.1, Icy = true, WingScale = 1.35 })
+		dragon(S, { Body = rgb(58, 96, 156), Belly = rgb(150, 182, 214), Spike = rgb(196, 226, 246), Dark = rgb(30, 50, 96), Eye = rgb(170, 240, 255), Wing = rgb(110, 175, 245), WingAlpha = 0.1, Icy = true, WingScale = 1.35 })
 	end,
 }
 
@@ -837,7 +852,7 @@ R.Demonio = {
 	Root = V3(2.6, 2.4, 1.4),
 	Hip = 1.9,
 	Build = function(S)
-		local skin, dark, horn = rgb(198, 46, 46), rgb(128, 24, 30), rgb(70, 34, 34)
+		local skin, dark, horn = rgb(150, 34, 32), rgb(90, 18, 22), rgb(44, 28, 28)
 		local T, A = V3(2.6, 2.4, 1.4), V3(1.15, 2.4, 1.15)
 		local arms, legs = biped(S, { T = T, A = A, L = V3(1.15, 2.0, 1.15), Legs = dark, Arms = skin })
 		S.B("Tronco", T, V3(0, 0, 0), skin)
