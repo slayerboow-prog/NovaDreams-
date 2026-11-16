@@ -39,12 +39,16 @@ BeastBrain.Override = {
 	AvispaGrieta = "Distancia", AvispaEnjambre = "Distancia", EspirituCorrupto = "Distancia", DronRebelde = "Distancia",
 	MedusaGas = "Distancia", BuitreRayo = "Distancia", DracoHielo = "Distancia", SalamandraVolcan = "Distancia",
 	CriaturaVacio = "Distancia", ConstructoRuinas = "Distancia",
+	Nigromante = "Distancia", Cultista = "Distancia", MagoOscuro = "Distancia", ElementalFuego = "Distancia", DragonInfernal = "Distancia",
 	-- cargan
 	JabaliSierra = "Embestida", OsoLanudo = "Embestida", CocodriloMutado = "Embestida", CocodriloAliviadero = "Embestida",
-	FocaColmillo = "Embestida", EscarabajoCorteza = "Embestida",
+	FocaColmillo = "Embestida", EscarabajoCorteza = "Embestida", OsoGigante = "Embestida", Minotauro = "Embestida",
 	-- en manada
 	LoboBosque = "Manada", LoboArtico = "Manada", LoboEscarcha = "Manada", ChacalDuna = "Manada", Rondador = "Manada",
 	RataChatarra = "Manada", RataCloaca = "Manada", SabuesoMagma = "Manada", BestiaSombria = "Manada", SaqueadorNomada = "Manada",
+	EsqueletoGuerrero = "Manada",
+	-- a mordiscos (o a golpes), sin más
+	SlimeToxico = "Bruto", Momia = "Bruto",
 	-- al acecho
 	AcechadorPradera = "Acechador", PanteraLiana = "Acechador", VivoraPenasco = "Acechador", SerpienteArena = "Acechador",
 	AnguilaArrecife = "Acechador", GusanoColada = "Acechador", AranaBosque = "Acechador", AranaHielo = "Acechador",

@@ -140,4 +140,45 @@ check(kit2:find("Motor6D", 1, true) ~= nil and kit2:find("rig(model, hub, shape)
 check(srv:find("WanderSpeed", 1, true) ~= nil and srv:find("StunUntil", 1, true) ~= nil and srv:find('SetAttribute("Golpe"', 1, true) ~= nil,
 	"pasean al paso y persiguen a la carrera; los golpes fuertes las aturden; avisan al cliente de cada golpe")
 
+-- Los monstruos del cartel del dueño: tres por región, con su aspecto y su manera de pelear
+local Regions = L.load("src/shared/Cosmos/ValmarRegions")
+local roster = {
+	BosqueEtereo = { "LoboBosque", "AranaBosque", "OsoGigante" }, LlanurasSalvajes = { "JabaliSierra", "SaqueadorNomada", "Minotauro" },
+	PantanoMaldito = { "CocodriloMutado", "SlimeToxico", "Nigromante" }, DesiertoDorado = { "EscorpionGigante", "Momia", "GuardianDesierto" },
+	RuinasAntiguas = { "EsqueletoGuerrero", "GuardianPiedra", "Cultista" }, MontanasHeladas = { "LoboArtico", "GolemHielo", "DracoHielo" },
+	TierrasOscuras = { "CaballeroCorrupto", "Demonio", "MagoOscuro" }, TierrasVolcanicas = { "GolemLava", "ElementalFuego", "DragonInfernal" },
+}
+local rosterOk = true
+for id, list in roster do
+	local reg = Regions.ById[id]
+	for i, sid in list do
+		local sp = Bestiary.Species[sid]
+		rosterOk = rosterOk and reg ~= nil and reg.Species[i] == sid and sp ~= nil and sp.Colors ~= nil and sp.Drops ~= nil
+	end
+end
+check(rosterOk, "cada región tiene los tres monstruos del cartel")
+local looks = fs.readFile("src/server/World/Kit/BeastLooks.luau")
+local looksOk = true
+for sid, sp in Bestiary.Species do
+	if sp.Look then
+		looksOk = looksOk and (looks:find('"' .. sp.Look .. '"', 1, true) ~= nil or kit2:find('"' .. sp.Look .. '"', 1, true) ~= nil)
+	end
+	if sp.Weapon then
+		looksOk = looksOk and looks:find('"' .. sp.Weapon .. '"', 1, true) ~= nil
+	end
+end
+check(looksOk, "todos los aspectos y armas de las bestias están dibujados")
+local function style(sid)
+	return Brain.styleOf(sid, Bestiary.Species[sid]).Name
+end
+check(style("Nigromante") == "Distancia" and style("Cultista") == "Distancia" and style("MagoOscuro") == "Distancia" and style("ElementalFuego") == "Distancia"
+	and style("DragonInfernal") == "Distancia" and style("OsoGigante") == "Embestida" and style("Minotauro") == "Embestida"
+	and style("EsqueletoGuerrero") == "Manada" and style("SlimeToxico") == "Bruto" and style("Momia") == "Bruto" and style("Demonio") == "Coloso",
+	"magos, elemental y dragón atacan de lejos; oso y minotauro embisten; esqueletos en grupo; el demonio da golpes de área")
+local arm = Anim.jointPose("Bipedo", "Brazo", 1, 1, 1, 0, 0, 0, false, 1, 0)
+check(pitch(arm) > 1.5, "al golpear levanta el arma por delante")
+local hop = Anim.bodyPose(1, math.pi / 2, 1, 0, false, 0, 0, 0, 0, 0, "Masa")
+local walk = Anim.bodyPose(1, math.pi / 2, 1, 0, false, 0, 0, 0, 0, 0, "Cuadrupedo")
+check(hop.Position.Y > walk.Position.Y + 0.3, "el slime avanza a saltos")
+
 L.finish("test-cerebro-bestias")

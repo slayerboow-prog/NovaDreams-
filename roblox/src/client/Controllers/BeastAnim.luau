@@ -45,6 +45,10 @@ type State = {
 local states: { [Model]: State } = {}
 
 local function shapeOf(model: Model): string
+	local form = model:GetAttribute("Forma")
+	if typeof(form) == "string" then
+		return form
+	end
 	-- (por sus piezas: lo que montó BeastKit)
 	if model:FindFirstChild("Abdomen") then
 		return "Insecto"
@@ -117,8 +121,9 @@ function BeastAnim.jointPose(shape: string, name: string, side: number, front: n
 		return CFrame.Angles(swing * 0.7 * side - crouch * 0.4, 0, 0)
 	elseif name == "Brazo" then
 		-- brazos: contrarios a las piernas; al golpear, arriba y abajo
+		-- (suben por delante hasta encima de la cabeza y caen: el tajo del arma, el golpe del coloso)
 		local lift = strike * 2.2
-		return CFrame.Angles(-swing * 0.5 * side - lift + crouch * 0.6, 0, side * crouch * 0.2)
+		return CFrame.Angles(-swing * 0.5 * side + lift + crouch * 0.6, 0, side * crouch * 0.2)
 	elseif name == "Ala" then
 		local speed = if flies then 18 else 3
 		local amp = if flies then 0.55 else 0.08 + move * 0.2
@@ -135,7 +140,8 @@ end
 -- El cuerpo entero: respirar, el paso, inclinarse al correr, lanzarse al morder, respingo y caer
 function BeastAnim.bodyPose(k: number, phase: number, move: number, t: number, flies: boolean, strike: number, hurt: number, crouch: number, alert: number, down: number, shape: string): CFrame
 	local breathe = math.sin(t * 2.1) * 0.05 * k
-	local step = math.abs(math.sin(phase)) * 0.18 * k * move
+	-- (la masa —slime— avanza a saltitos)
+	local step = math.abs(math.sin(phase)) * (if shape == "Masa" then 0.7 else 0.18) * k * move
 	local hover = if flies then math.sin(t * 3) * 0.35 * k else 0
 	local lean = -0.1 * move
 	local y = breathe + step + hover - crouch * 0.35 * k

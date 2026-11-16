@@ -3,13 +3,14 @@
 --
 --   BeastKit.beast(species, id, opts?) → Model   una bestia con Humanoid (anda sola con MoveTo) y piezas
 --                                       soldadas a su HumanoidRootPart; cuerpos: Cuadrupedo, Insecto, Serpiente,
---                                       Bipedo; con detalles (colmillos, cuernos, garras, melena, lo de su tierra)
+--                                       Bipedo, Masa (y los de aspecto propio: Kit/BeastLooks); con detalles (colmillos, cuernos, garras, melena, lo de su tierra)
 --                                       y, si opts.Champion, campeona (más grande, corona dorada y chispas)
 --   BeastKit.lair(parent, lair, cf)     la guarida (roca, hielo, coral, raíces o chatarra; la del jefe, más grande)
 --   BeastKit.cache(parent, cache, cf)   un alijo (cofre con aviso «Abrir alijo», etiqueta «Alijo»)
 --   BeastKit.bench(parent, cf, colors?) un Taller (yunque, mesa y caldero; aviso «Fabricar», etiqueta «Taller»)
 
 local Builder = require(script.Parent.Parent.Builder)
+local BeastLooks = require(script.Parent.BeastLooks)
 
 local BeastKit = {}
 
@@ -110,9 +111,9 @@ local function themeOf(id: string, sp: { [string]: any }): string?
 	end
 	if has("Hielo", "Artico", "Escarcha", "Invierno", "Durmiente") then
 		return "Hielo"
-	elseif has("Magma", "Lava", "Volcan", "Salamandra", "Brasa", "Colada") then
+	elseif has("Magma", "Lava", "Volcan", "Salamandra", "Brasa", "Colada", "Infernal") then
 		return "Lava"
-	elseif has("Sombr", "Corrupto", "Vacio") then
+	elseif has("Sombr", "Corrupto", "Vacio", "Oscuro", "Demonio") then
 		return "Sombra"
 	elseif has("Piedra", "Ruinas", "Desierto", "Coloso", "Espectral") then
 		return "Piedra"
@@ -146,7 +147,7 @@ local function details(model: Model, root: BasePart, sp: { [string]: any }, id: 
 		end
 	end
 	-- defensas de jabalí, oso, foca o cocodrilo
-	if string.find(id, "Jabali") or string.find(id, "Foca") or string.find(id, "Oso") then
+	if string.find(id, "Jabali") or string.find(id, "Foca") or string.find(id, "OsoLanudo") then
 		for _, sx in { -1, 1 } do
 			limb(model, root, "Defensa", V3(0.22 * k, 0.22 * k, 0.9 * k), head * CFrame.new(sx * hs.X * 0.38, -hs.Y * 0.3, -hs.Z * 0.7) * CFrame.Angles(math.rad(35), sx * 0.35, 0), IVORY, Enum.Material.SmoothPlastic)
 		end
@@ -161,7 +162,7 @@ local function details(model: Model, root: BasePart, sp: { [string]: any }, id: 
 				neon(p)
 			end
 		end
-	elseif theme == "Hielo" or theme == "Sombra" or theme == "Lava" or sp.Boss or sp.Arms then
+	elseif not sp.Look and (theme == "Hielo" or theme == "Sombra" or theme == "Lava" or sp.Boss or sp.Arms) then
 		local hornColor = if theme == "Hielo" then rgb(200, 235, 255) elseif theme == "Lava" then rgb(40, 30, 28) else rgb(30, 24, 36)
 		for _, sx in { -1, 1 } do
 			local horn = if sp.Arms then V3(0.3 * k, 0.75 * k, 0.3 * k) else V3(0.25 * k, 1 * k, 0.25 * k)
@@ -187,7 +188,7 @@ local function details(model: Model, root: BasePart, sp: { [string]: any }, id: 
 	end
 	-- antenas de los insectos
 	if shape == "Insecto" then
-		for _, sx in { -1, 1 } do
+		for _, sx in (if sp.Look == "Arana" then {} else { -1, 1 }) do
 			limb(model, root, "Antena", V3(0.08 * k, 0.08 * k, 1.3 * k), head * CFrame.new(sx * hs.X * 0.25, hs.Y * 0.5, -hs.Z * 0.6) * CFrame.Angles(math.rad(35), sx * 0.3, 0), belly, m)
 		end
 		-- bandas que brillan en el abdomen
@@ -211,7 +212,7 @@ local function details(model: Model, root: BasePart, sp: { [string]: any }, id: 
 		end
 	end
 	-- hombreras y núcleo de los colosos
-	if shape == "Bipedo" and sp.Arms then
+	if shape == "Bipedo" and sp.Arms and not sp.Look then
 		for _, arm in model:GetChildren() do
 			if arm:IsA("BasePart") and arm.Name == "Brazo" then
 				local rel = root.CFrame:ToObjectSpace(arm.CFrame)
@@ -311,6 +312,10 @@ function BeastKit.beast(sp: { [string]: any }, id: string, opts: { [string]: any
 		rootSize, hip = V3(2.6 * k, 1.2 * k, 3.2 * k), 1.1 * k
 	elseif shape == "Bipedo" then
 		rootSize, hip = V3(2 * k, 2.4 * k, 1.6 * k), 2.4 * k
+	elseif shape == "Masa" then
+		rootSize, hip = V3(2.4 * k, 1.8 * k, 2.4 * k), 0.5 * k
+	elseif sp.Look == "Cocodrilo" then
+		rootSize, hip = V3(2 * k, 1.2 * k, 4 * k), 0.9 * k -- (pegado al suelo)
 	else
 		rootSize, hip = V3(2 * k, 1.8 * k, 4 * k), 2 * k
 	end
@@ -343,36 +348,108 @@ function BeastKit.beast(sp: { [string]: any }, id: string, opts: { [string]: any
 	bodyJoint.Parent = root
 	local Y = -rootSize.Y / 2 -- (la parte de abajo del tronco)
 
-	if shape == "Cuadrupedo" then
-		limb(model, root, "Tronco", V3(2 * k, 1.8 * k, 4 * k), CFrame.new(), body, m)
-		limb(model, root, "Barriga", V3(1.6 * k, 0.5 * k, 3.4 * k), CFrame.new(0, Y + 0.2 * k, 0), belly, m)
-		local head = CFrame.new(0, 0.7 * k, -2.5 * k)
-		limb(model, root, "Cabeza", V3(1.5 * k, 1.4 * k, 1.6 * k), head, body, m)
-		limb(model, root, "Hocico", V3(0.9 * k, 0.7 * k, 1 * k), head * CFrame.new(0, -0.25 * k, -1.1 * k), belly, m)
+	local ctx = { Model = model, Root = root, Sp = sp, K = k, Hip = hip, Limb = limb, Eye = eye, Mat = m }
+	if shape == "Masa" then
+		BeastLooks.blob(ctx)
+	elseif shape == "Cuadrupedo" then
+		-- (con aspecto propio: Oso, Cocodrilo, Dragon; si no, el de siempre: lobo, jabalí…)
+		local look = sp.Look
+		local bear, croc, dragon = look == "Oso", look == "Cocodrilo", look == "Dragon"
+		local tw, th, tl = 2, 1.8, 4
+		if bear then
+			tw, th, tl = 2.7, 2.3, 4.2
+		elseif croc then
+			tw, th, tl = 2.3, 1.2, 4.8
+		end
+		local lift = (th * k - rootSize.Y) / 2
+		limb(model, root, "Tronco", V3(tw * k, th * k, tl * k), CFrame.new(0, lift, 0), body, m)
+		limb(model, root, "Barriga", V3(tw * 0.8 * k, 0.5 * k, tl * 0.85 * k), CFrame.new(0, Y + 0.2 * k, 0), belly, m)
+		local head, hsz
+		if bear then
+			head, hsz = CFrame.new(0, 1.0 * k, -2.8 * k), V3(2.0 * k, 1.8 * k, 1.7 * k)
+		elseif croc then
+			head, hsz = CFrame.new(0, 0.15 * k, -3.2 * k), V3(1.6 * k, 0.9 * k, 1.7 * k)
+		elseif dragon then
+			head, hsz = CFrame.new(0, 2.3 * k, -3.3 * k), V3(1.3 * k, 1.2 * k, 1.7 * k)
+			limb(model, root, "Cuello", V3(0.9 * k, 2.3 * k, 0.9 * k), CFrame.new(0, 1.3 * k, -2.5 * k) * CFrame.Angles(math.rad(-40), 0, 0), body, m)
+		else
+			head, hsz = CFrame.new(0, 0.7 * k, -2.5 * k), V3(1.5 * k, 1.4 * k, 1.6 * k)
+		end
+		limb(model, root, "Cabeza", hsz, head, body, m)
+		if croc then
+			limb(model, root, "Hocico", V3(1.1 * k, 0.45 * k, 2.1 * k), head * CFrame.new(0, -0.05 * k, -1.85 * k), body, m)
+			limb(model, root, "Mandibula", V3(1.0 * k, 0.25 * k, 2.0 * k), head * CFrame.new(0, -0.5 * k, -1.7 * k) * CFrame.Angles(math.rad(8), 0, 0), belly, m)
+			for _, sx in { -1, 1 } do
+				for j = 0, 2 do
+					limb(model, root, "Diente", V3(0.12 * k, 0.25 * k, 0.12 * k), head * CFrame.new(sx * 0.45 * k, -0.3 * k, (-1.2 - j * 0.6) * k), IVORY, Enum.Material.SmoothPlastic)
+				end
+			end
+		else
+			limb(model, root, "Hocico", V3(0.9 * k, 0.7 * k, (if dragon then 1.3 else 1) * k), head * CFrame.new(0, -0.25 * k, -hsz.Z / 2 - 0.3 * k), belly, m)
+		end
+		local lt = if bear then 0.85 elseif croc then 0.6 else 0.55
 		for _, sx in { -1, 1 } do
-			eye(model, root, head * CFrame.new(sx * 0.42 * k, 0.25 * k, -0.8 * k), 0.32 * k, glow)
-			limb(model, root, "Oreja", V3(0.3 * k, 0.7 * k, 0.4 * k), head * CFrame.new(sx * 0.5 * k, 0.9 * k, 0.2 * k) * CFrame.Angles(0, 0, sx * -0.3), body, m)
+			eye(model, root, head * CFrame.new(sx * hsz.X * 0.28, if croc then hsz.Y * 0.5 else 0.25 * k, -hsz.Z / 2), 0.32 * k, glow)
+			if bear then
+				limb(model, root, "Oreja", V3(0.6 * k, 0.6 * k, 0.6 * k), head * CFrame.new(sx * 0.8 * k, 0.95 * k, 0.3 * k), body, m, Enum.PartType.Ball)
+			elseif dragon then
+				limb(model, root, "Cuerno", V3(0.26 * k, 0.26 * k, 1.4 * k), head * CFrame.new(sx * 0.42 * k, 0.8 * k, 0.9 * k) * CFrame.Angles(math.rad(-25), 0, 0), IVORY, Enum.Material.SmoothPlastic)
+			elseif not croc then
+				limb(model, root, "Oreja", V3(0.3 * k, 0.7 * k, 0.4 * k), head * CFrame.new(sx * 0.5 * k, 0.9 * k, 0.2 * k) * CFrame.Angles(0, 0, sx * -0.3), body, m)
+			end
 			for _, sz in { -1, 1 } do
-				limb(model, root, "Pata", V3(0.55 * k, hip + 0.2 * k, 0.6 * k), CFrame.new(sx * 0.7 * k, Y - hip / 2 + 0.1 * k, sz * 1.4 * k), body, m)
+				limb(model, root, "Pata", V3(lt * k, hip + 0.2 * k, (lt + 0.05) * k), CFrame.new(sx * (if croc then tw / 2 else tw / 2 - 0.3) * k, Y - hip / 2 + 0.1 * k, sz * (tl / 2 - 0.6) * k), body, m)
 			end
 		end
-		limb(model, root, "Cola", V3(0.4 * k, 0.4 * k, 2 * k), CFrame.new(0, 0.5 * k, 2.6 * k) * CFrame.Angles(math.rad(25), 0, 0), body, m)
-		-- lomo con púas que brillan un poco (los jefes, más)
-		for i = 0, (if sp.Boss then 5 else 2) do
-			local p = limb(model, root, "Pua", V3(0.3 * k, 0.8 * k, 0.4 * k), CFrame.new(0, 1.2 * k, -1.2 * k + i * 0.6 * k) * CFrame.Angles(math.rad(-20), 0, 0), glow, Enum.Material.Neon)
-			p.CastShadow = false
+		if bear then
+			limb(model, root, "Rabo", V3(0.5 * k, 0.5 * k, 0.5 * k), CFrame.new(0, lift + 0.3 * k, (tl / 2 + 0.15) * k), body, m)
+		elseif croc then
+			local tail = limb(model, root, "Cola", V3(1.3 * k, 0.8 * k, 2.2 * k), CFrame.new(0, 0, (tl / 2 + 1.0) * k), body, m)
+			limb(model, root, "ColaB", V3(0.85 * k, 0.6 * k, 1.9 * k), CFrame.new(0, -0.05 * k, (tl / 2 + 3.0) * k), belly, m, nil, tail)
+			limb(model, root, "ColaC", V3(0.45 * k, 0.4 * k, 1.6 * k), CFrame.new(0, -0.1 * k, (tl / 2 + 4.7) * k), body, m, nil, tail)
+		elseif dragon then
+			local tail = limb(model, root, "Cola", V3(0.8 * k, 0.8 * k, 2.4 * k), CFrame.new(0, 0.2 * k, 3.1 * k), body, m)
+			limb(model, root, "ColaB", V3(0.5 * k, 0.5 * k, 2.0 * k), CFrame.new(0, 0.2 * k, 5.2 * k), belly, m, nil, tail)
+			local tip = limb(model, root, "ColaC", V3(0.9 * k, 0.15 * k, 0.9 * k), CFrame.new(0, 0.2 * k, 6.4 * k) * CFrame.Angles(0, math.rad(45), 0), glow, Enum.Material.Neon, nil, tail)
+			tip.CastShadow = false
+			BeastLooks.dragonWings(ctx, 1.3, -0.3, 4.2)
+		else
+			limb(model, root, "Cola", V3(0.4 * k, 0.4 * k, 2 * k), CFrame.new(0, 0.5 * k, 2.6 * k) * CFrame.Angles(math.rad(25), 0, 0), body, m)
+		end
+		-- lomo con púas que brillan un poco (los jefes, más; el oso, ninguna)
+		if not bear then
+			for i = 0, (if sp.Boss then 5 elseif croc or dragon then 4 else 2) do
+				local p = limb(model, root, "Pua", V3(0.3 * k, 0.8 * k, 0.4 * k), CFrame.new(0, lift + th / 2 * k + 0.3 * k, -1.2 * k + i * 0.6 * k) * CFrame.Angles(math.rad(-20), 0, 0), glow, Enum.Material.Neon)
+				p.CastShadow = false
+			end
 		end
 	elseif shape == "Insecto" then
 		local isScorpion = string.find(id, "Escorpion") ~= nil
 		local flying = string.find(id, "Avispa") ~= nil or string.find(id, "Medusa") ~= nil or string.find(id, "Dron") ~= nil
-		limb(model, root, "Abdomen", V3(2.4 * k, 1.1 * k, 2 * k), CFrame.new(0, 0.1 * k, 0.8 * k), body, m)
+		local spider = sp.Look == "Arana"
+		if spider then
+			limb(model, root, "Abdomen", V3(2.7 * k, 2.7 * k, 2.7 * k), CFrame.new(0, 0.6 * k, 1.7 * k), body, m, Enum.PartType.Ball)
+			local mark = limb(model, root, "Marca", V3(0.7 * k, 0.12 * k, 1.2 * k), CFrame.new(0, 1.92 * k, 1.7 * k), glow, Enum.Material.Neon)
+			mark.CastShadow = false
+		else
+			limb(model, root, "Abdomen", V3(2.4 * k, 1.1 * k, 2 * k), CFrame.new(0, 0.1 * k, 0.8 * k), body, m)
+		end
 		limb(model, root, "Torax", V3(1.8 * k, 1 * k, 1.4 * k), CFrame.new(0, 0, -0.9 * k), belly, m)
 		local head = CFrame.new(0, 0.1 * k, -1.9 * k)
 		limb(model, root, "Cabeza", V3(1.2 * k, 0.9 * k, 0.9 * k), head, body, m)
 		for _, sx in { -1, 1 } do
 			eye(model, root, head * CFrame.new(sx * 0.35 * k, 0.2 * k, -0.45 * k), 0.3 * k, glow)
-			limb(model, root, "Pinza", V3(0.3 * k, 0.3 * k, 1.1 * k), head * CFrame.new(sx * 0.4 * k, -0.2 * k, -0.8 * k) * CFrame.Angles(0, sx * 0.4, 0), belly, m)
-			if flying then
+			limb(model, root, "Pinza", V3(0.3 * k, 0.3 * k, 1.1 * k), head * CFrame.new(sx * 0.4 * k, -0.2 * k, -0.8 * k) * CFrame.Angles(if spider then math.rad(-50) else 0, sx * 0.4, 0), belly, m)
+			if isScorpion then
+				-- (tenazas de verdad, abiertas por delante)
+				limb(model, root, "Tenaza", V3(0.8 * k, 0.5 * k, 1.1 * k), head * CFrame.new(sx * 1.1 * k, -0.15 * k, -1.7 * k) * CFrame.Angles(0, sx * -0.3, 0), body, m)
+				limb(model, root, "Tenaza", V3(0.25 * k, 0.3 * k, 0.8 * k), head * CFrame.new(sx * 0.75 * k, -0.15 * k, -2.5 * k) * CFrame.Angles(0, sx * -0.5, 0), belly, m)
+				limb(model, root, "Tenaza", V3(0.25 * k, 0.3 * k, 0.8 * k), head * CFrame.new(sx * 1.4 * k, -0.15 * k, -2.5 * k) * CFrame.Angles(0, sx * 0.2, 0), belly, m)
+			end
+			if spider then
+				eye(model, root, head * CFrame.new(sx * 0.15 * k, 0.4 * k, -0.42 * k), 0.2 * k, glow)
+				eye(model, root, head * CFrame.new(sx * 0.55 * k, 0.05 * k, -0.35 * k), 0.18 * k, glow)
+			elseif flying then
 				local wing = limb(model, root, "Ala", V3(2.6 * k, 0.1 * k, 1.2 * k), CFrame.new(sx * 1.5 * k, 0.7 * k, -0.4 * k) * CFrame.Angles(0, 0, sx * 0.25), glow, Enum.Material.Glass)
 				wing.Transparency = 0.45
 			else
@@ -380,6 +457,9 @@ function BeastKit.beast(sp: { [string]: any }, id: string, opts: { [string]: any
 					limb(model, root, "Pata", V3(2 * k, 0.25 * k, 0.25 * k), CFrame.new(sx * 1.4 * k, Y - 0.3 * k, i * 0.8 * k) * CFrame.Angles(0, 0, sx * -0.55), body, m)
 				end
 			end
+		end
+		if spider then
+			BeastLooks.spiderLegs(ctx, Y - hip)
 		end
 		if isScorpion then
 			for i = 1, 4 do
@@ -401,6 +481,11 @@ function BeastKit.beast(sp: { [string]: any }, id: string, opts: { [string]: any
 		end
 		local crest = limb(model, root, "Cresta", V3(0.2 * k, 0.8 * k, 1.6 * k), head * CFrame.new(0, 0.7 * k, 0.3 * k), glow, Enum.Material.Neon)
 		crest.CastShadow = false
+		if sp.Look == "Dragon" then
+			BeastLooks.dragonWings(ctx, 0.7, 0.9, 3.2)
+		end
+	elseif sp.Look then
+		BeastLooks.humanoid(ctx) -- (bandido, minotauro, magos, momia, esqueleto, caballero, demonio, gigante, elemental)
 	else -- Bipedo
 		local mech = string.find(id, "Recaudador") ~= nil or sp.Arms == true -- (de pie, con brazos y visor)
 		limb(model, root, "Tronco", V3(2 * k, 2.4 * k, 1.6 * k), CFrame.new(), body, m)
@@ -429,7 +514,8 @@ function BeastKit.beast(sp: { [string]: any }, id: string, opts: { [string]: any
 	rig(model, hub, shape)
 	details(model, root, sp, id, k, champion)
 	model:SetAttribute("Escala", k)
-	model:SetAttribute("Vuela", string.find(id, "Avispa") ~= nil or string.find(id, "Medusa") ~= nil or string.find(id, "Dron") ~= nil or string.find(id, "Buitre") ~= nil)
+	model:SetAttribute("Forma", shape)
+	model:SetAttribute("Vuela", sp.Flies == true or string.find(id, "Avispa") ~= nil or string.find(id, "Medusa") ~= nil or string.find(id, "Dron") ~= nil or string.find(id, "Buitre") ~= nil)
 	if sp.Boss then
 		-- (los jefes: un aura que se ve de lejos)
 		local aura = Instance.new("PointLight")
