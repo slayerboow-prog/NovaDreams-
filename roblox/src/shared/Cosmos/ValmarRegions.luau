@@ -15,8 +15,45 @@ local ValmarRegions = {}
 local rgb = Color3.fromRGB
 
 ValmarRegions.InnerR = 1500 -- donde empieza el campo de verdad (la ciudad ocupa el centro)
-ValmarRegions.OuterR = 5200 -- la costa
+ValmarRegions.OuterR = 10500 -- lo más lejos de las Tierras Exteriores (las esquinas)
 ValmarRegions.Width = 45 -- grados de cada sector
+-- LAS TIERRAS EXTERIORES (shared/Cosmos/OuterLands, World/OuterLandsBuilder): un continente en forma de marco
+-- alrededor del mar de Valmar (shared/Sea/OceanBiomes: X ±5800, Z −5200..5800), de Width studs de ancho. Las
+-- regiones siguen siendo sectores desde el centro: cada una tiene su trozo de marco (las del norte, este, sur
+-- y oeste, una franja; las de las esquinas, la esquina entera).
+ValmarRegions.Frame = { MinX = -5800, MaxX = 5800, MinZ = -5200, MaxZ = 5800, Width = 1800 }
+
+-- Cuánto está un punto fuera del mar de Valmar (studs; negativo dentro): 0..Width = el continente
+function ValmarRegions.outside(x: number, z: number): number
+	local F = ValmarRegions.Frame
+	local dx = math.max(F.MinX - x, x - F.MaxX)
+	local dz = math.max(F.MinZ - z, z - F.MaxZ)
+	-- (en las esquinas, redondeado: la costa de fuera hace curva, no un ángulo recto)
+	if dx > 0 and dz > 0 then
+		return math.sqrt(dx * dx + dz * dz)
+	end
+	return math.max(dx, dz)
+end
+
+-- Distancia desde el centro, siguiendo el rumbo (grados), hasta el borde del mar agrandado en inflate studs
+function ValmarRegions.rayBox(bearingDeg: number, inflate: number?): number
+	local F = ValmarRegions.Frame
+	local k = inflate or 0
+	local a = math.rad(bearingDeg)
+	local sx, sz = math.sin(a), -math.cos(a)
+	local t = math.huge
+	if sx > 1e-6 then
+		t = math.min(t, (F.MaxX + k) / sx)
+	elseif sx < -1e-6 then
+		t = math.min(t, (F.MinX - k) / sx)
+	end
+	if sz > 1e-6 then
+		t = math.min(t, (F.MaxZ + k) / sz)
+	elseif sz < -1e-6 then
+		t = math.min(t, (F.MinZ - k) / sz)
+	end
+	return t
+end
 
 ValmarRegions.List = {
 	{ Id = "BosqueEtereo", Name = "Bosque Etéreo", Icon = "🌲", Bearing = 0, MinLevel = 10, MaxLevel = 30,
@@ -104,10 +141,18 @@ function ValmarRegions.inside(reg: { [string]: any }, x: number, z: number, marg
 	return math.abs(delta(ValmarRegions.bearing(x, z), reg.Bearing)) <= half
 end
 
--- El nivel de un sitio dentro de su región: de MinLevel (junto a la ciudad) a MaxLevel (cerca de la costa)
+-- El nivel de un sitio dentro de su región: de MinLevel (el campo de la isla, junto a la ciudad) a MaxLevel
+-- (la costa de fuera de las Tierras Exteriores). En la isla, el primer cuarto de la franja; al otro lado del
+-- mar, del 30 % al 100 % según te alejas.
 function ValmarRegions.levelAt(reg: { [string]: any }, x: number, z: number): number
-	local r = math.sqrt(x * x + z * z)
-	local t = math.clamp((r - ValmarRegions.InnerR) / (ValmarRegions.OuterR - 600 - ValmarRegions.InnerR), 0, 1)
+	local d = ValmarRegions.outside(x, z)
+	local t
+	if d > 0 then
+		t = 0.3 + 0.7 * math.clamp(d / (ValmarRegions.Frame.Width - 150), 0, 1)
+	else
+		local r = math.sqrt(x * x + z * z)
+		t = 0.25 * math.clamp((r - ValmarRegions.InnerR) / 3000, 0, 1)
+	end
 	return math.floor(reg.MinLevel + (reg.MaxLevel - reg.MinLevel) * t + 0.5)
 end
 

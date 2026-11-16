@@ -33,6 +33,17 @@ Boot.extra("Relief", function()
 	end
 end)
 
+-- 1d) LAS TIERRAS EXTERIORES: el continente nuevo alrededor del mar con las ocho regiones de caza, sus puentes
+--     y campamentos (World/OuterLandsBuilder, shared/Cosmos/OuterLands). En su hilo, después del relieve (los
+--     puentes arrancan del suelo de la isla ya terminado). Solo escribe fuera del mar de Valmar.
+Boot.extra("TierrasExteriores", function()
+	local t0 = os.clock()
+	while not workspace:GetAttribute("ReliefReady") and os.clock() - t0 < 240 do
+		task.wait(1)
+	end
+	require(World.OuterLandsBuilder).build()
+end)
+
 -- 2) La ciudad viene construida dentro del archivo (scripts/build-place.luau) y ya optimizada.
 --    Antes, si se podían descargar los packs de Synty, se BORRABA y se volvía a construir entera
 --    al arrancar (casi 100.000 piezas): eso colgaba Studio y los PC modestos. Ya no se hace.

@@ -138,6 +138,9 @@ if okRegions then
 			table.insert(MapInfo.RegionModels, "Jefe_" .. reg.Id)
 		end
 	end
+	-- los campamentos seguros de las Tierras Exteriores (donde llegan los puentes: shared/Cosmos/OuterLands)
+	table.insert(MapInfo.Kinds, { Model = "Campamento", Icon = "⛺", Name = "Campamento (zona segura, Taller)", Important = true } :: any)
+	table.insert(MapInfo.RegionModels, "Campamento")
 	local elite = Bestiary.Species.CiervoRoto
 	table.insert(MapInfo.Kinds, { Model = "Jefe_Elite", Icon = "🦌", Name = elite.Name .. " (jefe raro)", Important = true } :: any)
 	table.insert(MapInfo.RegionModels, "Jefe_Elite")

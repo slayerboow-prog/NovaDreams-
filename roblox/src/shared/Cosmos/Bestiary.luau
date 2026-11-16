@@ -645,9 +645,9 @@ end
 -- Las ocho regiones de Valmar (S.Regions = shared/Cosmos/ValmarRegions): en cada sector, guaridas de sus
 -- tres criaturas (el nivel sube hacia la costa), su jefe en lo más lejano, esquirlas y alijos. Repetible.
 ---------------------------------------------------------------------
-Bestiary.LairsPerRegion = 7
-Bestiary.ShardsPerRegion = 2
-Bestiary.CachesPerRegion = 1
+Bestiary.LairsPerRegion = 10 -- (2 en el campo de la isla y 8 al otro lado del mar, en las Tierras Exteriores)
+Bestiary.ShardsPerRegion = 3
+Bestiary.CachesPerRegion = 2
 
 function Bestiary.regionPlaces(S: any, out: { [string]: any }): { [string]: any }
 	local R = S.Regions
@@ -684,11 +684,28 @@ function Bestiary.regionPlaces(S: any, out: { [string]: any }): { [string]: any 
 		end
 		return nil, nil
 	end
+	-- un sitio en las Tierras Exteriores del sector: t = 0 (la playa de dentro) .. 1 (la costa de fuera)
+	local function findOuter(reg: any, gap: number, t0: number, t1: number, maxSlope: number): (number?, number?)
+		if not R.Frame then
+			return nil, nil
+		end
+		local half = R.Width / 2 - 3
+		for _ = 1, 2500 do
+			local a = reg.Bearing + (r() * 2 - 1) * half
+			local t = t0 + r() * (t1 - t0)
+			local dist = R.rayBox(a, t * R.Frame.Width)
+			local lx, lz = math.sin(math.rad(a)) * dist, -math.cos(math.rad(a)) * dist
+			if far(lx, lz, gap) and S.goodSpot(lx, lz, maxSlope, 26) then
+				return lx, lz
+			end
+		end
+		return nil, nil
+	end
 	local O = S.Origin
 	local function y(lx: number, lz: number): number
 		return S.heightAt(O.X + lx, O.Z + lz) - O.Y
 	end
-	local inner, outer = R.InnerR, R.OuterR
+	local inner, outer = R.InnerR, 4300 -- (el campo de la isla)
 	local mid = (inner + outer) / 2
 	for _, reg in R.List do
 		local function lairOf(sid: string, lx: number, lz: number, idSuffix: string, boss: boolean?): { [string]: any }
@@ -714,10 +731,10 @@ function Bestiary.regionPlaces(S: any, out: { [string]: any }): { [string]: any 
 				Name = if boss then Bestiary.lairOf(sp.Name) else ("%s de %s"):format(names[1 + (#out.Lairs % #names)], sp.Name:lower()),
 			}
 		end
-		-- el jefe: lo más lejos posible, en llano
-		local bx, bz = find(reg, 300, mid + 400, outer - 300, 0.35)
+		-- el jefe: lo más lejos posible (al fondo de las Tierras Exteriores), en llano
+		local bx, bz = findOuter(reg, 300, 0.6, 0.92, 0.35)
 		if not bx then
-			bx, bz = find(reg, 220, mid - 300, outer - 200, 0.5)
+			bx, bz = findOuter(reg, 220, 0.3, 0.95, 0.5)
 		end
 		if not bx then
 			bx, bz = find(reg, 200, inner + 200, outer - 200, 0.6)
@@ -730,7 +747,10 @@ function Bestiary.regionPlaces(S: any, out: { [string]: any }): { [string]: any 
 		end
 		-- un jefe raro más (el Ciervo Roto, en el Bosque Etéreo)
 		if reg.Elite and Bestiary.Species[reg.Elite] then
-			local ex, ez = find(reg, 260, inner + 300, mid + 300, 0.4)
+			local ex, ez = find(reg, 260, inner + 300, outer, 0.4)
+			if not ex then
+				ex, ez = findOuter(reg, 260, 0.1, 0.4, 0.4)
+			end
 			if ex then
 				local elite = lairOf(reg.Elite, ex, ez, "Elite", true)
 				elite.Level = math.floor((reg.MinLevel + reg.MaxLevel) / 2)
@@ -741,13 +761,19 @@ function Bestiary.regionPlaces(S: any, out: { [string]: any }): { [string]: any 
 		end
 		-- las guaridas: de la ciudad hacia la costa, las tres criaturas por turnos
 		for k = 1, Bestiary.LairsPerRegion do
-			local t0 = (k - 1) / Bestiary.LairsPerRegion
-			local t1 = k / Bestiary.LairsPerRegion
-			local r0 = inner + (outer - 400 - inner) * t0
-			local r1 = inner + (outer - 400 - inner) * t1
-			local lx, lz = find(reg, 160, r0, r1, 0.6)
-			if not lx then
-				lx, lz = find(reg, 150, inner, outer - 300, 0.65)
+			local lx, lz
+			if k <= 2 then
+				lx, lz = find(reg, 160, inner, outer, 0.6)
+				if not lx then
+					lx, lz = findOuter(reg, 160, 0.05, 0.3, 0.6)
+				end
+			else
+				local n = Bestiary.LairsPerRegion - 2
+				local t0 = 0.05 + (k - 3) / n * 0.9
+				lx, lz = findOuter(reg, 160, t0, t0 + 0.9 / n, 0.6)
+				if not lx then
+					lx, lz = findOuter(reg, 150, 0.05, 0.95, 0.65)
+				end
 			end
 			if lx then
 				local sid = reg.Species[1 + (k - 1) % #reg.Species]
@@ -757,7 +783,13 @@ function Bestiary.regionPlaces(S: any, out: { [string]: any }): { [string]: any 
 		end
 		-- esquirlas de la Grieta
 		for k = 1, Bestiary.ShardsPerRegion do
-			local lx, lz = find(reg, 130, inner + 200, outer - 300, 0.5)
+			local lx, lz
+			if k == 1 then
+				lx, lz = find(reg, 130, inner + 200, outer, 0.5)
+			end
+			if not lx then
+				lx, lz = findOuter(reg, 130, 0.1, 0.9, 0.5)
+			end
 			if lx then
 				local level = R.levelAt(reg, lx, lz)
 				table.insert(out.Shards, { Id = ("%s_%s_E%d"):format(S.Id, reg.Id, k), X = lx, Z = lz, Y = y(lx, lz),
@@ -768,7 +800,13 @@ function Bestiary.regionPlaces(S: any, out: { [string]: any }): { [string]: any 
 		end
 		-- alijos
 		for k = 1, Bestiary.CachesPerRegion do
-			local lx, lz = find(reg, 110, inner + 100, outer - 250, 0.7)
+			local lx, lz
+			if k == 1 then
+				lx, lz = find(reg, 110, inner + 100, outer, 0.7)
+			end
+			if not lx then
+				lx, lz = findOuter(reg, 110, 0.1, 0.95, 0.7)
+			end
 			if lx then
 				table.insert(out.Caches, { Id = ("%s_%s_A%d"):format(S.Id, reg.Id, k), X = lx, Z = lz, Y = y(lx, lz), Region = reg.Id })
 				table.insert(taken, { lx, lz })

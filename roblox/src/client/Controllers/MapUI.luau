@@ -37,6 +37,9 @@ local Images = require(ReplicatedStorage.Shared.Images)
 local CityPlan = require(ReplicatedStorage.Shared.CityPlan)
 local Airport = require(ReplicatedStorage.Shared.Airport)
 local Rail = require(ReplicatedStorage.Shared.Rail)
+local OuterLands = require(ReplicatedStorage.Shared.Cosmos.OuterLands)
+local ValmarRegions = require(ReplicatedStorage.Shared.Cosmos.ValmarRegions)
+local MIN_ZOOM = 0.4 -- (alejando se ven las Tierras Exteriores enteras alrededor del mar)
 local Tefra = require(ReplicatedStorage.Shared.Cosmos.Tefra)
 local TefraCity = require(ReplicatedStorage.Shared.Cosmos.TefraCity)
 local Strings = require(ReplicatedStorage.Shared.LifeStory.Strings)
@@ -709,6 +712,38 @@ local function buildLayer(parent: Instance, scale: number, detailed: boolean): L
 			end
 		end
 	end
+	-- LAS TIERRAS EXTERIORES (shared/Cosmos/OuterLands): el continente de alrededor del mar, cada trozo del color
+	-- de su región, y los cuatro puentes. Fuera del dibujo de la isla: se ven alejando el mapa.
+	do
+		local cell = if detailed then 260 else 420
+		local F = ValmarRegions.Frame
+		local Wt = F.Width + 60
+		for x = F.MinX - Wt, F.MaxX + Wt - 1, cell do
+			for z = F.MinZ - Wt, F.MaxZ + Wt - 1, cell do
+				local cx, cz = x + cell / 2, z + cell / 2
+				if ValmarRegions.outside(cx, cz) > 0 and OuterLands.isLand(cx, cz) then
+					local reg = OuterLands.regions(cx, cz)
+					local h = OuterLands.height(cx, cz) or 0
+					local col = reg.Color:Lerp(Color3.fromRGB(40, 60, 50), 0.45):Lerp(Color3.new(1, 1, 1), math.clamp(h / 900, 0, 0.3))
+					rect(layer, "Tierra", x, z, x + cell + 2, z + cell + 2, col, 1).BackgroundTransparency = 0.05
+				end
+			end
+		end
+		for _, br in OuterLands.Bridges do
+			local ox, oz = br.X or 0, br.Z or 0
+			local dx, dz = br.Dir[1], br.Dir[2]
+			local coast = 0
+			for s = 0, 7000, 40 do
+				if CityPlan.inside(CityPlan.Coast, ox + dx * s, oz + dz * s) then
+					coast = s
+				end
+			end
+			local from = Vector2.new(ox + dx * (coast - 90), oz + dz * (coast - 90))
+			line(from, Vector2.new(br.CampX, br.CampZ), math.max(3, 40 / scale), rgb(235, 225, 200), 3)
+		end
+		;(layer :: any).OuterMin = toPixel(layer, F.MinX - Wt, F.MinZ - Wt)
+		;(layer :: any).OuterMax = toPixel(layer, F.MaxX + Wt, F.MaxZ + Wt)
+	end
 	-- Nombre de cada distrito (solo en el mapa grande): cápsula oscura con el borde de su color, el
 	-- icono en un círculo de color, el NOMBRE en mayúsculas y su subtítulo. Sin pisarse entre ellas ni
 	-- tapar los lugares que llevan nombre (MapScreen.placeLabels: se apartan a un hueco libre)
@@ -1239,6 +1274,14 @@ local function applyView()
 	-- Que el mapa no se escape del todo de la ventana
 	local minX, maxX = math.min(0, holderSize.X - w), math.max(0, holderSize.X - w)
 	local minY, maxY = math.min(0, holderSize.Y - h), math.max(0, holderSize.Y - h)
+	-- (y las Tierras Exteriores, que quedan fuera del dibujo de la isla)
+	local om, oM = (layer :: any).OuterMin, (layer :: any).OuterMax
+	if om and oM then
+		minX = math.min(minX, holderSize.X - oM.X * zoom)
+		maxX = math.max(maxX, -om.X * zoom)
+		minY = math.min(minY, holderSize.Y - oM.Y * zoom)
+		maxY = math.max(maxY, -om.Y * zoom)
+	end
 	pan = Vector2.new(math.clamp(pan.X, minX - 80, maxX + 80), math.clamp(pan.Y, minY - 80, maxY + 80))
 	layer.Frame.Position = UDim2.fromOffset(pan.X, pan.Y)
 	local scaler = layer.Frame:FindFirstChild("Zoom") :: UIScale
@@ -1254,7 +1297,7 @@ local function applyView()
 	-- lugares que salen al acercar
 	if layer.OutlineZoom ~= zoom then
 		for _, icon in layer.Icons do
-			local want = MapLegend.visible(hidden, icon.Kind) and zoom >= icon.MinZoom - 1e-3
+			local want = MapLegend.visible(hidden, icon.Kind) and (icon.MinZoom <= 1 or zoom >= icon.MinZoom - 1e-3)
 			if icon.Holder.Visible ~= want then
 				icon.Holder.Visible = want
 			end
@@ -1268,7 +1311,7 @@ local function applyView()
 end
 
 local function setZoom(newZoom: number, focus: Vector2)
-	newZoom = math.clamp(newZoom, 1, 6)
+	newZoom = math.clamp(newZoom, MIN_ZOOM, 6)
 	local world = (focus - pan) / zoom
 	zoom = newZoom
 	pan = focus - world * zoom
@@ -1280,7 +1323,7 @@ local function centerOn(position: Vector3, newZoom: number?)
 	if not layer then
 		return
 	end
-	zoom = math.clamp(newZoom or zoom, 1, 6)
+	zoom = math.clamp(newZoom or zoom, MIN_ZOOM, 6)
 	local p = toPixel(layer, position.X, position.Z)
 	-- (en el centro del hueco libre entre los paneles, no de la pantalla)
 	local area = screen.Map
@@ -1311,7 +1354,7 @@ local function refreshLegend()
 	local layer = bigLayer
 	if layer then
 		for _, icon in layer.Icons do
-			icon.Holder.Visible = MapLegend.visible(hidden, icon.Kind) and zoom >= icon.MinZoom - 1e-3
+			icon.Holder.Visible = MapLegend.visible(hidden, icon.Kind) and (icon.MinZoom <= 1 or zoom >= icon.MinZoom - 1e-3)
 		end
 	end
 	for _, icon in miniLayer.Icons do

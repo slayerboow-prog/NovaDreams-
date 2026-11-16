@@ -12,6 +12,10 @@
 -- Las piezas no chocan, no se pueden tocar ni consultar y no echan sombra: solo se ven.
 
 local CityPlan = require(script.Parent.CityPlan)
+-- (las Tierras Exteriores, el continente de alrededor del mar: shared/Cosmos/OuterLands)
+local okOuter, OuterLands = pcall(function()
+	return require(script.Parent.Cosmos.OuterLands)
+end)
 
 local Horizon = {}
 
@@ -75,6 +79,11 @@ function Horizon.farPieces(): { Piece }
 	local out: { Piece } = {}
 	local b = CityPlan.Bounds
 	local seaEdge = b.MinZ - 800 -- (TerrainBuilder: el mar llega hasta aquí)
+	-- (con las Tierras Exteriores al norte, la sierra lejana queda más allá de su mar)
+	if okOuter then
+		local VR = require(script.Parent.Cosmos.ValmarRegions)
+		seaEdge = math.min(seaEdge, VR.Frame.MinZ - VR.Frame.Width - OuterLands.Band - 300)
+	end
 	local seed = 7
 	local function rnd(): number
 		seed = (seed * 16807) % 2147483647
@@ -160,6 +169,22 @@ end
 function Horizon.groundClass(field: any, x: number, z: number): string
 	local Relief = require(script.Parent.Relief)
 	local inside = CityPlan.inside(CityPlan.Coast, x, z)
+	if not inside and okOuter then
+		local h = OuterLands.height(x, z)
+		if h then
+			if h <= OuterLands.Surface + 1 then
+				return "Shallow"
+			end
+			local reg = OuterLands.regions(x, z)
+			if reg.Id == "DesiertoDorado" or OuterLands.edge(x, z) < 80 then
+				return "Sand"
+			end
+			if h > 150 or reg.Id == "TierrasVolcanicas" or reg.Id == "TierrasOscuras" then
+				return "Rock"
+			end
+			return "Green"
+		end
+	end
 	if not inside then
 		for _, island in CityPlan.Islands do
 			if (x - island.X) ^ 2 + (z - island.Z) ^ 2 < (island.R - 20) ^ 2 then

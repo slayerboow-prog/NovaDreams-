@@ -54,8 +54,8 @@ local function where(): string?
 	if not reg then
 		return "Ciudad"
 	end
-	-- (en el campo de verdad: colinas salvajes y nada construido cerca)
-	if field then
+	-- (en el campo de verdad: colinas salvajes y nada construido cerca; al otro lado del mar, siempre)
+	if field and ValmarRegions.outside(p.X, p.Z) <= 0 then
 		if Relief.amplitude(field, p.X, p.Z) < 30 or Relief.builtAt(field, p.X, p.Z) > 0.02 then
 			return "Ciudad"
 		end

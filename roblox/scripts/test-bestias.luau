@@ -365,7 +365,7 @@ do
 	check(VR.at(0, 0) == nil and VR.at(0, -3000).Id == "BosqueEtereo" and VR.at(3000, 0).Id == "PantanoMaldito" and VR.at(-2100, 2100).Id == "TierrasVolcanicas",
 		"norte bosque, este pantano, suroeste volcán; la ciudad no es región")
 	local lo = VR.levelAt(VR.ById.BosqueEtereo, 0, -1600)
-	local hi = VR.levelAt(VR.ById.BosqueEtereo, 0, -4700)
+	local hi = VR.levelAt(VR.ById.BosqueEtereo, 0, -6900)
 	check(lo <= 12 and hi >= 28 and hi <= 30, ("el nivel sube hacia la costa (%d → %d)"):format(lo, hi))
 	check(VR.rewardFactor(80, 15) < 0.2 and VR.rewardFactor(20, 15) == 1 and VR.danger(VR.ById.TierrasVolcanicas, 10) == "Peligro",
 		"quien supera de largo a la bestia saca poco; aviso de peligro a los novatos")
@@ -390,6 +390,13 @@ do
 		table.insert(counts, ("%d"):format(per[reg.Id] or 0))
 	end
 	check(not inCity and inSector and levelsOk, "cada guarida en el campo de su región y con un nivel de su franja")
+	local outerN = 0
+	for _, l in p.Lairs do
+		if VR.outside(l.X, l.Z) > 0 then
+			outerN += 1
+		end
+	end
+	check(outerN >= 60, ("casi todas las guaridas, al otro lado del mar (%d en las Tierras Exteriores)"):format(outerN))
 	check(eachOk and #p.Bosses >= 9 and #p.Shards >= 12 and #p.Caches >= 6,
 		("guaridas y jefe en cada región (%s), %d jefes, %d esquirlas, %d alijos"):format(table.concat(counts, "/"), #p.Bosses, #p.Shards, #p.Caches))
 	local z = Bestiary.lairZone(p.Lairs[#p.Lairs])

@@ -15,6 +15,7 @@
 
 local Relief = require(game:GetService("ReplicatedStorage").Shared.Relief)
 local ValmarRegions = require(game:GetService("ReplicatedStorage").Shared.Cosmos.ValmarRegions)
+local OuterLands = require(game:GetService("ReplicatedStorage").Shared.Cosmos.OuterLands)
 
 local ValmarWilds = {}
 
@@ -45,12 +46,25 @@ function ValmarWilds.surface(field: Relief.Field, ground: (number, number) -> (n
 	end
 	function S.heightAt(x: number, z: number): number
 		local y = ground(x, z)
-		return y or Relief.surfaceY(field, x, z)
+		if y then
+			return y
+		end
+		-- (las Tierras Exteriores: la misma cuenta con la que World/OuterLandsBuilder escribe el terreno)
+		if ValmarRegions.outside(x, z) > 0 then
+			return OuterLands.height(x, z) or Relief.surfaceY(field, x, z)
+		end
+		return Relief.surfaceY(field, x, z)
 	end
 	-- ¿Sitio bueno para una guarida? (lx, lz desde el centro de la isla)
 	-- (loose: para las regiones casi sin campo, como el Pantano junto a la playa: vale terreno menos salvaje,
 	-- pero igual de lejos de lo construido)
 	function S.goodSpot(lx: number, lz: number, maxSlope: number, margin: number?, loose: boolean?): boolean
+		-- al otro lado del mar: tierra firme, lejos de los campamentos y del paso de los puentes, sin mucha cuesta
+		if ValmarRegions.outside(lx, lz) > 0 then
+			local h = OuterLands.height(lx, lz)
+			return h ~= nil and h > 4 and OuterLands.campDistance(lx, lz) > OuterLands.SafeRadius and OuterLands.flat(lx, lz) < 0.02
+				and OuterLands.slope(lx, lz, 8) <= maxSlope
+		end
 		if not inField(lx, lz) then
 			return false
 		end
@@ -137,11 +151,15 @@ function ValmarWilds.publish(Bestiary: any): number
 	if places.Boss then
 		add("GuaridaJefe_Valmar", "GuaridaJefe", places.Boss.X, places.Boss.Z)
 	end
+	-- los campamentos de las Tierras Exteriores (donde llegan los puentes)
+	for _, b in OuterLands.Bridges do
+		add("Campamento_" .. b.Id, "Campamento", b.CampX, b.CampZ)
+	end
 	-- el nombre de cada región, en medio de sus guaridas (o en el centro de su sector si no tiene)
 	for _, reg in ValmarRegions.List do
 		local sx, sz, k = 0, 0, 0
 		for _, lair in places.Lairs do
-			if lair.Region == reg.Id and not lair.Boss then
+			if lair.Region == reg.Id and not lair.Boss and ValmarRegions.outside(lair.X, lair.Z) > 0 then
 				sx += lair.X
 				sz += lair.Z
 				k += 1
@@ -163,6 +181,11 @@ function ValmarWilds.build(BeastService: any): Instance?
 	if not S then
 		warn("[ValmarWilds] sin relieve guardado: no hay zonas de caza en Valmar")
 		return nil
+	end
+	-- (las guaridas del otro lado del mar necesitan su terreno: World/OuterLandsBuilder avisa con TierrasReady)
+	local t0 = os.clock()
+	while not workspace:GetAttribute("TierrasReady") and os.clock() - t0 < 420 do
+		task.wait(2)
 	end
 	local folder = workspace:FindFirstChild("ValmarSalvaje")
 	if not folder then
