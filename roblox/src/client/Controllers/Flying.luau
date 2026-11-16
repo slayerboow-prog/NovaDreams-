@@ -177,9 +177,19 @@ local function envFor(a: Active): Flight.Env
 			return hit.Position.Y, surface
 		end,
 		hit = function(cf: CFrame, move: Vector3): string?
+			-- (se puede aterrizar en cualquier sitio: el terreno con poca pendiente —prados, playas, dunas,
+			-- nieve— no es un choque, es suelo, y lo juzga el tren de aterrizaje; las paredes de roca y los
+			-- edificios, sí)
+			local function solid(result: RaycastResult?): boolean
+				return result ~= nil and not (result.Instance:IsA("Terrain") and result.Normal.Y > 0.6)
+			end
 			local ok, result = pcall(function()
-				return workspace:Blockcast(cf * CFrame.new(0, spec.BoxY, 0), spec.Box * 0.9, move, a.BoxParams)
-					or workspace:Blockcast(cf * CFrame.new(0, wingY, wingZ), Vector3.new(spec.Span * 0.92, 0.6, 3), move, a.BoxParams)
+				local body = workspace:Blockcast(cf * CFrame.new(0, spec.BoxY, 0), spec.Box * 0.9, move, a.BoxParams)
+				if solid(body) then
+					return body
+				end
+				local wing = workspace:Blockcast(cf * CFrame.new(0, wingY, wingZ), Vector3.new(spec.Span * 0.92, 0.6, 3), move, a.BoxParams)
+				return if solid(wing) then wing else nil
 			end)
 			if ok and result then
 				return nameOf(result.Instance)

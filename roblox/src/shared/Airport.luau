@@ -97,13 +97,17 @@ Airport.PilotPlanes = {
 	{ Id = "EC-VLA", Kind = "Avion", Color = Color3.fromRGB(18, 44, 96), Pose = CFrame.new(-2620, Airport.GROUND, 3242) * SOUTH },
 }
 
+-- Aviones PROPIOS desplegados desde el teléfono (HangarService / AviationService.deploy): Id -> spec
+-- ({ Id, Kind, Color, Pose, Owner = UserId }). Solo los rellena el servidor.
+Airport.Owned = {} :: { [string]: { [string]: any } }
+
 function Airport.pilotPlane(id: string): { [string]: any }?
 	for _, spec in Airport.PilotPlanes do
 		if spec.Id == id then
 			return spec
 		end
 	end
-	return nil
+	return Airport.Owned[id]
 end
 
 ---------------------------------------------------------------------

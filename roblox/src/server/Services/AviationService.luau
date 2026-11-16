@@ -47,6 +47,10 @@ local StoryEvents = require(script.Parent.Parent.LifeStory.StoryEvents)
 local AviationService = {}
 
 AviationService.RentPrice = 60
+-- Aviones propios (HangarService: se compran y se despliegan desde el teléfono, app «Hangar»). Para
+-- pilotarlos hace falta lo mismo que en el aeroclub (licencia; el de línea, la habilitación).
+AviationService.Prices = { Avioneta = 25000, Avion = 90000 }
+AviationService.OwnedReturnAfter = 180 -- solo y con su dueño lejos, se guarda solo en tu hangar
 AviationService.CoursePrice = 150
 AviationService.JetLandings = 3
 AviationService.LessonAltitude = 250 -- studs sobre la pista (unos 70 m)
@@ -278,6 +282,24 @@ local function leavePassenger(player: Player, place: boolean?)
 end
 
 local function returnHome(plane: Plane)
+	if plane.Spec.Owner then
+		-- (un avión propio no tiene sitio en el aeropuerto: se guarda en tu hangar y se vuelve a
+		-- desplegar desde el teléfono)
+		for player in table.clone(plane.Passengers) do
+			leavePassenger(player, not plane.Airborne)
+		end
+		local owner = plane.Renter
+		planes[plane.Spec.Id] = nil
+		Airport.Owned[plane.Spec.Id] = nil
+		pcall(function()
+			plane.Model:Destroy()
+		end)
+		if owner and owner.Parent then
+			owner:SetAttribute("PlaneOut", nil)
+			Notify:FireClient(owner, "Info", ("🛩️ Tu %s está guardada en tu hangar. Despliégala desde el teléfono (app Hangar)."):format(string.lower(Airport.Kinds[plane.Spec.Kind].Name)))
+		end
+		return
+	end
 	-- Los pasajeros bajan junto al avión, pero YA en el hangar: antes se les ponía junto a la puerta
 	-- antes de mover el avión, y si el piloto se iba del juego, moría o se lo llevaban en pleno vuelo,
 	-- caían desde el cielo (o al mar) donde estaba el avión
@@ -365,7 +387,7 @@ local function endPilot(plane: Plane, place: boolean?)
 		besidePlane(plane, player)
 	end
 	plane.Lesson = nil
-	if atHome(plane) or plane.Airborne then
+	if (atHome(plane) and not plane.Spec.Owner) or plane.Airborne then
 		-- (lo ha dejado en el hangar: alquiler terminado; o se ha quedado sin piloto en el aire porque a
 		-- él se lo han llevado a otro sitio: el avión vuelve solo a su sitio)
 		returnHome(plane)
@@ -866,7 +888,8 @@ function AviationService._validate(plane: Plane, dt: number)
 	local player = plane.Pilot
 	if not player then
 		-- Sin piloto y lejos de su sitio: al rato vuelve sola al hangar (si no va nadie dentro)
-		if plane.LeftAt and os.clock() - plane.LeftAt > AviationService.ReturnAfter and next(plane.Passengers) == nil then
+		local wait = if plane.Spec.Owner then AviationService.OwnedReturnAfter else AviationService.ReturnAfter
+		if plane.LeftAt and os.clock() - plane.LeftAt > wait and next(plane.Passengers) == nil then
 			local renter = plane.Renter
 			local near = false
 			local r = renter and rootOf(renter)
@@ -1255,6 +1278,254 @@ function AviationService.init()
 		end
 	end)
 end
+
+---------------------------------------------------------------------
+-- Aviones propios: comprar, desplegar donde estés y guardar (HangarService, app «Hangar»)
+---------------------------------------------------------------------
+local function ownedData(player: Player): { [string]: boolean }?
+	local data = DataService.get(player)
+	if not data then
+		return nil
+	end
+	if type(data.Planes) ~= "table" then
+		data.Planes = {}
+	end
+	return data.Planes
+end
+
+function AviationService.owns(player: Player, kind: string): boolean
+	local list = ownedData(player)
+	return list ~= nil and list[kind] == true
+end
+
+-- El cliente lee OwnedPlanes ("Avioneta,Avion") y PlaneOut (el que tienes desplegado)
+function AviationService.syncOwned(player: Player)
+	local list = ownedData(player)
+	if not list then
+		return
+	end
+	local out = {}
+	for _, kind in { "Avioneta", "Avion" } do
+		if list[kind] then
+			table.insert(out, kind)
+		end
+	end
+	player:SetAttribute("OwnedPlanes", table.concat(out, ","))
+	player:SetAttribute("PilotLicense", AviationService.hasLicense(player))
+	local a = aviation(player)
+	player:SetAttribute("JetReady", AviationService.hasLicense(player) and a ~= nil and a.Landings >= AviationService.JetLandings)
+end
+
+function AviationService.buy(player: Player, kind: string): (boolean, string?)
+	local price = AviationService.Prices[kind]
+	local list = ownedData(player)
+	if not price or not list or not Airport.Kinds[kind] then
+		return false, "NotForSale"
+	end
+	if list[kind] then
+		Notify:FireClient(player, "Info", "Ya tienes ese avión en tu hangar.")
+		return false, "Owned"
+	end
+	if not adult(player) then
+		Notify:FireClient(player, "Error", "Para comprar un avión hay que ser mayor de edad ✈️")
+		return false, "Stage"
+	end
+	if not bypass(player) and not DataService.spend(player, price) then
+		Notify:FireClient(player, "Error", ("No tienes suficiente dinero (%s)."):format(Format.money(price)))
+		return false, "Money"
+	end
+	list[kind] = true
+	AviationService.syncOwned(player)
+	local name = string.lower(Airport.Kinds[kind].Name)
+	Notify:FireClient(player, "Success", ("✈️ ¡La %s es tuya! Despliégala desde el teléfono (app Hangar) donde haya sitio llano.%s"):format(name, if AviationService.hasLicense(player) then "" else " Para pilotarla necesitas la licencia (aeroclub del aeropuerto)."))
+	StoryEvents.emit(player, "VehicleBought", { Vehicle = kind })
+	return true
+end
+
+-- Un sitio llano y despejado cerca de ti donde quepa el avión (el suelo bajo las ruedas, mirando a
+-- donde se puede rodar), o nil. Sirve cualquier suelo firme: prado, playa, carretera, explanada…
+local function spotNear(player: Player, kind: string, origin: CFrame?): CFrame?
+	local root = rootOf(player)
+	local from = origin or (root and root.CFrame)
+	if not from then
+		return nil
+	end
+	local spec = Flight.Specs[kind]
+	local length, span = spec.Box.Z, spec.Span
+	local exclude: { Instance } = {}
+	for _, p in Players:GetPlayers() do
+		if p.Character then
+			table.insert(exclude, p.Character)
+		end
+	end
+	local ray = RaycastParams.new()
+	ray.FilterType = Enum.RaycastFilterType.Exclude
+	ray.FilterDescendantsInstances = exclude
+	ray.IgnoreWater = false
+	local box = OverlapParams.new()
+	box.FilterType = Enum.RaycastFilterType.Exclude
+	local boxExclude = table.clone(exclude)
+	table.insert(boxExclude, workspace.Terrain)
+	box.FilterDescendantsInstances = boxExclude
+	box.RespectCanCollide = true
+	box.MaxParts = 1
+	local look = Vector3.new(from.LookVector.X, 0, from.LookVector.Z)
+	look = if look.Magnitude > 0.1 then look.Unit else Vector3.new(0, 0, -1)
+	local function groundAt(x: number, z: number, y: number): RaycastResult?
+		return workspace:Raycast(Vector3.new(x, y + 80, z), Vector3.new(0, -240, 0), ray)
+	end
+	for _, turn in { 0, 90, -90, 180, 45, -45 } do
+		local dir = (CFrame.Angles(0, math.rad(turn), 0) * CFrame.new(look)).Position
+		local right = Vector3.new(-dir.Z, 0, dir.X)
+		for _, d in { span * 0.6 + 8, span * 0.6 + 30, span * 0.6 + 60 } do
+			local c = from.Position + right * d -- (a un lado tuyo, con el morro hacia donde miras)
+			local hit = groundAt(c.X, c.Z, from.Position.Y)
+			if hit and hit.Material ~= Enum.Material.Water and hit.Normal.Y > 0.96 then
+				local gy = hit.Position.Y
+				local flat = true
+				for _, off in { dir * length * 0.5, -dir * length * 0.5, right * span * 0.45, -right * span * 0.45, dir * length * 1.5 } do
+					local h = groundAt(c.X + off.X, c.Z + off.Z, gy)
+					if not h or h.Material == Enum.Material.Water or math.abs(h.Position.Y - gy) > 2.5 then
+						flat = false
+						break
+					end
+				end
+				if flat then
+					local pose = CFrame.lookAt(Vector3.new(c.X, gy, c.Z), Vector3.new(c.X, gy, c.Z) + dir)
+					local ok, parts = pcall(function()
+						return workspace:GetPartBoundsInBox(pose * CFrame.new(0, spec.BoxY + 1, 0), Vector3.new(span, spec.Box.Y + 2, length), box)
+					end)
+					if ok and #parts == 0 then
+						return pose
+					end
+				end
+			end
+		end
+	end
+	return nil
+end
+AviationService._spotNear = spotNear
+
+local ownedIds: { [Player]: { [string]: string } } = {}
+
+-- Despliega tu avión junto a ti y te sienta a los mandos
+function AviationService.deploy(player: Player, kind: string, origin: CFrame?): (boolean, string?)
+	if not Airport.Kinds[kind] or not AviationService.Prices[kind] then
+		return false, "Unknown"
+	end
+	if not AviationService.owns(player, kind) and not bypass(player) then
+		Notify:FireClient(player, "Error", "Ese avión no es tuyo: cómpralo en la app Hangar.")
+		return false, "NotOwned"
+	end
+	local humanoid = humanoidOf(player)
+	if not humanoid or (humanoid.Health or 0) <= 0 or piloting[player] or held(player) or humanoid.SeatPart ~= nil then
+		Notify:FireClient(player, "Info", "Bájate de donde estés antes de desplegar el avión.")
+		return false, "Busy"
+	end
+	local ok, why = AviationService.canPilot(player, { Spec = { Kind = kind } } :: any)
+	if not ok then
+		Notify:FireClient(player, "Info", why or "No puedes pilotar este avión.")
+		return false, "License"
+	end
+	local pose = spotNear(player, kind, origin)
+	if not pose then
+		Notify:FireClient(player, "Info", ("No cabe aquí: la %s necesita un sitio llano y despejado (un prado, la playa, una explanada o una carretera ancha)."):format(string.lower(Airport.Kinds[kind].Name)))
+		return false, "NoRoom"
+	end
+	ownedIds[player] = ownedIds[player] or {}
+	-- (el otro avión tuyo, si estaba desplegado y sin nadie, se guarda: uno a la vez)
+	for otherKind, otherId in ownedIds[player] do
+		local other = planes[otherId]
+		if otherKind ~= kind and other and not other.Pilot then
+			returnHome(other)
+		end
+	end
+	local id = ownedIds[player][kind]
+	local plane = id and planes[id]
+	if plane and plane.Pilot then
+		Notify:FireClient(player, "Info", "Tu avión ya está en el aire.")
+		return false, "Flying"
+	end
+	if plane then
+		for p in table.clone(plane.Passengers) do
+			leavePassenger(p, true)
+		end
+		plane.Spec.Pose = pose
+		anchorAt(plane, Airport.rootCFrame(kind, pose))
+		showGear(plane, true)
+		setSolid(plane, true)
+		plane.Health = 100
+		plane.DownUntil = 0
+	else
+		id = ("V-%04d%s"):format(player.UserId % 10000, if kind == "Avion" then "J" else "A")
+		local n = 1
+		while planes[id] or Airport.Owned[id] do
+			n += 1
+			id = ("V-%04d%s%d"):format(player.UserId % 10000, if kind == "Avion" then "J" else "A", n)
+		end
+		local colors = { Color3.fromRGB(30, 90, 170), Color3.fromRGB(200, 50, 50), Color3.fromRGB(20, 140, 140), Color3.fromRGB(240, 170, 40), Color3.fromRGB(40, 40, 46) }
+		local spec = { Id = id, Kind = kind, Color = colors[player.UserId % #colors + 1], Pose = pose, Owner = player.UserId }
+		Airport.Owned[id] = spec
+		local folder = workspace:FindFirstChild("AvionesPropios")
+		if not folder then
+			folder = Instance.new("Folder")
+			folder.Name = "AvionesPropios"
+			folder.Parent = workspace
+		end
+		local built, model = pcall(AirportKit.pilotPlane, folder, spec)
+		if not built then
+			Airport.Owned[id] = nil
+			warn("[AviationService] " .. tostring(model))
+			return false, "Failed"
+		end
+		setupPlane(model)
+		plane = planes[id]
+		if not plane then
+			Airport.Owned[id] = nil
+			pcall(function()
+				model:Destroy()
+			end)
+			return false, "Failed"
+		end
+		ownedIds[player][kind] = id
+	end
+	assert(plane)
+	plane.Renter = player
+	plane.Model:SetAttribute("Renter", player.UserId)
+	plane.Model:SetAttribute("Owner", player.UserId)
+	player:SetAttribute("PlaneOut", kind)
+	if not AviationService.pilot(player, id :: string) then
+		plane.LeftAt = os.clock()
+		return false, "Seat"
+	end
+	return true
+end
+
+-- Guarda tu avión desplegado (si vas a los mandos, en tierra)
+function AviationService.store(player: Player): boolean
+	local stored = false
+	for _, id in ownedIds[player] or {} do
+		local plane = planes[id]
+		if plane then
+			if plane.Pilot == player then
+				if plane.Airborne then
+					Notify:FireClient(player, "Info", "Aterriza primero: en el aire no se puede guardar.")
+					return false
+				end
+				endPilot(plane, true)
+			end
+			if plane.Pilot == nil and planes[id] then
+				returnHome(plane)
+				stored = true
+			end
+		end
+	end
+	return stored
+end
+
+Players.PlayerRemoving:Connect(function(player)
+	ownedIds[player] = nil
+end)
 
 -- (para las pruebas)
 -- El avión que pilota ahora este jugador (o nil): { Root, Model, Spec = { Kind }, Airborne, … }

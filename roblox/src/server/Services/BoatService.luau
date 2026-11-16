@@ -192,7 +192,7 @@ end
 BoatService.atMarina = atMarina
 
 -- Comprar un barco en el puerto deportivo
-function BoatService.buy(player: Player, kind: string): (boolean, string?)
+function BoatService.buy(player: Player, kind: string, fromPhone: boolean?): (boolean, string?)
 	local info = Boats.Info[kind]
 	local vehicle = Gameplay.Vehicles[kind]
 	local data = DataService.get(player)
@@ -204,7 +204,7 @@ function BoatService.buy(player: Player, kind: string): (boolean, string?)
 		Notify:FireClient(player, "Info", "Ya tienes " .. vehicle.Name .. ".")
 		return false, "Owned"
 	end
-	if not atMarina(player) then
+	if not fromPhone and not atMarina(player) then
 		return false, "Far"
 	end
 	if not (Stages.allows(player:GetAttribute("LifeStage"), "Ride", { Ride = info.Stage }) or TesterService.bypass(player)) then
@@ -358,6 +358,99 @@ function BoatService.launch(player: Player, kind: string): (boolean, string?)
 	Notify:FireClient(player, "Success", ("%s ¡A navegar! Acelera y gira como en el coche. Para bajarte, salta o pulsa «Bajarse»."):format(iconOf(kind)))
 	StoryEvents.emit(player, "BoatLaunched", { Boat = kind })
 	return true
+end
+
+-- Desde el teléfono (app Hangar): tu barco aparece en el agua más cercana a ti (a menos de DeployRange
+-- studs), con la proa hacia mar abierto, y te sube al timón. Sirve cualquier orilla, playa o muelle.
+BoatService.DeployRange = 260
+function BoatService.deploy(player: Player, kind: string): (boolean, string?)
+	if not BoatService.owns(player, kind) then
+		Notify:FireClient(player, "Error", "Ese barco no es tuyo: cómpralo en la app Hangar.")
+		return false, "NotOwned"
+	end
+	local root = player.Character and player.Character:FindFirstChild("HumanoidRootPart") :: BasePart?
+	if not root then
+		return false, "Busy"
+	end
+	local out = afloat[player]
+	if out and out.Model.Parent then
+		removeBoat(player, nil) -- (el que tenías en el agua se guarda: uno a la vez)
+	end
+	afloat[player] = nil
+	if not VehicleService.canSpawn(player) or not VehicleService.spawnAllowed(player) then
+		return false, "Busy"
+	end
+	local size = require(script.Parent.Parent.World.Kit.Rides).Spec[kind].Size or Vector3.new(7, 1, 20)
+	local ray = RaycastParams.new()
+	ray.FilterType = Enum.RaycastFilterType.Exclude
+	ray.FilterDescendantsInstances = { player.Character :: Instance }
+	ray.IgnoreWater = false
+	local overlap = OverlapParams.new()
+	overlap.FilterType = Enum.RaycastFilterType.Exclude
+	overlap.FilterDescendantsInstances = { workspace.Terrain, player.Character :: Instance }
+	overlap.RespectCanCollide = true
+	overlap.MaxParts = 1
+	local here = root.Position
+	local best: CFrame? = nil
+	for r = 12, BoatService.DeployRange, 12 do
+		local steps = math.clamp(math.floor(r / 6), 8, 40)
+		for i = 0, steps - 1 do
+			local a = i / steps * math.pi * 2
+			local p = Vector3.new(here.X + math.cos(a) * r, Boats.SeaLevel, here.Z + math.sin(a) * r)
+			local away = Vector3.new(p.X - here.X, 0, p.Z - here.Z).Unit
+			if Boats.hullAtSea(p, away, size) then
+				local hit = workspace:Raycast(Vector3.new(p.X, 60, p.Z), Vector3.new(0, -100, 0), ray)
+				if hit and hit.Material == Enum.Material.Water then
+					local cf = CFrame.lookAt(p, p + away)
+					local ok, parts = pcall(function()
+						return workspace:GetPartBoundsInBox(cf * CFrame.new(0, 1.5, 0), Vector3.new(size.X + 2, 3, size.Z + 2), overlap)
+					end)
+					if not ok or #parts == 0 then
+						best = cf
+						break
+					end
+				end
+			end
+		end
+		if best then
+			break
+		end
+	end
+	if not best then
+		Notify:FireClient(player, "Info", "Aquí no hay mar cerca: acércate a la costa, una playa o un muelle para desplegar tu barco.")
+		return false, "NoSea"
+	end
+	local color = if kind == "Lancha" then LANCHA_COLORS[player.UserId % #LANCHA_COLORS + 1] else nil
+	local model = VehicleService.launchAt(player, kind, best, {
+		Color = color,
+		Decorate = function(m: Model)
+			paintName(player, m)
+		end,
+	})
+	if not model then
+		return false, "Failed"
+	end
+	VehicleService.spawnDone(player)
+	model:SetAttribute("Boat", true)
+	local entry: Afloat = { Model = model, Kind = kind, Since = os.clock() }
+	afloat[player] = entry
+	model.Destroying:Connect(function()
+		if afloat[player] == entry then
+			afloat[player] = nil
+			if player.Parent then
+				BoatService.sync(player)
+			end
+		end
+	end)
+	BoatService.sync(player)
+	Notify:FireClient(player, "Success", ("%s ¡Tu %s ya está en el agua! Acelera y gira como en el coche."):format(iconOf(kind), string.lower(nameOf(kind))))
+	StoryEvents.emit(player, "BoatLaunched", { Boat = kind })
+	return true
+end
+
+-- Guarda tu barco desde cualquier sitio (teléfono)
+function BoatService.storeAnywhere(player: Player): boolean
+	return removeBoat(player, "⚓ Barco guardado. Despliégalo cuando quieras desde el teléfono (app Hangar).")
 end
 
 -- Guarda tu barco (vuelve al puerto deportivo esté donde esté)

@@ -161,7 +161,8 @@ Flight.Specs = {
 }
 
 -- Límites del cielo: más allá del borde del mapa el avión gira solo hacia dentro; techo de vuelo
-Flight.Bounds = { X0 = -5600, X1 = 5600, Z0 = -5000, Z1 = 4900, Ceiling = 1400, Margin = 500 }
+-- (hasta las Tierras Exteriores: el continente llega a 7600 del centro y su mar sigue 456 más)
+Flight.Bounds = { X0 = -8000, X1 = 8000, Z0 = -7400, Z1 = 8000, Ceiling = 1400, Margin = 500 }
 
 export type State = {
 	Kind: string,
