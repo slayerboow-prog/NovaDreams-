@@ -1486,19 +1486,21 @@ for _, size in { { 640, 360 }, { 667, 375 }, { 844, 390 }, { 932, 430 }, { 1334,
 			c[id] = { X = x, Y = y, R = r.W / 2 }
 		end
 		local tol = 6
-		local middle = math.abs(c.Correr.Y - c.Defender.Y) < tol and math.abs(c.Defender.Y - c.Saltar.Y) < tol and c.Correr.X < c.Defender.X and c.Defender.X < c.Saltar.X
-		local bottom = c.Agacharse.X < c.Ataque.X and c.Ataque.X < c.Esquivar.X and math.abs(c.Agacharse.Y - c.Esquivar.Y) < tol and math.abs(c.Agacharse.Y - c.Ataque.Y) < c.Ataque.R
-		local order = c.Saltar.Y < c.Ataque.Y
-		local centered = math.abs(c.Defender.X - c.Ataque.X) < tol
+		-- (combate de MMO: el Atacar grande en la esquina con el arco de habilidades a su izquierda y arriba;
+		-- Saltar a su derecha, Correr y Esquivar encima; Defensa y Agacharse arriba a la izquierda del arco)
+		local middle = c.Saltar.X > c.Ataque.X and math.abs(c.Saltar.Y - c.Ataque.Y) < c.Ataque.R and c.Correr.Y < c.Saltar.Y and math.abs(c.Correr.X - c.Saltar.X) < 20 + tol
+		local bottom = c.Defender.X < c.Ataque.X and c.Agacharse.X < c.Defender.X and c.Defender.Y < c.Ataque.Y - c.Ataque.R
+		local order = c.Esquivar.Y < c.Correr.Y
+		local centered = math.abs(c.Esquivar.X - c.Correr.X) < 20
 		local biggest = true
 		for id in want do
 			if id ~= "Ataque" and c[id].R >= c.Ataque.R then
 				biggest = false
 			end
 		end
-		check(middle, "Fila del medio: Correr, Defensa y Saltar, a la misma altura y en ese orden")
-		check(bottom, "Fila de abajo: Agacharse, el Atacar y Esquivar, en ese orden")
-		check(order and centered, "La Defensa encima del Atacar")
+		check(middle, "Saltar a la derecha del Atacar y Correr encima de Saltar")
+		check(bottom, "Defensa y Agacharse arriba a la izquierda, por encima del arco de habilidades")
+		check(order and centered, "Esquivar encima de Correr")
 		check(not (buttons.Interactuar and buttons.Interactuar.Visible), "Ya no hay botón «Interactuar» aparte en el racimo (sin nada cerca, no sale)")
 		check(biggest, "El Atacar es el más grande")
 		check(not buttons.Gestos and not buttons.Fijar, "Ni Gestos ni Fijar en el racimo (Gestos y Foto son apps del ValPhone)")

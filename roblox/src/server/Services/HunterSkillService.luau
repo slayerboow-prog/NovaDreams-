@@ -20,6 +20,7 @@ local HunterSkillService = {}
 
 local Remote: RemoteEvent? = nil
 local used: { [Player]: { [string]: number } } = {}
+local lastFight: { [Player]: number } = {} -- (la última habilidad: el espíritu vuelve más despacio en plena pelea)
 
 local function beastService(): any
 	return require(script.Parent.BeastService)
@@ -113,6 +114,14 @@ function HunterSkillService.use(player: Player, id: any, now: number?): (boolean
 	if last and t - last < HunterSkills.cooldown(sk, rank) then
 		return false, nil, 0
 	end
+	-- Espíritu: cada habilidad gasta el suyo
+	local cost = sk.Mana or 0
+	local mana = tonumber(player:GetAttribute("Espiritu")) or HunterSkills.manaMax(HunterSkillService.levelOf(player))
+	if cost > 0 and mana < cost then
+		return false, ("Te falta espíritu para %s (%d de %d)."):format(sk.Name, math.floor(mana), cost), 0
+	end
+	player:SetAttribute("Espiritu", mana - cost)
+	lastFight[player] = t
 	used[player][sk.Id] = t
 	local hits = 0
 	if sk.Kind == "Buff" then
@@ -143,7 +152,7 @@ function HunterSkillService.use(player: Player, id: any, now: number?): (boolean
 				if onPlanet then
 					counted = Beasts.hit(player, model, base, { Melee = true, Heavy = true, Skill = sk.Id })
 				else
-					local ok, res = pcall(Fight.applyHit, player, model, { Amount = base, Direction = (pos - from).Unit, Heavy = true, Weapon = sk.Name, At = pos })
+					local ok, res = pcall(Fight.applyHit, player, model, { Amount = base, Direction = (pos - from).Unit, Heavy = true, Melee = true, Skill = sk.Id, Weapon = sk.Name, At = pos })
 					counted = ok and res and res.Hit == true
 				end
 				if counted then
@@ -184,8 +193,41 @@ function HunterSkillService.init()
 		end
 	end)
 	local function publish(player: Player)
-		player:SetAttribute("NivelCazador", HunterSkillService.levelOf(player))
+		local level = HunterSkillService.levelOf(player)
+		player:SetAttribute("NivelCazador", level)
+		local max = HunterSkills.manaMax(level)
+		player:SetAttribute("EspirituMax", max)
+		if player:GetAttribute("Espiritu") == nil then
+			player:SetAttribute("Espiritu", max)
+		end
 	end
+	-- el espíritu se recupera solo (más deprisa si llevas un rato sin pelear) y el nivel puede subir
+	task.spawn(function()
+		while true do
+			task.wait(0.5)
+			local t = os.clock()
+			for _, p in Players:GetPlayers() do
+				local max = tonumber(p:GetAttribute("EspirituMax"))
+				if max then
+					local cur = tonumber(p:GetAttribute("Espiritu")) or max
+					if cur < max then
+						local fighting = lastFight[p] ~= nil and t - lastFight[p] < 8
+						p:SetAttribute("Espiritu", math.min(max, cur + HunterSkills.manaRegen(max, fighting) * 0.5))
+					end
+				end
+			end
+		end
+	end)
+	task.spawn(function()
+		while true do
+			task.wait(15)
+			for _, p in Players:GetPlayers() do
+				if p:GetAttribute("EspirituMax") ~= nil then
+					pcall(publish, p)
+				end
+			end
+		end
+	end)
 	Players.PlayerAdded:Connect(function(p)
 		task.delay(6, function()
 			if p.Parent then
@@ -202,6 +244,7 @@ function HunterSkillService.init()
 	end
 	Players.PlayerRemoving:Connect(function(p)
 		used[p] = nil
+		lastFight[p] = nil
 	end)
 end
 

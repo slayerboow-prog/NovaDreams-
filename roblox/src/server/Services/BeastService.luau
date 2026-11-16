@@ -40,7 +40,10 @@ BeastService.WanderSpeed = 0.4 -- (paseando por su guarida van al paso; persigui
 BeastService.StunSeconds = 0.35 -- (un golpe fuerte o un crítico las deja un instante aturdidas)
 BeastService.MaxPerPlanet = 60
 BeastService.GetUpSeconds = 7
-BeastService.BulletMul = 1.5 -- las armas de fuego contra las bestias (como con los enemigos de misión, algo menos)
+-- (petición del dueño: se pelea sobre todo con golpes, armas blancas y habilidades; las armas de fuego,
+-- contra las bestias, hacen mucho menos)
+BeastService.BulletMul = 0.55 -- las armas de fuego contra las bestias
+BeastService.MeleeMul = 1.35 -- golpes, armas blancas y habilidades
 BeastService.BossTakes = 0.7 -- el jefe encaja menos
 BeastService.BiteCooldown = 1.4
 
@@ -897,7 +900,7 @@ function BeastService.hit(attacker: Player?, model: Instance, amount: number, in
 	if i.Melee or i.Heavy then
 		-- golpes: tu mejor arma blanca y la poción de fuerza
 		local data = dataOf(attacker)
-		n *= 1 + Crafting.bladeOf(data and data.Items, data and data.Refine) + buff(attacker, "Fuerza") + buff(attacker, "Furia") + Crafting.hunterBonus(data and data.Hunter and data.Hunter.Xp)
+		n *= BeastService.MeleeMul * (1 + Crafting.bladeOf(data and data.Items, data and data.Refine) + buff(attacker, "Fuerza") + buff(attacker, "Furia") + Crafting.hunterBonus(data and data.Hunter and data.Hunter.Xp))
 		-- (el estilo de tu arma: el hacha pesa más, el cuchillo menos pero más seguido)
 		if not i.Skill then
 			n *= Combat.weaponStyle(attacker:GetAttribute("EstiloArma")).BeastMul

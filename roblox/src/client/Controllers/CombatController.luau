@@ -46,6 +46,7 @@ local CombatFx = require(script.Parent.CombatFx)
 local HitReaction = require(script.Parent.HitReaction)
 local InventoryUI = require(script.Parent.InventoryUI)
 local Controls = require(script.Parent.Controls)
+local AutoTarget = require(script.Parent.AutoTarget)
 
 local CombatController = {}
 
@@ -330,6 +331,11 @@ function CombatController.attack()
 			(remote :: RemoteEvent):FireServer("Attack")
 		end
 		ReactMotion.play(player.Character, "Throw")
+		return
+	end
+	-- Combate de MMO: con una bestia cerca (o elegida), corre hacia ella y encadena golpes solo
+	-- (Controllers/AutoTarget); si no hay ninguna, el golpe de siempre
+	if CombatController.canAttack() and AutoTarget.engage() then
 		return
 	end
 	swing("Light")
@@ -1568,7 +1574,7 @@ function CombatController.init()
 	-- Móvil con un arma en la mano: el botón «Atacar» vuelve a salir si tienes un alienígena (o una
 	-- criatura hostil) al alcance del puño, para pegarle además de dispararle
 	local function canPunch(): boolean
-		return canFight() and (not TouchLayout.isTouch() or not armed() or CombatController.alienClose())
+		return canFight() and (not TouchLayout.isTouch() or not armed() or CombatController.alienClose() or AutoTarget.current() ~= nil)
 	end
 	local function fighting(): boolean
 		return canPunch() and not armed() and CombatController.inCombat()
@@ -1594,24 +1600,40 @@ function CombatController.init()
 			end
 		end
 	end)
+	-- (móvil: combate de MMO como la referencia del dueño: el Atacar grande y el arco de habilidades; la
+	-- defensa, la esquiva, fijar y el golpe fuerte siguen en el teclado y el mando)
+	local mmoTouch = function(): boolean
+		return TouchLayout.isTouch()
+	end
+	AutoTarget.setSwing(function(): boolean
+		return swing("Light")
+	end)
 	TouchLayout.register({
 		Id = "Defender", Icon = "escudo", Label = "Defensa", Slot = "Defender", Priority = 4, Key = "F / Z", Pad = "LB",
-		Visible = canPunch,
+		Visible = function()
+			return canPunch() and not mmoTouch()
+		end,
 		Active = CombatController.isBlocking,
 		Hold = function(down: boolean)
 			CombatController.setBlocking(down)
 		end,
 	})
-	TouchLayout.register({ Id = "Esquivar", Icon = "esquivar", Label = "Esquivar", Slot = "Esquivar", Priority = 5, Key = "Q", Pad = "B", Visible = canFight, Callback = CombatController.dodge,
+	TouchLayout.register({ Id = "Esquivar", Icon = "esquivar", Label = "Esquivar", Slot = "Esquivar", Priority = 5, Key = "Q", Pad = "B", Visible = function()
+		return canFight() and not mmoTouch()
+	end, Callback = CombatController.dodge,
 		Meter = function()
 			return if CombatController.inCombat() then stamina() / Combat.StaminaMax else nil
 		end,
 	})
-	TouchLayout.register({ Id = "Fijar", Icon = "objetivo", Label = "Fijar", Slot = "Fijar", Priority = 6, Key = "V", Pad = "R3", Visible = canLock, Active = CombatController.isLocked, Callback = CombatController.toggleLock })
+	TouchLayout.register({ Id = "Fijar", Icon = "objetivo", Label = "Fijar", Slot = "Fijar", Priority = 6, Key = "V", Pad = "R3", Visible = function()
+		return canLock() and not mmoTouch()
+	end, Active = CombatController.isLocked, Callback = CombatController.toggleLock })
 	-- Fuerte: en plena pelea ocupa el hueco de Gestos (mantener = golpe cargado)
 	TouchLayout.register({
 		Id = "Fuerte", Icon = "espada", Label = "Fuerte", Slot = "Gestos", Priority = 6.5, Key = "Clic dcho / C", Pad = "RT",
-		Visible = fighting,
+		Visible = function()
+			return fighting() and not mmoTouch()
+		end,
 		Active = function()
 			return if heavyHeldAt then (if os.clock() - heavyHeldAt >= Combat.ChargeTime then true else "wait") else false
 		end,

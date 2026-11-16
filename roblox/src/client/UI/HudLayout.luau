@@ -97,14 +97,24 @@ HudLayout.Sizes = {
 -- Interactuar, encima de Defensa y sin tocar la misión.
 -- Con un arma de fuego (estilo shooter móvil): Disparar en el hueco del Atacar, Apuntar en el de Defensa
 -- (justo encima del disparo) y Recargar, con las balas, en el de Interactuar (TouchLayout: alias).
+-- COMBATE DE MMO (petición del dueño, con su captura de referencia): el Atacar grande en la esquina y, en
+-- arco a su alrededor (de la izquierda hasta arriba), los seis huecos de las HABILIDADES (Hab1..Hab6:
+-- Controllers/HunterSkillsUI). Saltar a la derecha del Atacar y Correr encima; Defensa, Agacharse y
+-- Esquivar siguen existiendo (los usan el fútbol, el baloncesto, el buceo y las armas) pero apartados.
 HudLayout.Cluster = {
-	Ataque = { 0, 0, 64 },
-	Agacharse = { -140, -4, 46 },
-	Esquivar = { 136, -4, 46 },
-	Correr = { -122, -130, 46 },
-	Defender = { 0, -130, 46 },
-	Saltar = { 122, -130, 48 },
+	Ataque = { 0, 0, 66 },
+	Hab1 = { -155, 0, 32 },
+	Hab2 = { -142, -63, 32 },
+	Hab3 = { -104, -115, 32 },
+	Hab4 = { -48, -147, 32 },
+	Hab5 = { 16, -154, 32 },
+	Hab6 = { 78, -134, 32 },
+	Saltar = { 142, 4, 42 },
+	Correr = { 146, -82, 36 },
+	Esquivar = { 150, -158, 32 },
 	Interactuar = { 112, -240, 46 },
+	Defender = { -110, -225, 38 },
+	Agacharse = { -140, -292, 28 },
 	Contexto = { -6, -244, 34 },
 }
 HudLayout.ExtraSlots = 5

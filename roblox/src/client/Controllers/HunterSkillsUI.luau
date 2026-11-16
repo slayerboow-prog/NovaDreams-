@@ -13,6 +13,7 @@ local UserInputService = game:GetService("UserInputService")
 
 local HunterSkills = require(ReplicatedStorage.Shared.HunterSkills)
 local Theme = require(script.Parent.Parent.UI.Theme)
+local TouchLayout = require(script.Parent.Parent.UI.TouchLayout)
 
 local HunterSkillsUI = {}
 
@@ -25,6 +26,8 @@ local remote: RemoteEvent
 local buttons: { [string]: { Button: TextButton, Cover: Frame, Count: TextLabel, Lock: TextLabel } } = {}
 local readyAt: { [string]: number } = {}
 local total: { [string]: number } = {}
+
+local SHORT = { TajoCircular = "Tajo", Embestida = "Embestida", Furia = "Furia", GolpeSismico = "Sísmico", TormentaAcero = "Tormenta", Coraza = "Coraza" }
 
 local function level(): number
 	return tonumber(player:GetAttribute("NivelCazador")) or 1
@@ -44,6 +47,17 @@ local function use(sk: { [string]: any })
 	end
 	if not HunterSkills.unlocked(sk, level()) or (readyAt[sk.Id] or 0) > os.clock() then
 		return
+	end
+	-- (hacia tu objetivo: te giras a él antes de soltarla)
+	local okT, AutoTarget = pcall(function()
+		return require(script.Parent.AutoTarget) :: any
+	end)
+	local target = okT and AutoTarget.current() or nil
+	local character = player.Character
+	local root = character and character:FindFirstChild("HumanoidRootPart") :: BasePart?
+	if target and root and target.PrimaryPart then
+		local p = target.PrimaryPart.Position
+		root.CFrame = CFrame.lookAt(root.Position, Vector3.new(p.X, root.Position.Y, p.Z))
 	end
 	remote:FireServer("Use", sk.Id)
 end
@@ -76,7 +90,7 @@ local function dash(sk: { [string]: any })
 end
 
 local function refresh()
-	local show = onPlanet()
+	local show = onPlanet() and not Theme.isTouch() -- (en el móvil van en el arco del Atacar: TouchLayout)
 	gui.Enabled = show
 	if not show then
 		return
@@ -133,6 +147,48 @@ function HunterSkillsUI.init()
 			end
 			use(sk)
 		end)
+	end
+	-- Móvil: las seis habilidades en arco alrededor del Atacar (HudLayout.Cluster Hab1..Hab6), con su cuenta
+	-- atrás dentro del botón; apagadas si no te llega el espíritu
+	for i, sk in HunterSkills.List do
+		TouchLayout.register({
+			Id = "Hab_" .. sk.Id,
+			Icon = sk.Icon,
+			Label = SHORT[sk.Id] or sk.Name, -- (cada uno el suyo: dos botones con el mismo texto no salen)
+			Slot = "Hab" .. i,
+			Priority = 2,
+			Visible = function()
+				return onPlanet() and not busy() and player:GetAttribute("Riding") == nil and player:GetAttribute("Piloting") == nil and player:GetAttribute("Swimming") ~= true
+			end,
+			Callback = function()
+				if not HunterSkills.unlocked(sk, level()) then
+					local okHud, Hud = pcall(function()
+						return require(script.Parent.Parent.UI.Hud) :: any
+					end)
+					if okHud and Hud.toast then
+						Hud.toast("Info", ("%s %s: se desbloquea con nivel de cazador %d. %s"):format(sk.Icon, sk.Name, sk.Level, sk.Desc))
+					end
+					return
+				end
+				use(sk)
+			end,
+			Active = function()
+				local mana = tonumber(player:GetAttribute("Espiritu")) or 999
+				return if HunterSkills.unlocked(sk, level()) and mana < (sk.Mana or 0) then "wait" else false
+			end,
+			Meter = function()
+				local left = math.max(0, (readyAt[sk.Id] or 0) - os.clock())
+				return if left > 0 then 1 - math.clamp(left / (total[sk.Id] or sk.Cooldown), 0, 1) else nil
+			end,
+			Badge = function()
+				if not HunterSkills.unlocked(sk, level()) then
+					return "nv." .. sk.Level
+				end
+				local left = math.max(0, (readyAt[sk.Id] or 0) - os.clock())
+				return if left > 0 then tostring(math.ceil(left)) else nil
+			end,
+			Key = sk.Key,
+		})
 	end
 	UserInputService.InputBegan:Connect(function(input, processed)
 		if processed or input.UserInputType ~= Enum.UserInputType.Keyboard then

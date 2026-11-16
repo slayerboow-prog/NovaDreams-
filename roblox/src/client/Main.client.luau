@@ -39,6 +39,7 @@ local MiniGameUI = require(script.Parent.Controllers.MiniGameUI)
 local SceneClient = require(script.Parent.Controllers.SceneClient)
 local Vehicles = require(script.Parent.Controllers.Vehicles)
 local Hangar = require(script.Parent.Controllers.Hangar)
+local AutoTarget = require(script.Parent.Controllers.AutoTarget)
 local Arcade = require(script.Parent.Controllers.Arcade)
 local DrivingSchool = require(script.Parent.Controllers.DrivingSchool)
 local Restaurant = require(script.Parent.Controllers.Restaurant)
@@ -241,6 +242,7 @@ task.spawn(PetLife.init) -- mascotas, vagabundos, gatos de casa, protectora, ani
 task.spawn(Nudge.init) -- los NPC se apartan (con traspiés) si chocas con ellos o pasa tu coche
 task.spawn(Vehicles.init) -- bicis, monopatines, motos y coches
 task.spawn(Hangar.init) -- app Hangar: comprar barcos y aviones y desplegarlos desde el teléfono
+task.spawn(AutoTarget.init) -- combate de MMO: objetivo, correr hacia él y encadenar golpes; vida y espíritu
 task.spawn(Arcade.init) -- recreativos
 task.spawn(DrivingSchool.init) -- autoescuela
 task.spawn(Restaurant.init) -- trabajo de camarero y barman

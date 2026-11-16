@@ -339,7 +339,7 @@ do
 	-- Invasión de la Grieta: el disparo le dice a InvasionService en qué zona dio (cabeza = tambalearse)
 	local fsx = require("@lune/fs")
 	local cs = fsx.readFile("src/server/Services/CombatService.luau")
-	check(cs:find("{ At = info.At, Weapon = info.Weapon, Zone = info.Zone }", 1, true) ~= nil, "a un alienígena le llega la zona del disparo (la cabeza lo tambalea)")
+	check(cs:find("{ At = info.At, Weapon = info.Weapon, Zone = info.Zone,", 1, true) ~= nil, "a un alienígena le llega la zona del disparo (la cabeza lo tambalea)")
 	local inv = fsx.readFile("src/server/Services/InvasionService.luau")
 	check(inv:find("AlienAI.stagger(g.AI, dealt, zone == \"Head\", t)", 1, true) ~= nil, "InvasionService lo tambalea con un disparo fuerte o en la cabeza")
 end

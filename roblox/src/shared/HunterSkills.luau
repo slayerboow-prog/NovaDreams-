@@ -12,17 +12,17 @@ local HunterSkills = {}
 
 -- Key: tecla en el ordenador (en el móvil, sus botones)
 HunterSkills.List = {
-	{ Id = "TajoCircular", Name = "Tajo circular", Icon = "🌀", Key = "Z", Level = 2, Cooldown = 8, Kind = "Area", Radius = 14, Power = 2.2, MaxTargets = 8,
+	{ Id = "TajoCircular", Name = "Tajo circular", Icon = "🌀", Key = "Z", Level = 2, Cooldown = 8, Kind = "Area", Radius = 14, Power = 2.2, MaxTargets = 8, Mana = 18,
 		Desc = "Giras y golpeas a todas las bestias que tengas alrededor." },
-	{ Id = "Embestida", Name = "Embestida", Icon = "💨", Key = "X", Level = 6, Cooldown = 12, Kind = "Dash", Distance = 30, Width = 8, Power = 3, MaxTargets = 6,
+	{ Id = "Embestida", Name = "Embestida", Icon = "💨", Key = "X", Level = 6, Cooldown = 12, Kind = "Dash", Distance = 30, Width = 8, Power = 3, MaxTargets = 6, Mana = 24,
 		Desc = "Te lanzas hacia delante y golpeas a todo lo que cruzas." },
-	{ Id = "Furia", Name = "Furia del cazador", Icon = "🔥", Key = "C", Level = 12, Cooldown = 45, Kind = "Buff", Buff = "Furia", Amount = 0.4, Seconds = 15,
+	{ Id = "Furia", Name = "Furia del cazador", Icon = "🔥", Key = "C", Level = 12, Cooldown = 45, Kind = "Buff", Buff = "Furia", Amount = 0.4, Seconds = 15, Mana = 40,
 		Desc = "Durante 15 segundos tus golpes a las bestias hacen un 40 % más." },
-	{ Id = "GolpeSismico", Name = "Golpe sísmico", Icon = "💥", Key = "V", Level = 20, Cooldown = 30, Kind = "Area", Radius = 22, Power = 4.5, MaxTargets = 12,
+	{ Id = "GolpeSismico", Name = "Golpe sísmico", Icon = "💥", Key = "V", Level = 20, Cooldown = 30, Kind = "Area", Radius = 22, Power = 4.5, MaxTargets = 12, Mana = 45,
 		Desc = "Golpeas el suelo: una onda alcanza a todas las bestias cercanas." },
-	{ Id = "Punteria", Name = "Puntería letal", Icon = "🎯", Key = "B", Level = 9, Cooldown = 35, Kind = "Buff", Buff = "Punteria", Amount = 0.5, Seconds = 12,
-		Desc = "Durante 12 segundos tus disparos a las bestias hacen un 50 % más." },
-	{ Id = "Coraza", Name = "Coraza de grieta", Icon = "🛡", Key = "N", Level = 15, Cooldown = 50, Kind = "Buff", Buff = "Coraza", Amount = 0.3, Seconds = 12,
+	{ Id = "TormentaAcero", Name = "Tormenta de acero", Icon = "⚔", Key = "B", Level = 9, Cooldown = 14, Kind = "Area", Radius = 11, Power = 3.4, MaxTargets = 6, Mana = 30,
+		Desc = "Encadenas cortes a tu alrededor: mucho daño a las bestias pegadas a ti." },
+	{ Id = "Coraza", Name = "Coraza de grieta", Icon = "🛡", Key = "N", Level = 15, Cooldown = 50, Kind = "Buff", Buff = "Coraza", Amount = 0.3, Seconds = 12, Mana = 35,
 		Desc = "Durante 12 segundos las bestias te hacen un 30 % menos de daño." },
 }
 table.sort(HunterSkills.List, function(a, b)
@@ -36,6 +36,15 @@ end
 
 function HunterSkills.get(id: any): { [string]: any }?
 	return if type(id) == "string" then byId[id] else nil
+end
+
+-- ESPÍRITU (la barra azul, como el maná): cada habilidad gasta el suyo (Mana) y se recupera solo, más deprisa
+-- fuera de combate. Sube con el nivel de cazador.
+function HunterSkills.manaMax(hunterLevel: number): number
+	return 100 + 6 * math.max(0, math.floor(hunterLevel) - 1)
+end
+function HunterSkills.manaRegen(max: number, fighting: boolean): number -- por segundo
+	return (if fighting then 0.015 else 0.05) * max + 1
 end
 
 -- RANGOS: cada habilidad empieza en rango 1 al desbloquearse y sube hasta el 10 («Maestra») con PUNTOS DE

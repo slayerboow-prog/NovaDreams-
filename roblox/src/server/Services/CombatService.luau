@@ -383,8 +383,11 @@ local function victimsOf(attacker: Model, root: BasePart, reach: number?): { Mod
 			local at = if targetRoot then targetRoot.Position else part.Position
 			local offset = Vector3.new(at.X - root.Position.X, 0, at.Z - root.Position.Z)
 			local distance = offset.Magnitude
-			if distance <= range + 1 and (distance < 1 or offset.Unit:Dot(look) >= Combat.FacingDot) then
-				found[model] = distance
+			-- (se mide hasta el borde de su cuerpo: a un oso, un dragón o un jefe se le pega en la piel, no en
+			-- el centro; antes a los grandes no se les llegaba nunca)
+			local pad = if targetRoot then math.min(math.max(targetRoot.Size.X, targetRoot.Size.Z) / 2, 14) else 0
+			if distance - pad <= range + 1 and (distance < 1 + pad or offset.Unit:Dot(look) >= Combat.FacingDot) then
+				found[model] = distance - pad
 			end
 		end
 	end
@@ -1265,6 +1268,8 @@ export type HitInfo = {
 	At: Vector3?, -- dónde ha dado (para el número de daño)
 	Zone: string?,
 	Vehicle: boolean?, -- atropello (KnockService): el delito lo decide KnockService (culpa + policía delante)
+	Melee: boolean?, -- golpe de arma blanca o habilidad (a las bestias: tu mejor arma blanca, no las balas)
+	Skill: string?, -- habilidad de cazador que lo hace
 }
 export type HitResult = { Hit: boolean, Amount: number, KO: boolean, Killed: boolean, Player: Player? }
 
@@ -1284,7 +1289,7 @@ function CombatService.applyHit(attacker: Player, model: Model, info: HitInfo): 
 		if not hook or info.Toy then
 			return none
 		end
-		local okHit, counted, dealt, gone = pcall(hook, attacker, model, info.Amount, { At = info.At, Weapon = info.Weapon, Zone = info.Zone })
+		local okHit, counted, dealt, gone = pcall(hook, attacker, model, info.Amount, { At = info.At, Weapon = info.Weapon, Zone = info.Zone, Melee = info.Melee, Heavy = info.Heavy, Skill = info.Skill })
 		if okHit and counted then
 			return { Hit = true, Amount = dealt or 0, KO = gone == true, Killed = false, Player = nil }
 		end
