@@ -181,4 +181,17 @@ local hop = Anim.bodyPose(1, math.pi / 2, 1, 0, false, 0, 0, 0, 0, 0, "Masa")
 local walk = Anim.bodyPose(1, math.pi / 2, 1, 0, false, 0, 0, 0, 0, 0, "Cuadrupedo")
 check(hop.Position.Y > walk.Position.Y + 0.3, "el slime avanza a saltos")
 
+-- Cada monstruo del cartel está montado pieza a pieza (Kit/BeastSculpt), sin materiales con textura
+local sculpt = fs.readFile("src/server/World/Kit/BeastSculpt.luau")
+local sculptOk = true
+for _, list in roster do
+	for _, sid in list do
+		sculptOk = sculptOk and sculpt:find("%f[%w]R%." .. sid .. " = {") ~= nil
+	end
+end
+check(sculptOk, "los 24 monstruos del cartel tienen su receta pieza a pieza")
+check(sculpt:find("Enum.Material.Slate", 1, true) == nil and sculpt:find("Enum.Material.Grass", 1, true) == nil and kit2:find("BeastSculpt.build", 1, true) ~= nil,
+	"colores lisos (sin texturas) y BeastKit usa las recetas")
+check(sculpt:find('"Pierna", V3(0.26', 1, true) == nil, "los tramos de las patas de araña no se articulan como piernas")
+
 L.finish("test-cerebro-bestias")

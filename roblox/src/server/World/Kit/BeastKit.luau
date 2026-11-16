@@ -11,6 +11,7 @@
 
 local Builder = require(script.Parent.Parent.Builder)
 local BeastLooks = require(script.Parent.BeastLooks)
+local BeastSculpt = require(script.Parent.BeastSculpt)
 
 local BeastKit = {}
 
@@ -127,7 +128,7 @@ local IVORY = rgb(236, 228, 204)
 
 -- Los detalles que hacen que una bestia no parezca una caja con patas: colmillos, cuernos, garras, melena,
 -- placas o cristales de su tierra y, si es campeona, corona dorada y chispas
-local function details(model: Model, root: BasePart, sp: { [string]: any }, id: string, k: number, champion: boolean)
+local function details(model: Model, root: BasePart, sp: { [string]: any }, id: string, k: number, champion: boolean, sculpted: boolean)
 	local C = sp.Colors
 	local body, belly, glow = C.Body, C.Belly, C.Glow
 	local m = mat(sp.Material)
@@ -140,6 +141,8 @@ local function details(model: Model, root: BasePart, sp: { [string]: any }, id: 
 		p.Material = Enum.Material.Neon
 		p.CastShadow = false
 	end
+	-- (los del cartel —Kit/BeastSculpt— ya traen sus detalles: solo la corona de campeona)
+	if not sculpted then
 	-- colmillos
 	if shape == "Cuadrupedo" or shape == "Serpiente" then
 		for _, sx in { -1, 1 } do
@@ -256,6 +259,7 @@ local function details(model: Model, root: BasePart, sp: { [string]: any }, id: 
 	elseif theme == "Bosque" and shape ~= "Insecto" then
 		limb(model, root, "Hojas", V3(root.Size.X * 0.7, 0.2 * k, root.Size.Z * 0.5), back * CFrame.new(0, 0.05 * k, 0), rgb(70, 140, 60), Enum.Material.Grass)
 	end
+	end
 	-- campeona: corona dorada que flota, luz y chispas
 	if champion then
 		local gold = rgb(255, 205, 70)
@@ -306,7 +310,10 @@ function BeastKit.beast(sp: { [string]: any }, id: string, opts: { [string]: any
 	local shape = sp.Body
 	-- la raíz: la caja del tronco; las patas cuelgan por debajo (HipHeight)
 	local rootSize, hip
-	if shape == "Serpiente" then
+	local sculpt = BeastSculpt.frame(id)
+	if sculpt then
+		rootSize, hip = sculpt.Root * k, sculpt.Hip * k
+	elseif shape == "Serpiente" then
 		rootSize, hip = V3(1.6 * k, 1.4 * k, 3 * k), 0.4 * k
 	elseif shape == "Insecto" then
 		rootSize, hip = V3(2.6 * k, 1.2 * k, 3.2 * k), 1.1 * k
@@ -349,7 +356,9 @@ function BeastKit.beast(sp: { [string]: any }, id: string, opts: { [string]: any
 	local Y = -rootSize.Y / 2 -- (la parte de abajo del tronco)
 
 	local ctx = { Model = model, Root = root, Sp = sp, K = k, Hip = hip, Limb = limb, Eye = eye, Mat = m }
-	if shape == "Masa" then
+	if sculpt then
+		BeastSculpt.build(ctx, id) -- (los 24 del cartel, pieza a pieza)
+	elseif shape == "Masa" then
 		BeastLooks.blob(ctx)
 	elseif shape == "Cuadrupedo" then
 		-- (con aspecto propio: Oso, Cocodrilo, Dragon; si no, el de siempre: lobo, jabalí…)
@@ -512,7 +521,7 @@ function BeastKit.beast(sp: { [string]: any }, id: string, opts: { [string]: any
 		end
 	end
 	rig(model, hub, shape)
-	details(model, root, sp, id, k, champion)
+	details(model, root, sp, id, k, champion, sculpt ~= nil)
 	model:SetAttribute("Escala", k)
 	model:SetAttribute("Forma", shape)
 	model:SetAttribute("Vuela", sp.Flies == true or string.find(id, "Avispa") ~= nil or string.find(id, "Medusa") ~= nil or string.find(id, "Dron") ~= nil or string.find(id, "Buitre") ~= nil)
