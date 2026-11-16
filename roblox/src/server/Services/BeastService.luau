@@ -5,7 +5,8 @@
 --     (BeastService.buildWilds). Las bestias salen solo en las guaridas con alguien cerca (Bestiary.Active) y se
 --     recogen cuando no queda nadie (Bestiary.Despawn): así no gastan nada en un planeta vacío.
 --   * Cada bestia ronda su guarida; si ve a alguien a pie (Aggro) lo persigue hasta su correa (Leash) y le
---     muerde. El daño que te llega lo baja tu armadura (shared/Crafting.damageTaken). A 0 caes en combate y
+--     muerde. CÓMO pelea cada una (estados, manadas, cargas, disparos, vuelta a casa, amenaza) lo decide
+--     shared/Cosmos/BeastBrain; aquí solo se hace. El daño que te llega lo baja tu armadura (shared/Crafting.damageTaken). A 0 caes en combate y
 --     te levantas a los pocos segundos con algo de vida (nada de hospital por una bestia).
 --   * Se les pega con lo de siempre: golpes (CombatService → beastHit) y balas (WeaponService → applyHit →
 --     beastHit). Llevan InvasionTarget = "Bestia:<n>" para que la puntería, los golpes y la policía las traten
@@ -29,6 +30,7 @@ local Combat = require(ReplicatedStorage.Shared.Combat)
 local Crafting = require(ReplicatedStorage.Shared.Crafting)
 local Items = require(ReplicatedStorage.Shared.Items)
 local ValmarRegions = require(ReplicatedStorage.Shared.Cosmos.ValmarRegions)
+local BeastBrain = require(ReplicatedStorage.Shared.Cosmos.BeastBrain)
 
 local BeastService = {}
 
@@ -65,6 +67,20 @@ type Beast = {
 	Static: boolean?, -- (una esquirla de la Grieta: no se mueve ni muerde)
 	Waves: { [number]: boolean }?,
 	Tier: number?,
+	-- (el cerebro: shared/Cosmos/BeastBrain)
+	State: string?, -- Ronda | Alerta | Caza | Vuelta | Huida
+	Style: { [string]: any }?,
+	BaseSpeed: number?,
+	AlertUntil: number?,
+	ReturnSince: number?,
+	FleeUntil: number?,
+	Fled: boolean?,
+	Lunge: number?,
+	NextSpecial: number?,
+	NextSlam: number?,
+	Charge: { [string]: any }?,
+	Level: number?,
+	Region: string?,
 }
 
 local beasts: { [Model]: Beast } = {}
@@ -303,7 +319,12 @@ local function spawnAt(S: any, lair: { [string]: any }): Beast?
 		NextStomp = now() + 6,
 		Dead = false,
 		LastSeen = now(),
+		State = "Ronda",
+		Style = BeastBrain.styleOf(lair.Species, sp),
+		BaseSpeed = hum.WalkSpeed,
+		NextSpecial = now() + 2 + math.random() * 2,
 	}
+	model:SetAttribute("Estilo", (b.Style :: any).Name)
 	setHp(b)
 	beasts[model] = b
 	byLair[lair.Id] = byLair[lair.Id] or {}
@@ -313,6 +334,10 @@ end
 
 local function forget(b: Beast)
 	beasts[b.Model] = nil
+	if b.Charge and b.Charge.Line then
+		b.Charge.Line:Destroy()
+	end
+	b.Charge = nil
 	local list = byLair[b.Lair.Id]
 	if list then
 		local i = table.find(list, b)
@@ -804,14 +829,24 @@ function BeastService.hit(attacker: Player?, model: Instance, amount: number, in
 		local data = dataOf(attacker)
 		n *= BeastService.BulletMul * (1 + Crafting.gunBonus(data and data.Refine, i.Weapon) + Crafting.hunterBonus(data and data.Hunter and data.Hunter.Xp) + buff(attacker, "Punteria"))
 	end
+	-- (volviendo a su guarida no encaja nada: nada de matarla tirando de ella lejos de casa)
+	if b.State == "Vuelta" then
+		return false, 0, false
+	end
 	if b.Sp.Boss then
 		n *= BeastService.BossTakes
 	end
+	n *= 1 - ((b.Style and b.Style.Armor) or 0) -- (los colosos encajan más)
 	n = math.clamp(math.floor(n + 0.5), 1, 600)
 	b.Hp -= n
 	b.Damage[attacker] = (b.Damage[attacker] or 0) + n
-	-- se enfada con quien le pega (si no está demasiado lejos de casa)
-	b.Target = attacker
+	-- se enfada con quien le pega (y a quién persigue lo decide la amenaza: BeastBrain.pickTarget)
+	if not b.Target then
+		b.Target = attacker
+	end
+	if not b.Static and (b.State == nil or b.State == "Ronda" or b.State == "Alerta") then
+		BeastService._engage(b, attacker)
+	end
 	setHp(b)
 	if b.Static and b.Waves and b.Hp > 0 then
 		for idx, th in Bestiary.Shard.Waves do
@@ -831,20 +866,342 @@ end
 ---------------------------------------------------------------------
 -- Cabeza de las bestias (cada BeastService.Tick)
 ---------------------------------------------------------------------
+local function setState(b: Beast, state: string)
+	if b.State ~= state then
+		b.State = state
+		b.Model:SetAttribute("Estado", state)
+	end
+end
+
+-- Un aviso sobre la cabeza («!» al verte)
+local function mark(b: Beast, text: string, color: Color3, seconds: number)
+	local old = b.Root:FindFirstChild("AvisoBestia")
+	if old then
+		old:Destroy()
+	end
+	local g = Instance.new("BillboardGui")
+	g.Name = "AvisoBestia"
+	g.Size = UDim2.fromOffset(44, 44)
+	g.StudsOffset = Vector3.new(0, b.Root.Size.Y + 3.5, 0)
+	g.AlwaysOnTop = true
+	g.MaxDistance = 150
+	g.LightInfluence = 0
+	local l = Instance.new("TextLabel")
+	l.BackgroundTransparency = 1
+	l.Size = UDim2.fromScale(1, 1)
+	l.Text = text
+	l.Font = Enum.Font.GothamBlack
+	l.TextScaled = true
+	l.TextColor3 = color
+	l.TextStrokeTransparency = 0
+	l.Parent = g
+	g.Parent = b.Root
+	task.delay(seconds, function()
+		g:Destroy()
+	end)
+end
+
+local function feet(b: Beast): Vector3
+	return b.Root.Position - Vector3.new(0, b.Humanoid.HipHeight + b.Root.Size.Y / 2 - 0.3, 0)
+end
+
+local function face(b: Beast, at: Vector3)
+	local flat = Vector3.new(at.X - b.Root.Position.X, 0, at.Z - b.Root.Position.Z)
+	if flat.Magnitude > 0.1 then
+		b.Root.CFrame = CFrame.new(b.Root.Position, b.Root.Position + flat)
+	end
+end
+
+local function playerLevel(p: Player): number?
+	return tonumber(p:GetAttribute("Level"))
+end
+
+-- Golpe de área que avisa: un anillo crece en el suelo y, al acabar, daño a quien siga dentro
+local function ringAttack(b: Beast, center: Vector3, radius: number, windup: number, damage: number, name: string)
+	local ring = Instance.new("Part")
+	ring.Name = name
+	ring.Shape = Enum.PartType.Cylinder
+	ring.Anchored = true
+	ring.CanCollide = false
+	ring.CanQuery = false
+	ring.CanTouch = false
+	ring.Material = Enum.Material.Neon
+	ring.Color = b.Sp.Colors.Glow
+	ring.Transparency = 0.55
+	ring.Size = Vector3.new(0.3, 4, 4)
+	ring.CFrame = CFrame.new(center) * CFrame.Angles(0, 0, math.pi / 2)
+	ring.Parent = workspace
+	TweenService:Create(ring, TweenInfo.new(windup, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), { Size = Vector3.new(0.3, radius * 2, radius * 2) }):Play()
+	task.delay(windup + 0.05, function()
+		ring:Destroy()
+		if b.Dead or not b.Model.Parent then
+			return
+		end
+		dustBurst(center, b.Sp.Colors.Glow, radius > 16)
+		for _, p in Players:GetPlayers() do
+			local root = rootOf(p)
+			if root and huntable(p) and (root.Position - center).Magnitude <= radius + 2 then
+				hurt(b, p, damage)
+			end
+		end
+	end)
+end
+
+-- Escupitajo / disparo: va hacia donde ESTABAS; si te mueves, lo esquivas
+local function spit(b: Beast, at: Vector3, ranged: { [string]: any })
+	local boss = b.Sp.Boss == true
+	face(b, at)
+	local from = b.Root.Position + b.Root.CFrame.LookVector * (b.Root.Size.Z * 0.5 + 1) + Vector3.new(0, b.Root.Size.Y * 0.3, 0)
+	local ball = Instance.new("Part")
+	ball.Name = "DisparoBestia"
+	ball.Shape = Enum.PartType.Ball
+	ball.Size = Vector3.one * (if boss then 4 else 1.6)
+	ball.Material = Enum.Material.Neon
+	ball.Color = b.Sp.Colors.Glow
+	ball.Anchored = true
+	ball.CanCollide = false
+	ball.CanQuery = false
+	ball.CanTouch = false
+	ball.CFrame = CFrame.new(from)
+	local light = Instance.new("PointLight")
+	light.Color = b.Sp.Colors.Glow
+	light.Range = if boss then 16 else 8
+	light.Brightness = 2
+	light.Parent = ball
+	ball.Parent = workspace
+	local secs = math.clamp((at - from).Magnitude / ranged.Speed, 0.15, 1.2)
+	TweenService:Create(ball, TweenInfo.new(secs, Enum.EasingStyle.Linear), { Position = at }):Play()
+	local radius = ranged.Radius * (if boss then 1.8 else 1)
+	local damage = b.Sp.Damage * (b.Hit or 1) * ranged.Mul
+	task.delay(secs, function()
+		ball:Destroy()
+		dustBurst(at, b.Sp.Colors.Glow, false)
+		for _, p in Players:GetPlayers() do
+			local root = rootOf(p)
+			if root and huntable(p) and (root.Position - at).Magnitude <= radius then
+				hurt(b, p, damage)
+			end
+		end
+	end)
+end
+
+local function endCharge(b: Beast)
+	local c = b.Charge
+	b.Charge = nil
+	if c and c.Line then
+		c.Line:Destroy()
+	end
+	b.Humanoid.WalkSpeed = b.BaseSpeed or b.Humanoid.WalkSpeed
+end
+
+-- Carga: se para, marca una raya en el suelo hacia ti y sale disparada por ella
+local function startCharge(b: Beast, troot: BasePart, charge: { [string]: any }, t: number)
+	local flat = Vector3.new(troot.Position.X - b.Root.Position.X, 0, troot.Position.Z - b.Root.Position.Z)
+	if flat.Magnitude < 0.5 then
+		return
+	end
+	local dir = flat.Unit
+	local len = math.min(charge.MaxD + 6, flat.Magnitude + 10)
+	local width = charge.Width * (if b.Sp.Boss then 2.5 else 1)
+	b.Humanoid:Move(Vector3.zero)
+	face(b, troot.Position)
+	local base = feet(b)
+	local line = Instance.new("Part")
+	line.Name = "AvisoCarga"
+	line.Anchored = true
+	line.CanCollide = false
+	line.CanQuery = false
+	line.CanTouch = false
+	line.Material = Enum.Material.Neon
+	line.Color = b.Sp.Colors.Glow
+	line.Transparency = 0.55
+	line.Size = Vector3.new(width, 0.2, len)
+	line.CFrame = CFrame.lookAt(base + dir * (len / 2), base + dir * len)
+	line.Parent = workspace
+	b.Charge = { Phase = "Windup", Until = t + charge.Windup, Dir = dir, Len = len, Width = width, Hit = {}, Line = line, Cfg = charge, From = b.Root.Position }
+end
+
+local function chargeStep(b: Beast, t: number)
+	local c = b.Charge :: { [string]: any }
+	if c.Phase == "Windup" then
+		b.Humanoid:Move(Vector3.zero)
+		if t >= c.Until then
+			c.Phase = "Dash"
+			c.Until = t + c.Cfg.Dash
+			c.Last = b.Root.Position
+			b.Humanoid.WalkSpeed = (b.BaseSpeed or 16) * c.Cfg.Speed
+			b.Humanoid:MoveTo(c.From + c.Dir * c.Len)
+		end
+		return
+	end
+	-- arrolla a quien esté entre donde estaba en el tick anterior y donde está ahora
+	local p0, p1 = c.Last :: Vector3, b.Root.Position
+	local reach = c.Width / 2 + b.Root.Size.X / 2 + 1.5
+	for _, p in Players:GetPlayers() do
+		if not c.Hit[p] and huntable(p) then
+			local r = rootOf(p)
+			if r and math.abs(r.Position.Y - p1.Y) < 10 + b.Root.Size.Y
+				and BeastBrain.segmentDistance(r.Position.X, r.Position.Z, p0.X, p0.Z, p1.X, p1.Z) <= reach then
+				c.Hit[p] = true
+				hurt(b, p, b.Sp.Damage * (b.Hit or 1) * c.Cfg.Mul)
+				dustBurst(r.Position, b.Sp.Colors.Glow, false)
+			end
+		end
+	end
+	c.Last = p1
+	local goal = c.From + c.Dir * c.Len
+	if t >= c.Until or Vector3.new(goal.X - p1.X, 0, goal.Z - p1.Z).Magnitude < 3 then
+		endCharge(b)
+	end
+end
+
+-- Las de su guarida (y las de su especie cerca) se apuntan a la pelea
+local function callPack(b: Beast, target: Player)
+	local r = (b.Style and b.Style.Call) or BeastBrain.CallRadius
+	for _, o in beasts do
+		if o ~= b and not o.Dead and not o.Static and o.Planet == b.Planet and not o.Target and (o.State == nil or o.State == "Ronda") then
+			local d = (o.Root.Position - b.Root.Position).Magnitude
+			if (o.Lair.Id == b.Lair.Id and d < r * 1.5) or (o.Species == b.Species and d < r) then
+				o.Target = target
+				setState(o, "Alerta")
+				o.AlertUntil = now() + 0.3 + math.random() * 0.4
+				o.Lunge = o.Style and o.Style.Lunge
+				mark(o, "!", Color3.fromRGB(255, 70, 50), 1.2)
+			end
+		end
+	end
+end
+
+-- Te ha visto (o le has pegado): a pelear, y avisa a las suyas
+function BeastService._engage(b: Beast, target: Player, alert: boolean?)
+	b.Target = target
+	if alert then
+		setState(b, "Alerta")
+		b.AlertUntil = now() + BeastBrain.AlertTime * (if b.Sp.Boss then 1.5 else 1)
+		b.Lunge = b.Style and b.Style.Lunge
+		mark(b, "!", Color3.fromRGB(255, 70, 50), 1.2)
+	else
+		setState(b, "Caza")
+	end
+	if b.Sp.Boss and not b.Announced then
+		b.Announced = true
+		for _, q in Players:GetPlayers() do
+			local r = rootOf(q)
+			if r and (r.Position - b.Root.Position).Magnitude < 220 then
+				tell(q, "Error", ("⚠ %s se ha despertado."):format(b.Sp.Name))
+			end
+		end
+	end
+	callPack(b, target)
+end
+
+-- Vuelve corriendo a casa: no encaja golpes y llega curada
+local function startReturn(b: Beast, t: number)
+	endCharge(b)
+	b.Target = nil
+	setState(b, "Vuelta")
+	b.ReturnSince = t
+	b.Humanoid.WalkSpeed = (b.BaseSpeed or 16) * BeastBrain.ReturnSpeed
+	b.Humanoid:MoveTo(b.Home)
+end
+
+local function homeAgain(b: Beast, teleport: boolean)
+	if teleport then
+		b.Model:PivotTo(CFrame.new(b.Home + Vector3.new(0, b.Humanoid.HipHeight + b.Root.Size.Y / 2 + 1, 0)))
+	end
+	endCharge(b)
+	b.Target = nil
+	b.Hp = b.Max
+	b.Damage = {}
+	b.Fled = nil
+	b.Lunge = nil
+	b.Humanoid.WalkSpeed = b.BaseSpeed or b.Humanoid.WalkSpeed
+	b.Announced = nil
+	setHp(b)
+	setState(b, "Ronda")
+end
+
 local function nearestTarget(b: Beast): (Player?, number)
 	local best, bd = nil, math.huge
 	for _, p in Players:GetPlayers() do
 		if huntable(p) then
 			local root = rootOf(p)
 			if root then
+				local range = BeastBrain.aggroRange(b.Sp, b.Style or BeastBrain.Styles.Bruto, b.Level, playerLevel(p))
 				local d = (root.Position - b.Root.Position).Magnitude
-				if d < b.Sp.Aggro and d < bd and (root.Position - b.Home).Magnitude < Bestiary.Leash + b.Sp.Aggro then
+				if d < range and d < bd and (root.Position - b.Home).Magnitude < Bestiary.Leash + range then
 					best, bd = p, d
 				end
 			end
 		end
 	end
 	return best, bd
+end
+
+-- Pelear: moverse según su estilo, sus ataques especiales y el mordisco
+local function fight(b: Beast, target: Player, troot: BasePart, t: number)
+	local st = b.Style or BeastBrain.Styles.Bruto
+	local boss = b.Sp.Boss == true
+	local moves = if boss then BeastBrain.bossMoves(b.Sp) else nil
+	local ranged = if moves then (if moves.Ranged then BeastBrain.Styles.Distancia.Ranged else nil) else st.Ranged
+	local charge = if moves then (if moves.Charge then BeastBrain.Styles.Embestida.Charge else nil) else st.Charge
+	local slam = if moves then (if moves.Slam then BeastBrain.Styles.Coloso.Slam else nil) else st.Slam
+	local flat = Vector3.new(troot.Position.X - b.Root.Position.X, 0, troot.Position.Z - b.Root.Position.Z)
+	local dist = flat.Magnitude
+	local reach = b.Root.Size.Z * 0.5 + 4.5
+	-- ataques especiales (uno cada poco)
+	if t >= (b.NextSpecial or 0) then
+		if charge and BeastBrain.canCharge(dist, charge) then
+			startCharge(b, troot, charge, t)
+			b.NextSpecial = t + charge.Cooldown * (if boss then 1.4 else 1)
+			return
+		end
+		if ranged and dist >= reach + 2 and dist <= ranged.Max then
+			spit(b, troot.Position, ranged)
+			b.NextSpecial = t + ranged.Cooldown * (if boss then 1.8 else 1)
+		end
+	end
+	-- moverse
+	if st.Ranged and not boss then
+		local m = BeastBrain.rangedMove(dist, st.Ranged)
+		if m == "Acercarse" then
+			b.Humanoid:MoveTo(troot.Position)
+		elseif m == "Alejarse" and dist > 0.1 then
+			b.Humanoid:MoveTo(b.Root.Position - flat.Unit * 12)
+		else
+			b.Humanoid:Move(Vector3.zero)
+			face(b, troot.Position)
+		end
+	elseif st.Flank and not boss and dist > reach + 3 then
+		local ox, oz = BeastBrain.flankOffset(b.N, st.Flank)
+		b.Humanoid:MoveTo(troot.Position + Vector3.new(ox, 0, oz))
+	elseif dist > reach - 1 then
+		b.Humanoid:MoveTo(troot.Position)
+	else
+		b.Humanoid:Move(Vector3.zero)
+		face(b, troot.Position)
+	end
+	-- cuerpo a cuerpo
+	if dist <= reach and t >= b.NextBite and math.abs(troot.Position.Y - b.Root.Position.Y) < 12 + b.Root.Size.Y then
+		b.NextBite = t + BeastService.BiteCooldown
+		local damage = b.Sp.Damage * (b.Hit or 1)
+		if slam and t >= (b.NextSlam or 0) then
+			b.NextSlam = t + slam.Cooldown
+			local look = if dist > 0.1 then flat.Unit else b.Root.CFrame.LookVector
+			ringAttack(b, feet(b) + look * reach * 0.6, slam.Radius * (if boss then 1.6 else 1), slam.Windup, damage * slam.Mul, "AvisoGolpe")
+		else
+			local mul = b.Lunge or 1
+			b.Lunge = nil
+			hurt(b, target, damage * mul)
+			if mul > 1 then
+				dustBurst(troot.Position, b.Sp.Colors.Glow, false)
+			end
+		end
+	end
+	if boss and t >= b.NextStomp and dist < 34 then
+		b.NextStomp = t + 7
+		stomp(b)
+	end
 end
 
 local function think(b: Beast, t: number)
@@ -857,53 +1214,93 @@ local function think(b: Beast, t: number)
 	end
 	-- (si se cae o se atasca muy lejos, vuelve a su guarida)
 	if b.Root.Position.Y < b.Home.Y - 40 or (b.Root.Position - b.Home).Magnitude > Bestiary.Leash * 2.5 then
-		b.Model:PivotTo(CFrame.new(b.Home + Vector3.new(0, b.Humanoid.HipHeight + b.Root.Size.Y / 2 + 1, 0)))
-		b.Target = nil
+		homeAgain(b, true)
 		return
 	end
-	local target = b.Target
-	if target and (not target.Parent or not huntable(target)) then
-		target = nil
+	if b.Charge then
+		chargeStep(b, t)
+		return
 	end
-	local troot = target and rootOf(target)
-	if troot and (troot.Position - b.Home).Magnitude > Bestiary.Leash + 30 then
-		target, troot = nil, nil -- (demasiado lejos de su guarida: lo deja)
+	local state = b.State or "Ronda"
+	-- volviendo a casa
+	if state == "Vuelta" then
+		local d = (b.Root.Position - b.Home).Magnitude
+		if d < 10 then
+			homeAgain(b, false)
+		elseif t - (b.ReturnSince or t) > BeastBrain.ReturnMax then
+			homeAgain(b, true)
+		else
+			b.Humanoid:MoveTo(b.Home)
+		end
+		return
 	end
-	if not target then
-		local p = nearestTarget(b)
-		target = p
-		troot = p and rootOf(p)
-		if p and b.Sp.Boss and not b.Announced then
-			b.Announced = true
-			for _, q in Players:GetPlayers() do
-				local r = rootOf(q)
-				if r and (r.Position - b.Root.Position).Magnitude < 220 then
-					tell(q, "Error", ("⚠ %s se ha despertado."):format(b.Sp.Name))
+	-- huyendo un momento
+	if state == "Huida" then
+		if t >= (b.FleeUntil or 0) then
+			b.Humanoid.WalkSpeed = b.BaseSpeed or b.Humanoid.WalkSpeed
+			setState(b, "Caza")
+			state = "Caza"
+		else
+			local troot = b.Target and rootOf(b.Target)
+			if troot then
+				local away = Vector3.new(b.Root.Position.X - troot.Position.X, 0, b.Root.Position.Z - troot.Position.Z)
+				if away.Magnitude > 0.1 then
+					b.Humanoid:MoveTo(b.Root.Position + away.Unit * 20)
 				end
 			end
+			return
 		end
 	end
-	b.Target = target
-	if target and troot then
-		local flat = Vector3.new(troot.Position.X - b.Root.Position.X, 0, troot.Position.Z - b.Root.Position.Z)
-		local reach = b.Root.Size.Z * 0.5 + 4.5
-		if flat.Magnitude > reach - 1 then
-			b.Humanoid:MoveTo(troot.Position)
-		else
-			b.Humanoid:Move(Vector3.zero)
-			-- mirar hacia él
-			b.Root.CFrame = CFrame.new(b.Root.Position, b.Root.Position + flat)
+	-- ¿a quién? (quien más daño le hace, si lo puede perseguir)
+	local leash = Bestiary.Leash + 30
+	local eligible: { [any]: boolean } = {}
+	local function canChase(p: Player?): boolean
+		if not p or not p.Parent or not huntable(p) then
+			return false
 		end
-		if flat.Magnitude <= reach and t >= b.NextBite and math.abs(troot.Position.Y - b.Root.Position.Y) < 12 + b.Root.Size.Y then
-			b.NextBite = t + BeastService.BiteCooldown
-			hurt(b, target, b.Sp.Damage * (b.Hit or 1))
+		local r = rootOf(p)
+		return r ~= nil and (r.Position - b.Home).Magnitude < leash
+	end
+	for p in b.Damage do
+		if canChase(p) then
+			eligible[p] = true
 		end
-		if b.Sp.Boss and t >= b.NextStomp and flat.Magnitude < 34 then
-			b.NextStomp = t + 7
-			stomp(b)
+	end
+	local cur = b.Target
+	local curOk = canChase(cur)
+	if cur and curOk then
+		eligible[cur] = true
+	end
+	local target = BeastBrain.pickTarget(if curOk then cur else nil, b.Damage, eligible) :: Player?
+	local troot = target and rootOf(target)
+	local fromHome = (b.Root.Position - b.Home).Magnitude
+	-- su presa se le ha ido lejos (o se ha alejado ella demasiado): vuelve a casa
+	if troot and BeastBrain.mustReturn(fromHome, (troot.Position - b.Home).Magnitude, Bestiary.Leash) then
+		startReturn(b, t)
+		return
+	end
+	if not target or not troot then
+		b.Target = nil
+		if state ~= "Ronda" then
+			if fromHome > 40 then
+				startReturn(b, t)
+				return
+			end
+			setState(b, "Ronda")
 		end
-	else
-		b.Announced = if b.Sp.Boss then b.Announced else nil
+		local seen = nearestTarget(b)
+		if seen then
+			BeastService._engage(b, seen, true)
+			local r = rootOf(seen)
+			if r then
+				b.Humanoid:Move(Vector3.zero)
+				face(b, r.Position)
+			end
+			return
+		end
+		if not b.Sp.Boss then
+			b.Announced = nil
+		end
 		if t >= b.NextWander then
 			b.NextWander = t + 3 + math.random() * 4
 			local a = math.random() * math.pi * 2
@@ -915,7 +1312,28 @@ local function think(b: Beast, t: number)
 			b.Hp = math.min(b.Max, b.Hp + b.Max * 0.01)
 			setHp(b)
 		end
+		return
 	end
+	b.Target = target
+	if state == "Alerta" then
+		if t < (b.AlertUntil or 0) then
+			b.Humanoid:Move(Vector3.zero)
+			face(b, troot.Position)
+			return
+		end
+		setState(b, "Caza")
+	elseif state ~= "Caza" then
+		setState(b, "Caza")
+	end
+	-- las pequeñas, casi muertas, salen corriendo un momento
+	if BeastBrain.shouldFlee(b.Sp, b.Hp / b.Max, b.Fled) then
+		b.Fled = true
+		b.FleeUntil = t + BeastBrain.FleeSeconds
+		b.Humanoid.WalkSpeed = (b.BaseSpeed or 16) * 1.2
+		setState(b, "Huida")
+		return
+	end
+	fight(b, target :: Player, troot, t)
 end
 
 ---------------------------------------------------------------------
