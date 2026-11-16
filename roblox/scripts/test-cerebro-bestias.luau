@@ -143,10 +143,14 @@ check(srv:find("WanderSpeed", 1, true) ~= nil and srv:find("StunUntil", 1, true)
 -- Los monstruos del cartel del dueño: tres por región, con su aspecto y su manera de pelear
 local Regions = L.load("src/shared/Cosmos/ValmarRegions")
 local roster = {
-	BosqueEtereo = { "LoboBosque", "AranaBosque", "OsoGigante" }, LlanurasSalvajes = { "JabaliSierra", "SaqueadorNomada", "Minotauro" },
-	PantanoMaldito = { "CocodriloMutado", "SlimeToxico", "Nigromante" }, DesiertoDorado = { "EscorpionGigante", "Momia", "GuardianDesierto" },
-	RuinasAntiguas = { "EsqueletoGuerrero", "GuardianPiedra", "Cultista" }, MontanasHeladas = { "LoboArtico", "GolemHielo", "DracoHielo" },
-	TierrasOscuras = { "CaballeroCorrupto", "Demonio", "MagoOscuro" }, TierrasVolcanicas = { "GolemLava", "ElementalFuego", "DragonInfernal" },
+	BosqueEtereo = { "LoboBosque", "OsoGigante", "AranaBosque", "EspirituBosque", "BandidoBosque" },
+	LlanurasSalvajes = { "JabaliSierra", "BestiaSalvaje", "Depredador", "GuerreroNomada", "AcechadorPradera", "SaqueadorNomada", "Minotauro" },
+	PantanoMaldito = { "CocodriloMutado", "InsectoGigante", "CriaturaVenenosa", "MuertoViviente", "EspirituCorrupto", "SlimeToxico", "Nigromante" },
+	DesiertoDorado = { "EscorpionGigante", "SerpienteDuna", "GuardianDesierto", "SaqueadorDesierto", "Momia" },
+	RuinasAntiguas = { "CaballeroEspectral", "GuardianPiedra", "MagoAntiguo", "EsqueletoGuerrero", "ArqueroEspectral", "Cultista" },
+	MontanasHeladas = { "LoboArtico", "GolemEscarcha", "GolemHielo", "DracoHielo", "EspectroGlacial" },
+	TierrasOscuras = { "CaballeroCorrupto", "Demonio", "BestiaSombria", "MagoOscuro", "CriaturaVacio" },
+	TierrasVolcanicas = { "DemonioFuego", "ElementalFuego", "GolemLava", "DragonInfernal", "DemonioSupremo" },
 }
 local rosterOk = true
 for id, list in roster do
@@ -156,7 +160,7 @@ for id, list in roster do
 		rosterOk = rosterOk and reg ~= nil and reg.Species[i] == sid and sp ~= nil and sp.Colors ~= nil and sp.Drops ~= nil
 	end
 end
-check(rosterOk, "cada región tiene los tres monstruos del cartel")
+check(rosterOk, "cada región tiene los monstruos del cartel")
 local looks = fs.readFile("src/server/World/Kit/BeastLooks.luau")
 local looksOk = true
 for sid, sp in Bestiary.Species do
@@ -189,7 +193,10 @@ for _, list in roster do
 		sculptOk = sculptOk and sculpt:find("%f[%w]R%." .. sid .. " = {") ~= nil
 	end
 end
-check(sculptOk, "los 24 monstruos del cartel tienen su receta pieza a pieza")
+for _, reg in Regions.List do
+	sculptOk = sculptOk and sculpt:find("%f[%w]R%." .. reg.Boss .. " = {") ~= nil
+end
+check(sculptOk, "los monstruos del cartel y los ocho jefes tienen su receta pieza a pieza")
 check(sculpt:find("Enum.Material.Slate", 1, true) == nil and sculpt:find("Enum.Material.Grass", 1, true) == nil and kit2:find("BeastSculpt.build", 1, true) ~= nil,
 	"colores lisos (sin texturas) y BeastKit usa las recetas")
 check(sculpt:find('"Pierna", V3(0.26', 1, true) == nil, "los tramos de las patas de araña no se articulan como piernas")

@@ -346,7 +346,7 @@ do
 	check(S.Regions ~= nil and #VR.List == 8, "Valmar tiene sus ocho regiones de caza")
 	local regOk, rareOk = true, true
 	for i, reg in VR.List do
-		regOk = regOk and #reg.Species == 3 and Bestiary.Species[reg.Boss] ~= nil and Bestiary.Species[reg.Boss].Boss == true and reg.MaxLevel > reg.MinLevel
+		regOk = regOk and #reg.Species >= 5 and Bestiary.Species[reg.Boss] ~= nil and Bestiary.Species[reg.Boss].Boss == true and reg.MaxLevel > reg.MinLevel
 		regOk = regOk and reg.Bearing == (i - 1) * 45
 		for _, sid in reg.Species do
 			local sp = Bestiary.Species[sid]

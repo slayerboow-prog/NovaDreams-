@@ -40,19 +40,21 @@ BeastBrain.Override = {
 	MedusaGas = "Distancia", BuitreRayo = "Distancia", DracoHielo = "Distancia", SalamandraVolcan = "Distancia",
 	CriaturaVacio = "Distancia", ConstructoRuinas = "Distancia",
 	Nigromante = "Distancia", Cultista = "Distancia", MagoOscuro = "Distancia", ElementalFuego = "Distancia", DragonInfernal = "Distancia",
+	EspirituBosque = "Distancia", MagoAntiguo = "Distancia", ArqueroEspectral = "Distancia", EspectroGlacial = "Distancia",
 	-- cargan
 	JabaliSierra = "Embestida", OsoLanudo = "Embestida", CocodriloMutado = "Embestida", CocodriloAliviadero = "Embestida",
 	FocaColmillo = "Embestida", EscarabajoCorteza = "Embestida", OsoGigante = "Embestida", Minotauro = "Embestida",
+	BestiaSalvaje = "Embestida",
 	-- en manada
 	LoboBosque = "Manada", LoboArtico = "Manada", LoboEscarcha = "Manada", ChacalDuna = "Manada", Rondador = "Manada",
 	RataChatarra = "Manada", RataCloaca = "Manada", SabuesoMagma = "Manada", BestiaSombria = "Manada", SaqueadorNomada = "Manada",
-	EsqueletoGuerrero = "Manada",
+	EsqueletoGuerrero = "Manada", BandidoBosque = "Manada", GuerreroNomada = "Manada", SaqueadorDesierto = "Manada", CaballeroEspectral = "Manada",
 	-- a mordiscos (o a golpes), sin más
-	SlimeToxico = "Bruto", Momia = "Bruto",
+	SlimeToxico = "Bruto", Momia = "Bruto", MuertoViviente = "Bruto",
 	-- al acecho
 	AcechadorPradera = "Acechador", PanteraLiana = "Acechador", VivoraPenasco = "Acechador", SerpienteArena = "Acechador",
 	AnguilaArrecife = "Acechador", GusanoColada = "Acechador", AranaBosque = "Acechador", AranaHielo = "Acechador",
-	EscorpionGigante = "Acechador", EscorpionSal = "Acechador",
+	EscorpionGigante = "Acechador", EscorpionSal = "Acechador", InsectoGigante = "Acechador", CriaturaVenenosa = "Acechador", SerpienteDuna = "Acechador",
 }
 
 -- El estilo de una especie
@@ -78,8 +80,8 @@ end
 function BeastBrain.bossMoves(sp: { [string]: any }): { [string]: boolean }
 	return {
 		Stomp = true,
-		Charge = sp.Body == "Cuadrupedo",
-		Ranged = sp.Body == "Serpiente" or sp.Body == "Insecto",
+		Charge = sp.Body == "Cuadrupedo" or sp.Charges == true,
+		Ranged = sp.Body == "Serpiente" or sp.Body == "Insecto" or sp.Breath == true,
 		Slam = sp.Arms == true,
 	}
 end
