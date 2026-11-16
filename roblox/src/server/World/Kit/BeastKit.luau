@@ -1,8 +1,10 @@
 -- BeastKit (servidor): cómo SON las bestias de los planetas, sus guaridas, los alijos escondidos y los
 -- Talleres donde se fabrica (datos en shared/Cosmos/Bestiary y shared/Crafting).
 --
---   BeastKit.beast(species) → Model     una bestia con Humanoid (anda sola con MoveTo) y piezas soldadas
---                                       a su HumanoidRootPart; cuerpos: Cuadrupedo, Insecto, Serpiente, Bipedo
+--   BeastKit.beast(species, id, opts?) → Model   una bestia con Humanoid (anda sola con MoveTo) y piezas
+--                                       soldadas a su HumanoidRootPart; cuerpos: Cuadrupedo, Insecto, Serpiente,
+--                                       Bipedo; con detalles (colmillos, cuernos, garras, melena, lo de su tierra)
+--                                       y, si opts.Champion, campeona (más grande, corona dorada y chispas)
 --   BeastKit.lair(parent, lair, cf)     la guarida (roca, hielo, coral, raíces o chatarra; la del jefe, más grande)
 --   BeastKit.cache(parent, cache, cf)   un alijo (cofre con aviso «Abrir alijo», etiqueta «Alijo»)
 --   BeastKit.bench(parent, cf, colors?) un Taller (yunque, mesa y caldero; aviso «Fabricar», etiqueta «Taller»)
@@ -54,13 +56,210 @@ local function eye(model: Model, root: BasePart, offset: CFrame, s: number, glow
 	e.CastShadow = false
 end
 
-function BeastKit.beast(sp: { [string]: any }, id: string): Model
-	local k = sp.Size / 5
+-- El tema de una especie por su nombre (cuernos de hielo, grietas de lava, púas de sombra…)
+local function themeOf(id: string, sp: { [string]: any }): string?
+	local function has(...: string): boolean
+		for _, w in { ... } do
+			if string.find(id, w) then
+				return true
+			end
+		end
+		return false
+	end
+	if has("Hielo", "Artico", "Escarcha", "Invierno", "Durmiente") then
+		return "Hielo"
+	elseif has("Magma", "Lava", "Volcan", "Salamandra", "Brasa", "Colada") then
+		return "Lava"
+	elseif has("Sombr", "Corrupto", "Vacio") then
+		return "Sombra"
+	elseif has("Piedra", "Ruinas", "Desierto", "Coloso", "Espectral") then
+		return "Piedra"
+	elseif has("Bosque", "Madera", "Ancestral", "Liana", "Corteza") then
+		return "Bosque"
+	end
+	return nil
+end
+
+local IVORY = rgb(236, 228, 204)
+
+-- Los detalles que hacen que una bestia no parezca una caja con patas: colmillos, cuernos, garras, melena,
+-- placas o cristales de su tierra y, si es campeona, corona dorada y chispas
+local function details(model: Model, root: BasePart, sp: { [string]: any }, id: string, k: number, champion: boolean)
+	local C = sp.Colors
+	local body, belly, glow = C.Body, C.Belly, C.Glow
+	local m = mat(sp.Material)
+	local shape = sp.Body
+	local theme = themeOf(id, sp)
+	local headPart = model:FindFirstChild("Cabeza") :: BasePart?
+	local head = if headPart then root.CFrame:ToObjectSpace(headPart.CFrame) else CFrame.new(0, 0, -2 * k)
+	local hs = if headPart then headPart.Size else Vector3.new(k, k, k)
+	local function neon(p: BasePart)
+		p.Material = Enum.Material.Neon
+		p.CastShadow = false
+	end
+	-- colmillos
+	if shape == "Cuadrupedo" or shape == "Serpiente" then
+		for _, sx in { -1, 1 } do
+			limb(model, root, "Colmillo", V3(0.16 * k, 0.45 * k, 0.16 * k), head * CFrame.new(sx * hs.X * 0.22, -hs.Y * 0.55, -hs.Z * 0.55) * CFrame.Angles(0, 0, sx * 0.15), IVORY, Enum.Material.SmoothPlastic)
+		end
+	end
+	-- defensas de jabalí, oso, foca o cocodrilo
+	if string.find(id, "Jabali") or string.find(id, "Foca") or string.find(id, "Oso") then
+		for _, sx in { -1, 1 } do
+			limb(model, root, "Defensa", V3(0.22 * k, 0.22 * k, 0.9 * k), head * CFrame.new(sx * hs.X * 0.38, -hs.Y * 0.3, -hs.Z * 0.7) * CFrame.Angles(math.rad(35), sx * 0.35, 0), IVORY, Enum.Material.SmoothPlastic)
+		end
+	end
+	-- cuernos (o astas del ciervo)
+	if string.find(id, "Ciervo") then
+		for _, sx in { -1, 1 } do
+			local base = head * CFrame.new(sx * hs.X * 0.3, hs.Y * 0.5, 0.1 * k)
+			limb(model, root, "Asta", V3(0.2 * k, 1.6 * k, 0.2 * k), base * CFrame.new(0, 0.7 * k, 0) * CFrame.Angles(0, 0, sx * -0.35), belly, m)
+			for j = 1, 3 do
+				local p = limb(model, root, "Asta", V3(0.14 * k, 0.8 * k, 0.14 * k), base * CFrame.new(sx * (0.25 + j * 0.15) * k, (0.5 + j * 0.35) * k, -0.1 * k) * CFrame.Angles(0, 0, sx * -0.9), glow, m)
+				neon(p)
+			end
+		end
+	elseif theme == "Hielo" or theme == "Sombra" or theme == "Lava" or sp.Boss or sp.Arms then
+		local hornColor = if theme == "Hielo" then rgb(200, 235, 255) elseif theme == "Lava" then rgb(40, 30, 28) else rgb(30, 24, 36)
+		for _, sx in { -1, 1 } do
+			local horn = if sp.Arms then V3(0.3 * k, 0.75 * k, 0.3 * k) else V3(0.25 * k, 1 * k, 0.25 * k)
+			local h = limb(model, root, "Cuerno", horn, head * CFrame.new(sx * hs.X * 0.45, hs.Y * 0.6, 0.1 * k) * CFrame.Angles(math.rad(-30), 0, sx * (if sp.Arms then -1.0 else -0.7)), hornColor, if theme == "Hielo" then Enum.Material.Ice else m)
+			if theme == "Lava" or theme == "Sombra" then
+				local tip = limb(model, root, "Punta", V3(0.2 * k, 0.3 * k, 0.2 * k), root.CFrame:ToObjectSpace(h.CFrame) * CFrame.new(0, horn.Y / 2 + 0.1 * k, 0), glow, m)
+				neon(tip)
+			end
+		end
+	end
+	-- garras en las patas
+	for _, leg in model:GetChildren() do
+		if leg:IsA("BasePart") and (leg.Name == "Pata" and shape == "Cuadrupedo" or leg.Name == "Pierna") then
+			local rel = root.CFrame:ToObjectSpace(leg.CFrame)
+			limb(model, root, "Garra", V3(leg.Size.X * 1.1, 0.22 * k, leg.Size.Z * 1.25), rel * CFrame.new(0, -leg.Size.Y / 2 + 0.1 * k, -0.12 * k), belly:Lerp(Color3.new(0, 0, 0), 0.35), m)
+		end
+	end
+	-- melena de las rápidas (lobos, sabuesos, chacales)
+	if shape == "Cuadrupedo" and (sp.Speed or 0) >= 20 then
+		for i = 0, 3 do
+			limb(model, root, "Melena", V3(1.1 * k - i * 0.12 * k, 0.5 * k, 0.5 * k), CFrame.new(0, 0.95 * k - i * 0.05 * k, -1.7 * k + i * 0.45 * k) * CFrame.Angles(math.rad(-25), 0, 0), body:Lerp(Color3.new(0, 0, 0), 0.25), m)
+		end
+	end
+	-- antenas de los insectos
+	if shape == "Insecto" then
+		for _, sx in { -1, 1 } do
+			limb(model, root, "Antena", V3(0.08 * k, 0.08 * k, 1.3 * k), head * CFrame.new(sx * hs.X * 0.25, hs.Y * 0.5, -hs.Z * 0.6) * CFrame.Angles(math.rad(35), sx * 0.3, 0), belly, m)
+		end
+		-- bandas que brillan en el abdomen
+		local abd = model:FindFirstChild("Abdomen") :: BasePart?
+		if abd then
+			local rel = root.CFrame:ToObjectSpace(abd.CFrame)
+			for j = -1, 1 do
+				local band = limb(model, root, "Banda", V3(abd.Size.X * 1.02, abd.Size.Y * 0.18, 0.12 * k), rel * CFrame.new(0, abd.Size.Y * 0.35, j * abd.Size.Z * 0.28), glow, m)
+				neon(band)
+				band.Transparency = 0.25
+			end
+		end
+	end
+	-- aletas a lo largo de las serpientes
+	if shape == "Serpiente" then
+		for _, seg in model:GetChildren() do
+			if seg:IsA("BasePart") and seg.Name == "Cuerpo" then
+				local rel = root.CFrame:ToObjectSpace(seg.CFrame)
+				limb(model, root, "Aleta", V3(0.12 * k, seg.Size.Y * 0.5, seg.Size.Z * 0.6), rel * CFrame.new(0, seg.Size.Y * 0.62, 0), glow:Lerp(body, 0.5), m)
+			end
+		end
+	end
+	-- hombreras y núcleo de los colosos
+	if shape == "Bipedo" and sp.Arms then
+		for _, arm in model:GetChildren() do
+			if arm:IsA("BasePart") and arm.Name == "Brazo" then
+				local rel = root.CFrame:ToObjectSpace(arm.CFrame)
+				limb(model, root, "Hombrera", V3(arm.Size.X * 1.5, arm.Size.X * 0.7, arm.Size.Z * 1.5), rel * CFrame.new(0, arm.Size.Y / 2, 0), belly, m)
+				if theme == "Piedra" or theme == "Bosque" then
+					limb(model, root, "Musgo", V3(arm.Size.X * 1.4, 0.15 * k, arm.Size.Z * 1.2), rel * CFrame.new(0, arm.Size.Y / 2 + arm.Size.X * 0.36, 0), rgb(80, 130, 60), Enum.Material.Grass)
+				end
+			end
+		end
+		local core = limb(model, root, "Nucleo", V3(0.7 * k, 0.7 * k, 0.7 * k), CFrame.new(0, 0.3 * k, -0.82 * k), glow, m, Enum.PartType.Ball)
+		neon(core)
+	end
+	-- lo de su tierra en el lomo
+	local back = CFrame.new(0, root.Size.Y / 2, 0)
+	if theme == "Lava" and shape == "Bipedo" then
+		-- (de pie: grietas de lava que bajan por el pecho)
+		for i = -1, 1, 2 do
+			local crack = limb(model, root, "Grieta", V3(0.14 * k, root.Size.Y * 0.55, 0.1 * k), CFrame.new(i * root.Size.X * 0.3, -0.2 * k, -root.Size.Z / 2 - 0.02 * k) * CFrame.Angles(0, 0, i * 0.25), glow, m)
+			neon(crack)
+		end
+	elseif theme == "Lava" then
+		for i = -1, 1 do
+			local crack = limb(model, root, "Grieta", V3(root.Size.X * 0.6, 0.12 * k, 0.18 * k), back * CFrame.new(0, 0.02 * k, i * root.Size.Z * 0.25) * CFrame.Angles(0, 0.3 * i, 0), glow, m)
+			neon(crack)
+		end
+	elseif theme == "Hielo" then
+		for i = -1, 1 do
+			limb(model, root, "Cristal", V3(0.35 * k, 0.9 * k, 0.35 * k), back * CFrame.new((i % 2) * 0.3 * k, 0.4 * k, i * root.Size.Z * 0.25) * CFrame.Angles(math.rad(-15), 0, 0.2 * i), rgb(190, 235, 255), Enum.Material.Ice)
+		end
+	elseif theme == "Sombra" then
+		local wisp = Instance.new("ParticleEmitter")
+		wisp.Name = "Sombra"
+		wisp.Color = ColorSequence.new(rgb(40, 0, 70), rgb(160, 90, 240))
+		wisp.Transparency = NumberSequence.new(0.4, 1)
+		wisp.Size = NumberSequence.new(k * 0.8, k * 1.6)
+		wisp.Lifetime = NumberRange.new(0.8, 1.4)
+		wisp.Rate = 6
+		wisp.Speed = NumberRange.new(0.5, 1.5)
+		wisp.LightEmission = 0.3
+		wisp.Parent = root
+	elseif theme == "Bosque" and shape ~= "Insecto" then
+		limb(model, root, "Hojas", V3(root.Size.X * 0.7, 0.2 * k, root.Size.Z * 0.5), back * CFrame.new(0, 0.05 * k, 0), rgb(70, 140, 60), Enum.Material.Grass)
+	end
+	-- campeona: corona dorada que flota, luz y chispas
+	if champion then
+		local gold = rgb(255, 205, 70)
+		local crown = head * CFrame.new(0, hs.Y * 0.5 + 1.3 * k, 0)
+		for i = 1, 8 do
+			local a = i / 8 * math.pi * 2
+			local p = limb(model, root, "Corona", V3(0.13 * k, if i % 2 == 0 then 0.45 * k else 0.28 * k, 0.13 * k), crown * CFrame.new(math.cos(a) * 0.6 * k, 0, math.sin(a) * 0.6 * k), gold, m)
+			neon(p)
+		end
+		local light = Instance.new("PointLight")
+		light.Name = "Campeon"
+		light.Color = gold
+		light.Range = 16
+		light.Brightness = 1.6
+		light.Shadows = false
+		light.Parent = root
+		local sparks = Instance.new("ParticleEmitter")
+		sparks.Name = "Campeon"
+		sparks.Color = ColorSequence.new(gold)
+		sparks.LightEmission = 0.8
+		sparks.Size = NumberSequence.new(0.35 * k, 0)
+		sparks.Lifetime = NumberRange.new(0.6, 1.2)
+		sparks.Rate = 10
+		sparks.Speed = NumberRange.new(1, 3)
+		sparks.SpreadAngle = Vector2.new(180, 180)
+		sparks.Parent = root
+		-- y un borde dorado en el cuerpo
+		for _, p in model:GetChildren() do
+			if p:IsA("BasePart") and (p.Name == "Tronco" or p.Name == "Abdomen" or p.Name == "Cabeza") then
+				p.Color = p.Color:Lerp(gold, 0.3)
+			end
+		end
+	end
+end
+
+function BeastKit.beast(sp: { [string]: any }, id: string, opts: { [string]: any }?): Model
+	local champion = opts ~= nil and opts.Champion == true
+	local k = sp.Size / 5 * (if champion then 1.25 else 1)
 	local C = sp.Colors
 	local body, belly, glow = C.Body, C.Belly, C.Glow
 	local m = mat(sp.Material)
 	local model = Instance.new("Model")
 	model.Name = "Bestia_" .. id
+	-- (llega entera al jugador, no a trozos: así su placa —Controllers/BeastPlates— sale siempre)
+	pcall(function()
+		model.ModelStreamingMode = Enum.ModelStreamingMode.Atomic
+	end)
 	local shape = sp.Body
 	-- la raíz: la caja del tronco; las patas cuelgan por debajo (HipHeight)
 	local rootSize, hip
@@ -169,6 +368,7 @@ function BeastKit.beast(sp: { [string]: any }, id: string): Model
 			end
 		end
 	end
+	details(model, root, sp, id, k, champion)
 	if sp.Boss then
 		-- (los jefes: un aura que se ve de lejos)
 		local aura = Instance.new("PointLight")

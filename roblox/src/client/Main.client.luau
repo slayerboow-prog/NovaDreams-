@@ -333,6 +333,9 @@ end)
 safeInit("RegionBanner", function() -- el cartel al entrar en una de las ocho regiones de caza de Valmar
 	require(script.Parent.Controllers.RegionBanner).init()
 end)
+safeInit("BeastPlates", function() -- placas de las bestias: nombre del color de su dificultad, nivel, ★ campeona y vida
+	require(script.Parent.Controllers.BeastPlates).init()
+end)
 safeInit("CraftingUI", function() -- el Taller: fabricar armas, armaduras, pociones y herramientas (Services/CraftingService)
 	require(script.Parent.Controllers.CraftingUI).init()
 end)

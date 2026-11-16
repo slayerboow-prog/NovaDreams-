@@ -31,6 +31,7 @@ local Crafting = require(ReplicatedStorage.Shared.Crafting)
 local Items = require(ReplicatedStorage.Shared.Items)
 local ValmarRegions = require(ReplicatedStorage.Shared.Cosmos.ValmarRegions)
 local BeastBrain = require(ReplicatedStorage.Shared.Cosmos.BeastBrain)
+local HuntRules = require(ReplicatedStorage.Shared.Cosmos.HuntRules)
 
 local BeastService = {}
 
@@ -81,6 +82,7 @@ type Beast = {
 	Charge: { [string]: any }?,
 	Level: number?,
 	Region: string?,
+	Champion: boolean?, -- (★ campeona: shared/Cosmos/HuntRules)
 }
 
 local beasts: { [Model]: Beast } = {}
@@ -269,7 +271,9 @@ local function spawnAt(S: any, lair: { [string]: any }): Beast?
 	end
 	local BeastKit = require(script.Parent.Parent.World.Kit.BeastKit) :: any
 	serial += 1
-	local model: Model = BeastKit.beast(sp, lair.Species)
+	-- (de vez en cuando sale CAMPEONA: ★, dorada, más grande y con mejor botín)
+	local champion = HuntRules.rollChampion(sp, math.random, false)
+	local model: Model = BeastKit.beast(sp, lair.Species, { Champion = champion })
 	local O = S.Origin
 	local a = math.random() * math.pi * 2
 	local d = if lair.Boss then 4 else 6 + math.random() * (if lair.Islet then 8 else 12)
@@ -281,10 +285,14 @@ local function spawnAt(S: any, lair: { [string]: any }): Beast?
 	-- (zona de caza: cuanto más lejos de la ciudad, más nivel)
 	local zone = Bestiary.lairZone(lair)
 	local boss = sp.Boss == true
-	local hp = math.floor(sp.Hp * (if boss then 1 else zone.Hp) + 0.5)
+	local C = HuntRules.Champion
+	local hp = math.floor(sp.Hp * (if boss then 1 else zone.Hp) * (if champion then C.Hp else 1) + 0.5)
 	model:SetAttribute("InvasionTarget", "Bestia:" .. serial)
 	model:SetAttribute("Bestia", lair.Species)
-	model:SetAttribute("BeastName", if boss then sp.Name else ("%s nv. %d"):format(sp.Name, zone.Level))
+	model:SetAttribute("BeastName", if boss then sp.Name else ("%s%s nv. %d"):format(if champion then "★ " else "", sp.Name, zone.Level))
+	model:SetAttribute("NombreBestia", if champion then sp.Name .. " campeón" else sp.Name)
+	model:SetAttribute("Campeon", champion)
+	CollectionService:AddTag(model, "Bestia")
 	-- (los jefes de las regiones de Valmar enseñan su nivel; los de los planetas, no)
 	model:SetAttribute("Nivel", if boss then lair.Level else zone.Level)
 	model:SetAttribute("Region", lair.Region)
@@ -309,8 +317,9 @@ local function spawnAt(S: any, lair: { [string]: any }): Beast?
 		Hp = hp,
 		Max = hp,
 		Damage = {},
-		Hit = if boss then 1 else zone.Damage,
-		Reward = if boss then 1 else zone.Reward,
+		Hit = if boss then 1 else zone.Damage * (if champion then C.Damage else 1),
+		Reward = if boss then 1 else zone.Reward * (if champion then C.Reward else 1),
+		Champion = champion,
 		Level = if boss then lair.Level else zone.Level,
 		Region = lair.Region,
 		Target = nil,
@@ -326,6 +335,17 @@ local function spawnAt(S: any, lair: { [string]: any }): Beast?
 	}
 	model:SetAttribute("Estilo", (b.Style :: any).Name)
 	setHp(b)
+	if champion then
+		local at = root.Position
+		task.defer(function()
+			for _, p in Players:GetPlayers() do
+				local r = rootOf(p)
+				if r and (r.Position - at).Magnitude < 220 then
+					tell(p, "Info", ("★ Un %s campeón ronda cerca (nv. %d): más duro, pero suelta mucho más."):format(sp.Name, zone.Level))
+				end
+			end
+		end)
+	end
 	beasts[model] = b
 	byLair[lair.Id] = byLair[lair.Id] or {}
 	table.insert(byLair[lair.Id], b)
@@ -681,6 +701,9 @@ local function giveLoot(player: Player, b: Beast)
 		worn.Luck += ((Progression :: any).stat(player, "Suerte") or 0) * 0.01
 	end
 	local reward = b.Reward or 1
+	if b.Champion then
+		worn.Luck += HuntRules.Champion.Luck
+	end
 	-- (en las regiones de Valmar: si superas de largo el nivel de la bestia, da mucho menos; que nadie farmee
 	-- lo fácil sin fin)
 	local fair = if b.Region then ValmarRegions.rewardFactor(player:GetAttribute("Level"), b.Level) else 1
@@ -702,6 +725,7 @@ local function giveLoot(player: Player, b: Beast)
 		money(player, cash)
 	end
 	local data = dataOf(player)
+	local xpGot = 0
 	if data then
 		local c = craftData(data)
 		c.Kills[b.Species] = (c.Kills[b.Species] or 0) + 1
@@ -711,12 +735,14 @@ local function giveLoot(player: Player, b: Beast)
 		-- nivel de cazador: experiencia por la bestia (más cuanto más aguanta)
 		data.Hunter = if type(data.Hunter) == "table" then data.Hunter else { Xp = 0 }
 		local before = Crafting.hunterLevel(data.Hunter.Xp)
-		data.Hunter.Xp = (tonumber(data.Hunter.Xp) or 0) + math.max(1, math.floor(Crafting.killXp(b.Max, b.Sp.Boss) * fair))
+		data.Hunter.Xp = (tonumber(data.Hunter.Xp) or 0) + math.max(1, math.floor(Crafting.killXp(b.Max, b.Sp.Boss) * fair * (if b.Champion then HuntRules.Champion.Xp else 1)))
 		local after = Crafting.hunterLevel(data.Hunter.Xp)
 		player:SetAttribute("NivelCazador", after)
 		-- y experiencia del personaje (sube su nivel y da puntos de atributos, como cualquier cosa de tu vida)
+		-- (HuntRules.killXp: según su vida, su nivel frente al tuyo y si era campeona)
+		xpGot = HuntRules.killXp(b.Max, b.Sp.Boss, b.Champion, player:GetAttribute("Level"), b.Level, fair)
 		if okP then
-			pcall((Progression :: any).addXp, player, math.max(1, math.floor(Crafting.killXp(b.Max, b.Sp.Boss) / 2 * fair)), nil)
+			pcall((Progression :: any).addXp, player, xpGot, nil)
 		end
 		if after > before then
 			tell(player, "Success", ("⭐ ¡Nivel de cazador %d! Tus golpes a las bestias hacen un %d %% más."):format(after, math.floor(Crafting.hunterBonus(data.Hunter.Xp) * 100 + 0.5)))
@@ -729,9 +755,43 @@ local function giveLoot(player: Player, b: Beast)
 			hum.Health = math.min(hum.MaxHealth, hum.Health + worn.Vigor)
 		end
 	end
-	local text = ("%s %s cae. %s%s%s"):format(b.Sp.Icon or "🦴", b.Sp.Name, if #parts > 0 then "Botín: " .. table.concat(parts, ", ") else "", if cash > 0 then (" · +%d €"):format(cash) else "",
-		if fair < 1 then " · (demasiado fácil para tu nivel: da menos)" else "")
+	local tier = HuntRules.bestTier(b.Sp.Drops, loot)
+	local text = ("%s %s%s cae. %s%s%s%s"):format(b.Sp.Icon or "🦴", if b.Champion then "★ " else "", b.Sp.Name, if #parts > 0 then "Botín: " .. table.concat(parts, ", ") else "", if cash > 0 then (" · +%d €"):format(cash) else "",
+		if xpGot > 0 then (" · +%d XP"):format(xpGot) else "", if fair < 1 then " · (demasiado fácil para tu nivel: da menos)" else "")
 	tell(player, "Success", text)
+	return tier
+end
+
+-- Luz de botín: un haz del color de lo mejor que ha caído (raro azul, épico morado, legendario naranja)
+local function lootBeam(at: Vector3, tier: { [string]: any }, champion: boolean?)
+	if tier.Rank < 2 and not champion then
+		return
+	end
+	local color = if tier.Rank >= 2 then tier.Color else HuntRules.Champion.Color
+	local h = 14 + tier.Rank * 8
+	local beam = Instance.new("Part")
+	beam.Name = "LuzBotin"
+	beam.Anchored = true
+	beam.CanCollide = false
+	beam.CanQuery = false
+	beam.CanTouch = false
+	beam.CastShadow = false
+	beam.Material = Enum.Material.Neon
+	beam.Color = color
+	beam.Transparency = 0.35
+	beam.Shape = Enum.PartType.Cylinder
+	beam.Size = Vector3.new(h, 1.4, 1.4)
+	beam.CFrame = CFrame.new(at + Vector3.new(0, h / 2 - 2, 0)) * CFrame.Angles(0, 0, math.pi / 2)
+	local light = Instance.new("PointLight")
+	light.Color = color
+	light.Range = 18
+	light.Brightness = 3
+	light.Parent = beam
+	beam.Parent = workspace
+	TweenService:Create(beam, TweenInfo.new(3.2, Enum.EasingStyle.Quad, Enum.EasingDirection.In), { Transparency = 1, Size = Vector3.new(h, 0.2, 0.2) }):Play()
+	task.delay(3.3, function()
+		beam:Destroy()
+	end)
 end
 
 local function die(b: Beast, killer: Player?)
@@ -751,9 +811,16 @@ local function die(b: Beast, killer: Player?)
 			got[p] = true
 		end
 	end
+	local best = HuntRules.Tiers[1]
 	for p in got do
-		giveLoot(p, b)
+		local ok, tier = pcall(giveLoot, p, b)
+		if ok and tier and tier.Rank > best.Rank then
+			best = tier
+		elseif not ok then
+			warn("[BeastService] botín: " .. tostring(tier))
+		end
 	end
+	lootBeam(b.Root.Position, best, b.Champion)
 	if b.Sp.Boss then
 		for _, p in Players:GetPlayers() do
 			if p:GetAttribute("Planeta") == b.Planet or (b.Planet == "Valmar" and p:GetAttribute("Planeta") == nil) then
@@ -837,7 +904,14 @@ function BeastService.hit(attacker: Player?, model: Instance, amount: number, in
 		n *= BeastService.BossTakes
 	end
 	n *= 1 - ((b.Style and b.Style.Armor) or 0) -- (los colosos encajan más)
-	n = math.clamp(math.floor(n + 0.5), 1, 600)
+	-- críticos (más a menudo con Suerte)
+	local luck = 0
+	pcall(function()
+		luck = (require(script.Parent.ProgressionService) :: any).stat(attacker, "Suerte") or 0
+	end)
+	local crit, critMul = HuntRules.crit(luck, math.random)
+	n *= critMul
+	n = math.clamp(math.floor(n + 0.5), 1, if crit then 1050 else 600)
 	b.Hp -= n
 	b.Damage[attacker] = (b.Damage[attacker] or 0) + n
 	-- se enfada con quien le pega (y a quién persigue lo decide la amenaza: BeastBrain.pickTarget)
@@ -848,6 +922,17 @@ function BeastService.hit(attacker: Player?, model: Instance, amount: number, in
 		BeastService._engage(b, attacker)
 	end
 	setHp(b)
+	-- el número de daño (solo lo ve quien pega: Controllers/DamagePops)
+	local pop = ReplicatedStorage:FindFirstChild("Remotes") and ReplicatedStorage.Remotes:FindFirstChild("Invasion")
+	if pop and pop:IsA("RemoteEvent") then
+		pop:FireClient(attacker, "Dmg", {
+			At = i.At or b.Root.Position + Vector3.new(0, b.Root.Size.Y, 0),
+			Amount = n,
+			Kind = if crit then "Crit" elseif i.Melee or i.Heavy then "Melee" else "Normal",
+			Kill = b.Hp <= 0,
+			Id = "Bestia:" .. b.N,
+		})
+	end
 	if b.Static and b.Waves and b.Hp > 0 then
 		for idx, th in Bestiary.Shard.Waves do
 			if not b.Waves[idx] and b.Hp / b.Max <= th then

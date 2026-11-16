@@ -72,4 +72,44 @@ check(src:find("BeastBrain", 1, true) ~= nil and src:find('b.State == "Vuelta"',
 check(src:find("callPack", 1, true) ~= nil and src:find("startCharge", 1, true) ~= nil and src:find("spit(", 1, true) ~= nil
 	and src:find("ringAttack", 1, true) ~= nil, "manadas, cargas, disparos y golpes de área")
 
+print("🏹 Reglas de caza")
+local H = L.load("src/shared/Cosmos/HuntRules")
+local function fixed(v)
+	return function()
+		return v
+	end
+end
+check(H.rollChampion(lobo, fixed(0.01)) and not H.rollChampion(lobo, fixed(0.5)) and not H.rollChampion(Bestiary.Species.TitanVolcan, fixed(0)),
+	"a veces sale una campeona; los jefes nunca")
+check(H.Champion.Hp > 1 and H.Champion.Xp >= 2 and H.Champion.Luck > 0, "la campeona aguanta más y da más experiencia y botín")
+check(H.con(50, 30).Name == "Gris" and H.con(50, 44).Name == "Verde" and H.con(50, 52).Name == "Amarillo"
+	and H.con(50, 57).Name == "Naranja" and H.con(50, 65).Name == "Rojo", "colores de dificultad: gris, verde, amarillo, naranja, rojo")
+local x1 = H.killXp(800, false, false, 30, 30, 1)
+local x2 = H.killXp(800, false, false, 30, 40, 1)
+local x3 = H.killXp(800, false, true, 30, 30, 1)
+local xb = H.killXp(800, true, false, 30, 30, 1)
+check(x1 == 100 and x2 == 150 and x3 == 300 and xb == 300 and H.killXp(800, false, false, 30, 30, 0.1) == 10,
+	"experiencia: más por más nivel, x3 campeona y jefe, poca si te sobra nivel")
+local c1 = H.crit(0, fixed(0.05))
+local c2 = H.crit(0, fixed(0.2))
+local c3, m3 = H.crit(50, fixed(0.2))
+check(c1 and not c2 and c3 and m3 > 1.5, "críticos: a veces; más con Suerte")
+check(H.tier(0.9).Name == "Común" and H.tier(0.1).Name == "Raro" and H.tier(0.01).Name == "Legendario", "rarezas según lo que cuesta que caiga")
+local drops = Bestiary.Species.LoboBosque.Drops
+local rare = drops[#drops]
+check(H.bestTier(drops, { [rare[1]] = 1 }).Rank >= H.tier(rare[4]).Rank and H.bestTier(drops, {}).Rank == 1, "la luz de botín es del color de lo mejor que cae")
+-- (la XP de subir 1→110 matando bestias de tu nivel: que no sean ni 50 ni 50.000 por nivel)
+local Gameplay = L.load("src/shared/Gameplay")
+local perLevel = {}
+for _, lv in { 15, 50, 100 } do
+	local hp = Bestiary.Species.LoboBosque.Hp * Bestiary.levelScale(lv).Hp
+	table.insert(perLevel, math.ceil(Gameplay.xpToNext(lv) / H.killXp(hp, false, false, lv, lv, 1)))
+end
+check(perLevel[1] >= 10 and perLevel[3] <= 80, ("bestias de tu nivel por cada nivel: %s"):format(table.concat(perLevel, "/")))
+local plates = fs.readFile("src/client/Controllers/BeastPlates.luau")
+check(plates:find("HuntRules.con", 1, true) ~= nil and fs.readFile("src/client/Main.client.luau"):find("BeastPlates", 1, true) ~= nil,
+	"las placas de las bestias salen con el color de su dificultad")
+local kit = fs.readFile("src/server/World/Kit/BeastKit.luau")
+check(kit:find("Colmillo", 1, true) ~= nil and kit:find("Corona", 1, true) ~= nil and kit:find("Garra", 1, true) ~= nil, "bestias con detalles y campeonas con corona")
+
 L.finish("test-cerebro-bestias")
