@@ -341,6 +341,36 @@ local function spawnShard(S: any, shard: { [string]: any }): Beast?
 	model:SetAttribute("EnemyMaxHealth", hp)
 	model:SetAttribute("Boss", false)
 	model:SetAttribute("Esquirla", true)
+	-- el racimo de cristales de Blender (World/PlanetCityMeshes «EsquirlaGrieta»), si está: lo de piezas queda
+	-- escondido (la raíz sigue para chocar y recibir golpes; la luz y las chispas también)
+	pcall(function()
+		local Meshes = require(script.Parent.Parent.World.PlanetCityMeshes) :: any
+		local tpl = Meshes.has("EsquirlaGrieta") and Meshes.load("EsquirlaGrieta")
+		if not tpl then
+			return
+		end
+		local k = 0.85 + math.clamp(shard.Tier or 1, 1, 4) * 0.15
+		local glowC = Color3.fromRGB(190, 140, 255)
+		Meshes.place(tpl, model, CFrame.new(O.X + shard.X, ground - 0.6, O.Z + shard.Z) * CFrame.Angles(0, (shard.X % 6), 0), 13 * k, 13 * k, 19 * k, function(group: string, part: BasePart)
+			if group == "Cristal" then
+				part.Material = Enum.Material.Glass
+				part.Color = Color3.fromRGB(120, 70, 230)
+				part.Transparency = 0.15
+			elseif group == "Luz" then
+				part.Material = Enum.Material.Neon
+				part.Color = glowC
+				part.CastShadow = false
+			else
+				part.Material = Enum.Material.Basalt
+				part.Color = Color3.fromRGB(44, 36, 58)
+			end
+		end)
+		for _, ch in model:GetChildren() do
+			if ch:IsA("BasePart") and (ch.Name == "Punta" or ch.Name == "Nucleo" or ch.Name == "HumanoidRootPart") then
+				ch.Transparency = 1
+			end
+		end
+	end)
 	model.Parent = beastFolder(S.Id)
 	local root = model.PrimaryPart :: BasePart
 	local b: Beast = {
@@ -666,7 +696,7 @@ local function die(b: Beast, killer: Player?)
 	end
 	if b.Static then
 		shardAt[b.Lair.Id] = now() + Bestiary.ShardRespawn
-		for _, p in got do
+		for p in got do -- (got es { [jugador] = true })
 			tell(p, "Success", "💎 ¡Has roto la esquirla de la Grieta! Volverá a caer otra dentro de un rato.")
 		end
 	end

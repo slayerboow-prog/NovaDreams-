@@ -339,6 +339,10 @@ function CraftingUI.init()
 	remote.OnClientEvent:Connect(function(kind: string, a: any, b: any)
 		if kind == "Open" and type(a) == "table" then
 			state.Bench = if a.Bench == "Mesa" then "Mesa" elseif a.Bench == "Mochila" then "Mochila" else "Taller"
+			-- (desde la mochila se abre en «Equipo»; en un Taller, en las recetas)
+			if a.Bench == "Mochila" and state.Bench ~= "Mochila" or (a.Bench == "Mochila" and not panel) then
+				state.Tab = GEAR_TAB
+			end
 			state.Have = if type(a.Have) == "table" then a.Have else {}
 			state.Extra = if type(a.Extra) == "table" then a.Extra else {}
 			open()

@@ -33,6 +33,7 @@ return {
 		CiudadAguja = "rbxassetid://103825201819744",
 		CiudadDeposito = "rbxassetid://122162534276102",
 		CiudadChatarra = "rbxassetid://139879380819569",
+		EsquirlaGrieta = "rbxassetid://99384791297151",
 	},
 	Texturas = {
 	},

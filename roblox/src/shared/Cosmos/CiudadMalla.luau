@@ -204,6 +204,15 @@ return {
 			Tope_Techo = { C = Vector3.new(0.0, 42.5, -0.0), S = Vector3.new(31.2, 15.0, 31.2) },
 		},
 	},
+	EsquirlaGrieta = {
+		Center = Vector3.new(0.582, 10.24, 0.069), Size = Vector3.new(14.527, 21.919, 14.978), Tris = 696,
+		W = 13, D = 13, Base = 19, Mid = 0, Top = 0, Probe = "Base_Luz",
+		Parts = {
+			Base_Cristal = { C = Vector3.new(0.597, 10.649, 0.627), S = Vector3.new(14.497, 21.102, 7.91) },
+			Base_Cuerpo = { C = Vector3.new(0.186, 0.6, 0.069), S = Vector3.new(13.735, 2.638, 14.978) },
+			Base_Luz = { C = Vector3.new(0.553, 7.507, 0.66), S = Vector3.new(12.796, 14.186, 6.601) },
+		},
+	},
 	MiasmaBloque = {
 		Center = Vector3.new(0.0, 26.75, 2.3), Size = Vector3.new(34.41, 53.5, 35.8), Tris = 6872,
 		W = 30, D = 30, Base = 14, Mid = 20, Top = 4, Probe = "Tope_Techo",

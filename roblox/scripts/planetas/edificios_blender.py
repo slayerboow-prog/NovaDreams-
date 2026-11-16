@@ -1456,6 +1456,25 @@ def ciudad_chatarra():
     enter("Nave", 12, -5, 13, 12.8, dw=10, dh=10)
 
 
+def esquirla_grieta():
+    """Esquirla de la Grieta: racimo de cristales hexagonales con punta, núcleos de luz y rocas en la base."""
+    sec("Base")
+    cyl((0, 0, 0), 6.5, 1.6, "Cuerpo", n=8, r2=5.5)
+    spikes = [(0, 0, 3.0, 15, 0, 0), (3.4, 1.2, 1.7, 9, 0.35, 0.25), (-3.0, 1.8, 1.6, 8, -0.3, 0.3), (1.0, -3.2, 1.5, 7.5, 0.2, -0.4), (-2.2, -2.4, 1.3, 6, -0.3, -0.3), (4.2, -2.0, 1.0, 5, 0.5, -0.2)]
+    for x, y, r, h, tx, ty in spikes:
+        rot = (ty, tx, 0)
+        cyl((x, y, 0.8), r, h, "Cristal", n=6, rot=rot)
+        cyl((x, y, 0.8), r * 0.55, h * 0.92, "Luz", n=6, rot=rot)
+        # la punta: un cono de seis caras encima (en la misma inclinación)
+        dx = h * math.cos(ty) * math.sin(tx)
+        dy = -h * math.sin(ty)
+        dz = h * math.cos(ty) * math.cos(tx)
+        cyl((x + dx, y + dy, 0.8 + dz), r, r * 1.8, "Cristal", n=6, r2=0.05, rot=rot)
+    for i in range(7):
+        a = i / 7 * math.tau
+        box((math.cos(a) * 6.2, math.sin(a) * 6.2, 0.6), (1.6 + (i % 3) * 0.5, 1.4, 1.2 + (i % 2)), "Cuerpo", rot=(0.3 * i, 0.2, a), bevel=0.25)
+
+
 # nombre, función, estilo de la vista previa, medidas nominales (W, D y la altura de cada sección)
 ASSETS = [
     ("VerticeBloque", vertice_bloque, "Vertice", dict(W=30, D=30, Base=14, Mid=20, Top=10)),
@@ -1480,6 +1499,7 @@ ASSETS = [
     ("CiudadAguja", ciudad_aguja, "Vertice", dict(W=22, D=22, Base=14, Mid=20, Top=34)),
     ("CiudadDeposito", ciudad_deposito, "Miasma", dict(W=30, D=30, Base=30, Mid=0, Top=0)),
     ("CiudadChatarra", ciudad_chatarra, "Siroco", dict(W=26, D=30, Base=15, Mid=0, Top=0)),
+    ("EsquirlaGrieta", esquirla_grieta, "Calle", dict(W=13, D=13, Base=19, Mid=0, Top=0)),
     ("CalleVehiculo", calle_vehiculo, "Calle", dict(W=12, D=7, Base=4, Mid=0, Top=0)),
     ("CalleCajas", calle_cajas, "Calle", dict(W=9, D=7, Base=5, Mid=0, Top=0)),
     ("CalleTuberias", calle_tuberias, "Calle", dict(W=12, D=6, Base=8, Mid=0, Top=0)),

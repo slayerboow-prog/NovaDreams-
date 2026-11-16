@@ -89,12 +89,15 @@ local function glow(p: BasePart, level: number)
 	pe.Parent = p
 end
 
-local function weapon(folder: Instance, hand: BasePart, id: string, level: number)
+local function weapon(folder: Instance, torso: BasePart, id: string, level: number)
 	local style = GearLook.WeaponStyle[id] or "Espada"
 	local c = GearLook.Colors[id] or rgb(200, 200, 200)
 	local grip = rgb(60, 44, 32)
-	-- (la mano: el arma sale hacia delante, la empuñadura en el puño)
-	local base = CFrame.new(0, -hand.Size.Y / 2 - 0.1, 0) * CFrame.Angles(-math.pi / 2, 0, 0)
+	-- (ENVAINADA A LA ESPALDA, en diagonal: la empuñadura asoma por encima del hombro y la hoja baja por la
+	-- espalda. En la mano quedaba torcida según lo que sujetaras: visto en Studio, 16-11-2026)
+	local s = torso.Size
+	local base = CFrame.new(0, s.Y * 0.45, s.Z / 2 + 0.3) * CFrame.Angles(0, 0, math.rad(35)) * CFrame.Angles(-math.pi / 2, 0, 0)
+	local hand = torso
 	if style == "Cuchillo" then
 		piece(folder, hand, "Empunadura", V3(0.25, 0.25, 0.7), base * CFrame.new(0, 0, 0.1), grip, Enum.Material.Wood)
 		local blade = piece(folder, hand, "Hoja", V3(0.12, 0.35, 1.3), base * CFrame.new(0, 0, -0.85), c, Enum.Material.SmoothPlastic)
@@ -133,12 +136,11 @@ function GearLook.apply(character: Model, worn: { [string]: string }, refine: { 
 	end
 	local torso = partOf(character, { "UpperTorso", "Torso" })
 	local head = partOf(character, { "Head" })
-	local rHand = partOf(character, { "RightHand", "Right Arm" })
 	local lArm = partOf(character, { "LeftLowerArm", "Left Arm" })
 	local rArm = partOf(character, { "RightLowerArm", "Right Arm" })
 	local feet = { partOf(character, { "LeftFoot", "Left Leg" }), partOf(character, { "RightFoot", "Right Leg" }) }
-	if worn.Arma and rHand then
-		weapon(folder, rHand, worn.Arma, lvl(worn.Arma))
+	if worn.Arma and torso then
+		weapon(folder, torso, worn.Arma, lvl(worn.Arma))
 	end
 	if worn.Armadura and torso then
 		local id = worn.Armadura
@@ -174,7 +176,7 @@ function GearLook.apply(character: Model, worn: { [string]: string }, refine: { 
 	end
 	if worn.Collar and torso then
 		local c = GearLook.Colors[worn.Collar] or rgb(220, 200, 60)
-		piece(folder, torso, "Collar", V3(0.45, 0.45, 0.2), CFrame.new(0, torso.Size.Y * 0.28, -torso.Size.Z / 2 - 0.3), c, Enum.Material.Neon, Enum.PartType.Ball)
+		piece(folder, torso, "Collar", V3(0.28, 0.28, 0.14), CFrame.new(0, torso.Size.Y * 0.28, -torso.Size.Z / 2 - 0.3), c, Enum.Material.Neon, Enum.PartType.Ball)
 	end
 	if worn.Pulsera and rArm then
 		local c = GearLook.Colors[worn.Pulsera] or rgb(200, 120, 70)
