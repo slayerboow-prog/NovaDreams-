@@ -797,10 +797,13 @@ function TesterService.handle(player: Player, kind: any, a: any, b: any): boolea
 				if Inventory.count(player, "Botella") <= 0 and not player:GetAttribute("Gills") then
 					Inventory.add(player, "Botella", 1)
 				end
-				service("SceneService").teleportTo(player, Nacara.toWorld(0, -78, 8))
+				-- (en Tálasa: se entra en el planeta)
+				if not service("PlanetService").dropAt(player, "Talasa", Nacara.toWorld(0, -78, 8)) then
+					service("SceneService").teleportTo(player, Nacara.toWorld(0, -78, 8))
+				end
 			end)
 			done = ok
-			toast(player, if ok then "Success" else "Error", if ok then "🐚 Nácara, a 37 m: delante del arco de kelp. Con el equipo de buceo puesto (o tus branquias)." else "No se ha podido ir a Nácara ahora")
+			toast(player, if ok then "Success" else "Error", if ok then "🐚 Nácara (Tálasa), a 37 m: delante del arco de kelp. Con el equipo de buceo puesto (o tus branquias)." else "No se ha podido ir a Nácara ahora")
 		elseif a == "HumanLife" then
 			local ok, text = humanLife(player)
 			done = ok

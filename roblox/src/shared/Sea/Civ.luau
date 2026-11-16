@@ -32,7 +32,7 @@ Civ.MaxLights = 6
 ---------------------------------------------------------------------
 Civ.Districts = {
 	{ Id = "Nacara", Name = "Nácara", Sub = "la capital de los Hondarios", X = Nacara.Center.X, Z = Nacara.Center.Z, R = 235, Safe = true, Icon = "🐚" },
-	{ Id = "Burbuja", Name = "La Burbuja", Sub = "la posada de los secos", X = -960, Z = 4040, R = 70, Safe = true, Icon = "💧" },
+	{ Id = "Burbuja", Name = "La Burbuja", Sub = "la posada de los secos", X = Nacara.Center.X - 300, Z = Nacara.Center.Z + 270, R = 70, Safe = true, Icon = "💧" },
 }
 Civ.DistrictById = {}
 for _, d in Civ.Districts do
@@ -85,7 +85,8 @@ do
 	end
 end
 -- La posada de La Burbuja (dos camas para los secos; se alquilan igual)
-Civ.Posada = { X = -960, Z = 4040, Radius = 15, Air = 13.5 }
+-- (en el talud de la Fosa de Nácara, a ~400 studs de la plaza y unos 15 m de hondo)
+Civ.Posada = { X = Nacara.Center.X - 300, Z = Nacara.Center.Z + 270, Radius = 15, Air = 13.5 }
 for i = 1, 2 do
 	table.insert(Civ.Homes, {
 		Key = ("MarCasa_Burbuja_%d"):format(i),
@@ -120,7 +121,7 @@ end
 ---------------------------------------------------------------------
 -- Suelo de La Burbuja: el del talud en su centro (se allana un poco alrededor)
 function Civ.burbujaFloorY(): number
-	return Ocean.floorY(Civ.Posada.X, Civ.Posada.Z) or (Ocean.Surface - 20 * Ocean.StudsPerMeter)
+	return Nacara.floorY(Civ.Posada.X, Civ.Posada.Z)
 end
 
 -- Dónde está una vivienda (los pies, sobre el suelo seco)
@@ -140,7 +141,7 @@ end
 function Civ.districtAt(pos: Vector3): { [string]: any }?
 	for _, d in Civ.Districts do
 		local dx, dz = pos.X - d.X, pos.Z - d.Z
-		if dx * dx + dz * dz < d.R * d.R and pos.Y < Ocean.Surface then
+		if dx * dx + dz * dz < d.R * d.R and pos.Y < Nacara.Surface then
 			return d
 		end
 	end
@@ -184,8 +185,8 @@ Civ.People = {
 		Face = { -78, -120 },
 		Look = { Skin = rgb(141, 85, 36), Scales = rgb(40, 60, 110), Tunic = rgb(30, 40, 80), Crest = rgb(230, 230, 255), Hair = rgb(200, 200, 210) },
 		Routine = { { From = 6, To = 22, Spot = { -78, -150, 6.5 } }, { From = 22, To = 6, Spot = { -60, -146, 5.5 } } } },
-	{ Id = "Bartolo", Name = "Bartolo", Title = "desguacero", Role = "Quest", World = true, X = -940, Z = 4064, Y = 5,
-		Face = { -960, 4040 },
+	{ Id = "Bartolo", Name = "Bartolo", Title = "desguacero", Role = "Quest", World = true, X = Nacara.Center.X - 280, Z = Nacara.Center.Z + 294, Y = 5,
+		Face = { Nacara.Center.X - 300, Nacara.Center.Z + 270 },
 		Look = { Skin = rgb(224, 172, 105), Scales = rgb(120, 110, 70), Tunic = rgb(90, 70, 40), Crest = rgb(255, 200, 90), Hair = rgb(60, 40, 20) } },
 	{ Id = "Tome", Name = "Tomé", Title = "cultivador de algas", Role = "Quest", X = 140, Z = -40, Y = 5.2,
 		Face = { 162, -18 },
@@ -261,14 +262,14 @@ Civ.Boards = {
 ---------------------------------------------------------------------
 Civ.StorySpots = {
 	{ Id = "Arrecife", Name = "Jardín de coral del sur", World = true, X = Nacara.StartReef.X + 20, Z = Nacara.StartReef.Z + 70, Radius = 22 },
-	{ Id = "Ruinas", Name = "Ruinas de Valmar la Vieja", World = true, X = Ocean.PoiById.Ruinas.X + 40, Z = Ocean.PoiById.Ruinas.Z - 40, Radius = 40 },
+	{ Id = "Ruinas", Name = Nacara.Ruins.Name, World = true, X = Nacara.Ruins.X, Z = Nacara.Ruins.Z, Radius = 40 },
 	{ Id = "Arco", Name = "Arco de entrada de Nácara", X = 0, Z = -60, Radius = 18 },
 	{ Id = "Plaza", Name = "Plaza de la Corriente", X = 8, Z = -12, Radius = 30 },
 	{ Id = "Consejo", Name = "Concha del Consejo", X = -78, Z = -140, Radius = 22 },
 	{ Id = "Conchas", Name = "Barrio de las Conchas", X = -168, Z = 14, Radius = 40 },
 	{ Id = "Jardines", Name = "Jardines de Cultivo", X = 150, Z = -30, Radius = 36 },
 	{ Id = "KelpNorte", Name = "El bosque de kelp del norte", X = 150, Z = -190, Radius = 20 },
-	{ Id = "Burbuja", Name = "La Burbuja · posada de los secos", World = true, X = -960, Z = 4040, Radius = 26 },
+	{ Id = "Burbuja", Name = "La Burbuja · posada de los secos", World = true, X = Civ.Posada.X, Z = Civ.Posada.Z, Radius = 26 },
 }
 Civ.SpotById = {}
 for _, s in Civ.StorySpots do
@@ -277,7 +278,7 @@ end
 
 function Civ.spotPosition(s: { [string]: any }): Vector3
 	if s.World then
-		local floor = Ocean.floorY(s.X, s.Z) or Nacara.FloorY
+		local floor = Nacara.floorY(s.X, s.Z)
 		if s.Id == "Burbuja" then
 			floor = Civ.burbujaFloorY()
 		end

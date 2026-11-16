@@ -381,6 +381,10 @@ end
 -- El mapa
 ---------------------------------------------------------------------
 function NacaraService.publishLandmark(): boolean
+	-- (16-11-2026: Nácara ya no está en Valmar sino en Tálasa: no sale en el mapa de Valmar)
+	if Nacara.Planet then
+		return true
+	end
 	local folder = ReplicatedStorage:FindFirstChild("MapLandmarks")
 	if not folder then
 		return false
@@ -417,6 +421,26 @@ function NacaraService.setup(terrain: any?)
 	print(("[Nacara] %d Hondarios (%d piezas). Plaza y gente: %d piezas de %d"):format(NacaraService.Stats.People, NacaraService.Stats.PeopleParts, NacaraBuilder.Stats.Parts, Nacara.Budget))
 end
 
+-- El terreno de la Fosa de Nácara en Tálasa (lo de alrededor de la plaza): con el mismo escritor que el planeta
+-- (PlanetWorld.chunk), así cuando alguien llega a Tálasa y se escribe el planeta entero, encaja igual
+function NacaraService.buildFosa(terrain: any?)
+	local PlanetWorld = require(script.Parent.Parent.World.PlanetWorld) :: any
+	local Talasa = require(game:GetService("ReplicatedStorage").Shared.Cosmos.Talasa) :: any
+	local t = terrain or workspace.Terrain
+	local size = 64
+	local half = 576
+	local cx, cz = Nacara.Center.X, Nacara.Center.Z
+	for x0 = cx - half, cx + half - 1, size do
+		for z0 = cz - half, cz + half - 1, size do
+			PlanetWorld.chunk(t, x0, z0, size, Talasa)
+			if not terrain then
+				task.wait()
+			end
+		end
+	end
+	workspace:SetAttribute("FosaNacaraReady", true)
+end
+
 function NacaraService.init()
 	task.spawn(function()
 		-- el punto del mapa (WorldService crea la carpeta al arrancar)
@@ -429,10 +453,12 @@ function NacaraService.init()
 	end)
 	task.spawn(function()
 		local waited = 0
-		while not workspace:GetAttribute("OceanReady") and waited < NacaraService.WaitOcean do
-			task.wait(1)
-			waited += 1
+		-- (16-11-2026: Nácara vive en la Fosa de Nácara de Tálasa) primero el terreno de la fosa, trozo a trozo
+		local okFosa, errFosa = pcall(NacaraService.buildFosa)
+		if not okFosa then
+			warn("[Nacara] fosa: " .. tostring(errFosa))
 		end
+		local _ = waited
 		local ok, err = pcall(NacaraService.setup)
 		if not ok then
 			warn("[Nacara] " .. tostring(err))

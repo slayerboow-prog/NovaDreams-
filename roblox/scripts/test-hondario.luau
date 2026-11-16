@@ -356,15 +356,15 @@ do
 	local pts = Decor.buoyPoints()
 	local onSurface = true
 	for _, b in pts do
-		if math.abs(b.Y - Ocean.Surface) > 0.01 or not Ocean.floorY(b.X, b.Z) then
+		if math.abs(b.Y - Nacara.Surface) > 0.01 or not Nacara.floorY(b.X, b.Z) then
 			onSurface = false
 		end
 	end
-	check(#pts >= 10 and onSurface and Decor.Stats.Buoys == #pts, ("desde la orilla: %d boyas que brillan en la superficie hasta encima de Nácara"):format(#pts))
+	check(#pts >= 4 and onSurface and Decor.Stats.Buoys == #pts, ("desde el borde de la fosa: %d boyas que brillan en la superficie hasta encima de Nácara"):format(#pts))
 	local last = pts[#pts]
 	check(math.abs(last.X - Nacara.Center.X) < 1 and math.abs(last.Z - Nacara.Center.Z) < 1, "la última, la grande con «NÁCARA ↓ 37 m», justo encima de la ciudad")
 	local col = f and f:FindFirstChild("FaroColumna", true)
-	check(col ~= nil and col.CFrame.Position.Y + col.Size.X / 2 <= Ocean.Surface - 12 and col.Size.X > 50, "el faro de Nácara: una columna de luz desde la plaza hasta 12 studs bajo la superficie (se ve de lejos)")
+	check(col ~= nil and col.CFrame.Position.Y + col.Size.X / 2 <= Nacara.Surface - 12 and col.Size.X > 50, "el faro de Nácara: una columna de luz desde la plaza hasta 12 studs bajo la superficie (se ve de lejos)")
 	check(pulse >= 6 and Decor.Stats.Bubbles >= 4, ("%d perlas que laten y %d columnas de burbujas"):format(pulse, Decor.Stats.Bubbles))
 	local MapInfo = L.load("src/shared/MapInfo")
 	check(MapInfo.KindByModel.PuntoNacara.Name == "Nácara (ciudad bajo el mar)", "en el mapa: «Nácara (ciudad bajo el mar)»")

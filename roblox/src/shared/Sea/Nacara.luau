@@ -17,6 +17,7 @@
 --   Nacara.lookNear(look, pos)   la luz bajo el agua cerca de la ciudad (la da la ciudad: perlas y coral)
 
 local Ocean = require(script.Parent.Ocean)
+local Talasa = require(script.Parent.Parent.Cosmos.Talasa)
 
 local Nacara = {}
 
@@ -30,8 +31,20 @@ Nacara.Test = true -- (nada de premios, tienda de verdad ni guardado: es para mi
 -- las Ruinas de Valmar la Vieja, a 445 de Valmar Hundida y a ~280 del borde del cañón (sus agujas de
 -- roca se ven detrás). Lejos de los puertos (> 1600 studs), del Abismo Silente (megalodón: > 2500) y
 -- de los barcos (todo queda ≥ 60 studs bajo la superficie).
-Nacara.Center = { X = -2650, Z = 5000 }
-Nacara.FloorY = -136 -- suelo de la plaza: (−2 − (−136)) / 3,57 ≈ 37,5 m
+-- (16-11-2026: el dueño quitó el mar hondo de Valmar y Nácara se mudó a la FOSA DE NÁCARA del planeta océano Tálasa,
+-- shared/Cosmos/Talasa.Fosa: misma profundidad, 37,5 m. Todo lo de abajo sale de aquí: Center y FloorY son del mundo.)
+Nacara.Planet = "Talasa"
+Nacara.Surface = Talasa.Origin.Y + Talasa.WaterY -- el agua de Tálasa (en Valmar era −2)
+Nacara.Center = { X = Talasa.Origin.X + Talasa.Fosa.X, Z = Talasa.Origin.Z + Talasa.Fosa.Z }
+Nacara.FloorY = Nacara.Surface - 134 -- suelo de la plaza: 134 / 3,57 ≈ 37,5 m
+
+-- El fondo y la profundidad en Tálasa (lo que antes era Ocean.floorY / Ocean.meters del mar de Valmar)
+function Nacara.floorY(x: number, z: number): number
+	return Talasa.heightAt(x, z)
+end
+function Nacara.meters(y: number): number
+	return math.max(0, (Nacara.Surface - y) / Ocean.StudsPerMeter)
+end
 Nacara.Radius = 50 -- la plaza (disco de nácar)
 Nacara.Clear = 60 -- el terreno se allana hasta aquí (la plaza queda un poco hundida en la llanura)
 Nacara.Budget = 900 -- piezas del servidor de TODA la plaza (edificios + gente)
@@ -115,7 +128,7 @@ function Nacara.centerPosition(): Vector3
 end
 
 function Nacara.depthMeters(): number
-	return Ocean.meters(Nacara.FloorY)
+	return Nacara.meters(Nacara.FloorY)
 end
 
 function Nacara.domeCenter(): Vector3
@@ -168,21 +181,12 @@ end
 ---------------------------------------------------------------------
 -- La ruta de buceo: del jardín de coral más cercano a la plaza
 ---------------------------------------------------------------------
--- El jardín de coral de la orilla más cercano (Ocean.ShoreReefs) y, a medio camino, las Ruinas de
--- Valmar la Vieja (punto de buceo del mapa). Las perlas de guía van a ~10 studs del fondo.
-local function nearestReef(): { [string]: any }
-	local best, bestD = nil, math.huge
-	for _, reef in Ocean.ShoreReefs do
-		local d = (reef.X - Nacara.Center.X) ^ 2 + (reef.Z - Nacara.Center.Z) ^ 2
-		if d < bestD then
-			best, bestD = reef, d
-		end
-	end
-	return best :: any
-end
-Nacara.StartReef = nearestReef()
+-- (en Tálasa) desde el jardín de coral del borde de la fosa, bajando por el talud y pasando por los Restos
+-- Hundidos (cascos viejos a media ladera), hasta el arco de la plaza. Las perlas de guía van a ~10 studs del fondo.
+Nacara.StartReef = { X = Nacara.Center.X - 60, Z = Nacara.Center.Z - 470, Name = "Jardín de coral del borde de la fosa" }
+Nacara.Ruins = { X = Nacara.Center.X + 150, Z = Nacara.Center.Z - 330, Name = "Restos Hundidos" }
 do
-	local ruins = Ocean.PoiById.Ruinas
+	local ruins = Nacara.Ruins
 	Nacara.Route = {
 		{ X = Nacara.StartReef.X, Z = Nacara.StartReef.Z, Name = Nacara.StartReef.Name },
 		{ X = (Nacara.StartReef.X + ruins.X) / 2 - 40, Z = (Nacara.StartReef.Z + ruins.Z) / 2 },
@@ -197,8 +201,8 @@ Nacara.RouteMarkerStep = 55 -- una perla de guía cada tantos studs
 
 -- Altura de la ruta en un punto: 10 studs sobre el fondo, nunca a menos de 4 de la superficie
 local function routeY(x: number, z: number): number
-	local floorY = Ocean.floorY(x, z) or Ocean.CoastY
-	return min(floorY + 10, Ocean.Surface - 4)
+	local floorY = Nacara.floorY(x, z)
+	return min(floorY + 10, Nacara.Surface - 4)
 end
 Nacara.routeY = routeY
 
@@ -239,7 +243,7 @@ end
 
 -- La corriente guía: empuja suave por la ruta hacia la plaza (solo bajo el agua y cerca de la línea)
 function Nacara.currentAt(pos: Vector3): Vector3
-	if pos.Y > Ocean.Surface - 1 then
+	if pos.Y > Nacara.Surface - 1 or math.abs(pos.X - Nacara.Center.X) > 900 or math.abs(pos.Z - Nacara.Center.Z) > 900 then
 		return Vector3.zero
 	end
 	local best, bestDir = math.huge, nil
@@ -290,7 +294,7 @@ function Nacara.nearness(pos: Vector3): number
 	local d = sqrt((pos.X - Nacara.Center.X) ^ 2 + (pos.Z - Nacara.Center.Z) ^ 2)
 	local k = 1 - smooth((d - Nacara.NearFull) / (Nacara.NearFar - Nacara.NearFull))
 	-- (solo en lo hondo: arriba, cerca de la superficie, manda el sol)
-	local deep = smooth((Ocean.meters(pos.Y) - 12) / 14)
+	local deep = smooth((Nacara.meters(pos.Y) - 12) / 14)
 	return k * deep
 end
 

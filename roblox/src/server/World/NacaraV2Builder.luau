@@ -972,6 +972,14 @@ local function kit(models: { [string]: Model }, list: { any })
 	end)
 end
 
+-- Solo el terreno (aire de las salas, suelos): PlanetWorld lo vuelve a poner cuando termina de escribir Tálasa
+function NacaraV2Builder.terrain(terrain: any?)
+	local t = terrain or workspace.Terrain
+	for _, op in NacaraV2Builder.plan().Terrain do
+		pcall(fill, t, op)
+	end
+end
+
 function NacaraV2Builder.build(terrain: any?)
 	if NacaraV2Builder.State ~= "None" then
 		return

@@ -211,12 +211,12 @@ function NacaraDecor.buoyPoints(): { Vector3 }
 		local d = carry
 		while d < len do
 			local x, z = a.X + dx * d / len, a.Z + dz * d / len
-			table.insert(pts, V(x, Ocean.Surface, z))
+			table.insert(pts, V(x, Nacara.Surface, z))
 			d += NacaraDecor.BuoyStep
 		end
 		carry = d - len
 	end
-	table.insert(pts, V(Nacara.Center.X, Ocean.Surface, Nacara.Center.Z))
+	table.insert(pts, V(Nacara.Center.X, Nacara.Surface, Nacara.Center.Z))
 	return pts
 end
 
@@ -273,7 +273,7 @@ end
 -- El faro de Nácara: columna de luz de la plaza casi hasta la superficie (se ve de lejos bajo el agua)
 local function beacon(m: Model)
 	local c = Nacara.centerPosition()
-	local top = Ocean.Surface - 14
+	local top = Nacara.Surface - 14
 	local bottom = c.Y + 52
 	local h = top - bottom
 	part(m, { Name = "FaroColumna", Shape = Enum.PartType.Cylinder, Size = V(h, 3.2, 3.2), CFrame = CF(c.X, (top + bottom) / 2, c.Z) * ANG(0, 0, pi / 2), Color = rgb(120, 240, 255), Material = Enum.Material.Neon, Transparency = 0.6 })
@@ -324,7 +324,7 @@ function NacaraDecor.build(meshes: Instance?)
 				local floor = Nacara.FloorY
 				local wx, wz = Nacara.Center.X + p.X, Nacara.Center.Z + p.Z
 				if p.X * p.X + p.Z * p.Z > (Nacara.Clear + 30) ^ 2 then
-					local f = Ocean.floorY(wx, wz)
+					local f = Nacara.floorY(wx, wz)
 					floor = if f then ShoreReef.heightAt(wx, wz, f) else floor
 				end
 				NacaraDecor.piece(p.Kind, V(wx, floor, wz), p.H, p.Yaw, p.Color, gardens, meshes)
@@ -371,7 +371,7 @@ function NacaraDecor.skyline(parent: Instance, meshes: Instance?)
 		local x, z = math.cos(sp.A) * sp.R, math.sin(sp.A) * sp.R
 		if NacaraDecor.free(x, z) then
 			local wx, wz = Nacara.Center.X + x, Nacara.Center.Z + z
-			local f = Ocean.floorY(wx, wz)
+			local f = Nacara.floorY(wx, wz)
 			local floor = if f then ShoreReef.heightAt(wx, wz, f) else Nacara.FloorY
 			local h = math.min(sp.H, Nacara.MaxTop)
 			local base = CF(wx, floor - 1, wz) * ANG(0, sp.A * 2, 0)

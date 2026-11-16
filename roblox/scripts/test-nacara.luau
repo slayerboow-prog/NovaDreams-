@@ -37,78 +37,29 @@ end
 local C = Nacara.Center
 
 ---------------------------------------------------------------------
-print("▶ El sitio de la plaza")
+print("▶ El sitio de la plaza (la Fosa de Nácara, en Tálasa)")
 do
-	local s = Ocean.sample(C.X, C.Z)
-	check(s.Zone == "Llanura", ("En la Llanura Sumergida (zona: %s)"):format(tostring(s.Zone)))
+	-- (16-11-2026: el dueño quitó el mar hondo de Valmar: Nácara vive en Tálasa, en una fosa a 37,5 m)
+	local Talasa = L.load("src/shared/Cosmos/Talasa")
+	check(Nacara.Planet == "Talasa" and math.abs(C.X - (Talasa.Origin.X + Talasa.Fosa.X)) < 1 and math.abs(C.Z - (Talasa.Origin.Z + Talasa.Fosa.Z)) < 1, "En la Fosa de Nácara de Tálasa")
 	local m = Nacara.depthMeters()
 	check(m >= 37 and m <= 47, ("El suelo de la plaza a %.1f m (la capital va a 37–47 m)"):format(m))
-	check(Ocean.inArea(C.X - Nacara.Clear, C.Z - Nacara.Clear) and Ocean.inArea(C.X + Nacara.Clear, C.Z + Nacara.Clear), "Dentro del mar que construye OceanBuilder")
-	-- a la entrada del Cañón de las Catedrales: el cañón empieza a menos de 400 studs y la plaza no lo toca
-	local dist = Ocean.along(Ocean.Cathedrals, C.X, C.Z)
-	check(dist < 450 and dist > Ocean.Cathedrals.HalfWidth + Ocean.Cathedrals.Wall + Nacara.Clear, ("A la entrada del Cañón de las Catedrales: su eje a %.0f studs, sin tocar sus paredes"):format(dist))
-	-- todo el disco: mar, sin puertos/islas, sin cañones ni sima, fuera del abismo, lejos de la costa
-	local ok, minLand, maxFloor, minFloor = true, math.huge, -math.huge, math.huge
+	local maxFloor, minFloor = -math.huge, math.huge
 	for dx = -Nacara.Clear, Nacara.Clear, 6 do
 		for dz = -Nacara.Clear, Nacara.Clear, 6 do
 			if dx * dx + dz * dz <= Nacara.Clear ^ 2 then
-				local p = Ocean.sample(C.X + dx, C.Z + dz)
-				if not p.Floor or p.Keep > 0 or p.Trench > 0 or p.Canyon > 0 or p.Cathedrals > 0 or p.Basin > 0 then
-					ok = false
-				end
-				minLand = math.min(minLand, p.D)
-				maxFloor = math.max(maxFloor, p.Floor or 0)
-				minFloor = math.min(minFloor, p.Floor or 0)
+				local f = Nacara.floorY(C.X + dx, C.Z + dz)
+				maxFloor = math.max(maxFloor, f)
+				minFloor = math.min(minFloor, f)
 			end
 		end
 	end
-	check(ok, "El disco entero es llanura: nada de puertos, islas, sima, garganta, cañón ni abismo")
-	check(minLand > 1000, ("Lejos de la costa y las playas (a %.0f studs de tierra, como poco)"):format(minLand))
 	check(maxFloor - Nacara.FloorY < 12 and Nacara.FloorY - minFloor < 8, ("El fondo de alrededor está cerca del suelo de la plaza (de %.1f a %.1f; plaza %.0f): se allana poco"):format(minFloor, maxFloor, Nacara.FloorY))
-	for _, k in Ocean.Keep do
-		local d = math.sqrt((k.X - C.X) ^ 2 + (k.Z - C.Z) ^ 2)
-		if d < k.R + 1200 then
-			check(false, "Lejos de " .. k.Name)
-		end
-	end
-	check(true, "A más de 1200 studs de cualquier puerto, marina o isla con muelle (Ocean.Keep)")
-	-- el megalodón: su elipse y su ronda de verdad
-	local B = Ocean.Basin
-	local e = math.sqrt(((C.X - B.X) / B.RX) ^ 2 + ((C.Z - B.Z) / B.RZ) ^ 2)
-	check(e > 1.8, ("Fuera del Abismo Silente, el territorio del megalodón (elipse ×%.2f)"):format(e))
-	local SeaBeasts = L.load("src/shared/Sea/SeaBeasts")
-	local mg = SeaBeasts.newMegalodon()
-	local nearest = math.huge
-	for _ = 1, 4000 do
-		mg = SeaBeasts.stepMegalodon(mg, 0.125, {})
-		nearest = math.min(nearest, math.sqrt((mg.Pos.X - C.X) ^ 2 + (mg.Pos.Z - C.Z) ^ 2))
-	end
-	check(nearest > 1500, ("El megalodón nunca pasa cerca (lo más cerca: %.0f studs)"):format(nearest))
-	-- sitios del mar (POI) y agujas de roca
-	local clash = {}
-	for _, poi in Ocean.Pois do
-		local d = math.sqrt((poi.X - C.X) ^ 2 + (poi.Z - C.Z) ^ 2)
-		if d < poi.Radius + Nacara.Clear + 150 then
-			table.insert(clash, poi.Id)
-		end
-	end
-	check(#clash == 0, "No pisa ningún sitio del mar (ni a 150 studs: Ruinas a 541, Valmar Hundida a 445)" .. (if #clash > 0 then ": " .. table.concat(clash, ", ") else ""))
-	local spireClash = 0
-	for _, sp in Ocean.spires() do
-		if math.sqrt((sp.X - C.X) ^ 2 + (sp.Z - C.Z) ^ 2) < sp.R + Nacara.Clear + 20 then
-			spireClash += 1
-		end
-	end
-	check(spireClash == 0, "Ninguna aguja de roca dentro de la plaza (las del cañón se ven detrás)")
-	for _, f in Ocean.JellyFields do
-		if math.sqrt((f.X - C.X) ^ 2 + (f.Z - C.Z) ^ 2) < f.R + Nacara.Clear then
-			check(false, "Lejos del campo de medusas " .. f.Name)
-		end
-	end
-	check(Ocean.currentAt(Nacara.centerPosition() + Vector3.new(0, 10, 0)).Magnitude < 0.01, "Sin corrientes del mar en la plaza")
+	local lx, lz = C.X - Talasa.Origin.X, C.Z - Talasa.Origin.Z
+	check(math.sqrt(lx * lx + lz * lz) > 900 and math.max(math.abs(lx), math.abs(lz)) + Talasa.Fosa.Rim < Talasa.CoreHalf + 40, "Lejos de Abisalia y de los islotes, dentro de lo conocido de Tálasa")
+	check(Nacara.MaxTop + Nacara.FloorY < Nacara.Surface - 60, "Lo más alto de la ciudad queda a más de 60 studs de la superficie")
 end
 
----------------------------------------------------------------------
 print("\n▶ Lo que hay en la plaza no se pisa")
 do
 	local overlaps = {}
@@ -551,25 +502,19 @@ end
 ---------------------------------------------------------------------
 print("\n▶ La ruta de buceo y la corriente guía")
 do
-	-- empieza en el jardín de coral de la orilla más cercano
-	local nearest, nd = nil, math.huge
-	for _, reef in Ocean.ShoreReefs do
-		local d = math.sqrt((reef.X - C.X) ^ 2 + (reef.Z - C.Z) ^ 2)
-		if d < nd then
-			nearest, nd = reef, d
-		end
-	end
-	check(Nacara.StartReef == nearest, ("Empieza en el jardín de coral más cercano: %s (%.0f studs)"):format(nearest.Name, nd))
+	-- empieza en el jardín de coral del borde de la fosa
+	local nd = math.sqrt((Nacara.StartReef.X - C.X) ^ 2 + (Nacara.StartReef.Z - C.Z) ^ 2)
+	check(Nacara.Route[1].X == Nacara.StartReef.X and nd > 350, ("Empieza en el jardín de coral del borde de la fosa (%.0f studs)"):format(nd))
 	local last = Nacara.Route[#Nacara.Route]
 	check(math.sqrt((last.X - C.X) ^ 2 + (last.Z - C.Z) ^ 2) < Nacara.Radius + 20, "Acaba en el arco de entrada de la plaza")
 	local wet, pts = true, Nacara.routePoints()
 	for _, m in pts do
-		local f = Ocean.floorY(m.Position.X, m.Position.Z)
-		if not f or m.Position.Y <= f + 2 or m.Position.Y > Ocean.Surface - 3 then
+		local f = Nacara.floorY(m.Position.X, m.Position.Z)
+		if not f or m.Position.Y <= f + 2 or m.Position.Y > Nacara.Surface - 3 then
 			wet = false
 		end
 	end
-	check(#pts > 20 and wet, ("%d perlas de guía (una cada %d studs), todas en el agua sobre el fondo"):format(#pts, Nacara.RouteMarkerStep))
+	check(#pts > 8 and wet, ("%d perlas de guía (una cada %d studs), todas en el agua sobre el fondo"):format(#pts, Nacara.RouteMarkerStep))
 	local length = Nacara.routeLength()
 	check(length < 2600, ("La ruta mide %.0f studs (%.0f m): con la botella (240 s) y la corriente se llega de sobra"):format(length, length / Ocean.StudsPerMeter))
 	-- la corriente empuja hacia la plaza por toda la ruta

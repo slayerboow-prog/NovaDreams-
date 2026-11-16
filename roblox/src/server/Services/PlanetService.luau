@@ -428,6 +428,31 @@ function PlanetService.reboard(player: Player): boolean
 	return true
 end
 
+-- A pie en un planeta, en un punto (Nácara, en Tálasa: la vida hondaria y el modo pruebas). Como si hubieras
+-- aterrizado: el planeta se construye, tu nave queda aparcada en su plataforma (para volver al espacio) y el
+-- atributo Planeta pone su cielo y su luz.
+function PlanetService.dropAt(player: Player, id: string, pos: Vector3): boolean
+	local S = PlanetService.Surfaces[id]
+	if not S then
+		return false
+	end
+	pcall(function()
+		world().ensure(id)
+	end)
+	pcall(function()
+		local pad = S.toWorld(0, 0, S.Origin.Y + S.padY())
+		world().park(player, CFrame.new(pad + Vector3.new(0, Landing.RestHeight, 0)))
+	end)
+	setOnPlanet(player, id)
+	local ok = pcall(function()
+		(require(script.Parent.SceneService) :: any).teleportTo(player, pos)
+	end)
+	if not ok and player.Character then
+		player.Character:PivotTo(CFrame.new(pos))
+	end
+	return true
+end
+
 -- Se va del planeta (VALMAR, otro sitio, se desconecta): fuera la nave aparcada y los atributos
 function PlanetService.leave(player: Player)
 	pcall(function()

@@ -28,7 +28,7 @@ El continente de caza queda pegado a la ciudad; los barcos y la pesca pasan al m
 
 | Fase | Qué | Estado |
 |---|---|---|
-| A | Nácara y los Hondarios al fondo de Tálasa (fuera del mar de Valmar) | por hacer |
+| A | Nácara y los Hondarios al fondo de Tálasa (fuera del mar de Valmar) | hecha en código (pasos 1-5, pruebas verdes); falta verla en Studio y publicar |
 | B | Continente de caza pegado a la ciudad: un solo terreno; mar por fuera | por hacer |
 | C | Ciudad más pequeña: inventario de barrios y edificios; quitar lo que la historia no usa | por hacer |
 | D | Escuela: asignaturas de guerrero espacial (habilidades, armas blancas, espíritu, planetas, naves) | por hacer |

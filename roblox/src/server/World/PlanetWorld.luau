@@ -860,6 +860,15 @@ function PlanetWorld.ensurePlanet(id: string): string
 		local t0 = os.clock()
 		local ok, err = pcall(function()
 			buildTerrain(nil, S)
+			if id == "Talasa" then
+				-- (la Fosa de Nácara: el mar del planeta se ha escrito encima del aire de la cúpula, las conchas y
+				-- la posada; se vuelve a poner)
+				for _, name in { "NacaraBuilder", "NacaraCityBuilder", "NacaraV2Builder" } do
+					pcall(function()
+						(require(script.Parent[name]) :: any).terrain(workspace.Terrain)
+					end)
+				end
+			end
 			local folder = PlanetWorld.buildPlanetProps(id)
 			if folder then
 				PlanetWorld.buildPlanetCity(id, folder, function()

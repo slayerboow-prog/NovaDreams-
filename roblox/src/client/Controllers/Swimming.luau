@@ -206,7 +206,30 @@ local function waterAt(x: number, z: number): boolean
 	return hit ~= nil and hit.Material == Enum.Material.Water
 end
 
+-- En un planeta con mar (Tálasa: Nácara vive en su fosa desde el 16-11-2026) el agua está a otra altura: la
+-- superficie del nado (shared/Swim) y la del movimiento (SeaMotion) pasan a la del planeta; en Valmar, −2.
+local function followPlanetWater()
+	local okReg, Registry = pcall(function()
+		return require(ReplicatedStorage.Shared.Cosmos.PlanetRegistry) :: any
+	end)
+	local okSea, SeaMotion = pcall(function()
+		return require(script.Parent.SeaMotion) :: any
+	end)
+	local function apply()
+		local id = player:GetAttribute("Planeta")
+		local S = okReg and type(id) == "string" and Registry.get(id) or nil
+		local surface = if S and type(S.WaterY) == "number" and S.Origin then S.Origin.Y + S.WaterY else -2
+		Swim.Surface = surface
+		if okSea and type(SeaMotion) == "table" then
+			SeaMotion.Surface = surface
+		end
+	end
+	player:GetAttributeChangedSignal("Planeta"):Connect(apply)
+	apply()
+end
+
 function Swimming.init()
+	pcall(followPlanetWater)
 	local waterCheckAt, waterHere = 0, false
 	local floorY: number? = nil
 	local clock = 0 -- tiempo de juego (suma de los frames)

@@ -110,8 +110,11 @@ end
 -- Lleva al jugador a su concha (de pie en el suelo seco)
 function HondarioService.goHome(player: Player): boolean
 	local pos = Civ.bedPosition(homeOf(player))
+	-- (16-11-2026: Nácara está en Tálasa: se entra en el planeta, no es un teletransporte suelto)
 	local ok = pcall(function()
-		service("SceneService").teleportTo(player, pos)
+		if not service("PlanetService").dropAt(player, "Talasa", pos) then
+			error("sin Tálasa")
+		end
 	end)
 	if not ok then
 		local character = player.Character

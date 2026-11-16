@@ -34,6 +34,11 @@ local ISLETS = {
 	{ X = 560, Z = -420, R = 72, H = 12 },
 }
 
+-- LA FOSA DE NÁCARA (16-11-2026, el dueño la trae del mar de Valmar): una hondonada redonda, lejos de Abisalia y
+-- de los islotes, con el suelo llano a 134 studs bajo el agua (los 37,5 m de la plaza) y un talud suave alrededor.
+-- Allí viven los Hondarios: la plaza, los barrios y la posada de La Burbuja en el talud (shared/Sea/Nacara y Civ).
+local FOSA = { X = 1000, Z = 1000, Floor = WATER - 134, Flat = 240, Rim = 470 }
+
 local S = PlanetSurface.new({
 	Id = "Talasa",
 	Name = "Tálasa",
@@ -57,6 +62,12 @@ local S = PlanetSurface.new({
 				h = h + (WATER + i.H + 4 * fbm(lx, lz, 3, 1 / 60, 9.1) - h) * k
 			end
 		end
+		-- la Fosa de Nácara
+		local df = math.sqrt((lx - FOSA.X) ^ 2 + (lz - FOSA.Z) ^ 2)
+		local kf = smooth(FOSA.Rim, FOSA.Flat, df)
+		if kf > 0 then
+			h = h + (FOSA.Floor + 2.5 * fbm(lx, lz, 3, 1 / 70, 12.3) * smooth(80, 200, df) - h) * kf
+		end
 		return h
 	end,
 	materialAt = function(lx: number, lz: number, y: number, slope: number, _S: any): string
@@ -78,6 +89,7 @@ local S = PlanetSurface.new({
 		LeafyGrass = rgb(90, 170, 120), -- algas de los islotes
 	},
 	WaterColor = rgb(32, 168, 172), -- turquesa
+	Fosa = FOSA, -- (la Fosa de Nácara: shared/Sea/Nacara)
 	POIs = {
 		{ Id = "Talasa_Plataforma", Name = "Plataforma de Abisalia", X = 0, Z = 0, Flat = 40, Pad = true, Text = "La plataforma de Abisalia: cubierta sobre pilotes en mitad del mar." },
 		-- (Flat = 0: no aplanan el fondo; sus avisos los pone el kit en el fondo, bajo la boya)
