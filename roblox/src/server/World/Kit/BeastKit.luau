@@ -145,7 +145,7 @@ function BeastKit.beast(sp: { [string]: any }, id: string): Model
 		local crest = limb(model, root, "Cresta", V3(0.2 * k, 0.8 * k, 1.6 * k), head * CFrame.new(0, 0.7 * k, 0.3 * k), glow, Enum.Material.Neon)
 		crest.CastShadow = false
 	else -- Bipedo
-		local mech = string.find(id, "Recaudador") ~= nil
+		local mech = string.find(id, "Recaudador") ~= nil or sp.Arms == true -- (de pie, con brazos y visor)
 		limb(model, root, "Tronco", V3(2 * k, 2.4 * k, 1.6 * k), CFrame.new(), body, m)
 		local head = CFrame.new(0, 1.8 * k, -0.3 * k)
 		limb(model, root, "Cabeza", V3(1.2 * k, 1.1 * k, 1.2 * k), head, if mech then belly else body, m)

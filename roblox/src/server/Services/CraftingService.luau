@@ -287,8 +287,13 @@ local function compass(player: Player)
 	local root = rootOf(player)
 	local id = player:GetAttribute("Planeta")
 	local S = type(id) == "string" and PlanetRegistry.get(id)
+	if not S and id == nil then
+		-- (en Valmar: las ocho regiones de caza alrededor de la ciudad)
+		local okW, Wilds = pcall(require, script.Parent.Parent.World.ValmarWilds)
+		S = okW and (Wilds :: any).get() or nil
+	end
 	if not root or not S then
-		tell(player, "Info", "🧭 La aguja da vueltas: aquí no hay bestias. Úsala en un planeta.")
+		tell(player, "Info", "🧭 La aguja da vueltas: aquí no hay bestias.")
 		return
 	end
 	local places = Bestiary.places(S)
@@ -308,11 +313,11 @@ local function compass(player: Player)
 	local ang = math.deg(math.atan2(dx, -dz)) % 360
 	local dir = DIRS[(math.floor((ang + 22.5) / 45) % 8) + 1]
 	local text = ("🧭 %s: hacia el %s, a unos %d m."):format(best.Name, dir, math.floor(bd * 0.28 + 0.5))
-	local boss = places.Boss
-	if boss then
+	for _, boss in if #(places.Bosses or {}) > 0 then places.Bosses else { places.Boss } do
 		local d = (Vector3.new(O.X + boss.X, 0, O.Z + boss.Z) - Vector3.new(root.Position.X, 0, root.Position.Z)).Magnitude
 		if d < 600 then
 			text ..= " La aguja tiembla: algo muy grande anda cerca."
+			break
 		end
 	end
 	tell(player, "Info", text)

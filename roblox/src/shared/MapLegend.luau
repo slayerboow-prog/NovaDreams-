@@ -45,6 +45,19 @@ MapLegend.Categories = {
 	{ Id = "Instituciones", Name = "Instituciones", Icon = "⚖️", Models = { "PalacioJusticia", "CentroPenitenciario", "CuartelEjercito", "AgenciaTributaria" } },
 	{ Id = "Caza", Name = "Zonas de caza", Icon = "⚔️", Models = { "ZonaCaza", "GuaridaJefe" } },
 } :: { Category }
+-- (las ocho regiones de Valmar y sus jefes: shared/MapInfo los crea desde shared/Cosmos/ValmarRegions)
+do
+	local okInfo, MapInfo = pcall(require, script.Parent.MapInfo)
+	if okInfo and MapInfo.RegionModels then
+		for _, c in MapLegend.Categories do
+			if c.Id == "Caza" then
+				for _, m in MapInfo.RegionModels do
+					table.insert(c.Models, m)
+				end
+			end
+		end
+	end
+end
 
 -- Tu casa: siempre en el mapa (no es una categoría y no se puede ocultar)
 MapLegend.Home = { Icon = "🏠", Name = "Casa", Family = "Casa familiar" }

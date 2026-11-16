@@ -28,6 +28,7 @@ local PlanetRegistry = require(ReplicatedStorage.Shared.Cosmos.PlanetRegistry)
 local Combat = require(ReplicatedStorage.Shared.Combat)
 local Crafting = require(ReplicatedStorage.Shared.Crafting)
 local Items = require(ReplicatedStorage.Shared.Items)
+local ValmarRegions = require(ReplicatedStorage.Shared.Cosmos.ValmarRegions)
 
 local BeastService = {}
 
@@ -180,8 +181,28 @@ function BeastService.buildWilds(S: any, folder: Instance): Instance?
 	-- (Valmar no tiene senderos radiales: el cartel de la zona va junto a cada guarida)
 	if not trails and S.Id == "Valmar" then
 		for _, lair in places.Lairs do
-			local z = Bestiary.zone(lair.Tier)
-			pcall(BeastKit.zoneSign, root, cfAt(lair.X + 20, lair.Z + 20), ("Zona de caza: %s · nv. %d"):format(z.Name, z.Level), lair.Tier or 1)
+			local z = Bestiary.lairZone(lair)
+			local sp = Bestiary.Species[lair.Species]
+			local text = if lair.Boss and sp then ("👑 %s · nv. %d"):format(sp.Name, z.Level) else ("%s · nv. %d"):format(z.Name, z.Level)
+			pcall(BeastKit.zoneSign, root, cfAt(lair.X + 20, lair.Z + 20), text, lair.Tier or 1)
+		end
+		-- las Ruinas Antiguas: una ciudad vieja entera repartida por su sector
+		local reg = S.Regions and S.Regions.ById.RuinasAntiguas
+		if reg then
+			local rr = Random.new(4242)
+			local made = 0
+			for _ = 1, 900 do
+				if made >= 16 then
+					break
+				end
+				local a = math.rad(reg.Bearing + rr:NextNumber(-19, 19))
+				local d = rr:NextNumber(S.Regions.InnerR + 150, S.Regions.OuterR - 450)
+				local lx, lz = math.sin(a) * d, -math.cos(a) * d
+				if S.goodSpot(lx, lz, 0.4, 30) then
+					made += 1
+					pcall(BeastKit.ruin, root, cfAt(lx, lz), "Roca", made * 1013 + math.floor(d))
+				end
+			end
 		end
 	end
 	-- ruinas de antes de la Grieta, repartidas por las tierras salvajes
@@ -242,13 +263,15 @@ local function spawnAt(S: any, lair: { [string]: any }): Beast?
 	local hum = model:FindFirstChildOfClass("Humanoid") :: Humanoid
 	model:PivotTo(CFrame.new(O.X + lx, ground + hum.HipHeight + root.Size.Y / 2 + 0.5, O.Z + lz) * CFrame.Angles(0, math.random() * 6.28, 0))
 	-- (zona de caza: cuanto más lejos de la ciudad, más nivel)
-	local zone = Bestiary.zone(lair.Tier)
+	local zone = Bestiary.lairZone(lair)
 	local boss = sp.Boss == true
 	local hp = math.floor(sp.Hp * (if boss then 1 else zone.Hp) + 0.5)
 	model:SetAttribute("InvasionTarget", "Bestia:" .. serial)
 	model:SetAttribute("Bestia", lair.Species)
-	model:SetAttribute("BeastName", if boss then sp.Name else Bestiary.leveledName(sp.Name, lair.Tier))
-	model:SetAttribute("Nivel", if boss then nil else zone.Level)
+	model:SetAttribute("BeastName", if boss then sp.Name else ("%s nv. %d"):format(sp.Name, zone.Level))
+	-- (los jefes de las regiones de Valmar enseñan su nivel; los de los planetas, no)
+	model:SetAttribute("Nivel", if boss then lair.Level else zone.Level)
+	model:SetAttribute("Region", lair.Region)
 	model:SetAttribute("MaxHp", hp)
 	model:SetAttribute("EnemyMaxHealth", hp)
 	model:SetAttribute("Boss", sp.Boss == true)
@@ -272,6 +295,8 @@ local function spawnAt(S: any, lair: { [string]: any }): Beast?
 		Damage = {},
 		Hit = if boss then 1 else zone.Damage,
 		Reward = if boss then 1 else zone.Reward,
+		Level = if boss then lair.Level else zone.Level,
+		Region = lair.Region,
 		Target = nil,
 		NextWander = now() + math.random() * 3,
 		NextBite = 0,
@@ -337,12 +362,12 @@ local function spawnShard(S: any, shard: { [string]: any }): Beast?
 	local O = S.Origin
 	local ground = if shard.Islet then O.Y + shard.Y else S.heightAt(O.X + shard.X, O.Z + shard.Z)
 	local model: Model = BeastKit.shard(CFrame.new(O.X + shard.X, ground - 1, O.Z + shard.Z), shard.Tier)
-	local zone = Bestiary.zone(shard.Tier)
+	local zone = Bestiary.lairZone(shard)
 	local sp = Bestiary.Shard
 	local hp = math.floor(sp.Hp * zone.Hp + 0.5)
 	model:SetAttribute("InvasionTarget", "Bestia:" .. serial)
 	model:SetAttribute("Bestia", sp.Id)
-	model:SetAttribute("BeastName", Bestiary.leveledName(sp.Name, shard.Tier))
+	model:SetAttribute("BeastName", ("%s nv. %d"):format(sp.Name, zone.Level))
 	model:SetAttribute("Nivel", zone.Level)
 	model:SetAttribute("MaxHp", hp)
 	model:SetAttribute("EnemyMaxHealth", hp)
@@ -405,6 +430,8 @@ local function spawnShard(S: any, shard: { [string]: any }): Beast?
 		Static = true,
 		Waves = {},
 		Tier = shard.Tier,
+		Level = zone.Level,
+		Region = shard.Region,
 	}
 	setHp(b)
 	beasts[model] = b
@@ -417,7 +444,7 @@ local function shardWave(b: Beast, index: number, attacker: Player?)
 	local shard = b.Lair
 	local wave = waveOf[shard.Id]
 	if not wave then
-		wave = { Id = shard.Id .. "_Oleada", Species = shard.Species, X = shard.X, Z = shard.Z, Y = shard.Y, Islet = shard.Islet, Tier = shard.Tier, Count = 0 }
+		wave = { Id = shard.Id .. "_Oleada", Species = shard.Species, X = shard.X, Z = shard.Z, Y = shard.Y, Islet = shard.Islet, Tier = shard.Tier, Level = shard.Level, Region = shard.Region, ZoneName = shard.ZoneName, Count = 0 }
 		waveOf[shard.Id] = wave
 	end
 	local n = Bestiary.Shard.WaveSize[index] or 3
@@ -629,6 +656,13 @@ local function giveLoot(player: Player, b: Beast)
 		worn.Luck += ((Progression :: any).stat(player, "Suerte") or 0) * 0.01
 	end
 	local reward = b.Reward or 1
+	-- (en las regiones de Valmar: si superas de largo el nivel de la bestia, da mucho menos; que nadie farmee
+	-- lo fácil sin fin)
+	local fair = if b.Region then ValmarRegions.rewardFactor(player:GetAttribute("Level"), b.Level) else 1
+	if fair < 1 then
+		worn.Luck = 0
+		reward = math.max(0.1, reward * fair)
+	end
 	local loot = if b.Static then Bestiary.shardLoot(b.Tier, b.Planet, math.random) else Bestiary.loot(b.Species, math.random, worn.Luck + (reward - 1) * 0.25)
 	local parts = {}
 	for id, n in loot do
@@ -652,12 +686,12 @@ local function giveLoot(player: Player, b: Beast)
 		-- nivel de cazador: experiencia por la bestia (más cuanto más aguanta)
 		data.Hunter = if type(data.Hunter) == "table" then data.Hunter else { Xp = 0 }
 		local before = Crafting.hunterLevel(data.Hunter.Xp)
-		data.Hunter.Xp = (tonumber(data.Hunter.Xp) or 0) + Crafting.killXp(b.Max, b.Sp.Boss)
+		data.Hunter.Xp = (tonumber(data.Hunter.Xp) or 0) + math.max(1, math.floor(Crafting.killXp(b.Max, b.Sp.Boss) * fair))
 		local after = Crafting.hunterLevel(data.Hunter.Xp)
 		player:SetAttribute("NivelCazador", after)
 		-- y experiencia del personaje (sube su nivel y da puntos de atributos, como cualquier cosa de tu vida)
 		if okP then
-			pcall((Progression :: any).addXp, player, math.max(1, math.floor(Crafting.killXp(b.Max, b.Sp.Boss) / 2)), nil)
+			pcall((Progression :: any).addXp, player, math.max(1, math.floor(Crafting.killXp(b.Max, b.Sp.Boss) / 2 * fair)), nil)
 		end
 		if after > before then
 			tell(player, "Success", ("⭐ ¡Nivel de cazador %d! Tus golpes a las bestias hacen un %d %% más."):format(after, math.floor(Crafting.hunterBonus(data.Hunter.Xp) * 100 + 0.5)))
@@ -670,7 +704,8 @@ local function giveLoot(player: Player, b: Beast)
 			hum.Health = math.min(hum.MaxHealth, hum.Health + worn.Vigor)
 		end
 	end
-	local text = ("%s %s cae. %s%s"):format(b.Sp.Icon or "🦴", b.Sp.Name, if #parts > 0 then "Botín: " .. table.concat(parts, ", ") else "", if cash > 0 then (" · +%d €"):format(cash) else "")
+	local text = ("%s %s cae. %s%s%s"):format(b.Sp.Icon or "🦴", b.Sp.Name, if #parts > 0 then "Botín: " .. table.concat(parts, ", ") else "", if cash > 0 then (" · +%d €"):format(cash) else "",
+		if fair < 1 then " · (demasiado fácil para tu nivel: da menos)" else "")
 	tell(player, "Success", text)
 end
 
@@ -941,13 +976,14 @@ local function proximityHints()
 		local root = rootOf(p)
 		if root then
 			for id, b in built do
-				local boss = Bestiary.places(b.S).Boss
-				if boss then
+				local pl = Bestiary.places(b.S)
+				for bi, boss in if #(pl.Bosses or {}) > 0 then pl.Bosses else { pl.Boss } do
+					local key = id .. "#" .. bi
 					local O = b.S.Origin
 					local d = (root.Position - Vector3.new(O.X + boss.X, root.Position.Y, O.Z + boss.Z)).Magnitude
 					warned[p] = warned[p] or {}
-					if d < 160 and not warned[p][id] then
-						warned[p][id] = true
+					if d < 160 and not warned[p][key] then
+						warned[p][key] = true
 						tell(p, "Error", "🌫 Algo enorme duerme cerca. El suelo tiembla un poco cada vez que respira…")
 					end
 				end

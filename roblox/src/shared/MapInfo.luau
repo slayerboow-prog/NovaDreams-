@@ -122,6 +122,27 @@ MapInfo.Kinds = {
 	{ Model = "GuaridaJefe", Icon = "👑", Name = "Guarida del Ciervo Roto (jefe)", Important = true },
 } :: { Kind }
 
+-- Las ocho regiones de caza de Valmar (shared/Cosmos/ValmarRegions): su nombre con los niveles en el centro de
+-- cada una («Region_<Id>») y la guarida de su jefe («Jefe_<Id>»; el Ciervo Roto, «Jefe_Elite»)
+MapInfo.RegionModels = {} :: { string }
+local okRegions, ValmarRegions, Bestiary = pcall(function()
+	return require(script.Parent.Cosmos.ValmarRegions), require(script.Parent.Cosmos.Bestiary)
+end)
+if okRegions then
+	for _, reg in ValmarRegions.List do
+		table.insert(MapInfo.Kinds, { Model = "Region_" .. reg.Id, Icon = reg.Icon, Name = ValmarRegions.label(reg), Important = true } :: any)
+		table.insert(MapInfo.RegionModels, "Region_" .. reg.Id)
+		local boss = Bestiary.Species[reg.Boss]
+		if boss then
+			table.insert(MapInfo.Kinds, { Model = "Jefe_" .. reg.Id, Icon = "👑", Name = ("%s (jefe, nv. %d)"):format(boss.Name, reg.MaxLevel), Important = true } :: any)
+			table.insert(MapInfo.RegionModels, "Jefe_" .. reg.Id)
+		end
+	end
+	local elite = Bestiary.Species.CiervoRoto
+	table.insert(MapInfo.Kinds, { Model = "Jefe_Elite", Icon = "🦌", Name = elite.Name .. " (jefe raro)", Important = true } :: any)
+	table.insert(MapInfo.RegionModels, "Jefe_Elite")
+end
+
 MapInfo.KindByModel = {} :: { [string]: Kind }
 for _, kind in MapInfo.Kinds do
 	MapInfo.KindByModel[kind.Model] = kind

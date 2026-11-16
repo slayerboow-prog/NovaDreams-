@@ -341,14 +341,72 @@ do
 	end)
 	check(Bestiary.ByPlanet.Valmar ~= nil and Bestiary.Species.CiervoRoto.Boss == true and Bestiary.Rare.Valmar == "CuarzoGrieta", "Valmar tiene sus bestias, su jefe y su material raro")
 	check(not S.goodSpot(0, 0, 1, 0) and not S.goodSpot(1450, 0, 1, 0), "ninguna guarida en la ciudad ni pegada a ella")
-	local p = Bestiary.places(S)
-	local per, inCity = {}, false
-	for _, l in p.Lairs do
-		per[l.Tier] = (per[l.Tier] or 0) + 1
-		inCity = inCity or (math.abs(l.X) < 1400 and math.abs(l.Z) < 1400)
+	-- las ocho regiones (shared/Cosmos/ValmarRegions)
+	local VR = L.load("src/shared/Cosmos/ValmarRegions")
+	check(S.Regions ~= nil and #VR.List == 8, "Valmar tiene sus ocho regiones de caza")
+	local regOk, rareOk = true, true
+	for i, reg in VR.List do
+		regOk = regOk and #reg.Species == 3 and Bestiary.Species[reg.Boss] ~= nil and Bestiary.Species[reg.Boss].Boss == true and reg.MaxLevel > reg.MinLevel
+		regOk = regOk and reg.Bearing == (i - 1) * 45
+		for _, sid in reg.Species do
+			local sp = Bestiary.Species[sid]
+			regOk = regOk and sp ~= nil and not sp.Boss and sp.Planet == "Valmar"
+			local hasRare = false
+			for _, d in sp and sp.Drops or {} do
+				regOk = regOk and known(d[1])
+				hasRare = hasRare or d[1] == reg.Rare
+			end
+			rareOk = rareOk and (hasRare or sid == "JabaliSierra" or sid == "AvispaGrieta" or sid == "VivoraPenasco")
+		end
+		rareOk = rareOk and known(reg.Rare)
 	end
-	check(not inCity and (per[1] or 0) >= 6 and (per[4] or 0) >= 6 and p.Boss ~= nil and #p.Shards >= 6 and #p.Caches >= 4,
-		("guaridas en las 4 zonas, jefe, esquirlas y alijos en el campo (%d/%d/%d/%d)"):format(per[1] or 0, per[2] or 0, per[3] or 0, per[4] or 0))
+	check(regOk, "cada región: tres criaturas de Valmar y su jefe, una cada 45 grados, niveles de menos a más")
+	check(rareOk, "las criaturas nuevas sueltan el material de su región")
+	check(VR.at(0, 0) == nil and VR.at(0, -3000).Id == "BosqueEtereo" and VR.at(3000, 0).Id == "PantanoMaldito" and VR.at(-2100, 2100).Id == "TierrasVolcanicas",
+		"norte bosque, este pantano, suroeste volcán; la ciudad no es región")
+	local lo = VR.levelAt(VR.ById.BosqueEtereo, 0, -1600)
+	local hi = VR.levelAt(VR.ById.BosqueEtereo, 0, -4700)
+	check(lo <= 12 and hi >= 28 and hi <= 30, ("el nivel sube hacia la costa (%d → %d)"):format(lo, hi))
+	check(VR.rewardFactor(80, 15) < 0.2 and VR.rewardFactor(20, 15) == 1 and VR.danger(VR.ById.TierrasVolcanicas, 10) == "Peligro",
+		"quien supera de largo a la bestia saca poco; aviso de peligro a los novatos")
+	local k5, k110 = Bestiary.levelScale(5), Bestiary.levelScale(110)
+	check(math.abs(k5.Hp - 1) < 1e-6 and k110.Hp > 10 and k110.Damage > 4 and k110.Reward > 10, "a más nivel, más vida, daño y premio")
+	local p = Bestiary.places(S)
+	local per, bosses, inCity, inSector, levelsOk = {}, {}, false, true, true
+	for _, l in p.Lairs do
+		inCity = inCity or (math.abs(l.X) < 1400 and math.abs(l.Z) < 1400)
+		local reg = VR.ById[l.Region]
+		inSector = inSector and reg ~= nil and VR.inside(reg, l.X, l.Z, -1)
+		levelsOk = levelsOk and reg ~= nil and l.Level >= reg.MinLevel and l.Level <= reg.MaxLevel
+		if l.Boss then
+			bosses[l.Region] = (bosses[l.Region] or 0) + 1
+		else
+			per[l.Region] = (per[l.Region] or 0) + 1
+		end
+	end
+	local eachOk, counts = true, {}
+	for _, reg in VR.List do
+		eachOk = eachOk and (per[reg.Id] or 0) >= 5 and (bosses[reg.Id] or 0) >= 1
+		table.insert(counts, ("%d"):format(per[reg.Id] or 0))
+	end
+	check(not inCity and inSector and levelsOk, "cada guarida en el campo de su región y con un nivel de su franja")
+	check(eachOk and #p.Bosses >= 9 and #p.Shards >= 12 and #p.Caches >= 6,
+		("guaridas y jefe en cada región (%s), %d jefes, %d esquirlas, %d alijos"):format(table.concat(counts, "/"), #p.Bosses, #p.Shards, #p.Caches))
+	local z = Bestiary.lairZone(p.Lairs[#p.Lairs])
+	check(z.Level == p.Lairs[#p.Lairs].Level and z.Name ~= nil and z.Hp >= 1, "la zona de una guarida de región lleva su nivel y su nombre")
+	-- los nuevos sitios en el mapa
+	local MapInfo = L.load("src/shared/MapInfo")
+	local MapLegend = L.load("src/shared/MapLegend")
+	local mapOk = true
+	for _, reg in VR.List do
+		mapOk = mapOk and MapInfo.KindByModel["Region_" .. reg.Id] ~= nil and MapInfo.KindByModel["Jefe_" .. reg.Id] ~= nil
+			and MapLegend.categoryOf("Region_" .. reg.Id) ~= nil
+	end
+	check(mapOk, "cada región y su jefe salen en el mapa y en su leyenda")
+	-- el suelo de cada región
+	check(Relief.material(40, 0.1, -3600, 0, nil, 1) == "Sand" or Relief.material(40, 0.1, -3600, 40, nil, 1) == "Sand" or Relief.material(40, 0.1, -3640, -20, nil, 1) == "Sand",
+		"arena en el Desierto Dorado")
+	check(Relief.material(40, 0.1, 100, 100, nil, 1) ~= "Sand" and Relief.material(40, 0.1, -3600, 0, nil, 0) ~= "Sand", "en la ciudad y junto a lo construido, el suelo de siempre")
 end
 
 print("🔌 Conexiones")

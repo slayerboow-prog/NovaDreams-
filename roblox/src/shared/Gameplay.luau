@@ -263,7 +263,7 @@ Gameplay.Menu = {
 -- Cada nivel da puntos para repartir. Vida y estamina se ven en la pantalla.
 ---------------------------------------------------------------------
 Gameplay.Progression = {
-	MaxLevel = 100,
+	MaxLevel = 110, -- (las regiones de caza de Valmar llegan a nv. 110; se puede subir en otra temporada)
 	PointsPerLevel = 3,
 	MaxStat = 50, -- puntos máximos en una estadística
 	-- Experiencia por lo que haces en tu vida (nombres de StoryEvents)

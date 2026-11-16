@@ -45,6 +45,15 @@ Crafting.Materials = {
 	{ "PlataRayo", "Plata de rayo", "⚡", "Plata cargada por los rayos de Miasma. Pica al tocarla." },
 	{ "ChipUsado", "Chip usado", "💾", "Un chip de Vértice que todavía guarda algo. Para aparatos." },
 	{ "CuarzoGrieta", "Cuarzo de la Grieta", "🔮", "Cristal violeta de las sierras de Valmar, donde cayeron trozos de la Grieta." },
+	-- el material de cada región de Valmar (shared/Cosmos/ValmarRegions)
+	{ "MaderaEterea", "Madera etérea", "🌿", "Madera del Bosque Etéreo que pesa como una pluma y no se quema." },
+	{ "CrinSalvaje", "Crin salvaje", "🐎", "Crin de las bestias de las Llanuras Salvajes. Para cuerdas que no se rompen." },
+	{ "LodoMaldito", "Lodo maldito", "🦠", "Barro del Pantano Maldito que se mueve solo. Mejor no preguntar." },
+	{ "ArenaDorada", "Arena dorada", "✨", "Arena del Desierto Dorado que brilla de noche. Endurece el metal." },
+	{ "ReliquiaRunica", "Reliquia rúnica", "📜", "Un trozo de piedra con las mismas marcas que los cristales de la Grieta." },
+	{ "EscarchaPerpetua", "Escarcha perpetua", "❄", "Escarcha de las Montañas Heladas que no se derrite nunca." },
+	{ "FragmentoSombra", "Fragmento de sombra", "🌑", "Un trozo de oscuridad sólida de las Tierras Oscuras. Frío al tacto." },
+	{ "MagmaVivo", "Magma vivo", "🌋", "Roca fundida de las Tierras Volcánicas que sigue latiendo." },
 	-- los trofeos de los jefes escondidos
 	{ "NucleoBrasa", "Núcleo de la Bestia de Brasa", "💠", "Late como un corazón. Trofeo de Tefra." },
 	{ "AguijonRey", "Aguijón del Rey Escorpión", "🦂", "Todavía gotea. Trofeo de Siroco." },
@@ -54,6 +63,15 @@ Crafting.Materials = {
 	{ "OjoTormenta", "Ojo de la tormenta", "🌀", "Dentro se ve un remolino. Trofeo de Miasma." },
 	{ "PlacaRecaudador", "Placa del Recaudador", "🔩", "Con un número de serie borrado a arañazos. Trofeo de Vértice." },
 	{ "AstaGrieta", "Asta de la Grieta", "🦌", "Asta del Ciervo Roto, crecida hacia dentro como cristal. Trofeo de Valmar." },
+	-- los trofeos de los jefes de las regiones de Valmar
+	{ "CoronaAncestral", "Corona del Guardián Ancestral", "🌳", "Ramas que siguen creciendo. Trofeo del Bosque Etéreo." },
+	{ "CrinRey", "Crin del Rey de las Llanuras", "🐾", "Dorada y dura como alambre. Trofeo de las Llanuras Salvajes." },
+	{ "ColmilloDevorador", "Colmillo del Devorador", "🐊", "Largo como un brazo. Trofeo del Pantano Maldito." },
+	{ "NucleoColoso", "Núcleo del Coloso", "🗿", "Una piedra caliente con un mapa grabado. Trofeo del Desierto Dorado." },
+	{ "CoronaRuinas", "Corona del Rey de las Ruinas", "👑", "La corona que esperaba. Trofeo de las Ruinas Antiguas." },
+	{ "EscamaInvierno", "Escama del Dragón del Invierno", "💠", "Fría como el espacio. Trofeo de las Montañas Heladas." },
+	{ "CorazonSombra", "Corazón de sombra", "🖤", "Late al revés. Trofeo de las Tierras Oscuras." },
+	{ "CorazonTitan", "Corazón del Titán", "🔥", "Todavía quema a través del guante. Trofeo de las Tierras Volcánicas." },
 	-- intermedios que se fabrican
 	{ "LingoteHierro", "Lingote de hierro", "🧱", "Hierro fundido y limpio: la base de la Forja." },
 	{ "LingoteCobalto", "Lingote de cobalto", "🟦", "Cobalto fundido: más ligero y más duro que el hierro." },
@@ -123,6 +141,15 @@ Crafting.Gear = {
 	{ Id = "CascoAsta", Name = "Yelmo del Ciervo Roto", Icon = "⛑", Kind = "Armor", Slot = "Casco", Defense = 0.11, Level = 5, Desc = "Con el asta del jefe de Valmar: un 11 % menos de daño, además de tu armadura." },
 	{ Id = "CascoJabali", Name = "Casco de jabalí", Icon = "⛑", Kind = "Armor", Slot = "Casco", Defense = 0.04, Level = 1, Desc = "Casco de Valmar: un 4 % menos de daño, además de tu armadura." },
 	{ Id = "BotasPenasco", Name = "Botas de peñasco", Icon = "👢", Kind = "Armor", Slot = "Botas", Defense = 0.05, Level = 2, Desc = "Botas de Valmar: un 5 % menos de daño, además de tu armadura." },
+	-- Lo que se hace con los trofeos de los jefes de las regiones de Valmar (Rarity: lo que se enseña)
+	{ Id = "HachaAncestral", Name = "Hacha del Guardián Ancestral", Icon = "🪓", Kind = "Blade", Blade = 0.8, Level = 4, Rarity = "Épico", Desc = "Del Bosque Etéreo: +80 % a tus golpes contra las bestias." },
+	{ Id = "BotasRey", Name = "Botas del Rey de las Llanuras", Icon = "👢", Kind = "Armor", Slot = "Botas", Defense = 0.09, Level = 4, Rarity = "Épico", Desc = "Botas: un 9 % menos de daño, además de tu armadura." },
+	{ Id = "PulseraDevorador", Name = "Pulsera del Devorador", Icon = "⭕", Kind = "Accessory", Slot = "Pulsera", Blade = 0.1, Luck = 0.15, Level = 4, Rarity = "Épico", Desc = "Pulsera: +10 % a tus golpes y un 15 % más de botín raro." },
+	{ Id = "EscudoColoso", Name = "Escudo del Coloso", Icon = "🛡", Kind = "Armor", Slot = "Escudo", Defense = 0.13, Level = 5, Rarity = "Legendario", Desc = "Escudo: un 13 % menos de daño, además de tu armadura." },
+	{ Id = "PendientesRey", Name = "Pendientes del Rey Antiguo", Icon = "💍", Kind = "Accessory", Slot = "Pendientes", Vigor = 35, Defense = 0.05, Level = 5, Rarity = "Legendario", Desc = "Pendientes: recuperas 35 de vida por bestia y un 5 % menos de daño." },
+	{ Id = "ArmaduraInvierno", Name = "Armadura del Dragón Invernal", Icon = "🛡", Kind = "Armor", Defense = 0.6, Level = 5, Rarity = "Legendario", Desc = "Escamas del Dragón del Invierno: un 60 % menos de daño." },
+	{ Id = "CollarSombras", Name = "Collar de las Sombras", Icon = "📿", Kind = "Accessory", Slot = "Collar", Blade = 0.25, Level = 5, Rarity = "Legendario", Desc = "Collar: +25 % a tus golpes contra las bestias." },
+	{ Id = "EspadaTitan", Name = "Espada del Titán del Volcán", Icon = "🗡", Kind = "Blade", Blade = 1.6, Level = 5, Rarity = "Mítico", Desc = "Forjada con el corazón del Titán: +160 % contra las bestias." },
 	-- Accesorios (collar, pulsera y pendientes: uno de cada)
 	{ Id = "CollarEnjambre", Name = "Collar del Enjambre", Icon = "📿", Kind = "Accessory", Slot = "Collar", Blade = 0.1, Level = 2, Desc = "Collar: +10 % a tus golpes contra las bestias." },
 	{ Id = "CollarTormenta", Name = "Collar de tormenta", Icon = "📿", Kind = "Accessory", Slot = "Collar", Blade = 0.18, Level = 4, Desc = "Collar: +18 % a tus golpes contra las bestias." },
@@ -181,6 +208,15 @@ Crafting.Recipes = {
 	{ Id = "CascoJabali", Makes = 1, Bench = "Mesa", Category = "Armaduras", Level = 1, Needs = { ColmilloJabali = 3, Cuero = 2 } },
 	{ Id = "BotasPenasco", Makes = 1, Bench = "Mesa", Category = "Armaduras", Level = 2, Needs = { PielPenasco = 3, AlaCristal = 1, CuerdaTrenzada = 1 } },
 	{ Id = "CollarCuarzo", Makes = 1, Bench = "Mesa", Category = "Accesorios", Level = 3, Needs = { CuarzoGrieta = 2, AlaCristal = 2, HiloEnergia = 1 } },
+	-- con los trofeos de los jefes de las regiones de Valmar (en la Mesa: se pueden hacer en Valmar con la mesa plegable)
+	{ Id = "HachaAncestral", Makes = 1, Bench = "Mesa", Category = "Armas", Level = 4, Needs = { CoronaAncestral = 1, MaderaEterea = 4, Hueso = 3 } },
+	{ Id = "BotasRey", Makes = 1, Bench = "Mesa", Category = "Armaduras", Level = 4, Needs = { CrinRey = 1, CrinSalvaje = 4, Cuero = 4 } },
+	{ Id = "PulseraDevorador", Makes = 1, Bench = "Mesa", Category = "Accesorios", Level = 4, Needs = { ColmilloDevorador = 1, LodoMaldito = 4, Escama = 3 } },
+	{ Id = "EscudoColoso", Makes = 1, Bench = "Mesa", Category = "Armaduras", Level = 5, Needs = { NucleoColoso = 1, ArenaDorada = 5, Hueso = 4 } },
+	{ Id = "PendientesRey", Makes = 1, Bench = "Mesa", Category = "Accesorios", Level = 5, Needs = { CoronaRuinas = 1, ReliquiaRunica = 5, CuarzoGrieta = 2 } },
+	{ Id = "ArmaduraInvierno", Makes = 1, Bench = "Mesa", Category = "Armaduras", Level = 5, Needs = { EscamaInvierno = 1, EscarchaPerpetua = 6, Escama = 6 } },
+	{ Id = "CollarSombras", Makes = 1, Bench = "Mesa", Category = "Accesorios", Level = 5, Needs = { CorazonSombra = 1, FragmentoSombra = 6, Seda = 4 } },
+	{ Id = "EspadaTitan", Makes = 1, Bench = "Mesa", Category = "Armas", Level = 5, Needs = { CorazonTitan = 1, MagmaVivo = 8, CuarzoGrieta = 4 } },
 	{ Id = "BotasDuna", Makes = 1, Bench = "Mesa", Category = "Armaduras", Level = 2, Needs = { PielArena = 3, GarraDuna = 2, CuerdaTrenzada = 1 } },
 	{ Id = "BotasEscarcha", Makes = 1, Bench = "Mesa", Category = "Armaduras", Level = 3, Needs = { PelajeEscarcha = 3, LanaGruesa = 2, FiltroCarbon = 1 } },
 	-- Accesorios

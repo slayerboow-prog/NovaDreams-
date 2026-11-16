@@ -284,7 +284,9 @@ function TerrainBuilder.reliefChunk(terrain: Terrain, field: any, cx: number, cz
 				local dz = heights[(k + 1) * (N + 2) + i + 1] - heights[(k - 1) * (N + 2) + i + 1]
 				local slope = math.sqrt(dx * dx + dz * dz) / (2 * VOXEL)
 				local surface = Relief.Base + h
-				local skin = mat(Relief.material(h, slope, x, z))
+				-- (lo salvaje del sitio: el suelo de las regiones de Valmar sale en el campo, no junto a las casas)
+				local wild = math.clamp((Relief.amplitude(field, x, z) - 15) / 40, 0, 1)
+				local skin = mat(Relief.material(h, slope, x, z, nil, wild))
 				local under = if slope > 0.8 then Enum.Material.Rock else Enum.Material.Ground
 				for y = 1, layers do
 					local bottom = y0 + (y - 1) * VOXEL

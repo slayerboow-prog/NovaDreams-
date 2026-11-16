@@ -14,6 +14,7 @@
 -- monta en el servidor (BeastService.init, al poco de arrancar).
 
 local Relief = require(game:GetService("ReplicatedStorage").Shared.Relief)
+local ValmarRegions = require(game:GetService("ReplicatedStorage").Shared.Cosmos.ValmarRegions)
 
 local ValmarWilds = {}
 
@@ -22,6 +23,7 @@ ValmarWilds.Half = 5400 -- (la isla cubre X ±5000, Z −4400..4300)
 ValmarWilds.CoreHalf = 2400 -- (zona 1 hasta 0,74 × esto del centro; 2-4 en anillos hasta Half − 440)
 ValmarWilds.MinWild = 25 -- amplitud mínima del relieve (studs) para que cuente como campo
 ValmarWilds.ClearBuilt = 80 -- nada construido a menos de esto (studs)
+ValmarWilds.LooseWild = 5 -- (las regiones con muy poco campo: S.goodSpot «loose»)
 -- Radios de las zonas de caza desde el centro de la isla (el campo de verdad empieza a ~1500 studs:
 -- la ciudad ocupa el centro): zona 1 (nv. 5) de 1500 a 2600, zona 2 hasta 3200, zona 3 hasta 3800 y
 -- los confines (nv. 35, con el jefe) hasta la costa
@@ -36,6 +38,8 @@ function ValmarWilds.surface(field: Relief.Field, ground: (number, number) -> (n
 	S.Half = ValmarWilds.Half
 	S.CoreHalf = ValmarWilds.CoreHalf
 	S.ZoneR = ValmarWilds.ZoneR
+	-- las ocho regiones (shared/Cosmos/ValmarRegions): Bestiary.regionPlaces reparte por ellas guaridas y jefes
+	S.Regions = ValmarRegions
 	local function inField(x: number, z: number): boolean
 		return x > field.MinX + 64 and z > field.MinZ + 64 and x < field.MinX + (field.NX - 2) * field.Cell and z < field.MinZ + (field.NZ - 2) * field.Cell
 	end
@@ -44,11 +48,13 @@ function ValmarWilds.surface(field: Relief.Field, ground: (number, number) -> (n
 		return y or Relief.surfaceY(field, x, z)
 	end
 	-- ¿Sitio bueno para una guarida? (lx, lz desde el centro de la isla)
-	function S.goodSpot(lx: number, lz: number, maxSlope: number, margin: number?): boolean
+	-- (loose: para las regiones casi sin campo, como el Pantano junto a la playa: vale terreno menos salvaje,
+	-- pero igual de lejos de lo construido)
+	function S.goodSpot(lx: number, lz: number, maxSlope: number, margin: number?, loose: boolean?): boolean
 		if not inField(lx, lz) then
 			return false
 		end
-		if Relief.amplitude(field, lx, lz) < ValmarWilds.MinWild then
+		if Relief.amplitude(field, lx, lz) < (if loose then ValmarWilds.LooseWild else ValmarWilds.MinWild) then
 			return false
 		end
 		local clear = ValmarWilds.ClearBuilt + (margin or 0)
@@ -122,10 +128,32 @@ function ValmarWilds.publish(Bestiary: any): number
 		n += 1
 	end
 	for _, lair in places.Lairs do
-		add("ZonaCaza_" .. lair.Id, "ZonaCaza", lair.X, lair.Z)
+		if lair.Boss then
+			add("Jefe_" .. lair.Id, if lair.Id:find("_Elite$") then "Jefe_Elite" else "Jefe_" .. (lair.Region or ""), lair.X, lair.Z)
+		else
+			add("ZonaCaza_" .. lair.Id, "ZonaCaza", lair.X, lair.Z)
+		end
 	end
 	if places.Boss then
 		add("GuaridaJefe_Valmar", "GuaridaJefe", places.Boss.X, places.Boss.Z)
+	end
+	-- el nombre de cada región, en medio de sus guaridas (o en el centro de su sector si no tiene)
+	for _, reg in ValmarRegions.List do
+		local sx, sz, k = 0, 0, 0
+		for _, lair in places.Lairs do
+			if lair.Region == reg.Id and not lair.Boss then
+				sx += lair.X
+				sz += lair.Z
+				k += 1
+			end
+		end
+		local x, z
+		if k > 0 then
+			x, z = sx / k, sz / k
+		else
+			x, z = ValmarRegions.point(reg, (ValmarRegions.InnerR + ValmarRegions.OuterR) / 2)
+		end
+		add("Region_" .. reg.Id, "Region_" .. reg.Id, x, z)
 	end
 	return n
 end

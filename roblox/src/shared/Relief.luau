@@ -447,11 +447,50 @@ end
 -- Material de la superficie: «Grass» (con briznas 3D en los niveles Medio y Alto) en las lomas,
 -- «LeafyGrass» en las manchas de pradera, «Ground» en los claros y caminos de tierra, «Rock» y «Slate»
 -- en las laderas empinadas y en las cumbres, «Sand» en la playa.
-function Relief.material(h: number, slope: number, x: number, z: number, coastNear: boolean?): string
+-- wild: 0..1, lo salvaje que es el sitio (TerrainBuilder.reliefChunk: la amplitud de las colinas). En el campo de
+-- las ocho regiones de Valmar (shared/Cosmos/ValmarRegions) el suelo es el de la región: arena en el desierto,
+-- nieve en las montañas, lodo en el pantano, basalto y lava en el volcán… Junto a la ciudad y a lo construido
+-- (wild bajo) se mezcla poco a poco con la hierba de siempre.
+local okRegions, ValmarRegions = pcall(function()
+	return require(script.Parent.Cosmos.ValmarRegions)
+end)
+function Relief.regionGround(h: number, slope: number, x: number, z: number, wild: number): string?
+	if not okRegions or wild <= 0 then
+		return nil
+	end
+	local r = math.sqrt(x * x + z * z)
+	local edge = math.clamp((r - (ValmarRegions.InnerR - 250)) / 500, 0, 1)
+	local w = wild * edge
+	-- (borde que se deshace: puntos sueltos de la región entre la hierba, no una raya)
+	local dither = math.noise(x / 37, z / 37, 11.3) * 0.5 + 0.5
+	if w <= 0 or dither > w then
+		return nil
+	end
+	local reg = ValmarRegions.at(x, z, true)
+	local g = reg and reg.Ground
+	if not g then
+		return nil
+	end
+	local n = math.noise(x / 60, z / 60, 2.9)
+	if slope > 1.0 + 0.2 * n then
+		return g.Steep
+	elseif slope > 0.55 + 0.1 * n then
+		return g.Slope
+	elseif n > 0.25 then
+		return g.Mix
+	end
+	return g.Flat
+end
+
+function Relief.material(h: number, slope: number, x: number, z: number, coastNear: boolean?, wild: number?): string
 	local n = math.noise(x / 70, z / 70, 4.2)
 	local n2 = math.noise(x / 230, z / 230, 8.6)
 	if coastNear and h < 5 then
 		return "Sand"
+	end
+	local regional = wild and Relief.regionGround(h, slope, x, z, wild)
+	if regional then
+		return regional
 	end
 	if slope > 1.05 + 0.2 * n then
 		return if n2 > 0.1 then "Slate" else "Rock"

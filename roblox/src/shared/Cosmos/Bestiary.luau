@@ -149,6 +149,113 @@ Bestiary.Species = {
 		Colors = { Body = rgb(60, 50, 44), Belly = rgb(140, 120, 100), Glow = rgb(170, 110, 255) }, Material = "Slate",
 		Drops = { { "AstaGrieta", 1, 1, 1 }, { "CuarzoGrieta", 2, 4, 1 }, { "Cuero", 2, 3, 1 } }, Money = 900,
 		Lore = "Bebió del agua donde cayó el primer trozo de la Grieta. Desde entonces sus astas crecen hacia dentro, como cristal." },
+
+	-- LAS OCHO REGIONES DE VALMAR (shared/Cosmos/ValmarRegions): tres criaturas y un jefe en cada una. Arms = de
+	-- pie con brazos y visor (guardianes, caballeros, gólems), no con alas. La vida y el daño de aquí son los
+	-- de nivel 5: cada guarida los multiplica por su nivel (Bestiary.levelScale). Los jefes llevan los suyos.
+	-- Bosque Etéreo (nv. 10-30)
+	LoboBosque = { Planet = "Valmar", Region = "BosqueEtereo", Name = "Lobo salvaje", Icon = "🐺", Body = "Cuadrupedo", Size = 4.6, Hp = 130, Damage = 10, Speed = 22, Aggro = 70,
+		Colors = { Body = rgb(92, 84, 74), Belly = rgb(150, 140, 120), Glow = rgb(140, 255, 170) }, Material = "Fabric",
+		Drops = { { "Cuero", 1, 2, 1 }, { "Colmillo", 1, 1, 0.5 }, { "MaderaEterea", 1, 1, 0.2 } }, Money = 12 },
+	AranaBosque = { Planet = "Valmar", Region = "BosqueEtereo", Name = "Araña gigante del bosque", Icon = "🕷", Body = "Insecto", Size = 4.2, Hp = 115, Damage = 11, Speed = 18, Aggro = 60,
+		Colors = { Body = rgb(40, 52, 36), Belly = rgb(90, 120, 60), Glow = rgb(170, 255, 120) }, Material = "Grass",
+		Drops = { { "Seda", 1, 2, 1 }, { "Glandula", 1, 1, 0.45 }, { "MaderaEterea", 1, 1, 0.2 } }, Money = 12 },
+	GuardianMadera = { Planet = "Valmar", Region = "BosqueEtereo", Name = "Guardián de madera", Icon = "🌳", Body = "Bipedo", Arms = true, Size = 5.5, Hp = 210, Damage = 14, Speed = 12, Aggro = 50,
+		Colors = { Body = rgb(96, 70, 44), Belly = rgb(70, 110, 50), Glow = rgb(150, 255, 160) }, Material = "Wood",
+		Drops = { { "Hueso", 1, 2, 1 }, { "MaderaEterea", 1, 1, 0.35 } }, Money = 16 },
+	GuardianAncestral = { Planet = "Valmar", Region = "BosqueEtereo", Boss = true, Arms = true, Name = "El Guardián Ancestral", Icon = "🌳", Body = "Bipedo", Size = 18, Hp = 4000, Damage = 26, Speed = 12, Aggro = 110,
+		Colors = { Body = rgb(80, 60, 40), Belly = rgb(60, 120, 50), Glow = rgb(120, 255, 140) }, Material = "Wood",
+		Drops = { { "CoronaAncestral", 1, 1, 1 }, { "MaderaEterea", 2, 4, 1 }, { "Hueso", 2, 3, 1 } }, Money = 1000,
+		Lore = "El primer árbol que tocó la luz de la Grieta. Se levantó, y desde entonces no deja que nadie tale el bosque." },
+	-- Llanuras Salvajes (nv. 20-40; con el jabalí de la sierra)
+	AcechadorPradera = { Planet = "Valmar", Region = "LlanurasSalvajes", Name = "Acechador de la pradera", Icon = "🐆", Body = "Cuadrupedo", Size = 4.8, Hp = 150, Damage = 13, Speed = 25, Aggro = 75,
+		Colors = { Body = rgb(190, 160, 90), Belly = rgb(230, 210, 160), Glow = rgb(255, 220, 110) }, Material = "Fabric",
+		Drops = { { "Cuero", 1, 2, 1 }, { "Colmillo", 1, 1, 0.5 }, { "CrinSalvaje", 1, 1, 0.2 } }, Money = 14 },
+	SaqueadorNomada = { Planet = "Valmar", Region = "LlanurasSalvajes", Name = "Saqueador nómada", Icon = "🗡", Body = "Bipedo", Arms = true, Size = 4.4, Hp = 170, Damage = 14, Speed = 17, Aggro = 70,
+		Colors = { Body = rgb(120, 90, 60), Belly = rgb(170, 150, 110), Glow = rgb(255, 170, 70) }, Material = "Fabric",
+		Drops = { { "Cuero", 1, 1, 1 }, { "Hueso", 1, 1, 0.4 }, { "CrinSalvaje", 1, 1, 0.3 } }, Money = 20 },
+	ReyLlanuras = { Planet = "Valmar", Region = "LlanurasSalvajes", Boss = true, Name = "El Rey de las Llanuras", Icon = "🐾", Body = "Cuadrupedo", Size = 17, Hp = 6000, Damage = 32, Speed = 19, Aggro = 120,
+		Colors = { Body = rgb(150, 110, 60), Belly = rgb(220, 190, 130), Glow = rgb(255, 200, 80) }, Material = "Fabric",
+		Drops = { { "CrinRey", 1, 1, 1 }, { "CrinSalvaje", 2, 4, 1 }, { "Cuero", 3, 5, 1 } }, Money = 1300,
+		Lore = "Una manada entera sigue a una sola bestia. Los nómadas le pagan con comida para cruzar sus praderas." },
+	-- Pantano Maldito (nv. 40-60; con el avispón de la Grieta)
+	CocodriloMutado = { Planet = "Valmar", Region = "PantanoMaldito", Name = "Cocodrilo mutado", Icon = "🐊", Body = "Cuadrupedo", Size = 5, Hp = 240, Damage = 17, Speed = 14, Aggro = 50,
+		Colors = { Body = rgb(56, 80, 50), Belly = rgb(130, 150, 100), Glow = rgb(170, 255, 90) }, Material = "Slate",
+		Drops = { { "Escama", 1, 2, 1 }, { "Colmillo", 1, 1, 0.5 }, { "LodoMaldito", 1, 1, 0.2 } }, Money = 20 },
+	EspirituCorrupto = { Planet = "Valmar", Region = "PantanoMaldito", Name = "Espíritu corrupto", Icon = "👻", Body = "Bipedo", Arms = true, Size = 4.6, Hp = 150, Damage = 15, Speed = 16, Aggro = 70,
+		Colors = { Body = rgb(70, 90, 80), Belly = rgb(120, 160, 140), Glow = rgb(120, 255, 200) }, Material = "Glass",
+		Drops = { { "Glandula", 1, 2, 1 }, { "LodoMaldito", 1, 1, 0.3 } }, Money = 18 },
+	DevoradorPantano = { Planet = "Valmar", Region = "PantanoMaldito", Boss = true, Name = "El Devorador del Pantano", Icon = "🐊", Body = "Serpiente", Size = 17, Hp = 11000, Damage = 45, Speed = 14, Aggro = 110,
+		Colors = { Body = rgb(40, 60, 40), Belly = rgb(110, 130, 80), Glow = rgb(160, 255, 80) }, Material = "Slate",
+		Drops = { { "ColmilloDevorador", 1, 1, 1 }, { "LodoMaldito", 2, 4, 1 }, { "Escama", 3, 5, 1 } }, Money = 1900,
+		Lore = "Se tragó el bidón que tiraron desde el laboratorio de Cosme. Creció. Sigue teniendo hambre." },
+	-- Desierto Dorado (nv. 50-70; con la víbora del peñasco)
+	EscorpionGigante = { Planet = "Valmar", Region = "DesiertoDorado", Name = "Escorpión gigante", Icon = "🦂", Body = "Insecto", Size = 4.4, Hp = 170, Damage = 15, Speed = 15, Aggro = 55,
+		Colors = { Body = rgb(170, 120, 60), Belly = rgb(220, 180, 110), Glow = rgb(255, 210, 90) }, Material = "Sandstone",
+		Drops = { { "Quitina", 1, 2, 1 }, { "Glandula", 1, 1, 0.5 }, { "ArenaDorada", 1, 1, 0.2 } }, Money = 18 },
+	GuardianDesierto = { Planet = "Valmar", Region = "DesiertoDorado", Name = "Guardián del desierto", Icon = "🗿", Body = "Bipedo", Arms = true, Size = 5.8, Hp = 260, Damage = 17, Speed = 12, Aggro = 50,
+		Colors = { Body = rgb(200, 160, 100), Belly = rgb(150, 110, 70), Glow = rgb(255, 200, 80) }, Material = "Sandstone",
+		Drops = { { "Hueso", 1, 2, 1 }, { "ArenaDorada", 1, 1, 0.35 } }, Money = 22 },
+	ColosoArena = { Planet = "Valmar", Region = "DesiertoDorado", Boss = true, Arms = true, Name = "El Coloso de Arena", Icon = "🗿", Body = "Bipedo", Size = 20, Hp = 14000, Damage = 52, Speed = 11, Aggro = 120,
+		Colors = { Body = rgb(210, 170, 100), Belly = rgb(160, 120, 70), Glow = rgb(255, 190, 60) }, Material = "Sandstone",
+		Drops = { { "NucleoColoso", 1, 1, 1 }, { "ArenaDorada", 2, 4, 1 }, { "Hueso", 3, 5, 1 } }, Money = 2300,
+		Lore = "Un templo entero que decidió ponerse de pie. Los grabados de su pecho son un mapa. Nadie sabe de qué." },
+	-- Ruinas Antiguas (nv. 60-80)
+	CaballeroEspectral = { Planet = "Valmar", Region = "RuinasAntiguas", Name = "Caballero espectral", Icon = "👻", Body = "Bipedo", Arms = true, Size = 4.8, Hp = 220, Damage = 17, Speed = 16, Aggro = 70,
+		Colors = { Body = rgb(110, 120, 140), Belly = rgb(170, 180, 200), Glow = rgb(140, 200, 255) }, Material = "Metal",
+		Drops = { { "Hueso", 1, 2, 1 }, { "ReliquiaRunica", 1, 1, 0.25 } }, Money = 22 },
+	GuardianPiedra = { Planet = "Valmar", Region = "RuinasAntiguas", Name = "Guardián de piedra", Icon = "🗿", Body = "Bipedo", Arms = true, Size = 6.5, Hp = 320, Damage = 19, Speed = 10, Aggro = 45,
+		Colors = { Body = rgb(130, 126, 116), Belly = rgb(170, 164, 150), Glow = rgb(255, 210, 120) }, Material = "Limestone",
+		Drops = { { "Hueso", 1, 2, 1 }, { "ReliquiaRunica", 1, 1, 0.3 } }, Money = 26 },
+	ConstructoRuinas = { Planet = "Valmar", Region = "RuinasAntiguas", Name = "Constructo antiguo", Icon = "⚙", Body = "Insecto", Size = 4.4, Hp = 200, Damage = 16, Speed = 15, Aggro = 60,
+		Colors = { Body = rgb(150, 120, 70), Belly = rgb(110, 90, 60), Glow = rgb(255, 180, 60) }, Material = "Metal",
+		Drops = { { "Quitina", 1, 2, 1 }, { "ReliquiaRunica", 1, 1, 0.2 } }, Money = 22 },
+	ReyRuinas = { Planet = "Valmar", Region = "RuinasAntiguas", Boss = true, Arms = true, Name = "El Rey de las Ruinas", Icon = "👑", Body = "Bipedo", Size = 17, Hp = 18000, Damage = 60, Speed = 13, Aggro = 120,
+		Colors = { Body = rgb(90, 90, 110), Belly = rgb(200, 170, 90), Glow = rgb(140, 190, 255) }, Material = "Metal",
+		Drops = { { "CoronaRuinas", 1, 1, 1 }, { "ReliquiaRunica", 2, 4, 1 }, { "Hueso", 3, 5, 1 } }, Money = 2800,
+		Lore = "Reinó aquí antes de que existiera Valmar. Lleva siglos esperando a que alguien le devuelva la corona." },
+	-- Montañas Heladas (nv. 70-90)
+	LoboArtico = { Planet = "Valmar", Region = "MontanasHeladas", Name = "Lobo ártico", Icon = "🐺", Body = "Cuadrupedo", Size = 5, Hp = 220, Damage = 17, Speed = 24, Aggro = 80,
+		Colors = { Body = rgb(226, 232, 242), Belly = rgb(180, 190, 206), Glow = rgb(130, 200, 255) }, Material = "Snow",
+		Drops = { { "Cuero", 1, 2, 1 }, { "Colmillo", 1, 1, 0.5 }, { "EscarchaPerpetua", 1, 1, 0.2 } }, Money = 22 },
+	GolemHielo = { Planet = "Valmar", Region = "MontanasHeladas", Name = "Gólem de hielo", Icon = "❄", Body = "Bipedo", Arms = true, Size = 6.5, Hp = 340, Damage = 20, Speed = 10, Aggro = 45,
+		Colors = { Body = rgb(170, 210, 240), Belly = rgb(120, 170, 210), Glow = rgb(170, 240, 255) }, Material = "Ice",
+		Drops = { { "Hueso", 1, 2, 1 }, { "EscarchaPerpetua", 1, 1, 0.35 } }, Money = 28 },
+	DracoHielo = { Planet = "Valmar", Region = "MontanasHeladas", Name = "Draco de hielo", Icon = "🐉", Body = "Serpiente", Size = 5, Hp = 260, Damage = 19, Speed = 17, Aggro = 70,
+		Colors = { Body = rgb(150, 190, 230), Belly = rgb(220, 236, 255), Glow = rgb(110, 210, 255) }, Material = "Ice",
+		Drops = { { "Escama", 1, 2, 1 }, { "EscarchaPerpetua", 1, 1, 0.25 } }, Money = 26 },
+	DragonInvierno = { Planet = "Valmar", Region = "MontanasHeladas", Boss = true, Name = "El Dragón del Invierno", Icon = "🐉", Body = "Serpiente", Size = 20, Hp = 23000, Damage = 70, Speed = 15, Aggro = 130,
+		Colors = { Body = rgb(170, 210, 245), Belly = rgb(235, 245, 255), Glow = rgb(90, 200, 255) }, Material = "Ice",
+		Drops = { { "EscamaInvierno", 1, 1, 1 }, { "EscarchaPerpetua", 2, 4, 1 }, { "Escama", 3, 5, 1 } }, Money = 3400,
+		Lore = "Cuando abre las alas, nieva en Valmar. Por eso este verano ha nevado dos veces." },
+	-- Tierras Oscuras (nv. 80-100)
+	BestiaSombria = { Planet = "Valmar", Region = "TierrasOscuras", Name = "Bestia sombría", Icon = "🐺", Body = "Cuadrupedo", Size = 5.4, Hp = 250, Damage = 20, Speed = 24, Aggro = 80,
+		Colors = { Body = rgb(30, 26, 40), Belly = rgb(70, 60, 90), Glow = rgb(180, 90, 255) }, Material = "Slate",
+		Drops = { { "Cuero", 1, 2, 1 }, { "Colmillo", 1, 2, 0.5 }, { "FragmentoSombra", 1, 1, 0.2 } }, Money = 26 },
+	CaballeroCorrupto = { Planet = "Valmar", Region = "TierrasOscuras", Name = "Caballero corrupto", Icon = "🛡", Body = "Bipedo", Arms = true, Size = 5, Hp = 300, Damage = 22, Speed = 15, Aggro = 70,
+		Colors = { Body = rgb(40, 36, 50), Belly = rgb(90, 80, 110), Glow = rgb(200, 60, 255) }, Material = "Metal",
+		Drops = { { "Hueso", 1, 2, 1 }, { "FragmentoSombra", 1, 1, 0.3 } }, Money = 30 },
+	CriaturaVacio = { Planet = "Valmar", Region = "TierrasOscuras", Name = "Criatura del vacío", Icon = "🌑", Body = "Insecto", Size = 4.6, Hp = 230, Damage = 21, Speed = 19, Aggro = 70,
+		Colors = { Body = rgb(20, 18, 30), Belly = rgb(60, 40, 90), Glow = rgb(150, 80, 255) }, Material = "Glass",
+		Drops = { { "Quitina", 1, 2, 1 }, { "FragmentoSombra", 1, 1, 0.25 } }, Money = 28 },
+	SenorSombras = { Planet = "Valmar", Region = "TierrasOscuras", Boss = true, Arms = true, Name = "El Señor de las Sombras", Icon = "💀", Body = "Bipedo", Size = 19, Hp = 29000, Damage = 80, Speed = 14, Aggro = 130,
+		Colors = { Body = rgb(30, 24, 40), Belly = rgb(80, 60, 110), Glow = rgb(190, 70, 255) }, Material = "Metal",
+		Drops = { { "CorazonSombra", 1, 1, 1 }, { "FragmentoSombra", 2, 4, 1 }, { "Hueso", 3, 5, 1 } }, Money = 4000,
+		Lore = "Fue uno de los ayudantes de Cosme. Cruzó el puente negro para traer algo de vuelta. Volvió solo él. O algo con su cara." },
+	-- Tierras Volcánicas (nv. 90-110)
+	SabuesoMagma = { Planet = "Valmar", Region = "TierrasVolcanicas", Name = "Sabueso de magma", Icon = "🔥", Body = "Cuadrupedo", Size = 5, Hp = 260, Damage = 22, Speed = 24, Aggro = 80,
+		Colors = { Body = rgb(50, 36, 32), Belly = rgb(140, 60, 30), Glow = rgb(255, 120, 30) }, Material = "Basalt",
+		Drops = { { "Cuero", 1, 2, 1 }, { "Colmillo", 1, 2, 0.5 }, { "MagmaVivo", 1, 1, 0.2 } }, Money = 28 },
+	GolemLava = { Planet = "Valmar", Region = "TierrasVolcanicas", Name = "Gólem de lava", Icon = "🌋", Body = "Bipedo", Arms = true, Size = 7, Hp = 380, Damage = 25, Speed = 10, Aggro = 45,
+		Colors = { Body = rgb(46, 40, 38), Belly = rgb(120, 50, 30), Glow = rgb(255, 100, 20) }, Material = "Basalt",
+		Drops = { { "Hueso", 1, 2, 1 }, { "MagmaVivo", 1, 1, 0.35 } }, Money = 34 },
+	SalamandraVolcan = { Planet = "Valmar", Region = "TierrasVolcanicas", Name = "Salamandra del volcán", Icon = "🐉", Body = "Serpiente", Size = 5, Hp = 280, Damage = 23, Speed = 17, Aggro = 70,
+		Colors = { Body = rgb(80, 40, 30), Belly = rgb(200, 90, 30), Glow = rgb(255, 140, 40) }, Material = "Basalt",
+		Drops = { { "Escama", 1, 2, 1 }, { "MagmaVivo", 1, 1, 0.25 } }, Money = 30 },
+	TitanVolcan = { Planet = "Valmar", Region = "TierrasVolcanicas", Boss = true, Arms = true, Name = "El Titán del Volcán", Icon = "🌋", Body = "Bipedo", Size = 22, Hp = 36000, Damage = 92, Speed = 12, Aggro = 140,
+		Colors = { Body = rgb(40, 32, 30), Belly = rgb(130, 50, 25), Glow = rgb(255, 90, 10) }, Material = "Basalt",
+		Drops = { { "CorazonTitan", 1, 1, 1 }, { "MagmaVivo", 2, 4, 1 }, { "Escama", 3, 5, 1 } }, Money = 5000,
+		Lore = "Dicen que el volcán no despertó: se levantó. Lo que ves desde Valmar al atardecer no es humo. Es él respirando." },
 }
 
 -- Orden fijo de cada planeta: tres bestias y el jefe
@@ -227,6 +334,21 @@ end
 -- «Rondador de ceniza nv. 15»
 function Bestiary.leveledName(name: string, tier: number?): string
 	return ("%s nv. %d"):format(name, Bestiary.zone(tier).Level)
+end
+-- Lo que multiplica la vida, el daño y lo que da una bestia de ese nivel (nv. 5 = 1; sigue la misma recta que
+-- las cuatro zonas de los planetas: nv. 35 ≈ 4,8 de vida, 2,2 de daño y 4,6 de premio; nv. 110 ≈ 14×)
+function Bestiary.levelScale(level: number): { [string]: number }
+	local l = math.max(1, tonumber(level) or 1)
+	return { Hp = 1 + (l - 5) * 0.127, Damage = 1 + (l - 5) * 0.04, Reward = 1 + (l - 5) * 0.12 }
+end
+-- La zona de una guarida o esquirla: las de las regiones de Valmar llevan su nivel (Level) y el nombre de su
+-- región; las de los planetas, su anillo (Tier)
+function Bestiary.lairZone(l: { [string]: any }?): { [string]: any }
+	if l and l.Level then
+		local k = Bestiary.levelScale(l.Level)
+		return { Name = l.ZoneName or "Zona de caza", Level = l.Level, Hp = math.max(1, k.Hp), Damage = math.max(1, k.Damage), Reward = math.max(1, k.Reward) }
+	end
+	return Bestiary.zone(l and l.Tier)
 end
 Bestiary.CachesPerPlanet = 8
 Bestiary.CacheCooldown = 20 * 3600 -- un alijo se abre otra vez a las 20 horas (cada jugador el suyo)
@@ -332,10 +454,13 @@ function Bestiary.places(S: any): { [string]: any }
 		return cache[id]
 	end
 	local list = Bestiary.ByPlanet[id]
-	local out = { Lairs = {}, Boss = nil :: any, Caches = {}, Shards = {} }
+	local out = { Lairs = {}, Boss = nil :: any, Caches = {}, Shards = {}, Bosses = {} }
 	cache[id] = out
 	if not list then
 		return out
+	end
+	if S.Regions then
+		return Bestiary.regionPlaces(S, out)
 	end
 	local r = rng((S.Seed or 7) * 7121 + 99)
 	local taken: { { number } } = {}
@@ -511,6 +636,143 @@ function Bestiary.places(S: any): { [string]: any }
 			local cy, islet = y(lx, lz)
 			table.insert(out.Caches, { Id = ("%s_A%d"):format(id, k), X = lx, Z = lz, Y = cy, Islet = islet })
 			table.insert(taken, { lx, lz })
+		end
+	end
+	return out
+end
+
+---------------------------------------------------------------------
+-- Las ocho regiones de Valmar (S.Regions = shared/Cosmos/ValmarRegions): en cada sector, guaridas de sus
+-- tres criaturas (el nivel sube hacia la costa), su jefe en lo más lejano, esquirlas y alijos. Repetible.
+---------------------------------------------------------------------
+Bestiary.LairsPerRegion = 7
+Bestiary.ShardsPerRegion = 2
+Bestiary.CachesPerRegion = 1
+
+function Bestiary.regionPlaces(S: any, out: { [string]: any }): { [string]: any }
+	local R = S.Regions
+	local r = rng((S.Seed or 7) * 7121 + 991)
+	local taken: { { number } } = {}
+	local function far(lx: number, lz: number, gap: number): boolean
+		for _, t in taken do
+			if (t[1] - lx) ^ 2 + (t[2] - lz) ^ 2 < gap * gap then
+				return false
+			end
+		end
+		return true
+	end
+	-- un sitio bueno dentro del sector de la región, entre r0 y r1 del centro
+	local function find(reg: any, gap: number, r0: number, r1: number, maxSlope: number): (number?, number?)
+		local half = math.rad(R.Width / 2 - 3)
+		local a0 = math.rad(reg.Bearing)
+		for _ = 1, 2500 do
+			local a = a0 + (r() * 2 - 1) * half
+			local d = r0 + r() * (r1 - r0)
+			local lx, lz = math.sin(a) * d, -math.cos(a) * d
+			if far(lx, lz, gap) and S.goodSpot(lx, lz, maxSlope, 26) then
+				return lx, lz
+			end
+		end
+		-- (región casi sin campo: terreno menos salvaje, igual de lejos de lo construido)
+		for _ = 1, 2500 do
+			local a = a0 + (r() * 2 - 1) * half
+			local d = r0 + r() * (r1 - r0)
+			local lx, lz = math.sin(a) * d, -math.cos(a) * d
+			if far(lx, lz, gap) and S.goodSpot(lx, lz, maxSlope, 26, true) then
+				return lx, lz
+			end
+		end
+		return nil, nil
+	end
+	local O = S.Origin
+	local function y(lx: number, lz: number): number
+		return S.heightAt(O.X + lx, O.Z + lz) - O.Y
+	end
+	local inner, outer = R.InnerR, R.OuterR
+	local mid = (inner + outer) / 2
+	for _, reg in R.List do
+		local function lairOf(sid: string, lx: number, lz: number, idSuffix: string, boss: boolean?): { [string]: any }
+			local sp = Bestiary.Species[sid]
+			local names = LAIR_NAMES[sp.Body] or LAIR_NAMES.Cuadrupedo
+			local level = R.levelAt(reg, lx, lz)
+			if boss then
+				level = reg.MaxLevel
+			end
+			return {
+				Id = ("%s_%s_%s"):format(S.Id, reg.Id, idSuffix),
+				Species = sid,
+				X = lx,
+				Z = lz,
+				Y = y(lx, lz),
+				Count = if boss then 1 else Bestiary.PackMin + math.floor(r() * (Bestiary.PackMax - Bestiary.PackMin + 1)),
+				Look = reg.Look or "Roca",
+				Tier = math.clamp(1 + math.floor((level - 10) / 25), 1, 4),
+				Level = level,
+				Region = reg.Id,
+				ZoneName = reg.Name,
+				Boss = boss or nil,
+				Name = if boss then Bestiary.lairOf(sp.Name) else ("%s de %s"):format(names[1 + (#out.Lairs % #names)], sp.Name:lower()),
+			}
+		end
+		-- el jefe: lo más lejos posible, en llano
+		local bx, bz = find(reg, 300, mid + 400, outer - 300, 0.35)
+		if not bx then
+			bx, bz = find(reg, 220, mid - 300, outer - 200, 0.5)
+		end
+		if not bx then
+			bx, bz = find(reg, 200, inner + 200, outer - 200, 0.6)
+		end
+		if bx then
+			local boss = lairOf(reg.Boss, bx, bz, "Jefe", true)
+			table.insert(out.Lairs, boss)
+			table.insert(out.Bosses, boss)
+			table.insert(taken, { bx, bz })
+		end
+		-- un jefe raro más (el Ciervo Roto, en el Bosque Etéreo)
+		if reg.Elite and Bestiary.Species[reg.Elite] then
+			local ex, ez = find(reg, 260, inner + 300, mid + 300, 0.4)
+			if ex then
+				local elite = lairOf(reg.Elite, ex, ez, "Elite", true)
+				elite.Level = math.floor((reg.MinLevel + reg.MaxLevel) / 2)
+				table.insert(out.Lairs, elite)
+				table.insert(out.Bosses, elite)
+				table.insert(taken, { ex, ez })
+			end
+		end
+		-- las guaridas: de la ciudad hacia la costa, las tres criaturas por turnos
+		for k = 1, Bestiary.LairsPerRegion do
+			local t0 = (k - 1) / Bestiary.LairsPerRegion
+			local t1 = k / Bestiary.LairsPerRegion
+			local r0 = inner + (outer - 400 - inner) * t0
+			local r1 = inner + (outer - 400 - inner) * t1
+			local lx, lz = find(reg, 160, r0, r1, 0.6)
+			if not lx then
+				lx, lz = find(reg, 150, inner, outer - 300, 0.65)
+			end
+			if lx then
+				local sid = reg.Species[1 + (k - 1) % #reg.Species]
+				table.insert(out.Lairs, lairOf(sid, lx, lz, "G" .. k))
+				table.insert(taken, { lx, lz })
+			end
+		end
+		-- esquirlas de la Grieta
+		for k = 1, Bestiary.ShardsPerRegion do
+			local lx, lz = find(reg, 130, inner + 200, outer - 300, 0.5)
+			if lx then
+				local level = R.levelAt(reg, lx, lz)
+				table.insert(out.Shards, { Id = ("%s_%s_E%d"):format(S.Id, reg.Id, k), X = lx, Z = lz, Y = y(lx, lz),
+					Tier = math.clamp(1 + math.floor((level - 10) / 25), 1, 4), Level = level, Region = reg.Id, ZoneName = reg.Name,
+					Species = reg.Species[1 + (k % #reg.Species)], Name = ("%s (%s)"):format(Bestiary.Shard.Name, reg.Name) })
+				table.insert(taken, { lx, lz })
+			end
+		end
+		-- alijos
+		for k = 1, Bestiary.CachesPerRegion do
+			local lx, lz = find(reg, 110, inner + 100, outer - 250, 0.7)
+			if lx then
+				table.insert(out.Caches, { Id = ("%s_%s_A%d"):format(S.Id, reg.Id, k), X = lx, Z = lz, Y = y(lx, lz), Region = reg.Id })
+				table.insert(taken, { lx, lz })
+			end
 		end
 	end
 	return out
