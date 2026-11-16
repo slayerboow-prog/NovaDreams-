@@ -1377,8 +1377,13 @@ local function spotNear(player: Player, kind: string, origin: CFrame?): CFrame?
 	for _, turn in { 0, 90, -90, 180, 45, -45 } do
 		local dir = (CFrame.Angles(0, math.rad(turn), 0) * CFrame.new(look)).Position
 		local right = Vector3.new(-dir.Z, 0, dir.X)
-		for _, d in { span * 0.6 + 8, span * 0.6 + 30, span * 0.6 + 60 } do
-			local c = from.Position + right * d -- (a un lado tuyo, con el morro hacia donde miras)
+		for _, d in { 0, span * 0.6 + 8, span * 0.6 + 30, span * 0.6 + 60 } do
+			if d == 0 and turn ~= 0 then
+				continue
+			end
+			-- (primero JUSTO donde estás: te sienta en él al momento; si ahí no cabe, a un lado, con el
+			-- morro hacia donde miras)
+			local c = from.Position + right * d
 			local hit = groundAt(c.X, c.Z, from.Position.Y)
 			if hit and hit.Material ~= Enum.Material.Water and hit.Normal.Y > 0.96 then
 				local gy = hit.Position.Y
@@ -1393,7 +1398,8 @@ local function spotNear(player: Player, kind: string, origin: CFrame?): CFrame?
 				if flat then
 					local pose = CFrame.lookAt(Vector3.new(c.X, gy, c.Z), Vector3.new(c.X, gy, c.Z) + dir)
 					local ok, parts = pcall(function()
-						return workspace:GetPartBoundsInBox(pose * CFrame.new(0, spec.BoxY + 1, 0), Vector3.new(span, spec.Box.Y + 2, length), box)
+						-- (desde 2 studs sobre el suelo: tu propio personaje, el bordillo o la hierba no estorban)
+						return workspace:GetPartBoundsInBox(pose * CFrame.new(0, spec.BoxY + 2, 0), Vector3.new(span, spec.Box.Y, length), box)
 					end)
 					if ok and #parts == 0 then
 						return pose

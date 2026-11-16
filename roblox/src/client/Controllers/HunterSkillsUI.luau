@@ -30,6 +30,9 @@ local total: { [string]: number } = {}
 local SHORT = { TajoCircular = "Tajo", Embestida = "Embestida", Furia = "Furia", GolpeSismico = "Sísmico", TormentaAcero = "Tormenta", Coraza = "Coraza" }
 
 local function level(): number
+	if player:GetAttribute("HabilidadesTodas") == true then
+		return 999 -- (modo pruebas: todas desbloqueadas)
+	end
 	return tonumber(player:GetAttribute("NivelCazador")) or 1
 end
 

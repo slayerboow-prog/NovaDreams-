@@ -26,6 +26,14 @@ local function beastService(): any
 	return require(script.Parent.BeastService)
 end
 
+-- El modo pruebas (el dueño) tiene todas las habilidades desde el principio
+local function allUnlocked(player: Player): boolean
+	local ok, yes = pcall(function()
+		return (require(script.Parent.TesterService) :: any).bypass(player)
+	end)
+	return ok and yes == true
+end
+
 local function dataOf(player: Player): { [string]: any }?
 	local ok, d = pcall(function()
 		return (require(script.Parent.DataService) :: any).get(player)
@@ -104,7 +112,7 @@ function HunterSkillService.use(player: Player, id: any, now: number?): (boolean
 		return false, nil, 0
 	end
 	local onPlanet = type(player:GetAttribute("Planeta")) == "string"
-	if not HunterSkills.unlocked(sk, HunterSkillService.levelOf(player)) then
+	if not HunterSkills.unlocked(sk, HunterSkillService.levelOf(player)) and not allUnlocked(player) then
 		return false, ("%s se desbloquea con nivel de cazador %d."):format(sk.Name, sk.Level), 0
 	end
 	local t = now or os.clock()
@@ -195,6 +203,7 @@ function HunterSkillService.init()
 	local function publish(player: Player)
 		local level = HunterSkillService.levelOf(player)
 		player:SetAttribute("NivelCazador", level)
+		player:SetAttribute("HabilidadesTodas", allUnlocked(player)) -- (el cliente las enseña desbloqueadas)
 		local max = HunterSkills.manaMax(level)
 		player:SetAttribute("EspirituMax", max)
 		if player:GetAttribute("Espiritu") == nil then

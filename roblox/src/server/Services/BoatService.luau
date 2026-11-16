@@ -392,12 +392,13 @@ function BoatService.deploy(player: Player, kind: string): (boolean, string?)
 	overlap.MaxParts = 1
 	local here = root.Position
 	local best: CFrame? = nil
-	for r = 12, BoatService.DeployRange, 12 do
-		local steps = math.clamp(math.floor(r / 6), 8, 40)
+	for r = 0, BoatService.DeployRange, 12 do
+		local steps = if r == 0 then 1 else math.clamp(math.floor(r / 6), 8, 40)
 		for i = 0, steps - 1 do
 			local a = i / steps * math.pi * 2
 			local p = Vector3.new(here.X + math.cos(a) * r, Boats.SeaLevel, here.Z + math.sin(a) * r)
-			local away = Vector3.new(p.X - here.X, 0, p.Z - here.Z).Unit
+			local flatLook = Vector3.new(root.CFrame.LookVector.X, 0, root.CFrame.LookVector.Z)
+			local away = if r == 0 then (if flatLook.Magnitude > 0.1 then flatLook.Unit else Vector3.new(0, 0, -1)) else Vector3.new(p.X - here.X, 0, p.Z - here.Z).Unit
 			if Boats.hullAtSea(p, away, size) then
 				local hit = workspace:Raycast(Vector3.new(p.X, 60, p.Z), Vector3.new(0, -100, 0), ray)
 				if hit and hit.Material == Enum.Material.Water then
