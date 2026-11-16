@@ -22,15 +22,50 @@ local WOOD = rgb(112, 76, 46)
 type Ctx = { Model: Model, Root: BasePart, Sp: any, K: number, Hip: number, Limb: any, Eye: any, Mat: any }
 type Opt = { [string]: any }
 
+-- BISEL: las piezas grandes llevan los bordes escalonados (tres bloques en cruz) para que la silueta no sea
+-- una caja: el aspecto de figura de bloques del cartel, no de Minecraft
+local BEVEL = {
+	Tronco = true, Cabeza = true, Pecho = true, Pata = true, Pierna = true, Brazo = true, Muslo = true, Joroba = true, Puno = true,
+	Hombro = true, Hombrera = true, Hocico = true, Torax = true, Cola = true, Falda = true, Pie = true, Bota = true, Pezuna = true,
+	Zarpa = true, Mano = true, Guantelete = true, Grebas = true, Cuello = true, Morro = true, Maza = true, Hombros = true,
+}
+
 local function tools(x: Ctx)
 	local k = x.K
 	local S = {}
+	-- «lupa»: lo que se monte entre S.head(...) y S.body() crece desde su centro (cabezas grandes del cartel)
+	local zoom: Opt? = nil
+	function S.head(center: Vector3, scale: number, offset: Vector3?, mirror: boolean?)
+		zoom = { C = center, S = scale, O = offset or Vector3.zero, Mirror = mirror }
+	end
+	function S.body()
+		zoom = nil
+	end
 	function S.B(name: string, size: Vector3, pos: Vector3, color: Color3, o: Opt?): BasePart
 		local opt: Opt = o or {}
+		if zoom then
+			local c, off = zoom.C, zoom.O
+			if zoom.Mirror and pos.X < 0 then
+				c, off = V3(-c.X, c.Y, c.Z), V3(-off.X, off.Y, off.Z)
+			end
+			pos = c + off + (pos - c) * zoom.S
+			size = size * zoom.S
+		end
 		local cf = CFrame.new(pos * k) * CFrame.Angles(math.rad(opt.rx or 0), math.rad(opt.ry or 0), math.rad(opt.rz or 0))
-		local shape = if opt.ball then Enum.PartType.Ball elseif opt.cyl then Enum.PartType.Cylinder else nil
+		local shape = if opt.ball then Enum.PartType.Ball elseif opt.cyl then Enum.PartType.Cylinder elseif opt.wedge then Enum.PartType.Wedge else nil
 		local material = if opt.glow then NEON elseif opt.glass then Enum.Material.Glass else SMOOTH
-		local p = x.Limb(x.Model, x.Root, name, size * k, cf, color, material, shape, opt.on)
+		local small = math.min(size.X, size.Y, size.Z)
+		local bevel = if BEVEL[name] and not shape and not opt.alpha and small >= 0.5 and x.Sp.Body ~= "Masa" then math.min(0.2, small * 0.16) else 0
+		local core = if bevel > 0 then size - V3(0, 2 * bevel, 2 * bevel) else size
+		local p = x.Limb(x.Model, x.Root, name, core * k, cf, color, material, shape, opt.on)
+		if bevel > 0 then
+			for _, d in { V3(2 * bevel, 0, 2 * bevel), V3(2 * bevel, 2 * bevel, 0) } do
+				local b = x.Limb(x.Model, x.Root, "Bisel", (size - d) * k, cf, color, material, nil, p)
+				if opt.glow then
+					b.CastShadow = false
+				end
+			end
+		end
 		if opt.glow then
 			p.CastShadow = false
 		end
@@ -105,6 +140,7 @@ local function wolf(S: Tools, c: Opt)
 	S.B("Barriga", V3(1.4, 0.3, 2.2), V3(0, -0.72, 0.1), light)
 	S.B("Cuello", V3(1.7, 1.4, 1.0), V3(0, 0.45, -1.3), body)
 	S.B("Melena", V3(1.5, 0.4, 1.0), V3(0, 1.2, -1.2), dark, { rx = -10 })
+	S.head(V3(0, 0.95, -2.1), 1.3, V3(0, 0.3, -0.25))
 	S.B("Cabeza", V3(1.6, 1.4, 1.4), V3(0, 0.95, -2.1), body)
 	S.B("Frente", V3(0.7, 0.3, 0.3), V3(0, 1.55, -2.7), dark)
 	S.B("Hocico", V3(0.9, 0.35, 0.8), V3(0, 0.8, -3.15), body)
@@ -112,16 +148,27 @@ local function wolf(S: Tools, c: Opt)
 	S.B("Nariz", V3(0.38, 0.28, 0.2), V3(0, 0.9, -3.6), BLACK)
 	S.B("Boca", V3(0.7, 0.1, 0.05), V3(0, 0.63, -3.52), BLACK)
 	S.M("Colmillo", V3(0.1, 0.2, 0.1), V3(0.25, 0.52, -3.5), WHITE)
-	S.M("Mejilla", V3(0.35, 0.6, 0.8), V3(0.88, 0.62, -2.15), light)
+	S.M("Mejilla", V3(0.3, 0.55, 0.7), V3(0.85, 0.6, -2.0), light, { wedge = true, ry = 180, rz = -10 })
 	S.eyes(0.4, 1.12, -2.8, 0.32, 0.26, c.Eye, { glow = true, brow = dark })
-	S.M("Oreja", V3(0.45, 0.7, 0.3), V3(0.5, 1.95, -1.95), body, { rz = -12 })
-	S.M("OrejaDentro", V3(0.25, 0.45, 0.06), V3(0.5, 1.88, -2.12), light, { rz = -12 })
+	S.M("Oreja", V3(0.32, 0.8, 0.55), V3(0.5, 2.0, -1.95), body, { wedge = true, ry = 90 })
+	S.M("OrejaDentro", V3(0.06, 0.5, 0.3), V3(0.55, 1.88, -2.13), light, { wedge = true, ry = 90 })
+	S.B("Cana", V3(0.9, 0.35, 0.65), V3(0, 1.15, -2.95), body, { wedge = true })
+	S.body()
 	for _, z in { -1.05, 1.05 } do
-		local legs = S.M("Pata", V3(0.6, 1.5, 0.6), V3(0.55, -1.4, z), body)
-		S.M("Zarpa", V3(0.7, 0.3, 0.75), V3(0.55, -2.0, z - 0.05), light, { on = legs })
+		local legs = S.M("Pata", V3(0.72, 1.5, 0.72), V3(0.55, -1.4, z), body)
+		S.M("Zarpa", V3(0.82, 0.32, 0.9), V3(0.55, -2.0, z - 0.06), light, { on = legs })
+		S.M("Pelo", V3(0.78, 0.4, 0.78), V3(0.55, -0.85, z), dark, { on = legs })
 	end
-	local tail = S.B("Cola", V3(0.55, 0.55, 1.6), V3(0, 0.86, 2.15), body, { rx = -35 })
-	S.B("PuntaCola", V3(0.5, 0.5, 0.55), V3(0, 1.35, 2.85), light, { rx = -35, on = tail })
+	-- pelo: gorguera blanca a los lados del pecho, mechones en el lomo
+	S.M("Gorguera", V3(0.45, 1.1, 0.9), V3(0.9, 0.15, -1.45), light, { rz = 10 })
+	S.B("Gorguera", V3(1.2, 0.5, 0.5), V3(0, -0.75, -1.65), light)
+	for i = 0, 2 do
+		S.B("Mechon", V3(0.9 - i * 0.15, 0.3, 0.45), V3(0, 1.05 - i * 0.05, -0.5 + i * 0.7), dark, { rx = -20 })
+	end
+	S.M("Costado", V3(0.15, 0.7, 2.0), V3(0.95, 0.2, 0.3), dark)
+	local tail = S.B("Cola", V3(0.75, 0.75, 1.6), V3(0, 0.86, 2.15), body, { rx = -35 })
+	S.B("Cola2", V3(0.6, 0.6, 0.9), V3(0, 1.25, 2.7), dark, { rx = -45, on = tail })
+	S.B("PuntaCola", V3(0.55, 0.55, 0.55), V3(0, 1.55, 3.0), light, { rx = -35, on = tail })
 	if c.Frost then
 		for i = -1, 1 do
 			S.B("Escarcha", V3(0.3, 0.6, 0.3), V3(0.15 * i, 1.15, 0.6 * i + 0.3), rgb(190, 235, 255), { glass = true, rz = 15 * i, alpha = 0.15 })
@@ -175,6 +222,7 @@ local function robed(S: Tools, c: Opt)
 	S.B("Capa", V3(2.15, 0.5, 1.3), V3(0, 0.85, 0.02), c.Dark)
 	S.B("CapaAtras", V3(2.0, 3.6, 0.15), V3(0, -0.8, 0.62), c.Dark)
 	-- capucha con la cara en sombra y los ojos que brillan
+	S.head(V3(0, 1.85, 0.1), 1.2, V3(0, 0.18, 0))
 	S.B("Cabeza", V3(1.8, 1.8, 1.7), V3(0, 1.85, 0.1), c.Robe)
 	S.B("Pico", V3(0.7, 0.55, 0.7), V3(0, 2.75, 0.45), c.Robe, { rx = 25 })
 	S.B("Sombra", V3(1.25, 1.2, 0.06), V3(0, 1.75, -0.76), rgb(10, 10, 14))
@@ -184,6 +232,7 @@ local function robed(S: Tools, c: Opt)
 	if c.Skin then
 		S.B("Barbilla", V3(0.7, 0.3, 0.06), V3(0, 1.3, -0.8), c.Skin)
 	end
+	S.body()
 	-- mangas anchas y manos
 	S.M("Manga", V3(0.95, 0.5, 0.95), V3(1.29, -0.7, 0), c.Trim, { on = arms })
 	S.M("Mano", V3(0.55, 0.35, 0.55), V3(1.29, -1.1, 0), c.Hand, { on = arms })
@@ -257,8 +306,10 @@ local function dragon(S: Tools, c: Opt)
 	S.B("Pecho", V3(1.8, 1.6, 0.8), V3(0, 0.2, -1.6), belly)
 	S.B("Cuello", V3(1.0, 1.7, 1.0), V3(0, 1.35, -2.05), body, { rx = -30 })
 	S.B("CuelloDelante", V3(0.7, 1.6, 0.2), V3(0, 1.2, -2.5), belly, { rx = -30 })
+	S.head(V3(0, 2.3, -3.0), 1.25, V3(0, 0.2, -0.15))
 	S.B("Cabeza", V3(1.3, 1.1, 1.5), V3(0, 2.3, -2.75), body)
 	S.B("Hocico", V3(0.95, 0.65, 1.1), V3(0, 2.15, -3.75), body)
+	S.B("Cana", V3(0.95, 0.4, 0.8), V3(0, 2.68, -3.55), body, { wedge = true })
 	S.B("Mandibula", V3(0.85, 0.28, 1.1), V3(0, 1.72, -3.6), belly, { rx = -8 })
 	S.B("Boca", V3(0.8, 0.12, 0.9), V3(0, 1.9, -3.65), rgb(120, 20, 20))
 	S.M("Diente", V3(0.1, 0.2, 0.1), V3(0.35, 1.78, -4.15), WHITE)
@@ -268,6 +319,7 @@ local function dragon(S: Tools, c: Opt)
 	S.M("Cuerno", V3(0.28, 0.28, 1.3), V3(0.42, 2.95, -2.15), spike, { rx = -35, ry = -10 })
 	S.M("Cuerno", V3(0.2, 0.2, 0.8), V3(0.62, 2.55, -2.1), spike, { rx = -20, ry = -25 })
 	S.M("Aleta", V3(0.12, 0.5, 0.5), V3(0.68, 2.2, -2.5), spike, { rz = -30 })
+	S.body()
 	-- púas por el cuello, el lomo y la cola
 	for i = 0, 6 do
 		local y = if i < 2 then 2.85 - i * 0.6 else 1.15
@@ -275,11 +327,13 @@ local function dragon(S: Tools, c: Opt)
 		S.B("Pua", V3(0.22, 0.55, 0.45), V3(0, y, z), spike, { rx = -20, glass = c.Icy, glow = c.GlowSpikes })
 	end
 	-- alas: membrana (Ala, gira desde el cuerpo), hueso delante y dedos
+	S.head(V3(1.0, 1.3, 0), c.WingScale or 1.3, nil, true)
 	local wings = S.M("Ala", V3(3.4, 0.12, 2.2), V3(2.7, 1.35, 0.1), c.Wing, { rz = 22, alpha = c.WingAlpha })
 	S.M("HuesoAla", V3(3.5, 0.28, 0.28), V3(2.7, 1.38, -1.0), body, { rz = 22, on = wings })
 	S.M("Dedo", V3(0.15, 0.14, 2.0), V3(2.2, 1.18, 0.05), body, { rz = 22, ry = 10, on = wings })
 	S.M("Dedo", V3(0.15, 0.14, 2.0), V3(3.4, 1.65, 0.05), body, { rz = 22, ry = -10, on = wings })
 	S.M("GarraAla", V3(0.2, 0.4, 0.2), V3(4.35, 2.05, -1.05), spike, { on = wings })
+	S.body()
 	for _, z in { -1.1, 1.1 } do
 		local legs = S.M("Pata", V3(0.85, 1.75, 0.85), V3(0.85, -1.65, z), body)
 		S.M("Muslo", V3(1.0, 0.9, 1.2), V3(0.95, -0.8, z), body, { on = legs })
@@ -334,6 +388,7 @@ R.OsoGigante = {
 		S.B("Barriga", V3(2.3, 0.4, 3.0), V3(0, -1.1, 0), rgb(140, 92, 58))
 		S.M("Pelo", V3(0.4, 0.7, 0.9), V3(1.45, 0.5, -1.0), dark)
 		S.M("Pelo", V3(0.4, 0.6, 0.8), V3(1.45, 0.2, 1.1), dark)
+		S.head(V3(0, 1.2, -2.5), 1.15, V3(0, 0.25, -0.2))
 		S.B("Cabeza", V3(2.2, 2.0, 1.8), V3(0, 1.2, -2.5), body)
 		S.B("Frente", V3(1.4, 0.4, 0.3), V3(0, 2.0, -3.35), dark)
 		S.B("Hocico", V3(1.2, 0.85, 0.8), V3(0, 0.85, -3.75), tan)
@@ -345,6 +400,7 @@ R.OsoGigante = {
 		S.M("Oreja", V3(0.75, 0.75, 0.75), V3(0.85, 2.25, -2.35), body, { ball = true })
 		S.M("OrejaDentro", V3(0.42, 0.42, 0.42), V3(0.85, 2.25, -2.62), tan, { ball = true })
 		S.eyes(0.5, 1.55, -3.4, 0.3, 0.28, BLACK, { brow = dark })
+		S.body()
 		for _, z in { -1.3, 1.3 } do
 			local legs = S.M("Pata", V3(1.0, 1.4, 1.0), V3(0.9, -1.8, z), body)
 			S.M("Zarpa", V3(1.1, 0.35, 1.2), V3(0.9, -2.33, z - 0.05), dark, { on = legs })
@@ -373,14 +429,27 @@ R.AranaBosque = {
 		S.M("OjoPeq", V3(0.16, 0.16, 0.06), V3(0.55, 0.15, -1.66), rgb(255, 40, 30), { glow = true })
 		S.M("Quelicero", V3(0.28, 0.6, 0.3), V3(0.25, -0.35, -1.65), dark, { rx = 15 })
 		S.M("Colmillo", V3(0.14, 0.3, 0.14), V3(0.25, -0.75, -1.75), red, { rx = 25 })
-		local zs = { -0.75, -0.25, 0.25, 0.75 }
-		for i, z in zs do
-			local spread = (i - 2.5) * 12
-			local legs = S.M("Pata", V3(1.8, 0.3, 0.3), V3(1.6, 0.4, z), body, { rz = 25, ry = -spread })
-			local ox = 1.6 + 0.82 * math.cos(math.rad(spread))
-			local oz = z + 0.82 * math.sin(math.rad(spread))
-			S.M("Rodilla", V3(0.38, 0.38, 0.38), V3(ox, 0.78, oz), red, { on = legs })
-			S.M("Tramo", V3(0.26, 2.4, 0.26), V3(ox + 0.2, -0.38, oz), dark, { rz = 10, on = legs })
+		-- patas en arco: suben hasta la rodilla (por encima del cuerpo) y bajan abiertas hasta el suelo
+		local ground = -1.5
+		for i, z in { -0.6, -0.2, 0.2, 0.6 } do
+			local psi = (2.5 - i) * 22 -- (las de delante apuntan delante; las de detrás, atrás)
+			local dir = V3(math.cos(math.rad(psi)), 0, -math.sin(math.rad(psi)))
+			local base = V3(0.7, 0.35, z)
+			local L1, a = 1.8, 42
+			local up = V3(0, 1, 0)
+			local knee = base + dir * (L1 * math.cos(math.rad(a))) + up * (L1 * math.sin(math.rad(a)))
+			local legs = S.M("Pata", V3(L1, 0.32, 0.32), base + dir * (L1 / 2 * math.cos(math.rad(a))) + up * (L1 / 2 * math.sin(math.rad(a))), body, { rz = a, ry = psi })
+			S.M("Rodilla", V3(0.42, 0.42, 0.42), knee, red, { on = legs })
+			local reach, h = 1.1, knee.Y - ground
+			local L2 = math.sqrt(reach * reach + h * h)
+			local mid = knee + dir * (reach / 2) - up * (h / 2)
+			S.M("Tramo", V3(0.28, L2, 0.28), mid, dark, { rz = math.deg(math.atan2(reach, h)), ry = psi, on = legs })
+			S.M("PeloPata", V3(0.4, 0.4, 0.4), knee - up * 0.45 + dir * 0.15, body, { on = legs, rz = 20, ry = psi })
+		end
+		-- pelo en la barriga
+		for j = 0, 7 do
+			local ang = j / 8 * math.pi * 2
+			S.B("PeloBarriga", V3(0.4, 0.4, 0.4), V3(math.cos(ang) * 1.38, 0.75 + math.sin(ang) * 1.2, 2.1 + (if j % 2 == 0 then 0.5 else -0.5)), dark, { rx = 20 * j, ry = 15 * j })
 		end
 	end,
 }
@@ -398,14 +467,17 @@ R.JabaliSierra = {
 			local h = if i < 3 then 0.6 else 0.45
 			S.B("Cresta", V3(0.5, h, 0.42), V3(0, 0.85 + h / 2 - (if i < 3 then 0 else 0.1), -1.3 + i * 0.42), dark, { rx = -15 })
 		end
+		S.head(V3(0, 0.3, -1.85), 1.25, V3(0, 0.15, -0.2))
 		S.B("Cabeza", V3(1.5, 1.4, 1.3), V3(0, 0.3, -1.85), body)
 		S.B("Hocico", V3(1.0, 0.75, 0.6), V3(0, 0.0, -2.75), snout)
 		S.M("Narina", V3(0.18, 0.22, 0.05), V3(0.22, 0.05, -3.06), BLACK)
 		S.B("Boca", V3(0.8, 0.08, 0.05), V3(0, -0.28, -3.06), BLACK)
 		S.M("Colmillo", V3(0.18, 0.35, 0.18), V3(0.45, -0.1, -2.8), IVORY)
 		S.M("PuntaColmillo", V3(0.14, 0.32, 0.14), V3(0.5, 0.22, -2.95), IVORY, { rx = -30, rz = -10 })
-		S.M("Oreja", V3(0.38, 0.5, 0.25), V3(0.58, 1.12, -1.7), dark, { rz = -30 })
+		S.M("Oreja", V3(0.25, 0.6, 0.45), V3(0.6, 1.15, -1.7), dark, { wedge = true, ry = 90 })
+		S.B("Cana", V3(1.0, 0.4, 0.6), V3(0, 0.55, -2.5), body, { wedge = true })
 		S.eyes(0.4, 0.58, -2.5, 0.22, 0.2, rgb(230, 45, 30), { glow = true, glint = false, brow = dark })
+		S.body()
 		for _, z in { -0.95, 0.95 } do
 			local legs = S.M("Pata", V3(0.52, 1.0, 0.55), V3(0.6, -1.2, z), body)
 			S.M("Pezuna", V3(0.58, 0.25, 0.62), V3(0.6, -1.58, z - 0.02), BLACK, { on = legs })
@@ -429,6 +501,7 @@ R.SaqueadorNomada = { -- Bandido
 		S.B("Cinturon", V3(2.05, 0.3, 1.15), V3(0, -0.85, 0), boot)
 		S.B("Hebilla", V3(0.35, 0.25, 0.06), V3(0, -0.85, -0.6), rgb(210, 175, 80))
 		S.B("Bolsa", V3(0.4, 0.45, 0.3), V3(-0.75, -1.05, -0.5), vest)
+		S.head(V3(0, 1.8, 0), 1.25, V3(0, 0.2, 0))
 		S.B("Cabeza", V3(1.6, 1.6, 1.5), V3(0, 1.8, 0), skin)
 		S.B("Pelo", V3(1.7, 0.45, 1.6), V3(0, 2.6, 0.05), hair)
 		S.B("Nuca", V3(1.7, 1.2, 0.35), V3(0, 2.0, 0.65), hair)
@@ -439,6 +512,7 @@ R.SaqueadorNomada = { -- Bandido
 		S.B("Boca", V3(0.5, 0.1, 0.05), V3(0, 1.4, -0.8), rgb(90, 40, 30))
 		S.B("Nariz", V3(0.25, 0.3, 0.15), V3(0, 1.68, -0.8), rgb(210, 160, 122))
 		S.eyes(0.35, 1.92, -0.75, 0.2, 0.25, BLACK, { brow = hair })
+		S.body()
 		S.M("Hombrera", V3(1.0, 0.4, 1.0), V3(1.47, 0.82, 0), vest, { on = arms })
 		S.M("Brazal", V3(0.98, 0.45, 0.98), V3(1.47, -0.4, 0), boot, { on = arms })
 		S.M("Mano", V3(0.95, 0.45, 0.95), V3(1.47, -0.8, 0), skin, { on = arms })
@@ -462,18 +536,19 @@ R.Minotauro = {
 		S.B("Hebilla", V3(0.4, 0.3, 0.06), V3(0, -1.05, -0.74), rgb(200, 170, 80))
 		S.B("Taparrabos", V3(1.2, 1.1, 0.1), V3(0, -1.65, -0.74), rgb(200, 186, 150))
 		S.B("Pelo", V3(1.8, 0.6, 0.6), V3(0, 1.3, 0.55), fur)
+		S.head(V3(0, 2.05, -0.1), 1.2, V3(0, 0.2, 0))
 		S.B("Cabeza", V3(1.8, 1.7, 1.7), V3(0, 2.05, -0.1), fur)
 		S.B("Mechon", V3(0.9, 0.35, 0.9), V3(0, 3.0, -0.1), rgb(60, 38, 26))
 		S.B("Hocico", V3(1.3, 0.8, 0.6), V3(0, 1.68, -1.2), rgb(140, 100, 76))
 		S.B("Morro", V3(1.1, 0.3, 0.1), V3(0, 1.92, -1.52), rgb(120, 84, 64))
 		S.M("Narina", V3(0.24, 0.1, 0.05), V3(0.34, 1.9, -1.58), BLACK)
-		S.B("Aro", V3(0.3, 0.07, 0.07), V3(0, 1.3, -1.52), rgb(170, 140, 60))
-		S.M("AroLado", V3(0.07, 0.2, 0.07), V3(0.14, 1.38, -1.52), rgb(170, 140, 60))
 		S.eyes(0.45, 2.3, -0.95, 0.26, 0.2, rgb(255, 60, 40), { glow = true, glint = false, brow = rgb(50, 32, 22) })
 		S.M("Oreja", V3(0.55, 0.25, 0.35), V3(1.1, 2.25, 0.0), fur, { rz = -20 })
-		S.M("Cuerno", V3(0.85, 0.38, 0.38), V3(1.25, 2.65, -0.1), horn, { rz = 15 })
-		S.M("Cuerno2", V3(0.32, 0.75, 0.32), V3(1.68, 3.1, -0.1), horn, { rz = -15 })
-		S.M("PuntaCuerno", V3(0.2, 0.4, 0.2), V3(1.72, 3.6, -0.1), rgb(90, 80, 70), { rz = 10 })
+		S.M("Cuerno", V3(1.0, 0.44, 0.44), V3(1.3, 2.6, -0.1), horn, { rz = 10 })
+		S.M("Cuerno2", V3(0.4, 1.0, 0.4), V3(1.85, 3.15, -0.1), horn, { rz = -10 })
+		S.M("Cuerno3", V3(0.3, 0.6, 0.3), V3(1.78, 3.85, -0.1), horn, { rz = 25 })
+		S.M("PuntaCuerno", V3(0.2, 0.3, 0.2), V3(1.62, 4.2, -0.1), rgb(90, 80, 70), { rz = 35 })
+		S.body()
 		S.M("Hombrera", V3(1.35, 0.5, 1.35), V3(1.87, 1.0, 0), rgb(116, 116, 124), { on = arms })
 		S.M("Brazal", V3(1.15, 0.5, 1.15), V3(1.87, -0.5, 0), rgb(116, 116, 124), { on = arms })
 		S.M("Mano", V3(1.15, 0.5, 1.15), V3(1.87, -0.95, 0), fur, { on = arms })
@@ -571,10 +646,12 @@ R.EscorpionGigante = {
 		S.B("Cola4", V3(0.55, 0.5, 0.65), V3(0, 2.3, 2.25), dark, { rx = -140, on = tail })
 		S.B("Bulbo", V3(0.6, 0.55, 0.6), V3(0, 2.55, 1.8), red, { on = tail })
 		S.B("Aguijon", V3(0.18, 0.18, 0.6), V3(0, 2.35, 1.4), red, { rx = 40, glow = true, on = tail })
-		S.M("BrazoPinza", V3(0.4, 0.4, 1.0), V3(0.95, 0, -1.6), red, { ry = -20 })
-		S.M("Pinza", V3(0.8, 0.55, 0.9), V3(1.15, 0, -2.4), red)
-		S.M("Dedo", V3(0.22, 0.26, 0.8), V3(0.88, 0, -3.2), red, { ry = 8 })
-		S.M("Dedo", V3(0.22, 0.26, 0.8), V3(1.4, 0, -3.2), dark, { ry = -8 })
+		S.M("BrazoPinza", V3(0.5, 0.5, 1.2), V3(1.0, 0.05, -1.7), red, { ry = -25 })
+		S.M("Codo", V3(0.55, 0.55, 0.55), V3(1.3, 0.1, -2.3), dark)
+		S.M("Pinza", V3(1.1, 0.75, 1.2), V3(1.35, 0.1, -2.9), red)
+		S.M("Dedo", V3(0.3, 0.34, 1.1), V3(1.0, 0.1, -3.9), red, { ry = 10 })
+		S.M("Dedo", V3(0.3, 0.34, 1.0), V3(1.72, 0.1, -3.85), dark, { ry = -12 })
+		S.M("PuntaDedo", V3(0.2, 0.22, 0.3), V3(1.12, 0.1, -4.5), BLACK, { ry = 25 })
 		for _, z in { -0.6, -0.1, 0.4, 0.9 } do
 			local legs = S.M("Pata", V3(1.3, 0.22, 0.22), V3(1.45, 0.15, z), body, { rz = 25 })
 			S.M("Tramo", V3(0.22, 1.4, 0.22), V3(2.1, -0.5, z), dark, { rz = 12, on = legs })
@@ -593,11 +670,13 @@ R.Momia = {
 		for i = 0, 3 do
 			S.B("Venda", V3(1.94, 0.13, 1.14), V3(0, 0.7 - i * 0.45, 0), dark, { rz = if i % 2 == 0 then 6 else -6 })
 		end
+		S.head(V3(0, 1.75, 0), 1.2, V3(0, 0.15, 0))
 		S.B("Cabeza", V3(1.5, 1.5, 1.4), V3(0, 1.75, 0), band)
 		S.B("VendaCabeza", V3(1.54, 0.14, 1.44), V3(0, 2.15, 0), dark, { rz = 8 })
 		S.B("VendaCabeza", V3(1.54, 0.14, 1.44), V3(0, 1.3, 0), dark, { rz = -6 })
 		S.B("Rendija", V3(1.2, 0.36, 0.05), V3(0, 1.8, -0.71), rgb(40, 30, 22))
 		S.eyes(0.3, 1.8, -0.73, 0.18, 0.14, rgb(255, 190, 60), { glow = true, glint = false })
+		S.body()
 		S.B("Suelta", V3(0.25, 0.9, 0.05), V3(0.4, -1.4, -0.58), band, { rz = 10 })
 		for s = -1, 1, 2 do
 			for i = 0, 2 do
@@ -633,6 +712,7 @@ R.EsqueletoGuerrero = {
 		S.B("Esternon", V3(0.2, 1.2, 0.1), V3(0, 0.2, -0.43), bone)
 		S.B("Pelvis", V3(1.2, 0.4, 0.7), V3(0, -0.9, 0), bone)
 		S.B("Taparrabos", V3(1.0, 0.8, 0.08), V3(0, -1.3, -0.4), rgb(96, 70, 46), { rx = 5 })
+		S.head(V3(0, 1.75, 0), 1.3, V3(0, 0.2, 0))
 		S.B("Cabeza", V3(1.4, 1.3, 1.3), V3(0, 1.75, 0), bone)
 		S.B("Mandibula", V3(1.1, 0.35, 1.0), V3(0, 1.02, -0.12), bone)
 		S.eyes(0.33, 1.85, -0.65, 0.38, 0.38, BLACK, { glint = false })
@@ -642,6 +722,7 @@ R.EsqueletoGuerrero = {
 			S.B("Diente", V3(0.12, 0.14, 0.05), V3(i * 0.15, 1.22, -0.64), if i % 2 == 0 then bone else rgb(200, 190, 165))
 		end
 		S.B("Boca", V3(0.8, 0.06, 0.04), V3(0, 1.15, -0.65), dark)
+		S.body()
 		S.M("Hombro", V3(0.5, 0.5, 0.5), V3(1.0, 0.95, 0), bone, { ball = true, on = arms })
 		S.M("Mano", V3(0.45, 0.35, 0.45), V3(1.0, -1.0, 0), bone, { on = arms })
 		S.M("Rodilla", V3(0.5, 0.35, 0.5), V3(0.42, -1.95, 0), bone, { on = legs })
@@ -690,14 +771,17 @@ R.GolemHielo = { -- Gigante de hielo
 		S.B("Hebilla", V3(0.6, 0.5, 0.08), V3(0, -1.1, -0.95), rgb(150, 160, 175))
 		S.B("Taparrabos", V3(1.4, 1.0, 0.12), V3(0, -1.75, -0.95), rgb(60, 70, 100))
 		S.M("Pelaje", V3(1.6, 0.7, 1.6), V3(2.15, 1.05, 0), light, { on = arms })
-		S.B("Cabeza", V3(2.0, 1.9, 1.8), V3(0, 2.25, -0.2), fur)
-		S.B("Cara", V3(1.5, 1.1, 0.1), V3(0, 2.2, -1.12), light)
-		S.B("Barba", V3(1.6, 0.6, 0.35), V3(0, 1.45, -1.05), beard)
-		S.B("Boca", V3(0.8, 0.22, 0.05), V3(0, 1.75, -1.18), rgb(30, 36, 60))
-		S.M("Colmillo", V3(0.14, 0.22, 0.06), V3(0.28, 1.86, -1.22), WHITE)
-		S.B("Nariz", V3(0.35, 0.35, 0.2), V3(0, 2.15, -1.25), dark)
-		S.eyes(0.42, 2.45, -1.17, 0.28, 0.2, rgb(150, 225, 255), { glow = true, glint = false, brow = dark, browAngle = 24 })
-		S.B("Melena", V3(2.2, 0.6, 1.9), V3(0, 3.2, -0.15), light)
+		S.head(V3(0, 2.0, -0.35), 1.15, V3(0, 0.1, 0))
+		S.B("Cabeza", V3(2.0, 1.6, 1.8), V3(0, 2.0, -0.35), fur)
+		S.B("Cara", V3(1.5, 1.0, 0.1), V3(0, 2.05, -1.27), light)
+		S.B("Barba", V3(1.6, 0.55, 0.35), V3(0, 1.3, -1.2), beard)
+		S.B("Boca", V3(0.8, 0.22, 0.05), V3(0, 1.6, -1.33), rgb(30, 36, 60))
+		S.M("Colmillo", V3(0.14, 0.22, 0.06), V3(0.28, 1.71, -1.37), WHITE)
+		S.B("Nariz", V3(0.35, 0.35, 0.2), V3(0, 2.0, -1.4), dark)
+		S.eyes(0.42, 2.3, -1.32, 0.28, 0.2, rgb(150, 225, 255), { glow = true, glint = false, brow = dark, browAngle = 24 })
+		S.B("Melena", V3(2.4, 0.9, 1.4), V3(0, 2.1, 0.35), light)
+		S.M("Pelaje", V3(0.5, 0.8, 1.4), V3(1.1, 1.6, -0.3), light, { rz = -15 })
+		S.body()
 		S.M("Mano", V3(1.35, 0.6, 1.35), V3(2.17, -0.95, 0), light, { on = arms })
 		S.M("Pie", V3(1.45, 0.45, 1.7), V3(0.8, -3.1, -0.15), light, { on = legs })
 		local h = hand(T, A, 1)
@@ -712,7 +796,7 @@ R.DracoHielo = { -- Dragón de hielo
 	Root = V3(2.0, 1.8, 3.4),
 	Hip = 1.6,
 	Build = function(S)
-		dragon(S, { Body = rgb(56, 118, 222), Belly = rgb(176, 214, 250), Spike = rgb(204, 236, 255), Dark = rgb(34, 70, 150), Eye = rgb(170, 240, 255), Wing = rgb(110, 175, 245), WingAlpha = 0.1, Icy = true })
+		dragon(S, { Body = rgb(56, 118, 222), Belly = rgb(176, 214, 250), Spike = rgb(204, 236, 255), Dark = rgb(34, 70, 150), Eye = rgb(170, 240, 255), Wing = rgb(110, 175, 245), WingAlpha = 0.1, Icy = true, WingScale = 1.35 })
 	end,
 }
 
@@ -730,12 +814,14 @@ R.CaballeroCorrupto = { -- Caballero sombrío
 		S.B("Cinturon", V3(2.25, 0.3, 1.35), V3(0, -0.85, 0), dark)
 		S.M("Escarcela", V3(0.95, 0.8, 0.15), V3(0.5, -1.35, -0.68), trim, { rx = -8 })
 		S.B("Capa", V3(2.1, 3.4, 0.15), V3(0, -0.5, 0.75), rgb(44, 20, 62))
+		S.head(V3(0, 1.95, 0), 1.15, V3(0, 0.12, 0))
 		S.B("Cabeza", V3(1.5, 1.6, 1.5), V3(0, 1.95, 0), armor)
 		S.B("Visera", V3(1.2, 0.2, 0.05), V3(0, 2.0, -0.76), BLACK)
 		S.eyes(0.3, 2.0, -0.78, 0.25, 0.1, purple, { glow = true, glint = false })
 		S.B("Cresta", V3(0.2, 0.5, 1.4), V3(0, 2.95, 0), dark)
 		S.M("CuernoYelmo", V3(0.22, 0.65, 0.22), V3(0.62, 2.95, 0), dark, { rz = -25 })
 		S.B("Babera", V3(1.2, 0.5, 0.1), V3(0, 1.45, -0.77), trim)
+		S.body()
 		S.M("Hombrera", V3(1.4, 0.7, 1.4), V3(1.62, 1.1, 0), dark, { on = arms })
 		S.M("PuaHombro", V3(0.22, 0.65, 0.22), V3(1.75, 1.7, -0.3), trim, { rz = -30, on = arms })
 		S.M("PuaHombro", V3(0.22, 0.55, 0.22), V3(1.95, 1.6, 0.3), trim, { rz = -45, on = arms })
@@ -760,6 +846,7 @@ R.Demonio = {
 		S.B("Cinturon", V3(2.65, 0.38, 1.45), V3(0, -1.05, 0), BLACK)
 		S.B("Hebilla", V3(0.45, 0.35, 0.06), V3(0, -1.05, -0.74), rgb(210, 175, 70))
 		S.B("Taparrabos", V3(1.2, 1.0, 0.1), V3(0, -1.65, -0.74), rgb(30, 24, 26))
+		S.head(V3(0, 2.05, -0.05), 1.15, V3(0, 0.15, 0))
 		S.B("Cabeza", V3(1.8, 1.7, 1.6), V3(0, 2.05, -0.05), skin)
 		S.B("Frente", V3(1.6, 0.3, 0.2), V3(0, 2.55, -0.9), dark)
 		S.eyes(0.45, 2.25, -0.85, 0.3, 0.2, rgb(255, 220, 60), { glow = true, glint = false, brow = dark, browAngle = 24 })
@@ -771,6 +858,7 @@ R.Demonio = {
 		S.M("Cuerno", V3(0.5, 0.48, 0.48), V3(0.85, 2.95, -0.1), horn, { rz = -35 })
 		S.M("Cuerno2", V3(0.4, 0.8, 0.4), V3(1.15, 3.45, -0.05), horn, { rz = -15 })
 		S.M("Cuerno3", V3(0.28, 0.65, 0.28), V3(1.08, 4.0, 0.05), horn, { rz = 22 })
+		S.body()
 		S.M("Mano", V3(1.18, 0.5, 1.18), V3(1.89, -1.0, 0), dark, { on = arms })
 		S.M("Garra", V3(0.15, 0.3, 0.15), V3(1.89, -1.35, -0.45), BLACK, { on = arms })
 		S.M("Pezuna", V3(1.25, 0.5, 1.25), V3(0.71, -3.0, -0.05), BLACK, { on = legs })
@@ -801,6 +889,7 @@ R.ElementalFuego = {
 		S.B("Roca", V3(0.6, 0.5, 0.15), V3(-0.5, 0.6, -0.65), rock, { rz = -15 })
 		S.M("RocaBrazo", V3(0.95, 0.5, 0.6), V3(1.35, 0.1, -0.1), rock, { on = arms })
 		S.M("LlamaPierna", V3(0.7, 0.6, 0.7), V3(0.4, -2.7, 0), yellow, { glow = true, on = legs })
+		S.head(V3(0, 1.85, 0), 1.15, V3(0, 0.12, 0))
 		S.B("Cabeza", V3(1.6, 1.6, 1.4), V3(0, 1.85, 0), rgb(255, 176, 50))
 		S.M("Ojo", V3(0.32, 0.38, 0.06), V3(0.38, 1.95, -0.72), rgb(60, 20, 10))
 		S.B("Boca", V3(0.7, 0.18, 0.06), V3(0, 1.45, -0.72), rgb(90, 30, 10))
@@ -808,6 +897,7 @@ R.ElementalFuego = {
 		for i, p in { V3(0, 2.95, 0), V3(0.5, 2.8, 0.1), V3(-0.5, 2.8, 0.1), V3(0.25, 3.3, 0.2), V3(-0.3, 3.2, -0.1) } do
 			S.B("Llama", V3(0.45, 0.8, 0.45), p, if i % 2 == 0 then orange else yellow, { glow = true, rz = (i - 3) * 10 })
 		end
+		S.body()
 		S.M("Hombro", V3(0.7, 0.6, 0.7), V3(1.35, 1.1, 0), yellow, { glow = true, on = arms })
 		S.M("ManoFuego", V3(0.7, 0.7, 0.7), V3(1.35, -0.95, 0), yellow, { glow = true, on = arms })
 		local top = S.B("Corazon", V3(0.2, 0.2, 0.2), V3(0, 3.4, 0), yellow, { glow = true })
@@ -828,7 +918,7 @@ R.DragonInfernal = {
 	Root = V3(2.0, 1.8, 3.4),
 	Hip = 1.6,
 	Build = function(S)
-		dragon(S, { Body = rgb(48, 30, 30), Belly = rgb(96, 40, 30), Spike = rgb(30, 20, 20), Dark = rgb(24, 14, 14), Eye = rgb(255, 120, 30), Wing = rgb(150, 30, 24), Cracks = true })
+		dragon(S, { Body = rgb(48, 30, 30), Belly = rgb(96, 40, 30), Spike = rgb(30, 20, 20), Dark = rgb(24, 14, 14), Eye = rgb(255, 120, 30), Wing = rgb(150, 30, 24), Cracks = true, WingScale = 1.65 })
 	end,
 }
 
