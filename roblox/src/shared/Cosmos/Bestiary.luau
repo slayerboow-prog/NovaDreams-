@@ -133,6 +133,22 @@ Bestiary.Species = {
 		Colors = { Body = rgb(40, 40, 48), Belly = rgb(120, 120, 130), Glow = rgb(255, 40, 60) }, Material = "Metal",
 		Drops = { { "PlacaRecaudador", 1, 1, 1 }, { "ChipUsado", 2, 4, 1 }, { "Escama", 2, 3, 1 } }, Money = 900,
 		Lore = "Una máquina de cobro que alguien soltó en el Vertedero cuando quebró el banco. Sigue cobrando. A todo el mundo." },
+
+	-- VALMAR (las sierras y el campo de la isla, lejos de los barrios: World/ValmarWilds). Animales de
+	-- aquí que la luz de la Grieta ha cambiado: más grandes, más listos y con vetas que brillan.
+	JabaliSierra = { Planet = "Valmar", Name = "Jabalí de la sierra", Icon = "🐗", Body = "Cuadrupedo", Size = 4.6, Hp = 150, Damage = 11, Speed = 20, Aggro = 60,
+		Colors = { Body = rgb(74, 58, 46), Belly = rgb(120, 98, 78), Glow = rgb(170, 120, 255) }, Material = "Slate",
+		Drops = { { "Cuero", 1, 2, 1 }, { "Colmillo", 1, 1, 0.6 } }, Money = 14 },
+	AvispaGrieta = { Planet = "Valmar", Name = "Avispón de la Grieta", Icon = "🐝", Body = "Insecto", Size = 3.4, Hp = 100, Damage = 9, Speed = 18, Aggro = 65,
+		Colors = { Body = rgb(52, 44, 30), Belly = rgb(200, 160, 40), Glow = rgb(190, 140, 255) }, Material = "Metal",
+		Drops = { { "Quitina", 1, 2, 1 }, { "Seda", 1, 1, 0.5 } }, Money = 11 },
+	VivoraPenasco = { Planet = "Valmar", Name = "Víbora del peñasco", Icon = "🐍", Body = "Serpiente", Size = 4.2, Hp = 210, Damage = 15, Speed = 14, Aggro = 55,
+		Colors = { Body = rgb(86, 90, 70), Belly = rgb(150, 150, 120), Glow = rgb(160, 110, 255) }, Material = "Slate",
+		Drops = { { "Escama", 1, 2, 1 }, { "Glandula", 1, 1, 0.45 } }, Money = 18 },
+	CiervoRoto = { Planet = "Valmar", Boss = true, Name = "El Ciervo Roto", Icon = "🦌", Body = "Cuadrupedo", Size = 15, Hp = 3000, Damage = 28, Speed = 16, Aggro = 110,
+		Colors = { Body = rgb(60, 50, 44), Belly = rgb(140, 120, 100), Glow = rgb(170, 110, 255) }, Material = "Slate",
+		Drops = { { "AstaGrieta", 1, 1, 1 }, { "CuarzoGrieta", 2, 4, 1 }, { "Cuero", 2, 3, 1 } }, Money = 900,
+		Lore = "Bebió del agua donde cayó el primer trozo de la Grieta. Desde entonces sus astas crecen hacia dentro, como cristal." },
 }
 
 -- Orden fijo de cada planeta: tres bestias y el jefe
@@ -144,6 +160,7 @@ Bestiary.ByPlanet = {
 	Umbria = { "PanteraLiana", "AvispaEnjambre", "EscarabajoCorteza", Boss = "GranEscarabajo" },
 	Miasma = { "RataChatarra", "MedusaGas", "BuitreRayo", Boss = "Silbador" },
 	Vertice = { "RataCloaca", "DronRebelde", "CocodriloAliviadero", Boss = "Recaudador" },
+	Valmar = { "JabaliSierra", "AvispaGrieta", "VivoraPenasco", Boss = "CiervoRoto" },
 }
 
 -- Nombres de guarida por planeta (según la bestia que vive ahí)
@@ -153,7 +170,7 @@ local LAIR_NAMES = {
 	Serpiente = { "Cueva", "Grieta", "Sima" },
 	Bipedo = { "Percha", "Atalaya rota", "Nido alto" },
 }
-local LAIR_LOOK = { Tefra = "Roca", Siroco = "Arenisca", Talasa = "Coral", Nivalis = "Hielo", Umbria = "Raices", Miasma = "Chatarra", Vertice = "Chatarra" }
+local LAIR_LOOK = { Tefra = "Roca", Siroco = "Arenisca", Talasa = "Coral", Nivalis = "Hielo", Umbria = "Raices", Miasma = "Chatarra", Vertice = "Chatarra", Valmar = "Roca" }
 Bestiary.LairLook = LAIR_LOOK
 
 -- Planetas casi sin tierra (Tálasa): guaridas y alijos sobre arrecifes de roca que salen del agua (los pone
@@ -218,7 +235,7 @@ Bestiary.Active = 480 -- las guaridas con alguien a menos de esto tienen bestias
 Bestiary.Despawn = 650 -- sin nadie a menos de esto (un rato), las bestias se recogen
 
 -- El material raro de cada planeta y su trofeo de jefe (para los alijos y las recetas)
-Bestiary.Rare = { Tefra = "BrasaViva", Siroco = "VidrioTormenta", Talasa = "NacarAbisal", Nivalis = "HieloEterno", Umbria = "SaviaAmbar", Miasma = "PlataRayo", Vertice = "ChipUsado" }
+Bestiary.Rare = { Tefra = "BrasaViva", Siroco = "VidrioTormenta", Talasa = "NacarAbisal", Nivalis = "HieloEterno", Umbria = "SaviaAmbar", Miasma = "PlataRayo", Vertice = "ChipUsado", Valmar = "CuarzoGrieta" }
 
 -- «Guarida del Rey…», «Guarida de la Bestia…», «Guarida de lo que duerme…»
 function Bestiary.lairOf(name: string): string
@@ -252,6 +269,7 @@ Bestiary.Unique = {
 	PanteraLiana = "GarraLiana", AvispaEnjambre = "AguijonEnjambre", EscarabajoCorteza = "CortezaViva",
 	RataChatarra = "DienteCobre", MedusaGas = "VelaGas", BuitreRayo = "PlumaRayo",
 	RataCloaca = "ColaCable", DronRebelde = "NucleoDron", CocodriloAliviadero = "EscamaCromo",
+	JabaliSierra = "ColmilloJabali", AvispaGrieta = "AlaCristal", VivoraPenasco = "PielPenasco",
 }
 for id, sp in Bestiary.Species do
 	if sp.Boss then
@@ -365,10 +383,21 @@ function Bestiary.places(S: any): { [string]: any }
 		end
 		return g, nil
 	end
+	-- (S.ZoneR: los radios de las zonas a mano, { inicio zona 1, 2, 3, 4, fin }: Valmar, cuyo campo está
+	-- lejos del centro, alrededor de la ciudad. Los planetas no lo llevan: anillos desde CoreHalf)
+	local ZR = S.ZoneR
 	-- el jefe: lejos de todo, en un sitio llano para pelear
-	local bx, bz = find(300, core * 0.5, 0.35)
-	if not bx then
-		bx, bz = find(200, 300, 0.5)
+	local bx, bz
+	if ZR then
+		bx, bz = find(300, ZR[4], 0.35, ZR[5])
+		if not bx then
+			bx, bz = find(200, ZR[3], 0.5, ZR[5])
+		end
+	else
+		bx, bz = find(300, core * 0.5, 0.35)
+		if not bx then
+			bx, bz = find(200, 300, 0.5)
+		end
 	end
 	if bx then
 		local sp = Bestiary.Species[list.Boss]
@@ -381,7 +410,12 @@ function Bestiary.places(S: any): { [string]: any }
 	for si, sid in ipairs(list) do
 		local sp = Bestiary.Species[sid]
 		for k = 1, Bestiary.LairsPerSpecies do
-			local lx, lz = find(170, 200, 0.6)
+			local lx, lz
+			if ZR then
+				lx, lz = find(170, ZR[1], 0.6, ZR[2])
+			else
+				lx, lz = find(170, 200, 0.6)
+			end
 			if lx then
 				local names = LAIR_NAMES[sp.Body] or LAIR_NAMES.Cuadrupedo
 				local n = #out.Lairs + 1
@@ -407,11 +441,14 @@ function Bestiary.places(S: any): { [string]: any }
 	-- las tierras salvajes: anillos de manadas cada vez más fuertes, de la ciudad hacia fuera
 	local outer = S.Half - 440
 	local inner = core * 0.74
-	if outer > inner + 200 then
+	if ZR or outer > inner + 200 then
 		local rings = #Bestiary.Zones - 1
 		local step = (outer - inner) / rings
 		for tier = 2, #Bestiary.Zones do
 			local r0, r1 = inner + (tier - 2) * step, inner + (tier - 1) * step
+			if ZR then
+				r0, r1 = ZR[tier], ZR[tier + 1]
+			end
 			for k = 1, Bestiary.PacksPerZone do
 				local sid = list[1 + (k + tier) % #list]
 				local sp = Bestiary.Species[sid]
@@ -444,7 +481,9 @@ function Bestiary.places(S: any): { [string]: any }
 		local step = if outer2 > inner2 + 200 then (outer2 - inner2) / rings else 0
 		for tier = 1, #Bestiary.Zones do
 			local r0, r1
-			if tier == 1 or step <= 0 then
+			if ZR then
+				r0, r1 = ZR[tier], ZR[tier + 1]
+			elseif tier == 1 or step <= 0 then
 				r0, r1 = 220, inner2
 			else
 				r0, r1 = inner2 + (tier - 2) * step, inner2 + (tier - 1) * step
@@ -462,7 +501,12 @@ function Bestiary.places(S: any): { [string]: any }
 	end
 	-- los alijos: escondidos (algunos cerca de guaridas: el premio de atreverse)
 	for k = 1, Bestiary.CachesPerPlanet do
-		local lx, lz = find(110, 160, 0.7)
+		local lx, lz
+		if ZR then
+			lx, lz = find(110, ZR[1], 0.7, ZR[5])
+		else
+			lx, lz = find(110, 160, 0.7)
+		end
 		if lx then
 			local cy, islet = y(lx, lz)
 			table.insert(out.Caches, { Id = ("%s_A%d"):format(id, k), X = lx, Z = lz, Y = cy, Islet = islet })

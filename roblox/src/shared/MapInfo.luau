@@ -117,6 +117,9 @@ MapInfo.Kinds = {
 	{ Model = "LocalGimnasio", Icon = "🏋️", Name = "Gimnasio de barrio" },
 	{ Model = "LocalSuper", Icon = "🛒", Name = "Tienda de alimentación" },
 	{ Model = "LocalFarmacia", Icon = "💊", Name = "Farmacia" },
+	-- Zonas de caza de Valmar (World/ValmarWilds: guaridas con manadas, cuanto más lejos más nivel)
+	{ Model = "ZonaCaza", Icon = "⚔️", Name = "Zona de caza", Important = true, Merge = 700 },
+	{ Model = "GuaridaJefe", Icon = "👑", Name = "Guarida del Ciervo Roto (jefe)", Important = true },
 } :: { Kind }
 
 MapInfo.KindByModel = {} :: { [string]: Kind }

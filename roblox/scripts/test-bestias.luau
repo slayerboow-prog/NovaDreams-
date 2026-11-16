@@ -204,7 +204,7 @@ for sp, mat in Bestiary.Unique do
 	nUnique += 1
 	uniqueOk = uniqueOk and Bestiary.Species[sp] ~= nil and Items.get(mat) ~= nil
 end
-check(uniqueOk and nUnique == 21, "cada bestia normal suelta un material solo suyo")
+check(uniqueOk and nUnique == 24, "cada bestia normal suelta un material solo suyo")
 local slots = {}
 for _, g in Crafting.Gear do
 	local slot = Crafting.slotOf(g)
@@ -318,6 +318,38 @@ check(missing, "cada pieza de equipo tiene su color")
 check(string.find(fs.readFile("src/server/Services/InventoryService.luau"), "data.Refine[id] = nil", 1, true) ~= nil, "la mejora es de tu copia: si te quedas sin ella, se va")
 check(string.find(fs.readFile("src/server/Services/CombatService.luau"), "style.Targets", 1, true) ~= nil and string.find(fs.readFile("src/client/Controllers/CombatController.luau"), "EstiloArma", 1, true) ~= nil, "el servidor y el cliente usan el estilo de arma")
 check(string.find(fs.readFile("src/server/Main.server.luau"), '"GearService"', 1, true) ~= nil, "el equipo visible está conectado")
+
+print("🏞 Zonas de caza de Valmar")
+do
+	local Relief = L.load("src/shared/Relief")
+	local VW = L.load("src/server/World/ValmarWilds")
+	-- un relieve de mentira: ciudad construida en el centro (|x|,|z| < 1400), campo salvaje alrededor
+	local nx, nz, cell = 340, 300, 32
+	local minX, minZ = -5440, -4800
+	local amp, built = table.create(nx * nz, 0), table.create(nx * nz, 0)
+	for j = 0, nz - 1 do
+		for i = 0, nx - 1 do
+			local x, z = minX + i * cell, minZ + j * cell
+			local city = math.abs(x) < 1400 and math.abs(z) < 1400
+			amp[j * nx + i + 1] = if city then 0 else 60
+			built[j * nx + i + 1] = if city then 1 else 0
+		end
+	end
+	local field = { NX = nx, NZ = nz, MinX = minX, MinZ = minZ, Cell = cell, Step = 5, Amp = amp, Built = built }
+	local S = VW.surface(field, function(x, z)
+		return Relief.surfaceY(field, x, z), false
+	end)
+	check(Bestiary.ByPlanet.Valmar ~= nil and Bestiary.Species.CiervoRoto.Boss == true and Bestiary.Rare.Valmar == "CuarzoGrieta", "Valmar tiene sus bestias, su jefe y su material raro")
+	check(not S.goodSpot(0, 0, 1, 0) and not S.goodSpot(1450, 0, 1, 0), "ninguna guarida en la ciudad ni pegada a ella")
+	local p = Bestiary.places(S)
+	local per, inCity = {}, false
+	for _, l in p.Lairs do
+		per[l.Tier] = (per[l.Tier] or 0) + 1
+		inCity = inCity or (math.abs(l.X) < 1400 and math.abs(l.Z) < 1400)
+	end
+	check(not inCity and (per[1] or 0) >= 6 and (per[4] or 0) >= 6 and p.Boss ~= nil and #p.Shards >= 6 and #p.Caches >= 4,
+		("guaridas en las 4 zonas, jefe, esquirlas y alijos en el campo (%d/%d/%d/%d)"):format(per[1] or 0, per[2] or 0, per[3] or 0, per[4] or 0))
+end
 
 print("🔌 Conexiones")
 local combat = fs.readFile("src/server/Services/CombatService.luau")

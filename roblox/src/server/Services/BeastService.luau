@@ -177,6 +177,13 @@ function BeastService.buildWilds(S: any, folder: Instance): Instance?
 			end
 		end
 	end
+	-- (Valmar no tiene senderos radiales: el cartel de la zona va junto a cada guarida)
+	if not trails and S.Id == "Valmar" then
+		for _, lair in places.Lairs do
+			local z = Bestiary.zone(lair.Tier)
+			pcall(BeastKit.zoneSign, root, cfAt(lair.X + 20, lair.Z + 20), ("Zona de caza: %s · nv. %d"):format(z.Name, z.Level), lair.Tier or 1)
+		end
+	end
 	-- ruinas de antes de la Grieta, repartidas por las tierras salvajes
 	do
 		local r = Random.new((S.Seed or 7) * 131)
@@ -689,7 +696,7 @@ local function die(b: Beast, killer: Player?)
 	end
 	if b.Sp.Boss then
 		for _, p in Players:GetPlayers() do
-			if p:GetAttribute("Planeta") == b.Planet then
+			if p:GetAttribute("Planeta") == b.Planet or (b.Planet == "Valmar" and p:GetAttribute("Planeta") == nil) then
 				tell(p, "Success", ("👑 ¡%s ha caído! Vuelve a su guarida dentro de un rato."):format(b.Sp.Name))
 			end
 		end
@@ -881,7 +888,7 @@ end
 ---------------------------------------------------------------------
 local function openCache(player: Player, cacheId: string)
 	local planet = string.match(cacheId, "^(%a+)_A%d+$")
-	local S = planet and PlanetRegistry.get(planet)
+	local S = planet and (if built[planet] then built[planet].S else PlanetRegistry.get(planet))
 	if not S then
 		return
 	end
@@ -1016,6 +1023,21 @@ function BeastService.init()
 	end)
 	RunService.Heartbeat:Connect(function(dt)
 		BeastService._step(dt)
+	end)
+	-- las zonas de caza de Valmar (World/ValmarWilds): en el mapa ya al arrancar; las guaridas, al poco
+	-- (con el terreno ya escrito)
+	pcall(function()
+		local ValmarWilds = require(script.Parent.Parent.World.ValmarWilds) :: any
+		ValmarWilds.publish(Bestiary)
+	end)
+	task.delay(6, function()
+		local ok, err = pcall(function()
+			local ValmarWilds = require(script.Parent.Parent.World.ValmarWilds) :: any
+			ValmarWilds.build(BeastService)
+		end)
+		if not ok then
+			warn("[BeastService] zonas de caza de Valmar: " .. tostring(err))
+		end
 	end)
 end
 

@@ -44,6 +44,7 @@ Crafting.Materials = {
 	{ "SaviaAmbar", "Savia ámbar", "🍯", "La savia de los árboles gigantes de Umbría. Cura y pega." },
 	{ "PlataRayo", "Plata de rayo", "⚡", "Plata cargada por los rayos de Miasma. Pica al tocarla." },
 	{ "ChipUsado", "Chip usado", "💾", "Un chip de Vértice que todavía guarda algo. Para aparatos." },
+	{ "CuarzoGrieta", "Cuarzo de la Grieta", "🔮", "Cristal violeta de las sierras de Valmar, donde cayeron trozos de la Grieta." },
 	-- los trofeos de los jefes escondidos
 	{ "NucleoBrasa", "Núcleo de la Bestia de Brasa", "💠", "Late como un corazón. Trofeo de Tefra." },
 	{ "AguijonRey", "Aguijón del Rey Escorpión", "🦂", "Todavía gotea. Trofeo de Siroco." },
@@ -52,6 +53,7 @@ Crafting.Materials = {
 	{ "CuernoEscarabajo", "Cuerno del Gran Escarabajo", "🌿", "Más duro que cualquier metal. Trofeo de Umbría." },
 	{ "OjoTormenta", "Ojo de la tormenta", "🌀", "Dentro se ve un remolino. Trofeo de Miasma." },
 	{ "PlacaRecaudador", "Placa del Recaudador", "🔩", "Con un número de serie borrado a arañazos. Trofeo de Vértice." },
+	{ "AstaGrieta", "Asta de la Grieta", "🦌", "Asta del Ciervo Roto, crecida hacia dentro como cristal. Trofeo de Valmar." },
 	-- intermedios que se fabrican
 	{ "LingoteHierro", "Lingote de hierro", "🧱", "Hierro fundido y limpio: la base de la Forja." },
 	{ "LingoteCobalto", "Lingote de cobalto", "🟦", "Cobalto fundido: más ligero y más duro que el hierro." },
@@ -79,6 +81,9 @@ Crafting.Materials = {
 	{ "ColaCable", "Cola de cable", "🐀", "De la Rata de cloaca (Vértice). Mitad cola, mitad cable." },
 	{ "NucleoDron", "Núcleo de dron", "🤖", "Del Dron rebelde (Vértice). Parpadea en rojo." },
 	{ "EscamaCromo", "Escama de cromo", "🐊", "Del Cocodrilo de aliviadero (Vértice). Te ves reflejado." },
+	{ "ColmilloJabali", "Colmillo de jabalí", "🐗", "Del Jabalí de la sierra (Valmar). Con vetas violetas." },
+	{ "AlaCristal", "Ala de cristal", "🔹", "Del Avispón de la Grieta (Valmar). Fina y dura como un cristal." },
+	{ "PielPenasco", "Piel de peñasco", "🐍", "De la Víbora del peñasco (Valmar). Áspera como la roca." },
 	-- más intermedios
 	{ "PlacaReforzada", "Placa reforzada", "🔩", "Hierro y quitina en capas. Para cascos y escudos." },
 	{ "HiloEnergia", "Hilo de energía", "🧵", "Seda cargada con plata de rayo. Para collares." },
@@ -115,9 +120,13 @@ Crafting.Gear = {
 	{ Id = "EscudoCorteza", Name = "Escudo de corteza viva", Icon = "🛡", Kind = "Armor", Slot = "Escudo", Defense = 0.1, Level = 4, Desc = "Escudo: un 10 % menos de daño, además de tu armadura." },
 	{ Id = "BotasDuna", Name = "Botas de duna", Icon = "👢", Kind = "Armor", Slot = "Botas", Defense = 0.04, Level = 2, Desc = "Botas: un 4 % menos de daño, además de tu armadura." },
 	{ Id = "BotasEscarcha", Name = "Botas de escarcha", Icon = "👢", Kind = "Armor", Slot = "Botas", Defense = 0.07, Level = 3, Desc = "Botas: un 7 % menos de daño, además de tu armadura." },
+	{ Id = "CascoAsta", Name = "Yelmo del Ciervo Roto", Icon = "⛑", Kind = "Armor", Slot = "Casco", Defense = 0.11, Level = 5, Desc = "Con el asta del jefe de Valmar: un 11 % menos de daño, además de tu armadura." },
+	{ Id = "CascoJabali", Name = "Casco de jabalí", Icon = "⛑", Kind = "Armor", Slot = "Casco", Defense = 0.04, Level = 1, Desc = "Casco de Valmar: un 4 % menos de daño, además de tu armadura." },
+	{ Id = "BotasPenasco", Name = "Botas de peñasco", Icon = "👢", Kind = "Armor", Slot = "Botas", Defense = 0.05, Level = 2, Desc = "Botas de Valmar: un 5 % menos de daño, además de tu armadura." },
 	-- Accesorios (collar, pulsera y pendientes: uno de cada)
 	{ Id = "CollarEnjambre", Name = "Collar del Enjambre", Icon = "📿", Kind = "Accessory", Slot = "Collar", Blade = 0.1, Level = 2, Desc = "Collar: +10 % a tus golpes contra las bestias." },
 	{ Id = "CollarTormenta", Name = "Collar de tormenta", Icon = "📿", Kind = "Accessory", Slot = "Collar", Blade = 0.18, Level = 4, Desc = "Collar: +18 % a tus golpes contra las bestias." },
+	{ Id = "CollarCuarzo", Name = "Collar de cuarzo", Icon = "📿", Kind = "Accessory", Slot = "Collar", Blade = 0.14, Level = 3, Desc = "Collar de Valmar: +14 % a tus golpes contra las bestias." },
 	{ Id = "PulseraCobre", Name = "Pulsera de cobre", Icon = "⭕", Kind = "Accessory", Slot = "Pulsera", Luck = 0.1, Level = 2, Desc = "Pulsera: las bestias sueltan botín raro un 10 % más a menudo." },
 	{ Id = "PulseraVeneno", Name = "Pulsera de veneno", Icon = "⭕", Kind = "Accessory", Slot = "Pulsera", Blade = 0.08, Luck = 0.08, Level = 3, Desc = "Pulsera: +8 % a tus golpes y un 8 % más de botín raro." },
 	{ Id = "PendientesHielo", Name = "Pendientes de hielo", Icon = "💍", Kind = "Accessory", Slot = "Pendientes", Vigor = 12, Level = 2, Desc = "Pendientes: recuperas 12 de vida cada vez que cae una bestia." },
@@ -168,6 +177,10 @@ Crafting.Recipes = {
 	{ Id = "CascoCromo", Makes = 1, Bench = "Forja", Category = "Armaduras", Level = 4, Needs = { EscamaCromo = 3, NucleoDron = 1, PlacaReforzada = 2 } },
 	{ Id = "EscudoNacar", Makes = 1, Bench = "Forja", Category = "Armaduras", Level = 2, Needs = { PinzaNacar = 3, GrasaAbisal = 1, PlacaReforzada = 1 } },
 	{ Id = "EscudoCorteza", Makes = 1, Bench = "Forja", Category = "Armaduras", Level = 4, Needs = { CortezaViva = 4, EscoriaViva = 2, LingoteCobalto = 2 } },
+	{ Id = "CascoAsta", Makes = 1, Bench = "Forja", Category = "Armaduras", Level = 5, Needs = { AstaGrieta = 1, CuarzoGrieta = 3, PlacaReforzada = 2 } },
+	{ Id = "CascoJabali", Makes = 1, Bench = "Mesa", Category = "Armaduras", Level = 1, Needs = { ColmilloJabali = 3, Cuero = 2 } },
+	{ Id = "BotasPenasco", Makes = 1, Bench = "Mesa", Category = "Armaduras", Level = 2, Needs = { PielPenasco = 3, AlaCristal = 1, CuerdaTrenzada = 1 } },
+	{ Id = "CollarCuarzo", Makes = 1, Bench = "Mesa", Category = "Accesorios", Level = 3, Needs = { CuarzoGrieta = 2, AlaCristal = 2, HiloEnergia = 1 } },
 	{ Id = "BotasDuna", Makes = 1, Bench = "Mesa", Category = "Armaduras", Level = 2, Needs = { PielArena = 3, GarraDuna = 2, CuerdaTrenzada = 1 } },
 	{ Id = "BotasEscarcha", Makes = 1, Bench = "Mesa", Category = "Armaduras", Level = 3, Needs = { PelajeEscarcha = 3, LanaGruesa = 2, FiltroCarbon = 1 } },
 	-- Accesorios

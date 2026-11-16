@@ -43,6 +43,7 @@ MapLegend.Categories = {
 	{ Id = "Aeropuertos", Name = "Aeropuertos", Icon = "✈️", Models = { "Aeropuerto", "Aerodromo", "PuertoEspacial", "PortalPuertoEspacial" } },
 	{ Id = "Ciudad", Name = "Lugares de la ciudad", Icon = "🏛️", Models = { "Plaza", "PlazaFinanciera", "TorreValmar", "Ayuntamiento", "CasaCosme" } },
 	{ Id = "Instituciones", Name = "Instituciones", Icon = "⚖️", Models = { "PalacioJusticia", "CentroPenitenciario", "CuartelEjercito", "AgenciaTributaria" } },
+	{ Id = "Caza", Name = "Zonas de caza", Icon = "⚔️", Models = { "ZonaCaza", "GuaridaJefe" } },
 } :: { Category }
 
 -- Tu casa: siempre en el mapa (no es una categoría y no se puede ocultar)
