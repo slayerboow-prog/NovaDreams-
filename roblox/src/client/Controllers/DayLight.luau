@@ -289,6 +289,23 @@ function DayLight.aerial(tier: any, overcast: number): number
 	return t * t * (3 - 2 * t) * (1 - math.clamp(overcast, 0, 1))
 end
 
+-- En AVIONETA (atributo «Piloting», solo los aviones del aeroclub: nunca la nave del espacio) el aire
+-- se aclara también en el móvil (nivel Bajo) y desde poca altura: queja del dueño (v158), «en la
+-- avioneta no se ve NADA, ni de día ni de noche, hay como una niebla muy densa». Solo por debajo del
+-- techo de los aviones (1800): la barrera y la vista desde el espacio no cambian.
+function DayLight.planeClear(): number
+	if underwater > 0.01 or Players.LocalPlayer:GetAttribute("Piloting") == nil then
+		return 0
+	end
+	local camera = workspace.CurrentCamera
+	local y = if camera then camera.CFrame.Position.Y else 0
+	if y > 1800 then
+		return 0
+	end
+	local t = math.clamp((y - 15) / 220, 0, 1)
+	return t * t * (3 - 2 * t)
+end
+
 -- La bruma de Roblox (Atmosphere) se aparta de Lighting en el espacio y vuelve al bajar. TODAS las que
 -- haya (y las que lleguen mientras estás arriba: el servidor o un efecto pueden poner otra): con una sola
 -- en Lighting, Roblox pinta debajo del horizonte su color liso (el «suelo azul» de la v121) y vela lo
@@ -410,12 +427,14 @@ local function apply(k: Key, dt: number)
 		-- lejano puesto (Medio y Alto: shared/Horizon pinta la isla y el mar más allá de lo cargado);
 		-- en Bajo la bruma tapa el borde de lo cargado.
 		local aerial = DayLight.aerial(tier, overcast)
-		atmosphere.Density = math.clamp(k.Density * haze * (1 - 0.3 * aerial), 0, 1)
+		local clear = DayLight.planeClear()
+		local thin = math.min(1 - 0.3 * aerial, 1 - 0.6 * clear)
+		atmosphere.Density = math.clamp(k.Density * haze * thin, 0, 1)
 		atmosphere.Offset = k.Offset
 		atmosphere.Color = k.AtmColor
 		atmosphere.Decay = k.Decay
 		atmosphere.Glare = k.Glare * math.min(haze, 1.2)
-		atmosphere.Haze = math.clamp(k.Haze * haze * (1 - 0.35 * aerial), 0, 10)
+		atmosphere.Haze = math.clamp(k.Haze * haze * math.min(1 - 0.35 * aerial, 1 - 0.65 * clear), 0, 10)
 	end
 	local cc = find("ColorCorrectionEffect")
 	if cc then
