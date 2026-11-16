@@ -74,6 +74,8 @@ function PlayerCard.new(parent: GuiObject, opts: { [string]: any }?)
 	local x = face + 18
 	local textSize = if compact then 17 else 20
 	local level = Theme.label({ Name = "Nivel", Position = UDim2.fromOffset(x, 4), Size = UDim2.fromOffset(if compact then 62 else 76, 24), Text = "Nv. 1", Font = Theme.FontBold, TextSize = textSize, ZIndex = z + 1, Parent = root })
+	level.TextScaled = true -- (con nivel 100 o más se encoge para no pisar el nombre)
+	create("UITextSizeConstraint", { MaxTextSize = textSize, MinTextSize = 10, Parent = level })
 	local name = Theme.label({ Name = "Nombre", Position = UDim2.fromOffset(x + (if compact then 64 else 80), 4), Size = UDim2.new(1, -(x + (if compact then 70 else 86)), 0, 24), Text = "", Font = Theme.FontBold, TextSize = textSize, TextTruncate = Enum.TextTruncate.AtEnd, ZIndex = z + 1, Parent = root })
 	local money = Theme.label({ Name = "Dinero", Position = UDim2.fromOffset(x, if compact then 26 else 30), Size = UDim2.new(1, -x - 8, 0, 22), Text = "", Font = Theme.FontBold, TextSize = if compact then 16 else 19, TextColor3 = Theme.Colors.Money, TextTruncate = Enum.TextTruncate.AtEnd, ZIndex = z + 1, Parent = root })
 	-- Tres barras (vida, energía, experiencia)

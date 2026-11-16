@@ -470,6 +470,9 @@ local function buildStatus(parent: Instance)
 	player:GetAttributeChangedSignal("Rank"):Connect(nameText)
 	nameText()
 	local levelText = Theme.label({ Name = "Level", Position = UDim2.fromOffset(TEXT_X, 38), Size = UDim2.fromOffset(84, 22), Font = Theme.FontBold, TextSize = if TOUCH then 20 else 18, TextStrokeTransparency = 0.5, Parent = status })
+	-- (con nivel 100 o más, «Nv. 100 ⬆» no cabe: se encoge para no pisar el dinero)
+	levelText.TextScaled = true
+	create("UITextSizeConstraint", { MaxTextSize = if TOUCH then 20 else 18, MinTextSize = 10, Parent = levelText })
 	local money = Theme.label({ Name = "Money", Position = UDim2.fromOffset(TEXT_X + 90, 38), Size = UDim2.fromOffset(200, 22), Font = Theme.FontBold, TextSize = if TOUCH then 20 else 18, TextColor3 = C.Money, TextStrokeTransparency = 0.5, Parent = status })
 	local xpTrack = create("Frame", {
 		Name = "XpBar",
