@@ -27,7 +27,7 @@ end
 -- Bestias
 ---------------------------------------------------------------------
 -- Una pieza soldada a la raíz (offset en el espacio de la raíz: -Z es delante)
-local function limb(model: Model, root: BasePart, name: string, size: Vector3, offset: CFrame, color: Color3, material: Enum.Material, shape: Enum.PartType?): BasePart
+local function limb(model: Model, root: BasePart, name: string, size: Vector3, offset: CFrame, color: Color3, material: Enum.Material, shape: Enum.PartType?, attach: BasePart?): BasePart
 	local p = Instance.new("Part")
 	p.Name = name
 	p.Size = size
@@ -45,10 +45,52 @@ local function limb(model: Model, root: BasePart, name: string, size: Vector3, o
 	end
 	p.Parent = model
 	local w = Instance.new("WeldConstraint")
-	w.Part0 = root
+	w.Part0 = attach or model:FindFirstChild("Centro") :: BasePart? or root
 	w.Part1 = p
 	w.Parent = p
 	return p
+end
+
+-- Las ARTICULACIONES: patas, piernas, brazos, alas, cola y los anillos de las serpientes pasan de soldadura a
+-- Motor6D colgados del «Centro» (que a su vez cuelga de la raíz con el Motor6D «Cuerpo»). El cliente las mueve
+-- (Controllers/BeastAnim: andar, respirar, atacar, encogerse al recibir, caer) sin tocar la física del servidor.
+-- Atributos de cada articulación: Lado (1 derecha, -1 izquierda), Delante (1 delante, -1 detrás), Orden.
+local function rig(model: Model, hub: BasePart, shape: string)
+	local n = 0
+	for _, p in model:GetChildren() do
+		if p:IsA("BasePart") and p ~= hub and p ~= model.PrimaryPart then
+			local name = p.Name
+			local rel = hub.CFrame:ToObjectSpace(p.CFrame)
+			local side = if rel.Position.X >= 0 then 1 else -1
+			local pivot: CFrame? = nil
+			if name == "Pierna" or name == "Brazo" or (name == "Pata" and shape ~= "Insecto") then
+				pivot = CFrame.new(0, p.Size.Y / 2, 0) -- (gira desde arriba: la cadera, el hombro)
+			elseif name == "Ala" or (name == "Pata" and shape == "Insecto") then
+				pivot = CFrame.new(-side * p.Size.X / 2, 0, 0) -- (desde el lado del cuerpo)
+			elseif name == "Cola" and shape ~= "Insecto" then
+				pivot = CFrame.new(0, 0, -p.Size.Z / 2)
+			elseif name == "Cuerpo" then
+				pivot = CFrame.new()
+			end
+			if pivot then
+				local old = p:FindFirstChildOfClass("WeldConstraint")
+				if old then
+					old:Destroy()
+				end
+				n += 1
+				local j = Instance.new("Motor6D")
+				j.Name = "J_" .. name
+				j.Part0 = hub
+				j.Part1 = p
+				j.C0 = rel * pivot
+				j.C1 = pivot
+				j:SetAttribute("Lado", side)
+				j:SetAttribute("Delante", if rel.Position.Z <= 0 then 1 else -1)
+				j:SetAttribute("Orden", n)
+				j.Parent = p
+			end
+		end
+	end
 end
 
 local function eye(model: Model, root: BasePart, offset: CFrame, s: number, glow: Color3)
@@ -134,7 +176,7 @@ local function details(model: Model, root: BasePart, sp: { [string]: any }, id: 
 	for _, leg in model:GetChildren() do
 		if leg:IsA("BasePart") and (leg.Name == "Pata" and shape == "Cuadrupedo" or leg.Name == "Pierna") then
 			local rel = root.CFrame:ToObjectSpace(leg.CFrame)
-			limb(model, root, "Garra", V3(leg.Size.X * 1.1, 0.22 * k, leg.Size.Z * 1.25), rel * CFrame.new(0, -leg.Size.Y / 2 + 0.1 * k, -0.12 * k), belly:Lerp(Color3.new(0, 0, 0), 0.35), m)
+			limb(model, root, "Garra", V3(leg.Size.X * 1.1, 0.22 * k, leg.Size.Z * 1.25), rel * CFrame.new(0, -leg.Size.Y / 2 + 0.1 * k, -0.12 * k), belly:Lerp(Color3.new(0, 0, 0), 0.35), m, nil, leg)
 		end
 	end
 	-- melena de las rápidas (lobos, sabuesos, chacales)
@@ -164,7 +206,7 @@ local function details(model: Model, root: BasePart, sp: { [string]: any }, id: 
 		for _, seg in model:GetChildren() do
 			if seg:IsA("BasePart") and seg.Name == "Cuerpo" then
 				local rel = root.CFrame:ToObjectSpace(seg.CFrame)
-				limb(model, root, "Aleta", V3(0.12 * k, seg.Size.Y * 0.5, seg.Size.Z * 0.6), rel * CFrame.new(0, seg.Size.Y * 0.62, 0), glow:Lerp(body, 0.5), m)
+				limb(model, root, "Aleta", V3(0.12 * k, seg.Size.Y * 0.5, seg.Size.Z * 0.6), rel * CFrame.new(0, seg.Size.Y * 0.62, 0), glow:Lerp(body, 0.5), m, nil, seg)
 			end
 		end
 	end
@@ -173,9 +215,9 @@ local function details(model: Model, root: BasePart, sp: { [string]: any }, id: 
 		for _, arm in model:GetChildren() do
 			if arm:IsA("BasePart") and arm.Name == "Brazo" then
 				local rel = root.CFrame:ToObjectSpace(arm.CFrame)
-				limb(model, root, "Hombrera", V3(arm.Size.X * 1.5, arm.Size.X * 0.7, arm.Size.Z * 1.5), rel * CFrame.new(0, arm.Size.Y / 2, 0), belly, m)
+				limb(model, root, "Hombrera", V3(arm.Size.X * 1.5, arm.Size.X * 0.7, arm.Size.Z * 1.5), rel * CFrame.new(0, arm.Size.Y / 2, 0), belly, m, nil, arm)
 				if theme == "Piedra" or theme == "Bosque" then
-					limb(model, root, "Musgo", V3(arm.Size.X * 1.4, 0.15 * k, arm.Size.Z * 1.2), rel * CFrame.new(0, arm.Size.Y / 2 + arm.Size.X * 0.36, 0), rgb(80, 130, 60), Enum.Material.Grass)
+					limb(model, root, "Musgo", V3(arm.Size.X * 1.4, 0.15 * k, arm.Size.Z * 1.2), rel * CFrame.new(0, arm.Size.Y / 2 + arm.Size.X * 0.36, 0), rgb(80, 130, 60), Enum.Material.Grass, nil, arm)
 				end
 			end
 		end
@@ -283,6 +325,22 @@ function BeastKit.beast(sp: { [string]: any }, id: string, opts: { [string]: any
 	root.CFrame = CFrame.new(0, hip + rootSize.Y / 2, 0)
 	root.Parent = model
 	model.PrimaryPart = root
+	-- el «Centro»: todo el cuerpo cuelga de aquí (el cliente lo balancea, lo inclina, lo lanza al morder)
+	local hub = Instance.new("Part")
+	hub.Name = "Centro"
+	hub.Size = V3(0.2, 0.2, 0.2)
+	hub.Transparency = 1
+	hub.CanCollide = false
+	hub.CanTouch = false
+	hub.CanQuery = false
+	hub.Massless = true
+	hub.CFrame = root.CFrame
+	hub.Parent = model
+	local bodyJoint = Instance.new("Motor6D")
+	bodyJoint.Name = "Cuerpo"
+	bodyJoint.Part0 = root
+	bodyJoint.Part1 = hub
+	bodyJoint.Parent = root
 	local Y = -rootSize.Y / 2 -- (la parte de abajo del tronco)
 
 	if shape == "Cuadrupedo" then
@@ -368,7 +426,10 @@ function BeastKit.beast(sp: { [string]: any }, id: string, opts: { [string]: any
 			end
 		end
 	end
+	rig(model, hub, shape)
 	details(model, root, sp, id, k, champion)
+	model:SetAttribute("Escala", k)
+	model:SetAttribute("Vuela", string.find(id, "Avispa") ~= nil or string.find(id, "Medusa") ~= nil or string.find(id, "Dron") ~= nil or string.find(id, "Buitre") ~= nil)
 	if sp.Boss then
 		-- (los jefes: un aura que se ve de lejos)
 		local aura = Instance.new("PointLight")

@@ -333,6 +333,9 @@ end)
 safeInit("RegionBanner", function() -- el cartel al entrar en una de las ocho regiones de caza de Valmar
 	require(script.Parent.Controllers.RegionBanner).init()
 end)
+safeInit("BeastAnim", function() -- las bestias andan, respiran, atacan, se encogen al recibir y caen (solo en tu pantalla)
+	require(script.Parent.Controllers.BeastAnim).init()
+end)
 safeInit("BeastPlates", function() -- placas de las bestias: nombre del color de su dificultad, nivel, ★ campeona y vida
 	require(script.Parent.Controllers.BeastPlates).init()
 end)

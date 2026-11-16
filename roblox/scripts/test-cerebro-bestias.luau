@@ -112,4 +112,32 @@ check(plates:find("HuntRules.con", 1, true) ~= nil and fs.readFile("src/client/M
 local kit = fs.readFile("src/server/World/Kit/BeastKit.luau")
 check(kit:find("Colmillo", 1, true) ~= nil and kit:find("Corona", 1, true) ~= nil and kit:find("Garra", 1, true) ~= nil, "bestias con detalles y campeonas con corona")
 
+print("🐾 Cómo se mueven")
+L.services.Players = L.services.Players or { LocalPlayer = {} }
+local Anim = L.load("src/client/Controllers/BeastAnim")
+check(Anim.pulse(0.19, 0.38) > 0.99 and Anim.pulse(0.5, 0.38) == 0 and Anim.pulse(-1, 0.38) == 0, "los golpes y respingos van y vuelven")
+local a = Anim.jointPose("Cuadrupedo", "Pata", 1, 1, 1, math.pi / 2, 1, 0, false, 0, 0)
+local b2 = Anim.jointPose("Cuadrupedo", "Pata", -1, -1, 2, math.pi / 2, 1, 0, false, 0, 0)
+local c = Anim.jointPose("Cuadrupedo", "Pata", -1, 1, 3, math.pi / 2, 1, 0, false, 0, 0)
+local function pitch(cf)
+	local x = cf:ToEulerAnglesXYZ()
+	return x
+end
+check(math.abs(pitch(a) - pitch(b2)) < 1e-6 and math.abs(pitch(a) + pitch(c)) < 1e-6 and math.abs(pitch(a)) > 0.3,
+	"al andar, las patas van en diagonal (como un animal de verdad)")
+local still = Anim.jointPose("Cuadrupedo", "Pata", 1, 1, 1, math.pi / 2, 0, 0, false, 0, 0)
+check(math.abs(pitch(still)) < 1e-6, "quieta, las patas no se mueven")
+local idle1 = Anim.bodyPose(1, 0, 0, 0.3, false, 0, 0, 0, 0, 0, "Cuadrupedo")
+local idle2 = Anim.bodyPose(1, 0, 0, 1.0, false, 0, 0, 0, 0, 0, "Cuadrupedo")
+check(math.abs(idle1.Position.Y - idle2.Position.Y) > 0.01, "quieta, respira")
+local bite = Anim.bodyPose(1, 0, 0, 0, false, 1, 0, 0, 0, 0, "Cuadrupedo")
+local ouch = Anim.bodyPose(1, 0, 0, 0, false, 0, 1, 0, 0, 0, "Cuadrupedo")
+local dead = Anim.bodyPose(1, 0, 0, 0, false, 0, 0, 0, 0, 1, "Cuadrupedo")
+check(bite.Position.Z < -0.5 and ouch.Position.Z > 0.2 and dead.Position.Y < -0.5, "al morder se lanza, al recibir se echa atrás, al caer se vuelca")
+local kit2 = fs.readFile("src/server/World/Kit/BeastKit.luau")
+local srv = fs.readFile("src/server/Services/BeastService.luau")
+check(kit2:find("Motor6D", 1, true) ~= nil and kit2:find("rig(model, hub, shape)", 1, true) ~= nil, "las bestias tienen articulaciones para moverse")
+check(srv:find("WanderSpeed", 1, true) ~= nil and srv:find("StunUntil", 1, true) ~= nil and srv:find('SetAttribute("Golpe"', 1, true) ~= nil,
+	"pasean al paso y persiguen a la carrera; los golpes fuertes las aturden; avisan al cliente de cada golpe")
+
 L.finish("test-cerebro-bestias")

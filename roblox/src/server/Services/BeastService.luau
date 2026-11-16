@@ -35,7 +35,9 @@ local HuntRules = require(ReplicatedStorage.Shared.Cosmos.HuntRules)
 
 local BeastService = {}
 
-BeastService.Tick = 0.2
+BeastService.Tick = 0.1 -- (cada cuánto piensan: rápido, para que persigan y se giren sin tirones)
+BeastService.WanderSpeed = 0.4 -- (paseando por su guarida van al paso; persiguiendo, a la carrera)
+BeastService.StunSeconds = 0.35 -- (un golpe fuerte o un crítico las deja un instante aturdidas)
 BeastService.MaxPerPlanet = 60
 BeastService.GetUpSeconds = 7
 BeastService.BulletMul = 1.5 -- las armas de fuego contra las bestias (como con los enemigos de misión, algo menos)
@@ -83,6 +85,7 @@ type Beast = {
 	Level: number?,
 	Region: string?,
 	Champion: boolean?, -- (★ campeona: shared/Cosmos/HuntRules)
+	StunUntil: number?,
 }
 
 local beasts: { [Model]: Beast } = {}
@@ -654,6 +657,13 @@ end
 
 -- El pisotón del jefe: un anillo que avisa y, al segundo, daño a todos los que sigan dentro
 local function stomp(b: Beast)
+	b.Model:SetAttribute("Prepara", true)
+	task.delay(1.1, function()
+		if b.Model.Parent then
+			b.Model:SetAttribute("Prepara", false)
+			b.Model:SetAttribute("Golpe", (tonumber(b.Model:GetAttribute("Golpe")) or 0) + 1)
+		end
+	end)
 	local center = b.Root.Position - Vector3.new(0, b.Humanoid.HipHeight + b.Root.Size.Y / 2 - 0.3, 0)
 	local radius = 22
 	local ring = Instance.new("Part")
@@ -921,6 +931,10 @@ function BeastService.hit(attacker: Player?, model: Instance, amount: number, in
 	if not b.Static and (b.State == nil or b.State == "Ronda" or b.State == "Alerta") then
 		BeastService._engage(b, attacker)
 	end
+	-- (un golpe fuerte o un crítico la aturde un instante; a los jefes, no; y no corta una carga ya lanzada)
+	if (i.Heavy or crit) and not b.Sp.Boss and not b.Static and not (b.Charge and b.Charge.Phase == "Dash") then
+		b.StunUntil = now() + BeastService.StunSeconds
+	end
 	setHp(b)
 	-- el número de daño (solo lo ve quien pega: Controllers/DamagePops)
 	local pop = ReplicatedStorage:FindFirstChild("Remotes") and ReplicatedStorage.Remotes:FindFirstChild("Invasion")
@@ -1017,11 +1031,14 @@ local function ringAttack(b: Beast, center: Vector3, radius: number, windup: num
 	ring.CFrame = CFrame.new(center) * CFrame.Angles(0, 0, math.pi / 2)
 	ring.Parent = workspace
 	TweenService:Create(ring, TweenInfo.new(windup, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), { Size = Vector3.new(0.3, radius * 2, radius * 2) }):Play()
+	b.Model:SetAttribute("Prepara", true)
 	task.delay(windup + 0.05, function()
 		ring:Destroy()
 		if b.Dead or not b.Model.Parent then
 			return
 		end
+		b.Model:SetAttribute("Prepara", false)
+		b.Model:SetAttribute("Golpe", (tonumber(b.Model:GetAttribute("Golpe")) or 0) + 1)
 		dustBurst(center, b.Sp.Colors.Glow, radius > 16)
 		for _, p in Players:GetPlayers() do
 			local root = rootOf(p)
@@ -1036,6 +1053,7 @@ end
 local function spit(b: Beast, at: Vector3, ranged: { [string]: any })
 	local boss = b.Sp.Boss == true
 	face(b, at)
+	b.Model:SetAttribute("Golpe", (tonumber(b.Model:GetAttribute("Golpe")) or 0) + 1)
 	local from = b.Root.Position + b.Root.CFrame.LookVector * (b.Root.Size.Z * 0.5 + 1) + Vector3.new(0, b.Root.Size.Y * 0.3, 0)
 	local ball = Instance.new("Part")
 	ball.Name = "DisparoBestia"
@@ -1073,6 +1091,9 @@ end
 local function endCharge(b: Beast)
 	local c = b.Charge
 	b.Charge = nil
+	if c then
+		b.Model:SetAttribute("Prepara", false)
+	end
 	if c and c.Line then
 		c.Line:Destroy()
 	end
@@ -1104,6 +1125,7 @@ local function startCharge(b: Beast, troot: BasePart, charge: { [string]: any },
 	line.CFrame = CFrame.lookAt(base + dir * (len / 2), base + dir * len)
 	line.Parent = workspace
 	b.Charge = { Phase = "Windup", Until = t + charge.Windup, Dir = dir, Len = len, Width = width, Hit = {}, Line = line, Cfg = charge, From = b.Root.Position }
+	b.Model:SetAttribute("Prepara", true)
 end
 
 local function chargeStep(b: Beast, t: number)
@@ -1113,6 +1135,8 @@ local function chargeStep(b: Beast, t: number)
 		if t >= c.Until then
 			c.Phase = "Dash"
 			c.Until = t + c.Cfg.Dash
+			b.Model:SetAttribute("Prepara", false)
+			b.Model:SetAttribute("Golpe", (tonumber(b.Model:GetAttribute("Golpe")) or 0) + 1)
 			c.Last = b.Root.Position
 			b.Humanoid.WalkSpeed = (b.BaseSpeed or 16) * c.Cfg.Speed
 			b.Humanoid:MoveTo(c.From + c.Dir * c.Len)
@@ -1226,6 +1250,7 @@ end
 -- Pelear: moverse según su estilo, sus ataques especiales y el mordisco
 local function fight(b: Beast, target: Player, troot: BasePart, t: number)
 	local st = b.Style or BeastBrain.Styles.Bruto
+	b.Humanoid.WalkSpeed = b.BaseSpeed or b.Humanoid.WalkSpeed -- (persiguiendo: a la carrera)
 	local boss = b.Sp.Boss == true
 	local moves = if boss then BeastBrain.bossMoves(b.Sp) else nil
 	local ranged = if moves then (if moves.Ranged then BeastBrain.Styles.Distancia.Ranged else nil) else st.Ranged
@@ -1277,6 +1302,7 @@ local function fight(b: Beast, target: Player, troot: BasePart, t: number)
 		else
 			local mul = b.Lunge or 1
 			b.Lunge = nil
+			b.Model:SetAttribute("Golpe", (tonumber(b.Model:GetAttribute("Golpe")) or 0) + 1)
 			hurt(b, target, damage * mul)
 			if mul > 1 then
 				dustBurst(troot.Position, b.Sp.Colors.Glow, false)
@@ -1304,6 +1330,10 @@ local function think(b: Beast, t: number)
 	end
 	if b.Charge then
 		chargeStep(b, t)
+		return
+	end
+	if b.StunUntil and t < b.StunUntil then
+		b.Humanoid:Move(Vector3.zero)
 		return
 	end
 	local state = b.State or "Ronda"
@@ -1387,14 +1417,18 @@ local function think(b: Beast, t: number)
 			b.Announced = nil
 		end
 		if t >= b.NextWander then
-			b.NextWander = t + 3 + math.random() * 4
-			local a = math.random() * math.pi * 2
-			local d = math.random() * (if b.Sp.Boss then 10 elseif b.Lair.Islet then 12 else 26)
-			b.Humanoid:MoveTo(b.Home + Vector3.new(math.cos(a) * d, 0, math.sin(a) * d))
+			-- (pasea al paso; a veces se queda un rato parada, olisqueando)
+			b.NextWander = t + 4 + math.random() * 6
+			b.Humanoid.WalkSpeed = (b.BaseSpeed or 16) * BeastService.WanderSpeed
+			if math.random() < 0.7 then
+				local a = math.random() * math.pi * 2
+				local d = 4 + math.random() * (if b.Sp.Boss then 8 elseif b.Lair.Islet then 10 else 22)
+				b.Humanoid:MoveTo(b.Home + Vector3.new(math.cos(a) * d, 0, math.sin(a) * d))
+			end
 		end
 		-- (curarse poco a poco en casa)
 		if b.Hp < b.Max then
-			b.Hp = math.min(b.Max, b.Hp + b.Max * 0.01)
+			b.Hp = math.min(b.Max, b.Hp + b.Max * 0.01 * BeastService.Tick / 0.2)
 			setHp(b)
 		end
 		return
