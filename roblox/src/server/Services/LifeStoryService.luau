@@ -3235,6 +3235,11 @@ local function canOffer(player: Player, data: Data, questId: string): boolean
 	if story.Flags.CadeteAcademia and quest and quest.Kind == "Side" then
 		return false
 	end
+	-- (17-11-2026) Los guerreros espaciales (los que entraron por la Academia) no reciben las misiones de humor
+	-- absurdo de antes: las «misiones locas» de Cosme (menos la primera, que abre la Saga) ni las Rarezas
+	if story.Flags.GuerreroEspacial and (questId:match("^Rareza_") or (questId:match("^Loco_") and questId ~= "Loco_N1_Cosme")) then
+		return false
+	end
 	-- Nada se ofrece en mitad de una conversación, una escena o una clase (el aviso taparía lo que pasa)
 	if rt.Busy or DialogueService.isBusy(player) or player:GetAttribute("InDialogue") or inScene(player) then
 		return false
