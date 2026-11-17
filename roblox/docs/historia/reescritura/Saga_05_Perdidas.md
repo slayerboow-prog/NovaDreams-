@@ -9,8 +9,8 @@ Identificador original: Saga_05_Perdidas
 
 FUNCIÓN NARRATIVA
 
-Tono adulto (17-11-2026). La Grieta devuelve, de golpe, lo que se perdió la noche de la Caída: objetos de los
-muertos y desaparecidos, amontonados en el gimnasio de la Academia. Devolverlos duele. Con ellos llega algo
+Tono adulto (17-11-2026). La Grieta devuelve, de golpe, lo que se perdió la noche de la Caída: objetos de
+los que no volvieron, amontonados en el gimnasio de la Academia. Devolverlos duele. Con ellos llega algo
 que se ha formado con todo eso: el Amasijo.
 
 ⸻
