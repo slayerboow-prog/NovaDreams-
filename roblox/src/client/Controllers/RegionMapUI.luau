@@ -110,7 +110,7 @@ function RegionMapUI.build(window: Frame, toArt: (number, number) -> (number, nu
 	})
 
 	-- misiones de la zona (derecha) y colocar destino
-	local quests = panel(root, "Misiones", { AnchorPoint = Vector2.new(1, 0), Position = UDim2.new(1, -24, 0, 300), Size = UDim2.fromOffset(300, 190), ZIndex = 22 })
+	local quests = panel(root, "Misiones", { AnchorPoint = Vector2.new(1, 0), Position = UDim2.new(1, -24, 0, 400), Size = UDim2.fromOffset(300, 190), ZIndex = 22 })
 	create("UIPadding", { PaddingLeft = UDim.new(0, 12), PaddingRight = UDim.new(0, 10), PaddingTop = UDim.new(0, 8), Parent = quests })
 	create("UIListLayout", { Padding = UDim.new(0, 4), SortOrder = Enum.SortOrder.LayoutOrder, Parent = quests })
 	text(quests, { Name = "T", Size = UDim2.new(1, 0, 0, 24), Text = "❗ Misiones de la Zona", Font = Theme.FontBold, TextSize = 19, TextColor3 = rgb(255, 210, 70), LayoutOrder = 0, ZIndex = 23 })
