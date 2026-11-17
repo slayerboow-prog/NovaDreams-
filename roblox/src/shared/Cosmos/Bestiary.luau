@@ -368,9 +368,9 @@ Bestiary.LairLook = LAIR_LOOK
 Bestiary.WaterLairs = { Talasa = true }
 Bestiary.IsletTop = 3 -- studs sobre el agua
 
-Bestiary.Respawn = 90 -- segundos para que una bestia vuelva a su guarida
+Bestiary.Respawn = 30 -- segundos para que una bestia vuelva a su guarida (17-11-2026: farmeo continuo, estilo Metin2)
 Bestiary.BossRespawn = 1200 -- el jefe: 20 minutos
-Bestiary.PackMin, Bestiary.PackMax = 4, 6
+Bestiary.PackMin, Bestiary.PackMax = 5, 8
 Bestiary.LairsPerSpecies = 3 -- (las de siempre, junto a la ciudad: zona 1)
 -- ZONAS DE CAZA: las tierras salvajes se reparten en anillos alrededor de la ciudad. Cuanto más lejos, más
 -- nivel: las bestias aguantan y pegan más, y dan más experiencia, dinero y botín.
@@ -436,8 +436,8 @@ end
 Bestiary.CachesPerPlanet = 8
 Bestiary.CacheCooldown = 20 * 3600 -- un alijo se abre otra vez a las 20 horas (cada jugador el suyo)
 Bestiary.Leash = 120 -- una bestia no persigue a nadie más allá de esto desde su guarida
-Bestiary.Active = 480 -- las guaridas con alguien a menos de esto tienen bestias fuera
-Bestiary.Despawn = 650 -- sin nadie a menos de esto (un rato), las bestias se recogen
+Bestiary.Active = 360 -- las guaridas con alguien a menos de esto tienen bestias fuera (hay muchas: el radio es menor)
+Bestiary.Despawn = 520 -- sin nadie a menos de esto (un rato), las bestias se recogen
 
 -- El material raro de cada planeta y su trofeo de jefe (para los alijos y las recetas)
 Bestiary.Rare = { Tefra = "BrasaViva", Siroco = "VidrioTormenta", Talasa = "NacarAbisal", Nivalis = "HieloEterno", Umbria = "SaviaAmbar", Miasma = "PlataRayo", Vertice = "ChipUsado", Valmar = "CuarzoGrieta" }
@@ -728,8 +728,12 @@ end
 -- Las ocho regiones de Valmar (S.Regions = shared/Cosmos/ValmarRegions): en cada sector, guaridas de sus
 -- tres criaturas (el nivel sube hacia la costa), su jefe en lo más lejano, esquirlas y alijos. Repetible.
 ---------------------------------------------------------------------
-Bestiary.LairsPerRegion = 10 -- (2 en el campo de la isla y 8 al otro lado del mar, en las Tierras Exteriores)
-Bestiary.LairsPerFarm = 7 -- guaridas en cada distrito de caza de la isla (shared/CityPlan.Districts con Farm)
+Bestiary.LairsPerRegion = 30 -- (2 en el campo de la isla y 28 al otro lado del mar, en las Tierras Exteriores)
+-- Guaridas de los distritos de caza de la isla (shared/CityPlan.Districts con Farm): una cada FarmSpacing studs
+-- (17-11-2026, el dueño: «tantos monstruos como en Metin2»), como mucho LairsPerFarm por distrito
+Bestiary.FarmSpacing = 230
+Bestiary.LairsPerFarm = 180
+Bestiary.FarmPackMin, Bestiary.FarmPackMax = 6, 9
 Bestiary.ShardsPerRegion = 3
 Bestiary.CachesPerRegion = 2
 
@@ -908,14 +912,21 @@ function Bestiary.regionPlaces(S: any, out: { [string]: any }): { [string]: any 
 			z0, z1 = math.min(z0, pt[2]), math.max(z1, pt[2])
 		end
 		local placed = 0
-		local n = Bestiary.LairsPerFarm
+		-- cuántas caben: el área del distrito entre el hueco de cada guarida
+		local area = 0
+		for idx, pt in d.Poly do
+			local nx = d.Poly[idx % #d.Poly + 1]
+			area += pt[1] * nx[2] - nx[1] * pt[2]
+		end
+		area = math.abs(area) / 2
+		local n = math.clamp(math.floor(area / (Bestiary.FarmSpacing * Bestiary.FarmSpacing)), 6, Bestiary.LairsPerFarm)
 		for pass = 1, 2 do
-			for _ = 1, 3000 do
+			for _ = 1, n * 60 do
 				if placed >= n then
 					break
 				end
 				local lx, lz = x0 + r() * (x1 - x0), z0 + r() * (z1 - z0)
-				if S.insideFarm(d, lx, lz) and far(lx, lz, if pass == 1 then 220 else 150) and S.goodSpot(lx, lz, if pass == 1 then 0.5 else 0.7, 10, true) then
+				if S.insideFarm(d, lx, lz) and far(lx, lz, if pass == 1 then Bestiary.FarmSpacing * 0.8 else Bestiary.FarmSpacing * 0.55) and S.goodSpot(lx, lz, if pass == 1 then 0.5 else 0.7, 10, true) then
 					placed += 1
 					local level = F.Min + math.floor((F.Max - F.Min) * (placed - 1) / math.max(1, n - 1) + 0.5)
 					local sid = F.Species[1 + (placed - 1) % #F.Species]
@@ -927,7 +938,7 @@ function Bestiary.regionPlaces(S: any, out: { [string]: any }): { [string]: any 
 						X = lx,
 						Z = lz,
 						Y = y(lx, lz),
-						Count = Bestiary.PackMin + math.floor(r() * (Bestiary.PackMax - Bestiary.PackMin + 1)),
+						Count = Bestiary.FarmPackMin + math.floor(r() * (Bestiary.FarmPackMax - Bestiary.FarmPackMin + 1)),
 						Look = F.Look or "Roca",
 						Tier = 1,
 						Level = level,

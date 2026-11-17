@@ -156,7 +156,9 @@ function ValmarWilds.publish(Bestiary: any): number
 		n += 1
 	end
 	for _, lair in places.Lairs do
-		if lair.Boss then
+		if type(lair.Region) == "string" and lair.Region:sub(1, 5) == "Farm_" then
+			continue -- (los distritos de caza tienen cientos de guaridas: el mapa ya enseña el distrito entero)
+		elseif lair.Boss then
 			add("Jefe_" .. lair.Id, if lair.Id:find("_Elite$") then "Jefe_Elite" else "Jefe_" .. (lair.Region or ""), lair.X, lair.Z)
 		else
 			add("ZonaCaza_" .. lair.Id, "ZonaCaza", lair.X, lair.Z)

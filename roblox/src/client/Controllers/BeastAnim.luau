@@ -18,8 +18,8 @@ local RunService = game:GetService("RunService")
 
 local BeastAnim = {}
 
-BeastAnim.Range = 160
-BeastAnim.MaxAnimated = 24
+BeastAnim.Range = 220
+BeastAnim.MaxAnimated = 40 -- (17-11-2026: hay muchas más bestias)
 
 local player = Players.LocalPlayer
 
@@ -116,14 +116,14 @@ function BeastAnim.jointPose(shape: string, name: string, side: number, front: n
 	elseif name == "Pata" then
 		-- diagonales: delantera derecha con trasera izquierda
 		local diag = if side * front > 0 then 1 else -1
-		return CFrame.Angles(swing * 0.75 * diag - crouch * 0.35 * front, 0, 0)
+		return CFrame.Angles(swing * 1.0 * diag - crouch * 0.45 * front + strike * 0.5 * front, 0, 0)
 	elseif name == "Pierna" then
-		return CFrame.Angles(swing * 0.7 * side - crouch * 0.4, 0, 0)
+		return CFrame.Angles(swing * 0.95 * side - crouch * 0.55 - strike * 0.35 * side, 0, 0)
 	elseif name == "Brazo" then
 		-- brazos: contrarios a las piernas; al golpear, arriba y abajo
 		-- (suben por delante hasta encima de la cabeza y caen: el tajo del arma, el golpe del coloso)
 		local lift = strike * 2.2
-		return CFrame.Angles(-swing * 0.5 * side + lift + crouch * 0.6, 0, side * crouch * 0.2)
+		return CFrame.Angles(-swing * 0.75 * side + lift + crouch * 0.8, 0, side * (crouch * 0.25 + strike * 0.25))
 	elseif name == "Ala" then
 		local speed = if flies then 18 else 3
 		local amp = if flies then 0.55 else 0.08 + move * 0.2
@@ -141,14 +141,16 @@ end
 function BeastAnim.bodyPose(k: number, phase: number, move: number, t: number, flies: boolean, strike: number, hurt: number, crouch: number, alert: number, down: number, shape: string): CFrame
 	local breathe = math.sin(t * 2.1) * 0.05 * k
 	-- (la masa —slime— avanza a saltitos)
-	local step = math.abs(math.sin(phase)) * (if shape == "Masa" then 0.7 else 0.18) * k * move
+	local step = math.abs(math.sin(phase)) * (if shape == "Masa" then 0.8 else 0.3) * k * move
 	local hover = if flies then math.sin(t * 3) * 0.35 * k else 0
-	local lean = -0.1 * move
+	local lean = -0.16 * move
 	local y = breathe + step + hover - crouch * 0.35 * k
-	local z = -strike * 0.9 * k + hurt * 0.4 * k
-	local pitch = lean - strike * 0.25 + hurt * 0.2 + crouch * 0.12 + alert * 0.3
+	local z = -strike * 1.5 * k + hurt * 0.7 * k
+	local pitch = lean - strike * 0.4 + hurt * 0.35 + crouch * 0.18 + alert * 0.3
+	-- (al trote se balancea de lado a lado)
+	local roll = math.sin(phase) * 0.06 * move
 	local shake = if crouch > 0 then math.sin(t * 40) * 0.05 * k * crouch else 0
-	local cf = CFrame.new(shake, y, z) * CFrame.Angles(pitch, 0, 0)
+	local cf = CFrame.new(shake, y, z) * CFrame.Angles(pitch, 0, roll)
 	if down > 0 then
 		-- cae de lado y se hunde
 		cf = cf * CFrame.new(0, -down * 0.8 * k, 0) * CFrame.Angles(0, 0, down * math.rad(85))

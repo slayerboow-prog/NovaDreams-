@@ -38,7 +38,9 @@ local BeastService = {}
 BeastService.Tick = 0.1 -- (cada cuánto piensan: rápido, para que persigan y se giren sin tirones)
 BeastService.WanderSpeed = 0.4 -- (paseando por su guarida van al paso; persiguiendo, a la carrera)
 BeastService.StunSeconds = 0.35 -- (un golpe fuerte o un crítico las deja un instante aturdidas)
-BeastService.MaxPerPlanet = 60
+BeastService.MaxPerPlanet = 70 -- por jugador en el planeta (17-11-2026: muchas más bestias); tope total MaxTotal
+BeastService.MaxTotal = 320
+BeastService.SpawnsPerPass = 14 -- (cuántas aparecen en cada repaso: sin tirones al llegar a una zona llena)
 BeastService.GetUpSeconds = 7
 -- (petición del dueño: se pelea sobre todo con golpes, armas blancas y habilidades; las armas de fuego,
 -- contra las bestias, hacen mucho menos)
@@ -500,7 +502,7 @@ local function shardWave(b: Beast, index: number, attacker: Player?)
 	end
 	local n = Bestiary.Shard.WaveSize[index] or 3
 	for _ = 1, n do
-		if aliveCount(b.Planet) >= BeastService.MaxPerPlanet + 16 then
+		if aliveCount(b.Planet) >= capOf(b.Planet) + 16 then
 			break
 		end
 		local nb = spawnAt(b.S, wave)
@@ -548,8 +550,23 @@ local function manageShards(S: any)
 	end
 end
 
+-- El tope de bestias vivas de un planeta: más jugadores, más bestias
+local function capOf(planet: string): number
+	local n = 0
+	for _, p in Players:GetPlayers() do
+		local on = p:GetAttribute("Planeta")
+		if on == planet or (planet == "Valmar" and on == nil) then
+			n += 1
+		end
+	end
+	return math.min(BeastService.MaxTotal, BeastService.MaxPerPlanet * math.max(1, n))
+end
+BeastService.capOf = capOf
+
 local function manageLairs(S: any)
 	local places = Bestiary.places(S)
+	local budget = BeastService.SpawnsPerPass
+	local cap = capOf(S.Id)
 	local O = S.Origin
 	local all = table.clone(places.Lairs)
 	if places.Boss then
@@ -574,9 +591,10 @@ local function manageLairs(S: any)
 			end
 			ready = missing - #due
 			for _ = 1, math.max(0, ready) do
-				if aliveCount(S.Id) >= BeastService.MaxPerPlanet then
+				if budget <= 0 or aliveCount(S.Id) >= cap then
 					break
 				end
+				budget -= 1
 				spawnAt(S, lair)
 			end
 		elseif not playersNear(pos, Bestiary.Despawn) then
@@ -807,6 +825,110 @@ local function lootBeam(at: Vector3, tier: { [string]: any }, champion: boolean?
 	end)
 end
 
+---------------------------------------------------------------------
+-- FÍSICAS (17-11-2026, el dueño: «añade físicas a los monstruos»)
+---------------------------------------------------------------------
+local RunService = game:GetService("RunService")
+
+-- Lo que pesa una bestia para los empujones: las pequeñas salen volando, las grandes apenas se mueven
+local function heft(b: Beast): number
+	local size = tonumber(b.Sp.Size) or 5
+	local k = math.clamp(5 / size, 0.3, 1.15)
+	if b.Sp.Boss then
+		k *= 0.15
+	end
+	return k
+end
+
+-- El golpe la empuja hacia atrás (y un poco hacia arriba). power: studs por segundo al empezar
+function BeastService.knock(b: Beast, from: Vector3?, power: number)
+	if b.Static or b.Dead or not b.Root.Parent or b.Root.Anchored then
+		return
+	end
+	local dir = if from then b.Root.Position - from else -b.Root.CFrame.LookVector
+	dir = Vector3.new(dir.X, 0, dir.Z)
+	if dir.Magnitude < 0.01 then
+		return
+	end
+	dir = dir.Unit
+	local k = heft(b)
+	local speed = power * k
+	if speed < 3 then
+		return
+	end
+	b.StunUntil = math.max(b.StunUntil or 0, now() + 0.22)
+	b.Humanoid:Move(Vector3.zero)
+	local t0 = os.clock()
+	local lift = power * 0.28 * k
+	local conn: RBXScriptConnection
+	conn = RunService.Heartbeat:Connect(function()
+		local e = os.clock() - t0
+		if e > 0.24 or b.Dead or not b.Root.Parent then
+			conn:Disconnect()
+			return
+		end
+		local v = b.Root.AssemblyLinearVelocity
+		local s = speed * (1 - e / 0.24)
+		b.Root.AssemblyLinearVelocity = Vector3.new(dir.X * s, if e < 0.05 then math.max(v.Y, lift) else v.Y, dir.Z * s)
+	end)
+end
+
+-- Al morir cae de verdad: las articulaciones se sueltan (rótulas con límite), el cuerpo choca con el suelo y
+-- vuelca empujado por el último golpe
+local function ragdoll(b: Beast, killer: Player?)
+	local hum = b.Humanoid
+	hum:Move(Vector3.zero)
+	hum.PlatformStand = true
+	pcall(function()
+		hum:ChangeState(Enum.HumanoidStateType.Physics)
+	end)
+	for _, d in b.Model:GetDescendants() do
+		if d:IsA("Motor6D") and d.Part0 and d.Part1 then
+			local p0, p1 = d.Part0 :: BasePart, d.Part1 :: BasePart
+			if d.Name == "Cuerpo" then
+				local w = Instance.new("WeldConstraint")
+				w.Part0 = p0
+				w.Part1 = p1
+				w.Parent = p1
+			else
+				local a0 = Instance.new("Attachment")
+				a0.CFrame = d.C0
+				a0.Parent = p0
+				local a1 = Instance.new("Attachment")
+				a1.CFrame = d.C1
+				a1.Parent = p1
+				local ball = Instance.new("BallSocketConstraint")
+				ball.Attachment0 = a0
+				ball.Attachment1 = a1
+				ball.LimitsEnabled = true
+				ball.UpperAngle = 65
+				ball.TwistLimitsEnabled = true
+				ball.TwistLowerAngle = -25
+				ball.TwistUpperAngle = 25
+				ball.Parent = p1
+				p1.Massless = false
+			end
+			d:Destroy()
+		end
+	end
+	b.Root.CanCollide = true
+	local hub = b.Model:FindFirstChild("Centro")
+	if hub and hub:IsA("BasePart") then
+		hub.CanCollide = true
+	end
+	local kr = killer and select(1, rootOf(killer))
+	local dir = if kr then b.Root.Position - kr.Position else -b.Root.CFrame.LookVector
+	dir = Vector3.new(dir.X, 0, dir.Z)
+	dir = if dir.Magnitude > 0.01 then dir.Unit else Vector3.new(0, 0, 1)
+	local m = b.Root.AssemblyMass
+	local k = heft(b)
+	pcall(function()
+		b.Root:ApplyImpulse((dir * 22 * k + Vector3.new(0, 14 * k, 0)) * m)
+		b.Root:ApplyAngularImpulse(Vector3.new(dir.Z, 0, -dir.X) * m * 9 * math.max(k, 0.4))
+	end)
+end
+BeastService._ragdoll = ragdoll
+
 local function die(b: Beast, killer: Player?)
 	if b.Dead then
 		return
@@ -858,16 +980,24 @@ local function die(b: Beast, killer: Player?)
 	respawnAt[b.Lair.Id] = respawnAt[b.Lair.Id] or {}
 	table.insert(respawnAt[b.Lair.Id], now() + (if b.Sp.Boss then Bestiary.BossRespawn else Bestiary.Respawn))
 	forget(b)
-	-- cae y se deshace en polvo (sin sangre)
-	b.Humanoid:Move(Vector3.zero)
-	b.Root.Anchored = true
-	dustBurst(b.Root.Position, b.Sp.Colors.Body, b.Sp.Boss == true)
-	for _, d in b.Model:GetDescendants() do
-		if d:IsA("BasePart") and d ~= b.Root then
-			TweenService:Create(d, TweenInfo.new(1.2), { Transparency = 1 }):Play()
-		end
+	-- cae de verdad (físicas), se queda un momento en el suelo y se deshace en polvo (sin sangre)
+	local okRag = pcall(ragdoll, b, killer)
+	if not okRag then
+		b.Humanoid:Move(Vector3.zero)
+		b.Root.Anchored = true
 	end
-	task.delay(1.4, function()
+	task.delay(1.8, function()
+		if not b.Model.Parent then
+			return
+		end
+		dustBurst(b.Root.Position, b.Sp.Colors.Body, b.Sp.Boss == true)
+		for _, d in b.Model:GetDescendants() do
+			if d:IsA("BasePart") and d ~= b.Root then
+				TweenService:Create(d, TweenInfo.new(1), { Transparency = 1 }):Play()
+			end
+		end
+	end)
+	task.delay(3, function()
 		if b.Model.Parent then
 			b.Model:Destroy()
 		end
@@ -946,6 +1076,12 @@ function BeastService.hit(attacker: Player?, model: Instance, amount: number, in
 		b.StunUntil = now() + BeastService.StunSeconds
 	end
 	setHp(b)
+	-- el golpe empuja (físicas): más con golpes fuertes, críticos y habilidades; las balas, casi nada
+	if b.Hp > 0 then
+		local ar = select(1, rootOf(attacker))
+		local power = if i.Heavy or crit then 40 elseif i.Skill then 32 elseif i.Melee then 22 else 7
+		pcall(BeastService.knock, b, if ar then ar.Position else nil, power)
+	end
 	-- el número de daño (solo lo ve quien pega: Controllers/DamagePops)
 	local pop = ReplicatedStorage:FindFirstChild("Remotes") and ReplicatedStorage.Remotes:FindFirstChild("Invasion")
 	if pop and pop:IsA("RemoteEvent") then

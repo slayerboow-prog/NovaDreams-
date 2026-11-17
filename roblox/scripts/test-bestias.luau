@@ -404,7 +404,7 @@ do
 	for _ in farm do
 		farmCount += 1
 	end
-	check(farmCount == 4 and farmOk and not farmCentral, ("los cuatro distritos de caza tienen guaridas de su nivel y el Distrito Central ninguna (%d distritos)"):format(farmCount))
+	check(farmCount == 4 and farmOk and not farmCentral, ("los cuatro distritos de caza tienen guaridas de su nivel y el Distrito Central ninguna (%d distritos: %d, %d, %d y %d guaridas)"):format(farmCount, farm.Farm_Oeste or 0, farm.Farm_Sur or 0, farm.Farm_Este or 0, farm.Farm_Universitario or 0))
 	local outerN = 0
 	for _, l in p.Lairs do
 		if VR.outside(l.X, l.Z) > 0 then
