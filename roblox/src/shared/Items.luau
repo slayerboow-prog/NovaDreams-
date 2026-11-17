@@ -36,8 +36,26 @@ local Format = require(script.Parent.Format)
 
 local Items = {}
 
-Items.Slots = 36 -- como en Minecraft: 27 de mochila + 9 de barra rápida
+-- (17-11-2026, el dueño: «se me queda corto el inventario»: mochila de MMO con páginas)
 Items.Hotbar = 9 -- casillas 1-9 = barra rápida (teclas 1-9)
+Items.PageCols = 9 -- casillas por fila de una página de la mochila
+Items.PageRows = 5
+Items.PageSize = Items.PageCols * Items.PageRows -- 45 por página
+Items.Pages = 4 -- páginas I, II, III y IV
+Items.Slots = Items.Hotbar + Items.PageSize * Items.Pages -- 9 + 180 = 189
+
+-- La primera casilla de una página de la mochila (1..Pages)
+function Items.pageStart(page: number): number
+	return Items.Hotbar + (page - 1) * Items.PageSize + 1
+end
+
+-- La página de una casilla de la mochila (nil: es de la barra rápida)
+function Items.pageOf(index: number): number?
+	if index <= Items.Hotbar then
+		return nil
+	end
+	return math.floor((index - Items.Hotbar - 1) / Items.PageSize) + 1
+end
 
 export type Item = {
 	Id: string,

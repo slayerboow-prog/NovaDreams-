@@ -4,7 +4,7 @@
 --     pulsar otra vez la misma (o clic derecho) la usa: comer, montarte en tu bici, ponerte las gafas…
 --     Al cambiar de casilla aparece el nombre del objeto encima, y se desvanece.
 --   * Tecla E (o el botón 🎒): se abre la mochila con la pantalla oscurecida, tu personaje girando,
---     27 casillas + la barra rápida. Clic para coger un objeto (se queda pegado al ratón) y clic en otra
+--     la mochila en 4 PÁGINAS de 45 casillas (pestañas I-IV, con lo ocupado de cada una) + la barra rápida. Clic para coger un objeto (se queda pegado al ratón) y clic en otra
 --     casilla para dejarlo o intercambiarlo. Clic derecho = usar. Q = tirar uno (comida y objetos).
 -- El servidor (InventoryService) guarda el orden y valida todo; aquí solo se dibuja y se pide.
 
@@ -107,7 +107,10 @@ type Entry = { i: string, n: number }
 
 local slots: { Entry? } = {} -- lo que dice el servidor (1-36)
 local hotbarViews: { SlotView } = {}
-local bagViews: { [number]: SlotView } = {} -- casillas de la ventana (1-36)
+local bagViews: { [number]: SlotView } = {} -- casillas de la ventana (todas: la barra rápida y las 4 páginas)
+local page = 1 -- la página de la mochila que se ve (Items.Pages)
+local pageFrames: { Frame } = {}
+local pageTabs: { TextButton } = {}
 local selected = 1
 local held: number? = nil -- casilla cogida con el ratón
 local focus: number? = nil -- casilla de la que se ven los detalles
@@ -607,10 +610,30 @@ local function refreshDetails()
 	dropButton.Visible = item.Kind == "Food" or item.Kind == "Thing"
 end
 
+local function refreshTabs()
+	for p, tab in pageTabs do
+		local used = 0
+		local first = Items.pageStart(p)
+		for i = first, first + Items.PageSize - 1 do
+			if slots[i] then
+				used += 1
+			end
+		end
+		local on = p == page
+		tab.BackgroundColor3 = if on then Color3.fromRGB(255, 196, 60) else Color3.fromRGB(30, 46, 78)
+		tab.TextColor3 = if on then Color3.fromRGB(30, 22, 10) else Color3.fromRGB(235, 240, 250)
+		tab.Text = ("%s  ·  %d/%d"):format(({ "I", "II", "III", "IV", "V", "VI" })[p] or tostring(p), used, Items.PageSize)
+	end
+	for p, f in pageFrames do
+		f.Visible = p == page
+	end
+end
+
 local function refreshWindow()
 	for index, view in bagViews do
 		paint(view, index)
 	end
+	refreshTabs()
 	local item = itemAt(held)
 	ghost.Text = if item then item.Icon else ""
 	-- (en el móvil el icono no sigue al dedo: se quedaba donde tocaste, encima de «Guardar» / «Usar»;
@@ -879,11 +902,32 @@ local function buildWindow()
 		end
 	end)
 
-	-- Mochila (10-36) y, separada, la barra rápida (1-9), como en Minecraft
-	label("Objetos", window, 3).TextColor3 = Color3.fromRGB(165, 178, 200)
-	row(window, 10, 18, 4)
-	row(window, 19, 27, 5)
-	row(window, 28, 36, 6)
+	-- Mochila en PÁGINAS (I-IV, de Items.PageSize casillas cada una) y, separada, la barra rápida (1-9).
+	-- Con un objeto en la mano, tocar otra pestaña cambia de página y lo puedes dejar allí.
+	local tabs = create("Frame", { Size = UDim2.new(1, 0, 0, 30), BackgroundTransparency = 1, LayoutOrder = 3, ZIndex = 11, Parent = window })
+	create("UIListLayout", { FillDirection = Enum.FillDirection.Horizontal, Padding = UDim.new(0, 6), SortOrder = Enum.SortOrder.LayoutOrder, Parent = tabs })
+	local tabWidth = math.floor((rowWidth - (Items.Pages - 1) * 6) / Items.Pages)
+	for p = 1, Items.Pages do
+		local tab = mcButton("", tabs, p)
+		tab.Name = "Pagina" .. p
+		tab.Size = UDim2.fromOffset(tabWidth, 30)
+		tab.TextSize = 15
+		tab.Activated:Connect(function()
+			InventoryUI.setPage(p)
+		end)
+		pageTabs[p] = tab
+	end
+	local pages = create("Frame", { Size = UDim2.new(1, 0, 0, Items.PageRows * BAG_SLOT + (Items.PageRows - 1) * 6), BackgroundTransparency = 1, LayoutOrder = 4, ZIndex = 11, Parent = window })
+	for p = 1, Items.Pages do
+		local f = create("Frame", { Name = "Pagina" .. p, Size = UDim2.fromScale(1, 1), BackgroundTransparency = 1, Visible = p == 1, ZIndex = 11, Parent = pages })
+		create("UIListLayout", { Padding = UDim.new(0, 6), SortOrder = Enum.SortOrder.LayoutOrder, Parent = f })
+		local first = Items.pageStart(p)
+		for r = 1, Items.PageRows do
+			local from = first + (r - 1) * Items.PageCols
+			row(f, from, from + Items.PageCols - 1, r)
+		end
+		pageFrames[p] = f
+	end
 	create("Frame", { Size = UDim2.new(1, 0, 0, 4), BackgroundTransparency = 1, LayoutOrder = 7, Parent = window })
 	-- Botón grande para volver al juego (en móvil no hay tecla E ni Escape)
 	local back = mcButton("⬅  Volver al juego", window, 100)
@@ -1031,6 +1075,14 @@ end
 -- Abrir y cerrar
 ---------------------------------------------------------------------
 
+-- Ver otra página de la mochila (las pestañas I-IV; también para las pruebas)
+function InventoryUI.setPage(p: number)
+	page = math.clamp(math.floor(p), 1, Items.Pages)
+	if isOpen then
+		refreshWindow()
+	end
+end
+
 function InventoryUI.open()
 	if isOpen or player:GetAttribute("LifeStage") == "Bebe" then
 		return
@@ -1043,8 +1095,17 @@ function InventoryUI.open()
 	buildPreview()
 	overlay.Visible = true
 	SceneGuis.setEnabled(cursorGui, true)
-	windowScale.Scale = 0.92
-	TweenService:Create(windowScale, TweenInfo.new(0.12, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), { Scale = 1 }):Play()
+	-- (la mochila con páginas es más alta: en pantallas bajas, como el móvil tumbado, se encoge hasta caber)
+	local fit = 1
+	local camera = workspace.CurrentCamera
+	local abs = window.AbsoluteSize
+	local now = math.max(windowScale.Scale, 0.01)
+	if camera and abs.Y > 0 then
+		local view = camera.ViewportSize
+		fit = math.clamp(math.min((view.Y - 24) / (abs.Y / now), (view.X - 16) / (abs.X / now)), 0.45, 1)
+	end
+	windowScale.Scale = fit * 0.92
+	TweenService:Create(windowScale, TweenInfo.new(0.12, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), { Scale = fit }):Play()
 	refreshAll()
 end
 

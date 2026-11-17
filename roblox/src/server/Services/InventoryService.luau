@@ -1,12 +1,13 @@
 -- InventoryService: la mochila del jugador (inventario al estilo Minecraft).
---   * 36 casillas: 1-9 son la barra rápida y 10-36 la mochila. El orden lo elige el jugador y se guarda.
+--   * Items.Slots casillas: 1-9 son la barra rápida y el resto la mochila en 4 páginas de 45 (17-11-2026: antes,
+--     36). El orden lo elige el jugador y se guarda.
 --   * Reúne comida y objetos de las tiendas, vehículos, premios, carnets y títulos (Items.luau).
 --   * El cliente solo pide: mover una casilla, usar (comer) o tirar uno. El servidor lo valida todo.
 --   * Los vehículos y la ropa se usan con sus propios sistemas (VehicleService, ArcadeService);
 --     aquí solo se muestran en su casilla.
 --
 -- Datos guardados: data.Items = { Pan = 3 }, data.Slots = { ["1"] = "Pan", ["2"] = "Vehiculo_Bici" }
--- Para el cliente: atributo "Inventory" (JSON con las 36 casillas).
+-- Para el cliente: atributo "Inventory" (JSON con todas las casillas).
 
 local HttpService = game:GetService("HttpService")
 local Players = game:GetService("Players")
