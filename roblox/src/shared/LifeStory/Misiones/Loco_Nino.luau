@@ -30,102 +30,93 @@ return {
 		Kind = "Side",
 		Canon = true, -- Saga de la Grieta, misión 1 (docs/historia/13-saga-de-la-grieta.md): siempre en el mapa
 		Title = "El vecino del garaje",
-		Description = "¡BUM! Del garaje del vecino sale humo verde. Y una voz: «¡NADIE TOQUE NADA QUE BRILLE!»",
+		Description = "Kael te envía al garaje de Cosme, un científico expulsado de la Academia por decir que la Caída no fue un accidente. Algo acaba de reventar dentro.",
 		Type = "Saga de la Grieta · Acto I (1/6)",
 		Duration = { 12, 18 },
 		Npcs = { "Cosme", "Bigotes" },
 		Offer = { Place = "GarajeCosme" },
-		OfferKey = "¡BUM! Humo verde en el garaje del vecino…",
+		OfferKey = "Humo en el garaje de Cosme. Kael quiere que hables con él.",
 		-- (desde niño y sin límite: si no la hiciste de pequeño, la saga sigue esperándote de mayor)
 		Requires = { Stage = { Min = "Nino" }, NotFlags = { "CadeteAcademia" } }, -- (los cadetes de la Academia: al ser guerreros de primera)
-		Moment = "Conociste a Cosme, el inventor del garaje",
+		Moment = "Conociste a Cosme, el investigador de la Grieta",
 		Memory = "ConociCosme",
 		Rewards = { Items = { PistolaBurbujas = 1 }, Flags = { "AmigoDeCosme", "GrietaVista" } },
 		Props = {
-			Tornillo = { Kind = "Cristal", Name = "El tornillo cuántico", Prompt = "Recoger", Place = "FuenteParque", Offset = V(3, 0, 2), Dialogue = "Tornillo", Once = true },
-			Bobina = { Kind = "Maquina", Name = "Una bobina… dentro de un helado", Prompt = "Sacarla del helado", Place = "Heladeria", Offset = V(3, 0, 3), Color = Color3.fromRGB(250, 180, 220), Dialogue = "Bobina", Once = true },
-			Gato = { Kind = "Gato", Name = "Bigotes (con un chip en el collar)", Prompt = "Coger el chip", Place = "JuegosColegio", Offset = V(2, 0, 2), Dialogue = "Chip", Once = true },
-			Microondas = { Kind = "Maquina", Name = "El microondas temporal", Prompt = false, Place = "GarajeCosme", Offset = V(-3, 0, 0) },
+			Tornillo = { Kind = "Cristal", Name = "El núcleo del detector", Prompt = "Recoger", Place = "FuenteParque", Offset = V(3, 0, 2), Dialogue = "Tornillo", Once = true },
+			Bobina = { Kind = "Maquina", Name = "La bobina de inducción", Prompt = "Pedírsela", Place = "Heladeria", Offset = V(3, 0, 3), Color = Color3.fromRGB(150, 160, 180), Dialogue = "Bobina", Once = true },
+			Gato = { Kind = "Gato", Name = "Un gato de ojos extraños (con el chip al cuello)", Prompt = "Coger el chip", Place = "JuegosColegio", Offset = V(2, 0, 2), Dialogue = "Chip", Once = true },
+			Microondas = { Kind = "Maquina", Name = "El detector de resonancia", Prompt = false, Place = "GarajeCosme", Offset = V(-3, 0, 0) },
 		},
 		Steps = {
-			{ Type = "Talk", Npc = "Cosme", Dialogue = "Presentacion", Text = "Habla con el vecino (lleno de hollín)",
+			{ Type = "Talk", Npc = "Cosme", Dialogue = "Presentacion", Text = "Habla con Cosme en su garaje",
 				Actors = { COSME_GARAJE }, Props = { "Microondas" } },
-			{ Type = "Group", Text = "Recupera las 3 piezas del microondas temporal",
+			{ Type = "Group", Text = "Recupera las 3 piezas del detector de Cosme",
 				Steps = {
-					{ Type = "Use", Prop = "Tornillo", Text = "El tornillo cuántico (cerca de la fuente del parque)" },
-					{ Type = "Use", Prop = "Bobina", Text = "La bobina de gominola (en la heladería)" },
-					{ Type = "Use", Prop = "Gato", Text = "El chip (lo tiene el gato del cole)" },
+					{ Type = "Use", Prop = "Tornillo", Text = "El núcleo (cerca de la fuente del parque)" },
+					{ Type = "Use", Prop = "Bobina", Text = "La bobina (la tiene un chico en la heladería)" },
+					{ Type = "Use", Prop = "Gato", Text = "El chip (lo lleva un gato junto a la Academia)" },
 				} },
 			{ Type = "Reach", Place = "GarajeCosme", Text = "Lleva las piezas al garaje de Cosme",
 				Actors = { COSME_GARAJE }, Props = { "Microondas" } },
 			-- (v130: al acabar, la escena en la que se abre la Grieta —Happenings/Direccion, Loco_N1_Grieta—:
 			-- el momento en que empieza la saga no se veía)
-			{ Type = "Scene", Dialogue = "Prueba", Actors = { { Npc = "Cosme", Place = "GarajeCosme", Offset = V(0, 0, 3), Mode = "Cheer" } }, Props = { "Microondas" }, Effects = { Scene = "Loco_N1_Grieta" } },
+			{ Type = "Scene", Dialogue = "Prueba", Actors = { { Npc = "Cosme", Place = "GarajeCosme", Offset = V(0, 0, 3) } }, Props = { "Microondas" }, Effects = { Scene = "Loco_N1_Grieta" } },
 		},
 		Dialogues = {
 			Presentacion = { Lines = {
-				{ S = "Cosme", T = "¡COF! ¡Cof! …Ah. Una criatura. Hola, criatura.", Shot = "Medio:Cosme", A = "Surprised" },
-				{ S = "Cosme", T = "No te asustes: el humo verde es normal. El humo morado, no. El humo morado, corre.", G = "Point" },
-				{ S = "Cosme", T = "Soy Cosme. Inventor. Genio. Vecino. En ese orden.", Beat = "Sonrie", To = "Yo" },
+				{ S = "Cosme", T = "Tú eres la persona de Kael. Llegas tarde: hace diez minutos todavía tenía un detector.", Shot = "Medio:Cosme" },
+				{ S = "Cosme", T = "Soy Cosme. Investigaba la Grieta para la Academia hasta que dije que la Caída no fue un accidente.", To = "Yo" },
 				{ S = "Yo", T = "¿Qué ha explotado?" },
-				{ S = "Cosme", T = "Mi microondas temporal. Calienta la comida… en el pasado. Así está caliente desde antes de tener hambre. Brillante. Revolucionario. Ha explotado.", A = "Shrug" },
-				{ S = "Cosme", T = "Y han salido volando tres piezas: el tornillo cuántico, la bobina de gominola y el chip de mi abuela." },
-				{ S = "Cosme", T = "No preguntes por el chip de mi abuela.", Pause = 0.5, Beat = "Aparta" },
+				{ S = "Cosme", T = "Un detector de resonancia. Esta noche la lectura se ha disparado y no lo ha aguantado." },
+				{ S = "Cosme", T = "Han salido despedidas tres piezas: el núcleo, la bobina y un chip que saqué de un laboratorio del Sur." },
 				{ Ask = "¿Qué le dices?", Options = {
-					{ T = "«¡Te ayudo a buscarlas!»", Effects = { Rel = { Cosme = 5 }, Traits = { Valentia = 1 } }, Then = {
-						{ S = "Cosme", T = "¿Ayudar? ¿Gratis? Qué concepto tan raro. Me gusta. Tú vales para esto." },
+					{ T = "«Te ayudo a recuperarlas.»", Effects = { Rel = { Cosme = 5 }, Traits = { Valentia = 1 } }, Then = {
+						{ S = "Cosme", T = "Kael dijo que actuabas antes de preguntar. Toma el rastreador: pita cerca de lo que ha tocado la Grieta." },
 					} },
-					{ T = "«¿El chip de tu abuela?»", Effects = { Rel = { Cosme = 3 }, Traits = { Curiosidad = 1 } }, Then = {
-						{ S = "Cosme", T = "Mi abuela era una calculadora. Larga historia. Muy triste. Muchos decimales." },
+					{ T = "«¿De quién era ese laboratorio?»", Effects = { Rel = { Cosme = 3 }, Traits = { Curiosidad = 1 } }, Then = {
+						{ S = "Cosme", T = "De mi hermana. Midió la Grieta antes que nadie. La noche de la Caída estaba allí. No la encontraron." },
 					} },
 				} },
-				{ S = "Cosme", T = "Una cosa, criatura: si alguna pieza te habla, no le hagas caso. Las piezas mienten." },
 			} },
 			Tornillo = { Lines = {
-				{ S = "Narrador", T = "Junto a la fuente hay un tornillo que brilla. Al cogerlo, durante un segundo, ves el parque en blanco y negro, lleno de dinosaurios." },
-				{ S = "Narrador", T = "Parpadeas. Ya no. Mejor no pensarlo mucho." },
+				{ S = "Narrador", T = "Al tocar el núcleo, el parque se apaga: árboles secos, farolas rotas, olor a quemado. Es el Sur la noche de la Caída." },
+				{ S = "Narrador", T = "Parpadeas. El parque vuelve a estar ahí." },
 			} },
 			Bobina = { Lines = {
-				{ S = "Narrador", T = "Un niño se está comiendo un helado de fresa con una bobina de metal dentro. Dice que sabe «a martes»." },
+				{ S = "Narrador", T = "Un chico flaco del Sur tiene la bobina. Vende lo que encuentra para comer: sus padres no salieron la noche de la Caída." },
 				{ Ask = "¿Cómo la consigues?", Options = {
-					{ T = "Le cambias la bobina por tu merienda", Effects = { Traits = { Empatia = 1 } }, Then = {
-						{ S = "Narrador", T = "Trato hecho. El niño te mira muy serio y dice: «El martes vuelve». Vale." },
+					{ T = "Le das tu comida de hoy a cambio", Effects = { Traits = { Empatia = 1 } }, Then = {
+						{ S = "Narrador", T = "Te la da sin decir nada. Antes de irse: «Si vais al Sur, mirad en la calle del molino. Era la mía»." },
 					} },
-					{ T = "Le dices que es un helado del futuro y que ya ha caducado", Effects = { Traits = { Humor = 1 } }, Then = {
-						{ S = "Narrador", T = "Te la da con cara de asco. Técnicamente no mentías: viene del pasado. Casi." },
+					{ T = "Le avisas de que viene de la Grieta y es peligrosa", Effects = { Traits = { Responsabilidad = 1 } }, Then = {
+						{ S = "Narrador", T = "«Todo es peligroso», dice. Te la cambia por lo que llevas encima." },
 					} },
 				} },
 			} },
 			Chip = { Lines = {
-				{ S = "Narrador", T = "Bigotes, el gato del colegio, lleva el chip enganchado al collar. Te mira. Tú le miras. Él suspira." },
-				{ S = "Bigotes", T = "Cría humana. Coge tu chip y vete. Y no le digas a nadie que puedo hablar. Tengo una reputación." },
-				{ S = "Yo", T = "¡¿El gato habla?!" },
-				{ S = "Bigotes", T = "Todos los gatos hablamos. Solo que no con vosotros.", A = "ArmsCrossed" },
-				{ S = "Bigotes", T = "…Este chip me ha soltado la lengua. Ya me callo. Miau. Ya está. Miau.", Beat = "Aparta" },
+				{ S = "Narrador", T = "El gato tiene los ojos de un color que no existe. El chip cuelga de un cordel alrededor de su cuello." },
+				{ S = "Bigotes", T = "No grites. Nadie más puede oírme. Hablo dentro de tu cabeza." },
+				{ S = "Bigotes", T = "Crucé la Grieta hace dos años, como las bestias. Yo huía de lo mismo que las empujó a ellas." },
+				{ S = "Bigotes", T = "Llévale esto a Cosme. Y no digas que hablo. A los que lo dijeron, los encerraron." },
 			}, Effects = { Flags = { "BigotesHabla" } } },
 			Prueba = { Lines = {
-				{ S = "Cosme", T = "¡Tornillo, bobina, chip! ¡Y… ya! Vamos a calentar este bocadillo de chorizo al martes pasado.", Shot = "DosPlanos:Cosme,Yo", G = "Cheer" },
-				{ S = "Narrador", T = "El microondas zumba. Brilla. Hace «ding». Dentro hay un bocadillo… un poco mordido.", Pause = 0.8 },
-				{ S = "Cosme", T = "¿Quién ha mordido mi bocadillo en el pasado?", A = "Surprised", Shot = "PrimerPlano:Cosme" },
-				{ S = "Cosme", T = "…Fui yo. El martes pasado. Ya decía yo que el martes tenía hambre.", Beat = "Piensa" },
-				{ S = "Cosme", T = "Toma, criatura. Por las piezas. Iba a ser un desintegrador de materia, pero solo hace burbujas.", A = "Point", To = "Yo" },
-				{ S = "Cosme", T = "Burbujas cuánticas. Existen en tres dimensiones a la vez.", A = "Happy" },
+				{ S = "Cosme", T = "Núcleo, bobina, chip. Funciona.", Shot = "DosPlanos:Cosme,Yo" },
+				{ S = "Narrador", T = "La pantalla se llena de líneas. Todas apuntan al mismo sitio: el cielo sobre el Distrito Central.", Pause = 0.8 },
+				{ S = "Cosme", T = "La Grieta no se cerró después de la Caída. Solo se calmó. Y se está despertando.", Shot = "PrimerPlano:Cosme" },
+				{ S = "Cosme", T = "Toma. Un prototipo: lanza esferas de campo inestable. Lo que viene de la Grieta no las deja pasar.", To = "Yo" },
 				{ S = "Narrador", T = "Recibes la 🔵 Pistola de burbujas cuánticas (úsala desde tu mochila)." },
-				{ Ask = "Cosme te mira muy serio: «¿Se lo vas a contar a tu familia?»", Options = {
+				{ Ask = "«Si la Academia sabe que trabajas conmigo, te quitarán el rango.»", Options = {
 					-- (con la respuesta, la Grieta asoma en el cielo: escena ligera, etapa 2 «Rasguno»)
-					{ T = "«Será nuestro secreto de vecinos.»", Effects = { Flags = { "SecretoCosme", "GrietaVista" }, Rel = { Cosme = 5 }, Scene = "Grieta_Rasguno" }, Then = {
-						{ S = "Cosme", T = "Buena criatura. Pásate cuando quieras. Pero llama antes. Tres veces. Luego dos. Luego tararea algo." },
+					{ T = "«Queda entre nosotros.»", Effects = { Flags = { "SecretoCosme", "GrietaVista" }, Rel = { Cosme = 5 }, Scene = "Grieta_Rasguno" }, Then = {
+						{ S = "Cosme", T = "Gracias. Hace mucho que nadie confía en mí." },
 					} },
-					{ T = "«Se lo voy a contar. Todo.»", Effects = { Traits = { Responsabilidad = 1 }, Flags = { "GrietaVista" }, Scene = "Grieta_Rasguno" }, Then = {
-						{ S = "Cosme", T = "Cuéntaselo. No te va a creer nadie. Esa es la ventaja de ser un genio: la verdad suena a mentira." },
-						{ S = "Narrador", T = "Esa noche se lo cuentas a {familia}. Te dice que qué imaginación. Y te pone más puré." },
+					{ T = "«Informaré a la Academia. Tienen que saberlo.»", Effects = { Traits = { Responsabilidad = 1 }, Flags = { "GrietaVista" }, Scene = "Grieta_Rasguno" }, Then = {
+						{ S = "Cosme", T = "Hazlo. Ya lo intenté yo. No te creerán, y eso es lo que más me preocupa." },
 					} },
 				} },
-				-- Descubrimiento: plano general (el cielo), su cara, la pregunta, el silencio
-				{ S = "Narrador", T = "Al salir del garaje, Cosme se queda mirando el cielo. Encima de Los Pinos hay una raja de luz, finísima, como un rasguño en el aire.", Shot = "General", Pause = 0.8 },
-				{ S = "Cosme", T = "Criatura… ¿eso estaba ahí antes?", Shot = "PrimerPlano:Cosme", A = "Surprised", Beat = "Piensa" },
-				{ S = "Cosme", T = "…No. No estaba.", Pause = 1, A = "Nervous" },
-				{ S = "Cosme", T = "Vete a casa. Mañana hablamos. Mañana… hablamos.", To = "Yo", Beat = "Baja" },
+				{ S = "Narrador", T = "Al salir, sobre los tejados del centro hay una línea fina de luz, como un corte en el aire.", Shot = "General", Pause = 0.8 },
+				{ S = "Cosme", T = "El núcleo brilla en tu mano. Con la de nadie más lo ha hecho. ¿Dónde estabas la noche de la Caída?", Shot = "PrimerPlano:Cosme" },
+				{ S = "Cosme", T = "No contestes ahora. Ve a descansar. Mañana empezamos de verdad.", To = "Yo" },
 			} },
 		},
 	},
