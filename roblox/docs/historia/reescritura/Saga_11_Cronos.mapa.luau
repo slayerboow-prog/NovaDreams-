@@ -8,6 +8,8 @@ return {
 		["Agente Cronos"] = "CazadorTiempo",
 		Agente = "AgenteGris2",
 		["Agente gris"] = "AgenteGris2",
+		["AGENTE GRIS"] = "AgenteGris2",
+		FUNCIONARIA = "Funcionaria",
 		["Otro NPC señala"] = "@Vecino",
 	},
 	Variables = {

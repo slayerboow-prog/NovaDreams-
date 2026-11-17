@@ -352,12 +352,12 @@ return {
 		Kind = "Side",
 		Canon = true,
 		Title = "Cronos cambia de bando",
-		Description = "El agente Cronos, el de la Aduana del Tiempo, te busca. Esta vez no trae una multa. Trae un problema: alguien falsifica formularios.",
+		Description = "El agente Cronos te busca. Alguien presenta en la Aduana permisos de Fusión falsos con su sello. Si se aprueban, nadie podrá impedirla.",
 		Type = "Saga de la Grieta · Acto II (5/6)",
 		Duration = { 20, 30 },
 		Npcs = { "CazadorTiempo", "AgenteGris2", "Funcionaria" },
-		Offer = { Place = "PatioInstituto" },
-		OfferKey = "Un señor con traje y cuarenta formularios te espera en el patio del instituto. Te suena",
+		Offer = { Place = "Patio" },
+		OfferKey = "El agente Cronos te espera en el patio de la Academia",
 		Requires = after("Saga_10_Fiesta"),
 		Moment = "Cronos se unió a tu bando",
 		Memory = "CronosAliado",
@@ -367,11 +367,11 @@ return {
 		},
 		Steps = {
 			{ Type = "Talk", Npc = "CazadorTiempo", Dialogue = "Cronos", Text = "Habla con el agente Cronos",
-				Actors = { { Npc = "CazadorTiempo", Place = "PatioInstituto", Offset = V(0, 0, 4) } } },
+				Actors = { { Npc = "CazadorTiempo", Place = "Patio", Offset = V(0, 0, 4) } } },
 			{ Type = "Talk", Npc = "Funcionaria", Dialogue = "Ventanilla", Text = "Pregunta en Correos quién entrega los formularios",
 				Actors = { { Npc = "Funcionaria", Place = "Correos", Offset = V(0, 0, 3) } } },
 			{ Type = "Use", Prop = "Formularios", Text = "Revisa los formularios del Consorcio", Actors = { { Npc = "Funcionaria", Place = "Correos", Offset = V(0, 0, 3) } } },
-			{ Type = "Chase", Npc = "AgenteGris2", Catch = 6, Text = "¡La agente gris que los entrega está ahí mismo! ¡Atrápala!",
+			{ Type = "Chase", Npc = "AgenteGris2", Catch = 6, Text = "La agente gris que los entrega está ahí mismo: atrápala",
 				Actors = {
 					{ Npc = "AgenteGris2", Place = "Correos", Offset = V(6, 0, 6), Mode = "Flee", Speed = 14, Prompt = false,
 						Route = { "Correos", "PlazaCentro", "CafeteriaCentral", "Parque" } },
@@ -404,10 +404,10 @@ return {
 				{ S = "CazadorTiempo", T = "Falsificación de formulario temporal. Treinta años de papeleo en la Aduana. Sin sello propio." },
 				{ Ask = "Cronos te mira: «¿Qué opinas tú?»", Options = {
 					{ T = "«Que ayude a pararlo todo. Una segunda oportunidad.»", Effects = { Flags = { "CronosAliado", "GrisArrepentida" }, Traits = { Empatia = 1 } }, Then = {
-						{ S = "AgenteGris2", T = "¿Yo? ¿Ayudar? …Nunca nadie me había ofrecido algo sin letra pequeña. Acepto. De verdad. Sin sonreír." },
+						{ S = "AgenteGris2", T = "¿Ayudar? …Nadie me había ofrecido nada sin condiciones. Acepto." },
 					} },
 					{ T = "«Que cumpla su castigo. Las normas son las normas.»", Effects = { Flags = { "CronosAliado" }, Traits = { Responsabilidad = 1 } }, Then = {
-						{ S = "CazadorTiempo", T = "Las normas son las normas. Lo diré en el tribunal. Y lo pondré en un póster." },
+						{ S = "CazadorTiempo", T = "Las normas son las normas. Responderá ante la Aduana." },
 					} },
 				} },
 				{ S = "CazadorTiempo", T = "Durante cuatrocientos años he perseguido a quien se salta el tiempo.", Beat = "Respira", Shot = "Medio:CazadorTiempo" },

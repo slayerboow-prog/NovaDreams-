@@ -24,45 +24,33 @@ _Ninguno._
 
 ## Aplicado
 
-- PASO 1 → paso 1 del juego (Talk «Cronos»): conversación «Cronos» con 12 frases nuevas
-- PASO 2 → paso 2 del juego (Talk «Ventanilla»): conversación «Ventanilla» con 13 frases nuevas
-- PASO 3 → paso 3 del juego (Use): lo que pasa al usarlo va en la conversación del objeto «Formularios» (3 frases)
-- PASO 4 → paso 4 del juego (Chase): 2 frases al empezar el paso (escena ligera «Saga_11_G4_Entra», la lanza el paso 3 al cumplirse; el jugador no pierde el control)
-- PASO 5 → paso 5 del juego (Scene «Pillada»): conversación «Pillada» con 14 frases nuevas
+- PASO 1 → paso 1 del juego (Talk «Cronos»): conversación «Cronos» con 5 frases nuevas
+- PASO 2 → paso 2 del juego (Talk «Ventanilla»): conversación «Ventanilla» con 3 frases nuevas
+- PASO 3 → paso 3 del juego (Use): lo que pasa al usarlo va en la conversación del objeto «Formularios» (1 frases)
+- PASO 4 → paso 4 del juego (Chase): 1 frases al empezar el paso (escena ligera «Saga_11_G4_Entra», la lanza el paso 3 al cumplirse; el jugador no pierde el control)
+- PASO 5 → paso 5 del juego (Scene «Pillada»): conversación «Pillada» con 6 frases nuevas
 
 ## Adaptado (y por qué)
 
 - PASO 1: el guion lo escribe como [] y en el juego es conversación (Talk): se conserva el tipo del juego y su mecánica
-- frase quitada (es una acotación, no se dice): «(Cuando finalmente llegan a la ventanilla.)»
 - PASO 2: el guion lo escribe como [] y en el juego es conversación (Talk): se conserva el tipo del juego y su mecánica
 - PASO 5: el guion lo escribe como [] y en el juego es conversación (Scene): se conserva el tipo del juego y su mecánica
 - PASO 5: la conversación del juego tenía 1 preguntas y el guion 0: las que faltan se conservan tal cual al final (guardan decisiones que usa la historia)
-- PASO 5: «descubrio_permisos_falsos = true» no la lee ninguna misión: no se crea
-- PASO 5: «descubrio_sello_falso = true» no la lee ninguna misión: no se crea
-- PASO 5: «consorcio_intenta_legalizar_fusion = true» no la lee ninguna misión: no se crea
-- PASO 5: «reloj_cronos_obtenido = true» no la lee ninguna misión: no se crea
-- PASO 5: «cronos_confia_responsabilidad = true» no la lee ninguna misión: no se crea
 
 ## Género ({o/a}) corregido en frases dirigidas al jugador
 
-- PASO 1 (línea 105) · CazadorTiempo: «Bueno… ya no tan pequeño.» → «Bueno… ya no tan pequeñ{o/a}.»
-- PASO 2 (línea 333) · Funcionaria: «Hijo/Hija…» → «Hij{o/a}…»
+_Ninguna corrección._
+
 
 ## Avisos
 
-- PASO 5 (línea 1092): «Tiene» no está en el reparto del juego: sus frases no se aplican (si es alguien, ponlo en Hablantes del mapa)
+_Ninguno._
+
 
 ## Notas del guion sin equivalente directo (bloques de dirección, minijuegos, memoria…)
 
-- PASO 1 · OBJETIVO: Habla con el extraño hombre del traje.
-- PASO 2 · OBJETIVO: Habla con la funcionaria de la ventanilla.
-- PASO 3 · OBJETIVO: Revisa los formularios del Consorcio.
-- PASO 3 · FLAG: 
-- PASO 4 · OBJETIVO: Atrapa al agente de MegaVerso.
-- PASO 5 · OPCIÓN A — DARLE UNA SEGUNDA OPORTUNIDAD: 
-- PASO 5 · OPCIÓN B — CUMPLIR LAS NORMAS: 
-- PASO 5 · DIRECCIÓN CINEMATOGRÁFICA: 
-- PASO 5 · Al terminar:: 
+_Ninguna._
+
 
 ## Cómo se traduce el formato
 
