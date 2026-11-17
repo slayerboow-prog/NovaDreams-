@@ -9,7 +9,7 @@ Identificador original: Saga_13_SinCosme
 
 FUNCIÓN NARRATIVA
 
-Tono: apto desde 10 años, nada infantil (17-11-2026). Meses sin Cosme. Pip mantiene el garaje como si fuera a
+Tono: público de 17 años en adelante, nada infantil (17-11-2026). Meses sin Cosme. Pip mantiene el garaje como si fuera a
 volver. El cuaderno de Cosme deja instrucciones por si le pasaba algo. Se forma el equipo de rescate.
 
 ⸻

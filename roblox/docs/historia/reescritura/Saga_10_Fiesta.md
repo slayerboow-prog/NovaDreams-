@@ -9,7 +9,7 @@ Identificador original: Saga_10_Fiesta
 
 FUNCIÓN NARRATIVA
 
-Tono: apto desde 10 años, nada infantil (17-11-2026). El Consorcio monta una feria en la plaza: ofrece plazas
+Tono: público de 17 años en adelante, nada infantil (17-11-2026). El Consorcio monta una feria en la plaza: ofrece plazas
 en «naves de evacuación» a un mundo seguro. La gente, con miedo desde la Caída, se apunta. En realidad recogen
 nombres para la Fusión. Sorel, Nico y Brenn te ayudan a sabotearlo.
 

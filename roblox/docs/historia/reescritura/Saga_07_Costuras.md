@@ -9,7 +9,7 @@ Identificador original: Saga_07_Costuras
 
 FUNCIÓN NARRATIVA
 
-Tono: apto desde 10 años, nada infantil (17-11-2026). Meses después de cerrar la Grieta, la costura empieza a
+Tono: público de 17 años en adelante, nada infantil (17-11-2026). Meses después de cerrar la Grieta, la costura empieza a
 ceder. El Consorcio prepara su llegada a Valmar con una oficina y una campaña que solo ve quien ha tocado la
 Grieta. Cosme te nombra colaborador oficial de su laboratorio.
 

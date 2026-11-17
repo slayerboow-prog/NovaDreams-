@@ -9,7 +9,7 @@ Identificador original: Saga_12_Graduacion
 
 FUNCIÓN NARRATIVA
 
-Tono: apto desde 10 años, nada infantil (17-11-2026). La ceremonia de rango de la Academia, el día que marcaba
+Tono: público de 17 años en adelante, nada infantil (17-11-2026). La ceremonia de rango de la Academia, el día que marcaba
 la cuenta atrás. La costura cede, Cósimo baja en persona y se lleva a Cosme. Fin del Acto II.
 
 ⸻

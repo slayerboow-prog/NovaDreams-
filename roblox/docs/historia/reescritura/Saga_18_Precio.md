@@ -9,7 +9,7 @@ Identificador original: Saga_18_Precio
 
 FUNCIÓN NARRATIVA
 
-Tono: apto desde 10 años, nada infantil (17-11-2026). Cósimo anuncia la Gran Fusión en todas las pantallas de
+Tono: público de 17 años en adelante, nada infantil (17-11-2026). Cósimo anuncia la Gran Fusión en todas las pantallas de
 Valmar. Cosme, sin memoria, recuerda una sola cosa al final: tu nombre. Fin del Acto III.
 
 ⸻

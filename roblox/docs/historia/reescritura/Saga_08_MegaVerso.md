@@ -9,7 +9,7 @@ Identificador original: Saga_08_MegaVerso
 
 FUNCIÓN NARRATIVA
 
-Tono: apto desde 10 años, nada infantil (17-11-2026). Infiltración en la oficina del Consorcio. El jugador
+Tono: público de 17 años en adelante, nada infantil (17-11-2026). Infiltración en la oficina del Consorcio. El jugador
 descubre el Proyecto Fusión (unir a la fuerza la Valmar de aquí con la de la dimensión 66-B) y que el Ancla
 es él.
 

@@ -9,7 +9,7 @@ Identificador original: Saga_15_Reestreno
 
 FUNCIÓN NARRATIVA
 
-Tono: apto desde 10 años, nada infantil (17-11-2026). Ñoz es una capitana contrabandista que vende información:
+Tono: público de 17 años en adelante, nada infantil (17-11-2026). Ñoz es una capitana contrabandista que vende información:
 su nave tiene sensores que espían entre dimensiones. Tiene la imagen del laboratorio de Cósimo, pero su precio
 es usar la resonancia del Ancla para afinar sus sensores. Se ve a Cosme vivo, retenido en una cápsula.
 

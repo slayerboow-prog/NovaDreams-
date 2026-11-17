@@ -9,7 +9,7 @@ Identificador original: Saga_09_Archivo
 
 FUNCIÓN NARRATIVA
 
-Tono: apto desde 10 años, nada infantil (17-11-2026). La revelación: la grabación del laboratorio de Lía la
+Tono: público de 17 años en adelante, nada infantil (17-11-2026). La revelación: la grabación del laboratorio de Lía la
 noche de la Caída. Cósimo forzó la Grieta desde el otro lado; Lía intentó cerrarla; la Grieta se agarró a lo
 único vivo que tenía cerca: el jugador, que se refugió en el laboratorio durante la evacuación. Lía le sacó
 de allí y desapareció en la Grieta. Desde entonces el jugador es el Ancla.

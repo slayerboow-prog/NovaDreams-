@@ -9,7 +9,7 @@ Identificador original: Saga_14_Bigotes
 
 FUNCIÓN NARRATIVA
 
-Tono: apto desde 10 años, nada infantil (17-11-2026). G-4 es el último refugio del pueblo de Bigotes, una
+Tono: público de 17 años en adelante, nada infantil (17-11-2026). G-4 es el último refugio del pueblo de Bigotes, una
 especie felina cuyo mundo destruyó el Consorcio. Desconfían de los humanos. Bigotes, aquí en su cuerpo real,
 es su líder elegido. Da las coordenadas de la 66-B y la pista del laboratorio bajo el campus abandonado.
 

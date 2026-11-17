@@ -9,7 +9,7 @@ Identificador original: Saga_11_Cronos
 
 FUNCIÓN NARRATIVA
 
-Tono: apto desde 10 años, nada infantil (17-11-2026). Alguien presenta en la Aduana permisos de Fusión falsos
+Tono: público de 17 años en adelante, nada infantil (17-11-2026). Alguien presenta en la Aduana permisos de Fusión falsos
 con el sello de Cronos. Si se aprueban, la Fusión será legal entre mundos y nadie podrá impedirla. Cronos, que
 siempre fue neutral, decide tomar partido.
 

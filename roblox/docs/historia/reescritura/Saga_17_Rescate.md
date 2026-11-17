@@ -9,7 +9,7 @@ Identificador original: Saga_17_Rescate
 
 FUNCIÓN NARRATIVA
 
-Tono: apto desde 10 años, nada infantil (17-11-2026). Entrar en el laboratorio bajo la torre del Consorcio,
+Tono: público de 17 años en adelante, nada infantil (17-11-2026). Entrar en el laboratorio bajo la torre del Consorcio,
 liberar a Cosme y salir. Cósimo le ha extraído casi todos los recuerdos para aprender a soltar el Ancla: Cosme
 te reconoce un instante y, al cruzar la Grieta de vuelta, lo olvida.
 

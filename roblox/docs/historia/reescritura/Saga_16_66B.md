@@ -9,7 +9,7 @@ Identificador original: Saga_16_66B
 
 FUNCIÓN NARRATIVA
 
-Tono: apto desde 10 años, nada infantil (17-11-2026). La Valmar de la 66-B: la misma ciudad, gris, bajo el
+Tono: público de 17 años en adelante, nada infantil (17-11-2026). La Valmar de la 66-B: la misma ciudad, gris, bajo el
 control del Consorcio. Allí nadie te sacó del laboratorio la noche de la grieta: tu otra versión creció sola y
 trabaja para Cósimo. El laboratorio está bajo la torre del Consorcio, en el Distrito Financiero.
 
