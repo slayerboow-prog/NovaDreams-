@@ -4,7 +4,7 @@
 -- escrito (cada lugar se apoya en OuterLands.height).
 --
 --   Santuario  plataforma de piedra con columnas, cristal de luz, Taller y cartel de zona segura
---   Arbol      el árbol ancestral: tronco enorme, raíces, copa gigante y cristales azules que brillan
+--   Arbol      el árbol ancestral gigante de fantasía (World/Kit/AncientTree): raíces, ramas, copa, lianas y luces
 --   Cueva      un monte de roca con la boca de la cueva y un remolino de luz dentro (la entrada de una mazmorra)
 --   Cascada    una pared de roca con el agua cayendo, niebla y la poza
 --   Campamento tiendas oscuras, hoguera, estacas y un tótem (enemigos)
@@ -136,35 +136,11 @@ BUILD.Santuario = function(m, base, r, place)
 	return 22
 end
 
+-- (el árbol gigante de fantasía: World/Kit/AncientTree)
 BUILD.Arbol = function(m, base, r)
-	local bark = rgb(92, 66, 46)
-	local h = 78
-	P(m, { Name = "Tronco", Shape = Enum.PartType.Cylinder, Size = V3(h, 16, 16), CFrame = base * CF(0, h / 2, 0) * ANG(0, 0, math.rad(90)), Color = bark, Material = M.Wood })
-	for k = 0, 7 do
-		local a = k * math.pi / 4 + r() * 0.3
-		P(m, { Name = "Raiz", ClassName = "WedgePart", Size = V3(4, 10, 16), CFrame = base * ANG(0, a, 0) * CF(0, 5, 13) * ANG(0, math.pi, 0), Color = bark, Material = M.Wood })
-	end
-	for k = 0, 3 do
-		local a = k * math.pi / 2 + 0.6
-		P(m, { Name = "Rama", Size = V3(4, 4, 30), CFrame = base * CF(0, h * 0.78, 0) * ANG(0, a, 0) * ANG(math.rad(-22), 0, 0) * CF(0, 0, -14), Color = bark, Material = M.Wood })
-	end
-	local greens = { rgb(54, 128, 70), rgb(70, 150, 84), rgb(46, 110, 64) }
-	for k = 0, 5 do
-		local a = k * math.pi / 3
-		local d = if k == 0 then 0 else 22
-		local size = 46 + r() * 16
-		P(m, { Name = "Copa", Shape = Enum.PartType.Ball, Size = V3(size, size * 0.7, size), CFrame = base * CF(math.cos(a) * d, h + 6 + r() * 6, math.sin(a) * d), Color = greens[1 + k % #greens], Material = M.LeafyGrass, CastShadow = k < 3 })
-	end
-	P(m, { Name = "Copa", Shape = Enum.PartType.Ball, Size = V3(60, 40, 60), CFrame = base * CF(0, h + 22, 0), Color = greens[2], Material = M.LeafyGrass })
-	for k = 0, 5 do
-		local a = k * math.pi / 3 + 0.3
-		local c = P(m, { Name = "Cristal", Size = V3(2, 6 + r() * 4, 2), CFrame = base * CF(math.cos(a) * 12, 3, math.sin(a) * 12) * ANG(math.rad(12), a, 0), Color = rgb(90, 190, 255), Material = M.Neon, CanCollide = false })
-		if k % 2 == 0 then
-			light(c, rgb(110, 190, 255), 26, 1.4)
-		end
-	end
-	sparkles(m:FindFirstChild("Tronco") :: Instance, rgb(140, 220, 255), 8)
-	return h + 36
+	local AncientTree = require(script.Parent.Kit.AncientTree) :: any
+	AncientTree.build(m, base, math.floor(r() * 100000), 1)
+	return 210
 end
 
 BUILD.Cueva = function(m, base, r)

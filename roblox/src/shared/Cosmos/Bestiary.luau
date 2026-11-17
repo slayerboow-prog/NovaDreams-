@@ -843,7 +843,8 @@ function Bestiary.regionPlaces(S: any, out: { [string]: any }): { [string]: any 
 			if place.Boss then
 				-- (la guarida del jefe, un poco detrás del lugar: el lugar se queda a la vista)
 				local d = math.sqrt(px * px + pz * pz)
-				bx, bz = px + px / d * 40, pz + pz / d * 40
+				local back = if place.Kind == "Arbol" then 115 else 40 -- (fuera de las raíces del árbol gigante)
+				bx, bz = px + px / d * back, pz + pz / d * back
 			end
 			if place.Level and place.Kind ~= "Santuario" then
 				for k = 1, 2 do

@@ -432,7 +432,7 @@ do
 			if e.Place.Boss then
 				local near = false
 				for _, b in p.Bosses do
-					if b.Region == e.Region and not b.Id:find("_Elite$") and math.sqrt((b.X - e.X) ^ 2 + (b.Z - e.Z) ^ 2) < 80 then
+					if b.Region == e.Region and not b.Id:find("_Elite$") and math.sqrt((b.X - e.X) ^ 2 + (b.Z - e.Z) ^ 2) < 140 then
 						near = true
 					end
 				end
