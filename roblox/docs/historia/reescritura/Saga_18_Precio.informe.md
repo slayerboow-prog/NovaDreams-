@@ -21,32 +21,18 @@ _Ninguno._
 
 ## Aplicado
 
-- PASO 1 → paso 1 del juego (Scene «Anuncio»): conversación «Anuncio» con 20 frases nuevas
-- PASO 2 → paso 2 del juego (Talk «Nombre»): conversación «Nombre» con 21 frases nuevas
+- PASO 1 → paso 1 del juego (Scene «Anuncio»): conversación «Anuncio» con 6 frases nuevas
+- PASO 2 → paso 2 del juego (Talk «Nombre»): conversación «Nombre» con 4 frases nuevas
 
 ## Adaptado (y por qué)
 
-- PASO 2 · opción A: sin equivalente: «humor += 1»
-- PASO 2 · opción A: marca nueva «RecuerdoMicroondasCompartido» (recuerdo_microondas_compartido = true)
-- PASO 2 · opción B: sin equivalente: «empatia += 2»
-- PASO 2 · opción B: marca nueva «CosmeRecuerdaNombre» (cosme_recuerda_nombre = true)
+- PASO 1 (línea 21): la acotación «(en todas las pantallas)» no tiene gesto en el juego: se queda solo la frase
 - PASO 2: el guion lo escribe como [] y en el juego es conversación (Talk): se conserva el tipo del juego y su mecánica
-- PASO 2: «saga_18_completada = true» no la lee ninguna misión: no se crea
-- PASO 2: «saga_acto_iii_completado = true» no la lee ninguna misión: no se crea
-- PASO 2: «gran_fusion_anunciada = true» no la lee ninguna misión: no se crea
-- PASO 2: «gran_fusion_monte_silencio = true» no la lee ninguna misión: no se crea
-- PASO 2: «cosme_vive_en_valmar = true» no la lee ninguna misión: no se crea
-- PASO 2: «cosimo_esperara_al_ancla_adulta = true» no la lee ninguna misión: no se crea
-- PASO 2: «megaverso_entradas_disponibles = true» no la lee ninguna misión: no se crea
-- PASO 2: «acto_iv_desbloqueado = true» no la lee ninguna misión: no se crea
-- PASO 2: «recuerdo_microondas_compartido = true» no la lee ninguna misión: no se crea
-- PASO 2: «cosme_recuerda_nombre = true» no la lee ninguna misión: no se crea
-- PASO 2: «Flags» del guion no se pone a toda la conversación «Nombre» (es de una rama o una nota; lo pone la mecánica)
+- PASO 2: la conversación del juego tenía 1 preguntas y el guion 0: las que faltan se conservan tal cual al final (guardan decisiones que usa la historia)
 
 ## Género ({o/a}) corregido en frases dirigidas al jugador
 
-_Ninguna corrección._
-
+- PASO 2 (línea 53) · Cosme: «Tengo un hueco aquí dentro. Muy grande. Cuando te miro, el hueco se hace más pequeño.» → «Tengo un hueco aquí dentro. Muy grande. Cuando te miro, el hueco se hace más pequeñ{o/a}.»
 
 ## Avisos
 
@@ -55,10 +41,8 @@ _Ninguno._
 
 ## Notas del guion sin equivalente directo (bloques de dirección, minijuegos, memoria…)
 
-- PASO 1 · OBJETIVO: Habla con Pip.
-- PASO 2 · OBJETIVO: Siéntate con Cosme.
-- PASO 2 · SISTEMA DE MEMORIA DE COSME: A partir de este punto, Cosme debe recuperar recuerdos progresivamente.
-- PASO 2 · DIRECCIÓN CINEMATOGRÁFICA DEL FINAL: No terminar con una explosión.
+_Ninguna._
+
 
 ## Cómo se traduce el formato
 

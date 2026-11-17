@@ -359,10 +359,10 @@ return {
 		Kind = "Side",
 		Canon = true,
 		Title = "Todo tiene un precio",
-		Description = "Cosme está en casa, pero sin recuerdos. Y esta noche, en todas las pantallas de Valmar, aparece un hombre con perilla con un anuncio.",
+		Description = "Cosme está en casa, pero sin recuerdos. Esta noche, en todas las pantallas de Valmar, aparece Cósimo con un anuncio.",
 		Type = "Saga de la Grieta · Acto III (6/6) · Final del acto",
 		Duration = { 20, 30 },
-		Npcs = { "Cosme", "Cosimo", "Pip", "Ivan", "Candela" },
+		Npcs = { "Cosme", "Cosimo", "Pip", "Brenn", "Sorel" },
 		Offer = { Place = "GarajeCosme" },
 		OfferKey = "Pip te llama: «Venga. Todas las pantallas de Valmar se han encendido a la vez»",
 		Requires = after("Saga_17_Rescate"),
@@ -381,28 +381,24 @@ return {
 		},
 		Dialogues = {
 			Anuncio = { Lines = {
-				{ S = "Cosimo", T = "(En todas las pantallas) ¡{Saludo}, Valmar! Tengo un anuncio. La Gran Fusión se celebrará en el Monte del Silencio." },
-				{ S = "Cosimo", T = "(En todas las pantallas) Cuando el Ancla ya no sea una criatura, sino una persona adulta con trabajo y facturas.", Shot = "Reaccion:Pip" },
-				{ S = "Cosimo", T = "(En todas las pantallas) Porque los adultos, querido público, están tan cansados que sueltan cualquier cosa. Hasta un universo." },
-				{ S = "Cosimo", T = "(En todas las pantallas) ¡No se lo pierdan! Entradas a la venta en MegaVerso.", Shot = "Reaccion:Cosme" },
-				{ S = "Pip", T = "Nos da tiempo. Años.", Pause = 1, Shot = "Medio:Pip", To = "Yo" },
-				{ S = "Pip", T = "Tiempo para que el señor recupere la memoria. Y para prepararnos.", Beat = "Mira", To = "Cosme" },
+				{ S = "Cosimo", T = "(En todas las pantallas) Buenas noches, Valmar. La Gran Fusión se hará en el Monte del Silencio." },
+				{ S = "Cosimo", T = "(En todas las pantallas) Vuestra ciudad y la mía serán una sola. Sin más Caídas. Solo falta que el Ancla se canse.", Shot = "Reaccion:Pip" },
+				{ S = "Pip", T = "Nos da tiempo. No sabemos cuánto.", Pause = 1, Shot = "Medio:Pip", To = "Yo" },
+				{ S = "Pip", T = "Tiempo para que el doctor recupere la memoria. Y para prepararnos.", Beat = "Mira", To = "Cosme" },
 			}, Effects = { Scene = "Grieta_Inminente" } }, -- (el cielo truena, como si lo hubiera oído: antesala de la etapa 6)
 			Nombre = { Lines = {
-				{ S = "Cosme", T = "Mira. No sé quién eres. Pero cuando entras, este garaje huele distinto. Huele a… burbujas. ¿Tiene sentido? No tiene sentido." },
-				{ S = "Cosme", T = "Tengo un hueco aquí dentro. Muy grande. Y cuando te miro, el hueco se hace más pequeño. Un poquito." },
+				{ S = "Cosme", T = "No sé quién eres. Pero cuando entras en este garaje, me siento menos perdido." },
+				{ S = "Cosme", T = "Tengo un hueco aquí dentro. Cuando te miro, el hueco se hace más pequeño." },
 				{ Ask = "¿Qué le dices?", Options = {
-					{ T = "Le cuentas lo del microondas temporal y el bocadillo del martes", Effects = { Rel = { Cosme = 6 }, Traits = { Humor = 1 } }, Then = {
-						{ S = "Cosme", T = "¿Un microondas que calienta en el pasado? Qué idea más estúpida. Y más genial. …¿Fue idea mía? Claro que fue idea mía." },
+					{ T = "Le cuentas cómo os conocisteis: el detector y las tres piezas", Effects = { Rel = { Cosme = 6 }, Traits = { Curiosidad = 1 } }, Then = {
+						{ S = "Cosme", T = "Un detector que reventó… y alguien que vino a ayudar sin preguntar. Eso me suena. No sé por qué, pero me suena." },
 					} },
 					{ T = "Le dices tu nombre y le das la mano", Effects = { Rel = { Cosme = 8 }, Traits = { Empatia = 2 } }, Then = {
-						{ S = "Cosme", T = "{nombre}… {nombre}. …Criatura. Tú eres la criatura. Eso sí lo sé. No sé nada más. Pero eso lo sé." },
+						{ S = "Cosme", T = "{nombre}… {nombre}. Eso sí lo sé. No sé nada más. Pero eso lo sé." },
 					} },
 				} },
-				{ S = "Narrador", T = "Candela hace una foto: Cosme en la puerta del garaje, con cara de no entender nada, y tú a su lado." },
-				{ S = "Narrador", T = "Iván sale en una esquina comiendo moras." },
-				{ S = "Narrador", T = "Recibes 📸 la foto «Cosme sin memoria». FIN DEL ACTO III." },
-				{ S = "Narrador", T = "Cosme está en casa. Faltan sus recuerdos. Y falta la Gran Fusión.", Pause = 1 },
+				{ S = "Narrador", T = "Sorel os hace una foto: Cosme en la puerta del garaje, sin entender del todo, y tú a su lado." },
+				{ S = "Narrador", T = "Recibes 📸 la foto de Cosme sin memoria. FIN DEL ACTO III." },
 			} },
 		},
 	},
