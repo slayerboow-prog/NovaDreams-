@@ -678,6 +678,21 @@ function Items.get(id: string?): Item?
 end
 
 -- Qué objetos tiene alguien y cuántos, a partir de sus datos guardados
+-- ¿Se puede tirar? (17-11-2026, el dueño: «tengo la mochila llena y no puedo hacer nada»): todo lo que se guarda
+-- por cantidad (comida, materiales, pociones, equipo, munición…) menos los recuerdos de la historia y los
+-- documentos; los vehículos, premios, carnets y títulos no se guardan así y tampoco se tiran.
+local KEEP_KINDS = { Keepsake = true, Document = true, Vehicle = true, Prize = true }
+function Items.canDrop(item: { [string]: any }?): boolean
+	if not item then
+		return false
+	end
+	local id = tostring(item.Id or "")
+	if string.find(id, "^Vehiculo_") or string.find(id, "^Premio_") or string.find(id, "^Carnet_") or string.find(id, "^Titulo_") then
+		return false
+	end
+	return not KEEP_KINDS[item.Kind]
+end
+
 function Items.owned(data: { [string]: any }): { [string]: number }
 	local owned = {}
 	for id, count in data.Items or {} do

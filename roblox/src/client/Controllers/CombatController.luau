@@ -167,7 +167,7 @@ function CombatController.canAttack(): boolean
 		and not player:GetAttribute("InDialogue")
 		and not player:GetAttribute("Training") -- (entrenando en el gimnasio)
 		and not player:GetAttribute("InSport") -- (jugando al fútbol: los botones son de chutar y pasar)
-		and not InventoryUI.isOpen() -- (con la mochila abierta, Q es tirar el objeto)
+		-- (17-11-2026: con la mochila abierta se sigue peleando: va pegada a la derecha y no para el juego)
 		and (stage == nil or Stages.inRange(stage, Combat.MinStage, nil))
 end
 

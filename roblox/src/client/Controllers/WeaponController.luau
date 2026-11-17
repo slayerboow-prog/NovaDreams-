@@ -643,7 +643,8 @@ function WeaponController.menuOpen(): boolean
 	if player:GetAttribute("InDialogue") == true or player:GetAttribute("InCinematic") == true then
 		return true
 	end
-	if InventoryUI.isOpen() or Dialog.anyOpen() then
+	-- (la mochila no cuenta: va pegada a la derecha y se sigue jugando con ella abierta)
+	if Dialog.anyOpen("Inventory") then
 		return true
 	end
 	for _, check in menuChecks do

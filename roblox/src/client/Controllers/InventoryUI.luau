@@ -131,6 +131,7 @@ local detailKind: TextLabel
 local detailDesc: TextLabel
 local useButton: TextButton
 local dropButton: TextButton
+local dropAllButton: TextButton
 local cursorGui: ScreenGui
 local ghost: TextLabel
 local tooltip: Frame
@@ -586,9 +587,10 @@ local function refreshDetails()
 		detailKind.Text = ""
 		detailDesc.Text = if TOUCH
 			then "Toca un objeto para cogerlo y toca otra casilla para dejarlo.\nToca «Usar» o «Tirar uno» abajo."
-			else "Clic en un objeto para cogerlo y clic en otra casilla para dejarlo.\nClic derecho: usar · Q: tirar uno."
+			else "Clic en un objeto para cogerlo y clic en otra casilla para dejarlo.\nClic derecho: usar. Puedes seguir jugando con la mochila abierta."
 		useButton.Visible = false
 		dropButton.Visible = false
+		dropAllButton.Visible = false
 		return
 	end
 	detailName.Text = item.Icon .. "  " .. item.Name .. (if count > 1 then "  ×" .. count else "")
@@ -607,7 +609,8 @@ local function refreshDetails()
 	else
 		useButton.Text = if inUse(item) then "Quitar" else "Poner"
 	end
-	dropButton.Visible = item.Kind == "Food" or item.Kind == "Thing"
+	dropButton.Visible = Items.canDrop(item)
+	dropAllButton.Visible = Items.canDrop(item) and count > 1
 end
 
 local function refreshTabs()
@@ -750,35 +753,24 @@ local function label(text: string, parent: Instance, order: number): TextLabel
 end
 
 local function buildWindow()
-	-- Pantalla oscurecida detrás (como al abrir el inventario en Minecraft)
-	overlay = create("TextButton", {
+	-- (17-11-2026, el dueño: la mochila PEGADA A LA DERECHA y sin parar el juego: se sigue andando, atacando y
+	-- moviendo la cámara con ella abierta. Ya no hay pantalla oscura que tape ni que coja los toques)
+	overlay = create("Frame", {
 		Name = "InventoryOverlay",
 		Size = UDim2.fromScale(1, 1),
 		Position = UDim2.fromOffset(0, 0),
-		BackgroundColor3 = Color3.new(0, 0, 0),
-		BackgroundTransparency = 0.45,
-		AutoButtonColor = false,
-		Text = "",
+		BackgroundTransparency = 1,
+		Active = false,
 		Visible = false,
 		ZIndex = 9,
 		Parent = gui,
 	})
-	-- Clic fuera de la ventana con un objeto en la mano: se devuelve a su sitio
-	-- Clic fuera de la ventana: si no llevas nada en la mano, se cierra la mochila
-	overlay.Activated:Connect(function()
-		if held then
-			held = nil
-			refreshAll()
-		else
-			InventoryUI.close()
-		end
-	end)
 
 	local rowWidth = Items.Hotbar * BAG_SLOT + (Items.Hotbar - 1) * GAP
 	window = create("Frame", {
 		Name = "Inventory",
-		AnchorPoint = Vector2.new(0.5, 0.5),
-		Position = UDim2.fromScale(0.5, 0.5),
+		AnchorPoint = Vector2.new(1, 0.5),
+		Position = UDim2.new(1, -8, 0.5, 0),
 		Size = UDim2.fromOffset(rowWidth + 28, 0),
 		AutomaticSize = Enum.AutomaticSize.Y,
 		BackgroundColor3 = MC.Panel,
@@ -889,6 +881,30 @@ local function buildWindow()
 	create("UIListLayout", { FillDirection = Enum.FillDirection.Horizontal, Padding = UDim.new(0, 8), SortOrder = Enum.SortOrder.LayoutOrder, Parent = buttons })
 	useButton = mcButton("Usar", buttons, 1)
 	dropButton = mcButton("Tirar uno", buttons, 2)
+	-- Tirar el montón entero (pide confirmar: el primer toque pregunta «¿Seguro?» unos segundos)
+	dropAllButton = mcButton("Tirar todo", buttons, 3)
+	dropAllButton.BackgroundColor3 = Color3.fromRGB(170, 50, 64)
+	local armedAt = 0
+	dropAllButton.Activated:Connect(function()
+		local index = held or focus
+		if not index then
+			return
+		end
+		if os.clock() - armedAt > 3 then
+			armedAt = os.clock()
+			dropAllButton.Text = "¿Seguro?"
+			task.delay(3, function()
+				if os.clock() - armedAt >= 2.9 then
+					dropAllButton.Text = "Tirar todo"
+				end
+			end)
+			return
+		end
+		armedAt = 0
+		dropAllButton.Text = "Tirar todo"
+		Remote:FireServer("DropAll", index)
+		held = nil
+	end)
 	useButton.Activated:Connect(function()
 		local index = held or focus
 		if index then
@@ -929,14 +945,6 @@ local function buildWindow()
 		pageFrames[p] = f
 	end
 	create("Frame", { Size = UDim2.new(1, 0, 0, 4), BackgroundTransparency = 1, LayoutOrder = 7, Parent = window })
-	-- Botón grande para volver al juego (en móvil no hay tecla E ni Escape)
-	local back = mcButton("⬅  Volver al juego", window, 100)
-	back.Size = UDim2.new(1, 0, 0, 38)
-	back.TextSize = 17
-	back.BackgroundColor3 = Color3.fromRGB(40, 150, 90)
-	back.Activated:Connect(function()
-		InventoryUI.close()
-	end)
 	row(window, 1, 9, 8)
 
 	-- Lo que llevas en la mano y la etiqueta al pasar el ratón (sin escala, pegados al puntero)
@@ -1241,11 +1249,6 @@ function InventoryUI.init()
 			InventoryUI.toggle()
 		elseif key == Enum.KeyCode.Escape and isOpen then
 			InventoryUI.close()
-		elseif key == Enum.KeyCode.Q and isOpen then
-			local index = held or focus
-			if index then
-				Remote:FireServer("Drop", index)
-			end
 		elseif NUMBER_KEYS[key] and keyFree(key) and hotbar.Visible then
 			if isOpen and focus and focus ~= NUMBER_KEYS[key] then
 				-- Como en Minecraft: con la mochila abierta, la tecla manda el objeto a esa casilla de la barra

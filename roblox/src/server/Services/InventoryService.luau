@@ -216,10 +216,14 @@ local function use(player: Player, data: { [string]: any }, slot: any)
 	Notify:FireClient(player, "Success", ("%s  %s"):format(item.Icon, item.Name))
 end
 
-local function drop(player: Player, data: { [string]: any }, slot: any)
+-- Tirar uno (o todos: all) de una casilla
+local function drop(player: Player, data: { [string]: any }, slot: any, all: boolean?)
 	local item = Items.get(slotId(data, slot))
-	if item and (item.Kind == "Food" or item.Kind == "Thing") then
-		InventoryService.remove(player, item.Id, 1)
+	if item and Items.canDrop(item) then
+		local have = tonumber((data.Items or {})[item.Id]) or 0
+		if have > 0 then
+			InventoryService.remove(player, item.Id, if all then have else 1)
+		end
 	end
 end
 
@@ -261,6 +265,8 @@ function InventoryService.init()
 			use(player, data, a)
 		elseif action == "Drop" then
 			drop(player, data, a)
+		elseif action == "DropAll" then
+			drop(player, data, a, true)
 		end
 	end)
 
