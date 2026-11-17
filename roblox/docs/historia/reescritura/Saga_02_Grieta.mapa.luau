@@ -38,7 +38,5 @@ return {
 		{ "Mi vecin{o/a} favorit{o/a}. Ven.", { Flags = { "AmigoDeCosme" } } },
 	},
 	-- (las frases del juego que recuerdan lo que viviste antes se quedan: la continuidad de la Saga)
-	ConservarFrases = {
-		{ Conversacion = "Bigotes", Marcas = { "EmperadorBigotes" }, Tras = "Y deja de fingir que no sabes que hablo." },
-	},
+	ConservarFrases = {}, -- (17-11-2026: tono adulto, sin el «emperador» de Gatonia)
 }

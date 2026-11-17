@@ -211,17 +211,17 @@ return {
 			Lines = {
 				{ At = 0.3, Speaker = "Pip", Text = "Señor. …La Grieta está abierta.", Mood = "Fear" },
 				{ At = 1.1, Speaker = "Cosme", Text = "No… Lo estoy viendo.", Mood = "Surprise" },
-				{ At = 1.7, Speaker = "Pip", Text = "Buenos reflejos. Aunque ha caído bastante lejos.", If = { Input = "Cubrirse" } },
-				{ At = 1.7, Speaker = "Pip", Text = "¡Agáchate! …Bueno. Ya da igual.", IfNot = { Input = "Cubrirse" } },
+				{ At = 1.7, Speaker = "Pip", Text = "Buenos reflejos. El impacto ha sido lejos.", If = { Input = "Cubrirse" } },
+				{ At = 1.7, Speaker = "Pip", Text = "¡Al suelo! …Ha pasado. Respire.", IfNot = { Input = "Cubrirse" } },
 				-- (del impacto 1 al final del silencio, nadie habla: 4,6 → 12)
-				{ At = 12.3, Speaker = "Chispa", Text = "¡Bip! ¿Bip? ¡BIIIP!", Mood = "Fear" },
+				{ At = 12.3, Speaker = "Chispa", Text = "(un chillido agudo, de animal herido)", Mood = "Fear" },
 				{ At = 15.1, Speaker = "VecinoParque", Text = "¿Estáis bien? ¡No os acerquéis!", Mood = "Nervous" },
-				{ At = 18.3, Speaker = "Narrador", Text = "Tres cosas han caído sobre Valmar. Y ninguna debería estar aquí." },
+				{ At = 18.3, Speaker = "Narrador", Text = "Tres restos han caído sobre Valmar. Ninguno es de este mundo." },
 				{ At = 23.8, Speaker = "Pip", Text = "Tres impactos. Tres objetos." },
-				{ At = 26.7, Speaker = "Cosme", Text = "No. Tres mensajes. Hay que encontrarlos antes que nadie, criatura.", A = "Lean" },
+				{ At = 26.7, Speaker = "Cosme", Text = "No. Tres restos. Hay que encontrarlos antes que la patrulla.", A = "Lean" },
 			},
 			Titles = {
-				{ At = 32.3, Text = "☄️ Han caído tres cosas del cielo", Sub = "Busca los cráteres humeantes", Duration = 2.6 },
+				{ At = 32.3, Text = "☄️ Han caído restos de la Grieta", Sub = "Busca los cráteres humeantes", Duration = 2.6 },
 			},
 		},
 	},

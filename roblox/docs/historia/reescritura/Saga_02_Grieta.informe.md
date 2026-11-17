@@ -28,17 +28,13 @@ _Ninguno._
 
 ## Aplicado
 
-- PASO 1 → paso 1 del juego (Talk «Medidor»): conversación «Medidor» con 34 frases nuevas (música Descubrimiento→Tension)
+- PASO 1 → paso 1 del juego (Talk «Medidor»): conversación «Medidor» con 9 frases nuevas (música Tension)
 - PASO 3.1 → paso 3.1 del juego (Use): lo que pasa al usarlo va en la conversación del objeto «Calcetin» (3 frases)
-- PASO 3.1 → paso 3.1 del juego (Use): objetivo «Investiga el cráter junto a la fuente»
-- PASO 3.2 → paso 3.2 del juego (Use): lo que pasa al usarlo va en la conversación del objeto «Paraguas» (1 frases)
-- PASO 3.2 → paso 3.2 del juego (Use): objetivo «Investiga el cráter de la zona de juegos»
+- PASO 3.2 → paso 3.2 del juego (Use): lo que pasa al usarlo va en la conversación del objeto «Paraguas» (4 frases)
 - PASO 3.3 → paso 3.3 del juego (Use): lo que pasa al usarlo va en la conversación del objeto «Moneda» (3 frases)
-- PASO 3.3 → paso 3.3 del juego (Use): objetivo «Investiga el cráter del camino al cole»
-- PASO 4 → paso 4 del juego (Talk «Bigotes»): conversación «Bigotes» con 15 frases nuevas (música Tension)
-- PASO 5 → paso 5 del juego (Reach): objetivo «Lleva los objetos al garaje de Cosme»
-- PASO 6 → paso 6 del juego (Scene «Perilla»): conversación «Perilla» con 22 frases nuevas
-- Conversación «Bigotes»: se conservan delante 1 frases del juego que dependen de lo vivido
+- PASO 4 → paso 4 del juego (Talk «Bigotes»): conversación «Bigotes» con 6 frases nuevas
+- PASO 5 → paso 5 del juego (Reach): objetivo «Lleva los restos al garaje de Cosme»
+- PASO 6 → paso 6 del juego (Scene «Perilla»): conversación «Perilla» con 7 frases nuevas (música Tension)
 
 ## Adaptado (y por qué)
 
@@ -47,23 +43,11 @@ _Ninguno._
 - PASO 3 → paso 3 del juego (Group): solo trae planos (sin frases): en un paso jugable no se quita el control, así que no se aplican
 - frase quitada (es una acotación, no se dice): «…»
 - PASO 4: el guion lo escribe como [] y en el juego es conversación (Talk): se conserva el tipo del juego y su mecánica
-- PASO 4: «bigotes_grieta_advertencia = true» no se guarda aparte (el mapa la deja como condición o ya la da el juego)
-- PASO 4: «voz_desconocida = true» no se guarda aparte (el mapa la deja como condición o ya la da el juego)
 - frase quitada (es una acotación, no se dice): «…»
-- frase quitada (es una acotación, no se dice): «Volvemos al presente.»
-- PASO 6: «grieta_acto1_02_completada = true» no se guarda aparte (el mapa la deja como condición o ya la da el juego)
-- PASO 6: «grieta_creciendo = true» no se guarda aparte (el mapa la deja como condición o ya la da el juego)
-- PASO 6: «cosimo_introducido = true» no se guarda aparte (el mapa la deja como condición o ya la da el juego)
-- PASO 6: «cosimo_referencia_01 = true» no se guarda aparte (el mapa la deja como condición o ya la da el juego)
-- PASO 6: «voz_desconocida = true» no se guarda aparte (el mapa la deja como condición o ya la da el juego)
-- PASO 6: «moneda_66b_obtenida = true» no se guarda aparte (el mapa la deja como condición o ya la da el juego)
-- PASO 6: «bigotes_advirtio = true» no se guarda aparte (el mapa la deja como condición o ya la da el juego)
-- PASO 6: «pip_confia_jugador = true» no se guarda aparte (el mapa la deja como condición o ya la da el juego)
 
 ## Género ({o/a}) corregido en frases dirigidas al jugador
 
-- PASO 1 (línea 101) · Cosme: «Mi vecino/a favorito/a. Ven.» → «Mi vecin{o/a} favorit{o/a}. Ven.»
-- PASO 5 (línea 998) · Pip: «Señor/a, deberíamos continuar.» → «Señor{/a}, deberíamos continuar.»
+- PASO 4 (línea 171) · Bigotes: «Esta noche he oído una voz al otro lado. Un hombre. Tranquilo. Educado.» → «Esta noche he oído una voz al otro lado. Un hombre. Tranquil{o/a}. Educado.»
 
 ## Avisos
 
@@ -73,16 +57,7 @@ _Ninguno._
 ## Notas del guion sin equivalente directo (bloques de dirección, minijuegos, memoria…)
 
 - PASO 1 · Objetivo:: Lugar: Garaje de Cosme.
-- PASO 1 · OBJETIVO: 
-- PASO 3.1 · Objetivo:: El jugador encuentra un pequeño cráter.
-- PASO 3.2 · Objetivo:: El cráter está junto al patio.
-- PASO 3.3 · Objetivo:: Esta vez no hay humor inmediato.
-- PASO 4 · Objetivo:: Lugar: Patio del colegio.
-- PASO 5 · Objetivo:: El jugador regresa con Pip.
-- PASO 6 · CONSECUENCIAS PERSISTENTES: Registrar: / Objetos: / calcetin_dimensional / paraguas_invertido / moneda_66B / La moneda 66-B debe permanecer en el inventario/colección narrativa. / No puede desaparecer.
-- PASO 6 · DIRECCIÓN DE ACTUACIÓN: Primera mitad: / * energía / * humor / * movimientos rápidos / * gestos grandes / Después de la moneda: / * hombros ligeramente caídos / * habla más despacio / * evita mirar al jugador / * manos quietas / * silencios más largos / El jugador debe poder entender que Cósimo le da miedo a Cosme sin que nadie tenga que decirlo. / Primero: / * mayordomo elegante / * humor seco / Después de la moneda: / * postura más rígida / * menos bromas / * mirada hacia Cosme / * preocupación / Debe parecer gracioso hasta que menciona la voz. / En ese momento: / * deja de moverse / * mira directamente al jugador / * baja ligeramente la cabeza / * habla más despacio / Esto hará que el jugador entienda: / Bigotes: Vale. Hasta el gato sabe que algo va mal.
-- PASO 6 · DIRECCIÓN MUSICAL: Utilizar exclusivamente:
-- PASO 6 · DIRECCIÓN VISUAL: La Grieta nunca debe parecer una simple textura colocada en el cielo.
+- PASO 5 · Objetivo:: 
 
 ## Cómo se traduce el formato
 
