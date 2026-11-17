@@ -23,7 +23,7 @@ PASO 3 [Dialogo] @ Laboratorio de la Estación Meridiana
 Reparto: NoaFerran, Cosme
 Musica: Emocion
 PLANO PrimerPlano: NoaFerran
-Cosme: (asustado) Eso no es coral, criatura. Son máquinas. Máquinas diminutas, cogidas de la mano.
+Cosme: (asustado) Eso no es coral. Son máquinas. Máquinas diminutas, cogidas de la mano.
 NoaFerran: (triste) Comen metal y hacen más máquinas. Y crecen hacia la ciudad. Hacia la luz.
 NoaFerran: (baja la voz) Alguien las hizo para salvar el arrecife. Y funcionó. Hasta que dejó de funcionar.
 Cosme: (pensativo) Hablas como si conocieras a ese alguien.

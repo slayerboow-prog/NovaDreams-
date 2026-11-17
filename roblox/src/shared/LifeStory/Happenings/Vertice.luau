@@ -55,7 +55,7 @@ return {
 				{ At = 5.3, S = "Narrador", T = "Arriba, anillos de astilleros. Más arriba, una Cúpula que hace de cielo y vende cosas." },
 				{ At = 8.8, S = "Narrador", T = "Un tren flota sobre su raíl. Cada vagón lleva un anuncio distinto." },
 				{ At = 12.4, S = "Narrador", T = "El Primer Cliente sonríe en la plaza. Lleva ciento cincuenta años sonriendo." },
-				{ At = 16.4, S = "Cosme", T = "Nunca había visto tanta luz junta, criatura. Y ni una sola estrella.", To = "Yo" },
+				{ At = 16.4, S = "Cosme", T = "Nunca había visto tanta luz junta. Y ni una sola estrella.", To = "Yo" },
 			},
 			Titles = {
 				{ At = 0.8, Text = "🌃 Vértice · Distrito Cero", Sub = "Saga 2 · Episodio 7: «Liquidación total»", Duration = 3 },
@@ -111,7 +111,7 @@ return {
 				{ At = 4.8, S = "OfeliaBrum", T = "Queridos clientes: empieza la Liquidación Total. ¡Todo debe irse! Empezando por el Barrio Plantilla." },
 				{ At = 10.3, S = "AbrilCruz", T = "No venden tiendas. Venden nuestras deudas. Nos venden a nosotros." },
 				{ At = 14.8, S = "Narrador", T = "Detrás de la sonrisa de Ofelia, la Torre sigue comprando luz. A alguien que firma solo con una «V»." },
-				{ At = 18.6, S = "Cosme", T = "He visto esa firma antes, criatura. En un hilo negro. Y no me gustó nada.", To = "Yo" },
+				{ At = 18.6, S = "Cosme", T = "He visto esa firma antes. En un hilo negro. Y no me gustó nada.", To = "Yo" },
 			},
 			Titles = {
 				{ At = 21, Text = "Continuará: «Liquidación total»", Sub = "Vértice · Distrito Cero", Duration = 2.6 },

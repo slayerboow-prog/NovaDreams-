@@ -25,7 +25,7 @@ return {
 			Lines = {
 				{
 					S = "Cosme",
-					T = "Eso no es coral, criatura. Son máquinas. Máquinas diminutas, cogidas de la mano.",
+					T = "Eso no es coral. Son máquinas. Máquinas diminutas, cogidas de la mano.",
 					To = "Yo",
 					Shot = "PrimerPlano:NoaFerran",
 					A = "Nervous",
@@ -62,7 +62,7 @@ return {
 	Scenes = {
 		Talasa3_G1_Musica = { Light = true, Duration = 35.4, Anchors = { Yo = "Player" }, Tracks = { Music = { { At = 0, Intensity = "Descubrimiento" } } } },
 		Talasa3_G2_Musica = { Light = true, Duration = 14.1, Anchors = { Yo = "Player" }, Tracks = { Music = { { At = 0, Intensity = "Tension" } } } },
-		Talasa3_G3_Musica = { Light = true, Duration = 31.1, Anchors = { Yo = "Player" }, Tracks = { Music = { { At = 0, Intensity = "Intima" } } } },
+		Talasa3_G3_Musica = { Light = true, Duration = 30.4, Anchors = { Yo = "Player" }, Tracks = { Music = { { At = 0, Intensity = "Intima" } } } },
 	},
 	Steps = {},
 }

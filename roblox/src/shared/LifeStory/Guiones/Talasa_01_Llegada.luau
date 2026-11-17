@@ -33,7 +33,7 @@ return {
 			Lines = {
 				{
 					S = "Cosme",
-					T = "Tálasa, criatura. El planeta más rico de la galaxia. Aquí el agua es más barata que el aire.",
+					T = "Tálasa. El planeta más rico de la galaxia. Aquí el agua es más barata que el aire.",
 					To = "Yo",
 					Shot = "Medio:Cosme",
 					A = "Happy",
@@ -45,7 +45,7 @@ return {
 		},
 	},
 	Scenes = {
-		Talasa1_G1_Musica = { Light = true, Duration = 22.3, Anchors = { Yo = "Player" }, Tracks = { Music = { { At = 0, Intensity = "Descubrimiento" } } } },
+		Talasa1_G1_Musica = { Light = true, Duration = 21.6, Anchors = { Yo = "Player" }, Tracks = { Music = { { At = 0, Intensity = "Descubrimiento" } } } },
 		Talasa1_G2_Musica = { Light = true, Duration = 40.5, Anchors = { Yo = "Player" }, Tracks = { Music = { { At = 0, Intensity = "Tension" } } } },
 	},
 	Steps = {},

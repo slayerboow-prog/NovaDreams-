@@ -8,7 +8,7 @@ Musica: Tension
 PLANO Medio: AbrilCruz
 AbrilCruz: (señala) Cada noche llegan cien cajas de luz embotellada. Las descargan robots y se van sin facturas.
 AbrilCruz: (baja la voz) Nadie sabe de dónde salen. MegaVerso dice que la fabrica. Pero no hay fábrica tan grande.
-Cosme: (pensativo) Una ciudad que compra su propia luz a escondidas. Esto huele a lo de siempre, criatura: a alguien que gana.
+Cosme: (pensativo) Una ciudad que compra su propia luz a escondidas. Esto huele a lo de siempre: a alguien que gana.
 AbrilCruz: (asiente) Mira una etiqueta mientras vigilo la vía. Rápido, que el tren vuelve en dos minutos.
 
 PASO 2 [Dialogo] @ Andén del mag-lev

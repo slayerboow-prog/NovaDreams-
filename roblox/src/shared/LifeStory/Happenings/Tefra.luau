@@ -63,7 +63,7 @@ return {
 				{ At = 13.2, Mood = { Key = "Cosme", Mood = "Sad" } },
 			},
 			Dialogue = {
-				{ At = 6.6, S = "Cosme", T = "…Tefra. Aquí nada tenía esquinas, criatura. Nada.", To = "Yo" },
+				{ At = 6.6, S = "Cosme", T = "…Tefra. Aquí nada tenía esquinas. Nada.", To = "Yo" },
 				{ At = 13.4, S = "Cosme", T = "Esto no es mi casa. Esto es un cuartel.", Pause = 0.6, To = "Yo" },
 			},
 			Titles = {

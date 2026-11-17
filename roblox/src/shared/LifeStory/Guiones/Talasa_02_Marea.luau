@@ -12,7 +12,7 @@ return {
 			Lines = {
 				{
 					S = "Cosme",
-					T = "La tabla de mareas, criatura. Cada doce minutos, el mar sube varios pisos. Y baja otra vez.",
+					T = "La tabla de mareas. Cada doce minutos, el mar sube varios pisos. Y baja otra vez.",
 					To = "Yo",
 					Shot = "Medio:Cosme",
 					G = "Point",
@@ -47,7 +47,7 @@ return {
 		},
 	},
 	Scenes = {
-		Talasa2_G1_Musica = { Light = true, Duration = 29.6, Anchors = { Yo = "Player" }, Tracks = { Music = { { At = 0, Intensity = "Descubrimiento" } } } },
+		Talasa2_G1_Musica = { Light = true, Duration = 28.9, Anchors = { Yo = "Player" }, Tracks = { Music = { { At = 0, Intensity = "Descubrimiento" } } } },
 		Talasa2_G2_Musica = { Light = true, Duration = 44.3, Anchors = { Yo = "Player" }, Tracks = { Music = { { At = 0, Intensity = "Tension" } } } },
 	},
 	Steps = {},

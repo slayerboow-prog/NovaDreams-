@@ -64,7 +64,7 @@ return {
 				Text = "¡Te miran! Usa un 📵 inhibidor o métete en el Arcade de neón" },
 		},
 		Dialogues = {
-			Llegada = respaldo("Cosme", "Vértice. Aquí hasta el aire tiene precio, criatura."),
+			Llegada = respaldo("Cosme", "Vértice. Aquí hasta el aire tiene precio."),
 			Bienvenida = respaldo("Gil", "¡Gracias por su compra! Bienvenidos a Distrito Cero."),
 		},
 	},

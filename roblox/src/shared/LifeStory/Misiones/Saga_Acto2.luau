@@ -66,7 +66,7 @@ return {
 		},
 		Dialogues = {
 			Credencial = { Lines = {
-				{ S = "Cosme", T = "Criatura. Ya no eres tan criatura. Pero te lo sigo llamando.", Shot = "Medio:Cosme", To = "Yo" },
+				{ S = "Cosme", T = "Ya no eres la persona que entró en mi garaje aquel día.", Shot = "Medio:Cosme", To = "Yo" },
 				{ S = "Cosme", T = "Te he hecho esto.", Pause = 0.5, G = "Point" },
 				{ S = "Narrador", T = "Una credencial plastificada: «AYUDANTE OFICIAL DEL LABORATORIO COSME. Nivel: casi de confianza». Sales fatal en la foto." },
 				{ S = "Cosme", T = "La costura del cielo se está soltando. Punto a punto.", Beat = "Respira", A = "Sad" },

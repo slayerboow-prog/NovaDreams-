@@ -18,7 +18,7 @@ return {
 					Effects = { Scene = "Vertice2_G1_Musica" },
 				},
 				{ S = "AbrilCruz", T = "Soy Abril. Arreglo la Cúpula y las farolas. Lo que MegaVerso rompe y no paga.", To = "Yo", G = "Point" },
-				{ S = "Cosme", T = "Una mecánica. Por fin alguien que habla mi idioma, criatura.", To = "Yo", A = "Happy" },
+				{ S = "Cosme", T = "Una mecánica. Por fin alguien que habla mi idioma.", To = "Yo", A = "Happy" },
 				{ S = "AbrilCruz", T = "Aquí abajo nadie se fía de la gente de fuera. Haced un turno de técnico en la plaza.", To = "Yo", A = "No" },
 				{ S = "AbrilCruz", T = "Dos paneles antes del apagón. Si salen bien, hablamos. Si no, gracias por su compra.", To = "Yo", A = "Nod" },
 			},
@@ -41,7 +41,7 @@ return {
 		},
 	},
 	Scenes = {
-		Vertice2_G1_Musica = { Light = true, Duration = 32.9, Anchors = { Yo = "Player" }, Tracks = { Music = { { At = 0, Intensity = "Descubrimiento" } } } },
+		Vertice2_G1_Musica = { Light = true, Duration = 32.2, Anchors = { Yo = "Player" }, Tracks = { Music = { { At = 0, Intensity = "Descubrimiento" } } } },
 		Vertice2_G2_Musica = { Light = true, Duration = 33.7, Anchors = { Yo = "Player" }, Tracks = { Music = { { At = 0, Intensity = "Intima" } } } },
 	},
 	Steps = {},

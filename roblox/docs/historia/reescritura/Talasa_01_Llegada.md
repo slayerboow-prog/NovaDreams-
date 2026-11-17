@@ -6,7 +6,7 @@ PASO 1 [Dialogo] @ Plataforma de Abisalia
 Reparto: Cosme
 Musica: Calma
 PLANO Medio: Cosme
-Cosme: (sonríe) Tálasa, criatura. El planeta más rico de la galaxia. Aquí el agua es más barata que el aire.
+Cosme: (sonríe) Tálasa. El planeta más rico de la galaxia. Aquí el agua es más barata que el aire.
 Cosme: (señala) Mira esas torres blancas. Y las balsas de abajo, de tablas y lona. Eso antes no estaba.
 Cosme: (pensativo) Huele a sal, a algas… y a miedo. Conozco ese olor. Vamos a ver qué pasa.
 

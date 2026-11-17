@@ -76,7 +76,7 @@ return {
 			Cuaderno = { Lines = {
 				{ S = "Narrador", T = "El cuaderno de Cosme, lleno de dibujos y coordenadas. En la última página, escrito deprisa: «Si me pasa algo:»." },
 				{ S = "Narrador", T = "«1) G-4 (gatos): Bigotes sabe dónde está la 66-B. 2) La Capitana Ñoz tiene cámaras en todas las dimensiones»." },
-				{ S = "Narrador", T = "«3) NO dejar que la criatura vaya sola».", Pause = 0.6 },
+				{ S = "Narrador", T = "«3) Que no vaya sin compañía».", Pause = 0.6 },
 				{ S = "Narrador", T = "Debajo, más pequeño: «Dile que estoy orgulloso. Por si acaso». Lo ha tachado. Pero se lee.", Pause = 1 },
 			} },
 			Mando = { Lines = {
@@ -92,7 +92,7 @@ return {
 				{ S = "Candela", T = "Plan: uno, la dimensión de los gatos. Dos, una capitana alienígena con cámaras. Tres, rescate.", Shot = "General", G = "Point" },
 				{ S = "Candela", T = "Cuatro, volver a tiempo para el examen de Beltrán. El punto cuatro no es negociable.", Beat = "Mira", To = "Ivan" },
 				{ S = "Ivan", T = "Yo me pido llevar el mando. …Vale, no. Yo me pido llevar la merienda.", A = "Shrug" },
-				{ S = "Pip", T = "Iré con ustedes. El señor Cosme me dijo «no dejes a la criatura sola».", Shot = "Medio:Pip" },
+				{ S = "Pip", T = "Iré con ustedes. El señor Cosme me dijo «que no vaya sin compañía».", Shot = "Medio:Pip" },
 				{ S = "Pip", T = "Por una vez, voy a obedecer sin rechistar.", Pause = 0.5, G = "Nod" },
 				{ S = "Narrador", T = "Recibes 📓 el Cuaderno de Cosme. Es oficial: hay un equipo de rescate. Tres estudiantes, un robot y un pez en un cubo." },
 			} },

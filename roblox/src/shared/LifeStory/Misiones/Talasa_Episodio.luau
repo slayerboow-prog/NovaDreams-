@@ -92,7 +92,7 @@ return {
 				Actors = { at("Bruma", "Talasa_CompuertaFaro", -1, 3), at("Cosme", "Talasa_CompuertaFaro", -3, -2) } },
 		},
 		Dialogues = {
-			Tabla = respaldo("Cosme", "Faltan técnicos en las compuertas. Echa una mano, criatura."),
+			Tabla = respaldo("Cosme", "Faltan técnicos en las compuertas. Echa una mano."),
 			Tormenta = respaldo("Bruma", "Bruma. Buceadora. Bueno, era buceadora. Ahora espero."),
 		},
 	},

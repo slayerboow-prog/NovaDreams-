@@ -6,7 +6,7 @@ PASO 1 [Dialogo] @ Fuente de las Perlas
 Reparto: Cosme
 Musica: Calma
 PLANO Medio: Cosme
-Cosme: (señala) La tabla de mareas, criatura. Cada doce minutos, el mar sube varios pisos. Y baja otra vez.
+Cosme: (señala) La tabla de mareas. Cada doce minutos, el mar sube varios pisos. Y baja otra vez.
 Cosme: (brazos en jarra) Las compuertas aguantan la ciudad. Pero alguien tiene que ajustar las válvulas a tiempo.
 Cosme: (se encoge de hombros) Los técnicos están abajo, en la Cúpula. Encerrados. Así que hoy el técnico eres tú.
 Cosme: (sonríe) El tablón está junto al Faro. Dos válvulas, ni más ni menos. Yo vigilo el cielo.

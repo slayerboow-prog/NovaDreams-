@@ -23,7 +23,7 @@ Musica: Tension
 PLANO Inserto: Archivo
 Narrador: Anuncios viejos, de hace cuarenta años. En el fondo de todos, un sol amarillo de verdad.
 Narrador: Los de después ya no tienen sol. Solo la Cúpula, el logo y la palabra «LUZ» en letras enormes.
-Cosme: (asustado) Le quitaron el sol a los anuncios, criatura. O se lo quitaron al cielo.
+Cosme: (asustado) Le quitaron el sol a los anuncios. O se lo quitaron al cielo.
 
 PASO 4 [Dialogo] @ Sala del Museo de la Luz
 Reparto: Cosme

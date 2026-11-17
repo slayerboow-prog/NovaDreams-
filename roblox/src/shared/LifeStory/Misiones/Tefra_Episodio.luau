@@ -71,7 +71,8 @@ return {
 		},
 		Dialogues = {
 			Llegada = { Lines = {
-				{ S = "Cosme", T = "Treinta y ocho años, criatura. Me fui por un agujero en el cielo y vuelvo en nave. Qué vueltas da todo.", To = "Yo" },
+				{ S = "Cosme", T = "Treinta y ocho años. Me fui por un agujero en el cielo y vuelvo en nave. Qué vueltas da todo.", To = "Yo" },
+				{ S = "Cosme", T = "Lía y yo cruzamos juntos aquella grieta. Ella tenía nueve años. Por eso dedicó su vida a entenderlas.", To = "Yo" },
 				{ S = "Cosme", T = "Esa torre no estaba. Ni la muralla. Ni el humo.", Beat = "Mira", Shot = "PrimerPlano:Cosme" },
 				{ S = "Cosme", T = "Esas sirenas… ¡Al refugio! Si en Tefra suena algo tres veces, se corre. Eso no ha cambiado.", A = "Surprised", Effects = { Scene = "Tefra_Sirenas" } },
 			} },
@@ -88,7 +89,7 @@ return {
 			} },
 			Estatua = { Lines = {
 				{ S = "Cosme", T = "Mírala. Con su bufanda de piedra. Siempre decía que el frío entra por el cuello.", Shot = "Medio:Cosme" },
-				{ S = "Cosme", T = "Tefra era redonda, criatura. Las casas, las calles, hasta el pan. Lo de las esquinas es de la guerra.", To = "Yo" },
+				{ S = "Cosme", T = "Tefra era redonda. Las casas, las calles, hasta el pan. Lo de las esquinas es de la guerra.", To = "Yo" },
 				{ S = "Cosme", T = "Mi casa estaba en el Ovillo. Mi hermana Ada se quedó aquí cuando yo… me caí a Valmar.", Beat = "Piensa" },
 				{ S = "Cosme", T = "Quiero verla. La casa. Y a Ada, si sigue ahí. ¿Me acompañas?", To = "Yo", A = "Sad" },
 			} },
@@ -599,7 +600,7 @@ return {
 				{ S = "Narrador", T = "De Ovilla no llega ninguna carta. Solo el silencio de sus cañones apagados.", If = { Choices = { TefraTobiLanza = "Callar" } } },
 				{ S = "DaliaRenn", T = "Toma. Mi insignia. Tú la llevarás mejor que yo.", To = "Yo", Effects = { Items = { InsigniaDalia = 1 } } },
 				{ S = "DaliaRenn", T = "Y los planos del traje de la Muralla. Que no se te queme nada más, forastero.", Effects = { Items = { RecetaTraje3 = 1 } } },
-				{ S = "Cosme", T = "Vámonos, criatura. Aquí ya no puedo ayudar.", Shot = "Medio:Cosme", Pause = 1, To = "Yo" },
+				{ S = "Cosme", T = "Vámonos. Aquí ya no puedo ayudar.", Shot = "Medio:Cosme", Pause = 1, To = "Yo" },
 				{ S = "Cosme", T = "Pero volveremos. Ada guardaba un candado en el puente. Lo sé. Ella siempre guardaba cosas.", A = "Sad" },
 			} },
 		},

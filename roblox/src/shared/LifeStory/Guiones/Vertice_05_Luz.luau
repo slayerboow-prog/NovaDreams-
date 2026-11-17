@@ -21,7 +21,7 @@ return {
 				{ S = "AbrilCruz", T = "(susurrando) Nadie sabe de dónde salen. MegaVerso dice que la fabrica. Pero no hay fábrica tan grande.", To = "Yo" },
 				{
 					S = "Cosme",
-					T = "Una ciudad que compra su propia luz a escondidas. Esto huele a lo de siempre, criatura: a alguien que gana.",
+					T = "Una ciudad que compra su propia luz a escondidas. Esto huele a lo de siempre: a alguien que gana.",
 					To = "Yo",
 					A = "ThinkChin",
 				},
@@ -40,6 +40,6 @@ return {
 			},
 		},
 	},
-	Scenes = { Vertice5_G1_Musica = { Light = true, Duration = 32.7, Anchors = { Yo = "Player" }, Tracks = { Music = { { At = 0, Intensity = "Tension" } } } } },
+	Scenes = { Vertice5_G1_Musica = { Light = true, Duration = 32, Anchors = { Yo = "Player" }, Tracks = { Music = { { At = 0, Intensity = "Tension" } } } } },
 	Steps = {},
 }

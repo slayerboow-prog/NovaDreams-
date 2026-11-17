@@ -6,7 +6,7 @@ PASO 1 [Dialogo] @ Plataforma de Distrito Cero
 Reparto: Cosme
 Musica: Calma
 PLANO Medio: Cosme
-Cosme: (brazos en jarra) Vértice, criatura. Un planeta entero que es una sola ciudad. Y una sola empresa.
+Cosme: (brazos en jarra) Vértice. Un planeta entero que es una sola ciudad. Y una sola empresa.
 Cosme: (señala) Mira esas pantallas. Te sonríen. Las pantallas que sonríen siempre quieren algo.
 Cosme: (pensativo) Antes de bajar he leído el cartel de la plataforma: «Aterrizaje gratuito. Despegue, consultar tarifas».
 

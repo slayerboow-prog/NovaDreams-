@@ -8,7 +8,7 @@ Musica: Calma
 PLANO Medio: AbrilCruz
 AbrilCruz: (brazos cruzados) ¿Os manda Gil? Gil no manda a nadie. Gil tiene miedo hasta de su sombra.
 AbrilCruz: (señala) Soy Abril. Arreglo la Cúpula y las farolas. Lo que MegaVerso rompe y no paga.
-Cosme: (sonríe) Una mecánica. Por fin alguien que habla mi idioma, criatura.
+Cosme: (sonríe) Una mecánica. Por fin alguien que habla mi idioma.
 AbrilCruz: (niega con la cabeza) Aquí abajo nadie se fía de la gente de fuera. Haced un turno de técnico en la plaza.
 AbrilCruz: (asiente) Dos paneles antes del apagón. Si salen bien, hablamos. Si no, gracias por su compra.
 

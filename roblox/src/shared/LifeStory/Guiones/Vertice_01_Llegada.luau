@@ -34,7 +34,7 @@ return {
 			Lines = {
 				{
 					S = "Cosme",
-					T = "Vértice, criatura. Un planeta entero que es una sola ciudad. Y una sola empresa.",
+					T = "Vértice. Un planeta entero que es una sola ciudad. Y una sola empresa.",
 					To = "Yo",
 					Shot = "Medio:Cosme",
 					A = "HandsOnHips",
@@ -51,7 +51,7 @@ return {
 		},
 	},
 	Scenes = {
-		Vertice1_G1_Musica = { Light = true, Duration = 23.2, Anchors = { Yo = "Player" }, Tracks = { Music = { { At = 0, Intensity = "Descubrimiento" } } } },
+		Vertice1_G1_Musica = { Light = true, Duration = 22.5, Anchors = { Yo = "Player" }, Tracks = { Music = { { At = 0, Intensity = "Descubrimiento" } } } },
 		Vertice1_G2_Musica = { Light = true, Duration = 44.3, Anchors = { Yo = "Player" }, Tracks = { Music = { { At = 0, Intensity = "Descubrimiento" } } } },
 	},
 	Steps = {},

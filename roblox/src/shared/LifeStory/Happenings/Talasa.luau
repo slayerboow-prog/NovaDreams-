@@ -55,7 +55,7 @@ return {
 				{ At = 5, S = "Narrador", T = "Tres lunas pequeñas sobre un cielo verde. Debajo, solo mar." },
 				{ At = 8.8, S = "Narrador", T = "Las Balsas: casas de tablas y lona. Llegan de abajo con lo puesto." },
 				{ At = 12.6, S = "Narrador", T = "Bajo el agua turquesa, junto a los pilotes, algo negro late despacio." },
-				{ At = 15.4, S = "Cosme", T = "La ciudad más bonita de la galaxia, criatura. Y nadie sonríe.", To = "Yo" },
+				{ At = 15.4, S = "Cosme", T = "La ciudad más bonita de la galaxia. Y nadie sonríe.", To = "Yo" },
 			},
 			Titles = {
 				{ At = 0.8, Text = "🌊 Tálasa · Abisalia", Sub = "Saga 2 · Episodio 3: «Marea negra»", Duration = 3 },
@@ -112,7 +112,7 @@ return {
 				{ At = 5, S = "AlmiranteCoria", T = "Abisalia: el Tubo queda cerrado. Nadie baja a la Cúpula Honda. Es una orden." },
 				{ At = 9.6, S = "NoaFerran", T = "Aguanta, Elio. Voy a bajar a por ti. Aunque tenga que deshacer todo lo que hice." },
 				{ At = 13.8, S = "Narrador", T = "Debajo de la ciudad, el coral negro late. Más rápido que ayer." },
-				{ At = 17.3, S = "Cosme", T = "Vamos a necesitar un traje mejor, criatura. Y una bajada muy larga.", To = "Yo" },
+				{ At = 17.3, S = "Cosme", T = "Vamos a necesitar un traje mejor. Y una bajada muy larga.", To = "Yo" },
 			},
 			Titles = {
 				{ At = 18.4, Text = "Continuará: «La Cúpula Honda»", Sub = "Tálasa · «Marea negra»", Duration = 2.6 },

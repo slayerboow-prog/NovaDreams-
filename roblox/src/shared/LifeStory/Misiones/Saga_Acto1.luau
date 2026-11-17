@@ -111,7 +111,7 @@ return {
 				{ S = "Yo", T = "¿Quién es Cósimo?" },
 				{ S = "Cosme", T = "Nadie. Un viejo… conocido. Un socio. Hace años.", Beat = "Aparta", A = "Sad" },
 				{ S = "Cosme", T = "Muchos años. Tantos como tú tienes, más o menos.", Pause = 0.6 },
-				{ S = "Cosme", T = "No importa. No importa nada. Ciencia. Vete a cenar, criatura.", A = "Sad", Beat = "Baja" },
+				{ S = "Cosme", T = "No importa. No importa nada. Ciencia. Vete a cenar.", A = "Sad", Beat = "Baja" },
 				{ S = "Pip", T = "(Bajito) El señor Cosme no ha dormido desde que vio la línea del cielo. Cuide de él.", Shot = "PPP:Pip" },
 				{ S = "Pip", T = "Él lleva mucho tiempo cuidando de usted. Aunque usted no lo sepa.", Beat = "Mira", To = "Yo" },
 				{ S = "Narrador", T = "Te quedas la moneda. Cosme no quiere tenerla cerca. Recibes 💰 la Moneda de la 66-B." },
@@ -203,7 +203,7 @@ return {
 				-- (Antes lo contaba el narrador: ahora se ve en un plano de los dos)
 				{ S = "Cosme", T = "(Cosme y Pip se miran. No te miran a ti. Te miran mucho, pero sin mirarte.)", Shot = "DosPlanos:Cosme,Pip", A = "Nervous", Pause = 0.5 },
 				{ S = "Cosme", T = "Nadie ha dicho nada de anclas. Ni de barcos. El pez se queda aquí. Tú vete a casa.", Beat = "Respira" },
-				{ S = "Cosme", T = "Y, criatura… si ves a alguien de gris, corre. Siempre.", Shot = "PrimerPlano:Cosme", To = "Yo" },
+				{ S = "Cosme", T = "Y… si ves a alguien de gris, corre. Siempre.", Shot = "PrimerPlano:Cosme", To = "Yo" },
 				{ S = "DonEscamas", T = "Toma: una escama. Por si necesitas un contable. O un amigo. Soy las dos cosas.", To = "Yo", A = "Happy" },
 				{ S = "Narrador", T = "Recibes ✨ una Escama brillante." },
 			} },

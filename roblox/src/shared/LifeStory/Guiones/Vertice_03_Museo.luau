@@ -12,7 +12,7 @@ return {
 			Lines = {
 				{ S = "Narrador", T = "Anuncios viejos, de hace cuarenta años. En el fondo de todos, un sol amarillo de verdad.", Shot = "General" },
 				{ S = "Narrador", T = "Los de después ya no tienen sol. Solo la Cúpula, el logo y la palabra «LUZ» en letras enormes." },
-				{ S = "Cosme", T = "Le quitaron el sol a los anuncios, criatura. O se lo quitaron al cielo.", To = "Yo", A = "Nervous" },
+				{ S = "Cosme", T = "Le quitaron el sol a los anuncios. O se lo quitaron al cielo.", To = "Yo", A = "Nervous" },
 			},
 		},
 		Placa = {

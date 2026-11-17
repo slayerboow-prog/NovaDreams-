@@ -300,7 +300,7 @@ local scenes = {
 			Dialogue = {
 				{ At = 0.4, S = "Cosme", T = "¿Has oído eso?", To = "Yo", Mood = "Surprise", G = "LookAround" },
 				{ At = 7.6, S = "Cosme", T = "Eso… antes no estaba ahí.", To = "Yo", Mood = "Fear", G = "Recoil" },
-				{ At = 10.6, S = "Cosme", T = "A casa, criatura. Y ni una palabra.", To = "Yo", Mood = "Fear" },
+				{ At = 10.6, S = "Cosme", T = "A casa. Y ni una palabra.", To = "Yo", Mood = "Fear" },
 			},
 		},
 	},
@@ -392,7 +392,7 @@ local scenes = {
 				mood(14.8, "Cosme", "Sad"),
 			},
 			Dialogue = {
-				{ At = 9.2, S = "Cosme", T = "…Tefra. Aquí nada tenía esquinas, criatura. Nada.", To = "Yo", Mood = "Sad", G = "LookAround" },
+				{ At = 9.2, S = "Cosme", T = "…Tefra. Aquí nada tenía esquinas. Nada.", To = "Yo", Mood = "Sad", G = "LookAround" },
 				{ At = 15, S = "Cosme", T = "Esto no es mi casa. Esto es un cuartel.", Pause = 0.6, To = "Yo", Mood = "Sad", A = "Sad" },
 			},
 			Titles = {
