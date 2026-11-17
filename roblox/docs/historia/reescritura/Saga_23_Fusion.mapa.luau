@@ -4,6 +4,7 @@
 -- (22:00-04:00) y la variante de los Restos no cambian.
 return {
 	Prefijo = "Saga_23",
+	Hablantes = { KAEL = "Kael" },
 	-- (la cinemática Grieta_Fusion se queda como está (su plano de reacción, la variante de los Restos que brillan y lo que Cosme dice si le tendiste una trampa o recuerdas el rasguño): el texto nuevo del PASO 1 está fundido a mano en la escena)
 	Pasos = { ["1"] = false },
 	Variables = {

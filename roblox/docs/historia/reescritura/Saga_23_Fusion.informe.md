@@ -27,39 +27,33 @@ _Ninguno._
 
 ## Aplicado
 
-- PASO 2 → paso 2 del juego (Scene «Llegada»): conversación «Llegada» con 9 frases nuevas (música Intima)
+- PASO 2 → paso 2 del juego (Scene «Llegada»): conversación «Llegada» con 5 frases nuevas
 - PASO 3 → paso 3 del juego (Escape): 1 frases al empezar el paso (escena ligera «Saga_23_G3_Entra», la lanza el paso 2 al cumplirse; el jugador no pierde el control)
-- PASO 4 → paso 4 del juego (Fight): 9 frases al empezar el paso (escena ligera «Saga_23_G4_Entra», la lanza el paso 3 al cumplirse; el jugador no pierde el control)
-- PASO 5 → paso 5 del juego (Scene «Restos»): conversación «Restos» con 5 frases nuevas
-- PASO 6 → paso 6 del juego (Fight): 4 frases al empezar el paso (escena ligera «Saga_23_G6_Entra», la lanza el paso 5 al cumplirse; el jugador no pierde el control)
-- PASO 7 → paso 7 del juego (Fight): 3 frases al empezar el paso (escena ligera «Saga_23_G7_Entra», la lanza el paso 6 al cumplirse; el jugador no pierde el control)
-- PASO 8 → paso 8 del juego (Scene «Rendicion»): conversación «Rendicion» con 23 frases nuevas (música Intima→Tema)
+- PASO 4 → paso 4 del juego (Fight): 1 frases al empezar el paso (escena ligera «Saga_23_G4_Entra», la lanza el paso 3 al cumplirse; el jugador no pierde el control)
+- PASO 5 → paso 5 del juego (Scene «Restos»): conversación «Restos» con 1 frases nuevas
+- PASO 6 → paso 6 del juego (Fight): 1 frases al empezar el paso (escena ligera «Saga_23_G6_Entra», la lanza el paso 5 al cumplirse; el jugador no pierde el control)
+- PASO 7 → paso 7 del juego (Fight): 1 frases al empezar el paso (escena ligera «Saga_23_G7_Entra», la lanza el paso 6 al cumplirse; el jugador no pierde el control)
+- PASO 8 → paso 8 del juego (Scene «Rendicion»): conversación «Rendicion» con 9 frases nuevas
 
 ## Adaptado (y por qué)
 
 - PASO 1 [Cinematic] @ : no corresponde a ningún paso del juego: no se aplica
-- frase quitada (es una acotación, no se dice): «Lo pulsa.»
-- frase quitada (es una acotación, no se dice): «Lo lanza hacia atrás.»
 - PASO 8: la conversación del juego tenía 1 preguntas y el guion 0: las que faltan se conservan tal cual al final (guardan decisiones que usa la historia)
-- PASO 8: «saga_23_fusion_completada = true» no la lee ninguna misión: no se crea
-- PASO 8: «venciste_gran_fusion = true» no la lee ninguna misión: no se crea
-- PASO 8: «cosimo_derrotado = true» no la lee ninguna misión: no se crea
-- PASO 8: «maquina_fusion_detenida = true» no la lee ninguna misión: no se crea
-- PASO 8: «grieta_final_abierta = true» no la lee ninguna misión: no se crea
-- PASO 8: «restos_grieta_utilizados = true» no la lee ninguna misión: no se crea
 
 ## Género ({o/a}) corregido en frases dirigidas al jugador
 
-- PASO 4 (línea 723) · Gnomo1: «Tranquilo.» → «Tranquil{o/a}.»
+_Ninguna corrección._
+
 
 ## Avisos
 
-- PASO 8 (línea 1569): «Capas» no está en el reparto del juego: sus frases no se aplican (si es alguien, ponlo en Hablantes del mapa)
+_Ninguno._
+
 
 ## Notas del guion sin equivalente directo (bloques de dirección, minijuegos, memoria…)
 
-- PASO 8 · Al terminar:: «Venciste en la Gran Fusión»
-- PASO 8 · DIRECCIÓN TÉCNICA AAA: Cámara
+_Ninguna._
+
 
 ## Cómo se traduce el formato
 
