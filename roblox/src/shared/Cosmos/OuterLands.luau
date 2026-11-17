@@ -9,31 +9,48 @@
 --   * El relieve sale de la región (shared/Cosmos/ValmarRegions): lomas y bosque, praderas, charcas del
 --     pantano, dunas, terrazas de las ruinas, picos nevados, roca negra afilada y un volcán con cráter. En el
 --     borde entre dos regiones se mezclan las dos (nada de escalones).
---   * Cuatro puentes desde la costa de la isla (norte, este, sur y oeste) y un campamento seguro (con Taller) donde
---     llegan. Junto a los campamentos y a la llegada de los puentes el suelo es llano.
+--   * UN SOLO TERRENO (fase B, 17-11-2026, el dueño: «el continente pegado a la ciudad»): el mar hondo de Valmar
+--     ya no existe. Alrededor de la isla queda solo la LAGUNA (Lagoon studs de agua poco honda: el puerto, la
+--     marina, las playas, el aeropuerto ganado al mar y las islas pequeñas siguen junto al agua) y más allá todo
+--     es tierra hasta la costa de fuera. Cuatro PASOS de tierra (norte, este, sur y oeste, donde antes estaban
+--     los puentes) cruzan la laguna: de la ciudad se sale andando. Un campamento seguro (con Taller) en cada
+--     región de los pasos.
+--   * Dentro de la isla y en lo hondo de la laguna no se escribe nada (height = nil): ahí manda TerrainBuilder.
 
 local VR = require(script.Parent.ValmarRegions)
+local CityPlan = require(script.Parent.Parent.CityPlan)
+local Airport = require(script.Parent.Parent.Airport)
 
 local OuterLands = {}
 
 OuterLands.Surface = -2 -- el nivel del mar (shared/Sea/OceanBiomes)
 OuterLands.Floor = -26 -- el fondo del mar alrededor del continente
 OuterLands.Band = 456 -- mar más allá de la costa de fuera (y luego el límite)
-OuterLands.Coast = 160 -- la playa de dentro empieza a tantos studs del borde del mar de Valmar
-OuterLands.DeckY = 30 -- altura del tablero de los puentes
 OuterLands.CampY = 8
+-- La laguna alrededor de la isla (lo que queda del mar de Valmar)
+OuterLands.Lagoon = 330 -- studs de agua desde la costa de la isla (más o menos 90, con ruido)
+OuterLands.LagoonFloor = -14 -- el fondo de la laguna (el de TerrainBuilder: allí no se escribe)
+OuterLands.IslandWater = 170 -- agua alrededor de las islas pequeñas (más su radio)
+OuterLands.PasoWidth = 420 -- ancho de los pasos de tierra que cruzan la laguna
+-- Lo que está construido sobre el agua y sigue necesitándola (rectángulos X0..X1, Z0..Z1 y su margen de agua)
+OuterLands.KeepWater = {
+	{ X0 = Airport.Land.X0, X1 = Airport.Land.X1, Z0 = Airport.Land.Z0, Z1 = Airport.Land.Z1, Margin = 220 }, -- aeropuerto
+	{ X0 = 380, X1 = 940, Z0 = 3150, Z1 = 3650, Margin = 260 }, -- puerto (shared/Port/PuertoPlan)
+}
 
 local F = VR.Frame
 local W = F.Width
 
--- Los cuatro puentes: de la costa de la isla (From, en tierra) hacia fuera hasta el continente (Dir: unidad)
+-- Los cuatro pasos de tierra (antes, puentes): de la costa de la isla hacia fuera (Dir: unidad); el campamento,
+-- en la región a la que llevan. (Se sigue llamando Bridges por lo que ya lo usaba: MapUI, ValmarWilds…)
 OuterLands.Bridges = {
 	{ Id = "Norte", Name = "Puente del Norte", X = 0, Dir = { 0, -1 }, Region = "BosqueEtereo" },
 	{ Id = "Este", Name = "Puente del Este", Z = 0, Dir = { 1, 0 }, Region = "PantanoMaldito" },
 	{ Id = "Sur", Name = "Puente del Sur", X = -1200, Dir = { 0, 1 }, Region = "LlanurasSalvajes" },
 	{ Id = "Oeste", Name = "Puente del Oeste", Z = 300, Dir = { -1, 0 }, Region = "DesiertoDorado" },
 }
--- dónde llega cada puente al borde del mar de Valmar y dónde queda su campamento
+OuterLands.Pasos = OuterLands.Bridges
+-- dónde cruza cada paso el borde del antiguo mar de Valmar y dónde queda su campamento
 for _, b in OuterLands.Bridges do
 	local dx, dz = b.Dir[1], b.Dir[2]
 	local edgeX = if dx > 0 then F.MaxX elseif dx < 0 then F.MinX else b.X
@@ -124,50 +141,134 @@ function OuterLands.regions(x: number, z: number): ({ [string]: any }, { [string
 	return first :: any, second :: any, f
 end
 
--- Lo que está de la orilla: >0 en tierra (studs desde la playa más cercana), <0 en el agua
-function OuterLands.edge(x: number, z: number): number
-	local d = VR.outside(x, z)
-	if d <= 0 then
-		return -1000
+-- Distancia a la costa de la isla (positiva fuera de la isla, negativa dentro)
+local COAST = CityPlan.Coast
+local CMINX, CMAXX, CMINZ, CMAXZ = math.huge, -math.huge, math.huge, -math.huge
+for _, pt in COAST do
+	CMINX, CMAXX = math.min(CMINX, pt[1]), math.max(CMAXX, pt[1])
+	CMINZ, CMAXZ = math.min(CMINZ, pt[2]), math.max(CMAXZ, pt[2])
+end
+function OuterLands.coastDistance(x: number, z: number): number
+	-- (lejos de la caja de la isla basta la distancia a la caja: es menor o igual, y ahorra cuentas)
+	local bx = math.max(CMINX - x, x - CMAXX, 0)
+	local bz = math.max(CMINZ - z, z - CMAXZ, 0)
+	local box = math.sqrt(bx * bx + bz * bz)
+	if box > 1200 then
+		return box
 	end
-	local n1 = math.noise(x / 700, z / 700, 5.1) * 140 + math.noise(x / 230, z / 230, 1.7) * 50
-	local n2 = math.noise(x / 650, z / 650, 9.2) * 130 + math.noise(x / 210, z / 210, 2.4) * 45
-	local inner = d - OuterLands.Coast + n1
-	local outer = (W - 80) - d + n2
-	return math.min(inner, outer)
+	local best = math.huge
+	local j = #COAST
+	for i = 1, #COAST do
+		local a, b = COAST[j], COAST[i]
+		local dx, dz = b[1] - a[1], b[2] - a[2]
+		local len2 = dx * dx + dz * dz
+		local t = if len2 > 0 then math.clamp(((x - a[1]) * dx + (z - a[2]) * dz) / len2, 0, 1) else 0
+		local px, pz = a[1] + t * dx - x, a[2] + t * dz - z
+		best = math.min(best, px * px + pz * pz)
+		j = i
+	end
+	best = math.sqrt(best)
+	return if CityPlan.inside(COAST, x, z) then -best else best
 end
 
--- ¿Cerca de un campamento o del paso de un puente? (llano). Devuelve 0..1 (1 = llano del todo)
-function OuterLands.flat(x: number, z: number): number
+-- ¿Dentro de la isla grande?
+function OuterLands.onIsland(x: number, z: number): boolean
+	return x >= CMINX and x <= CMAXX and z >= CMINZ and z <= CMAXZ and CityPlan.inside(COAST, x, z)
+end
+
+-- Cuánto está un punto dentro de un paso de tierra (0 fuera, 1 en medio)
+function OuterLands.paso(x: number, z: number): number
 	local best = 0
 	for _, b in OuterLands.Bridges do
-		local dc = math.sqrt((x - b.CampX) ^ 2 + (z - b.CampZ) ^ 2)
-		best = math.max(best, 1 - smooth(OuterLands.CampRadius, OuterLands.CampRadius + 140, dc))
-		-- el paso desde el borde del mar hasta el campamento (por donde baja la rampa del puente)
 		local dx, dz = b.Dir[1], b.Dir[2]
-		local along = (x - b.EdgeX) * dx + (z - b.EdgeZ) * dz
-		local side = math.abs((x - b.EdgeX) * dz - (z - b.EdgeZ) * dx)
-		if along > -20 and along < 460 then
-			best = math.max(best, 1 - smooth(40, 110, side))
+		local ox, oz = b.X or 0, b.Z or 0
+		local along = (x - ox) * dx + (z - oz) * dz
+		if along > 0 then
+			local side = math.abs((x - ox) * dz - (z - oz) * dx)
+			local half = OuterLands.PasoWidth / 2 + math.noise(x / 300, z / 300, 2.2) * 40
+			best = math.max(best, 1 - smooth(half - 70, half + 50, side))
 		end
 	end
 	return best
 end
 
--- Altura del suelo (Y del mundo) en las Tierras Exteriores (y en su franja de mar). nil dentro del mar de Valmar.
+-- La orilla de dentro (la de la laguna): >0 en tierra (studs desde el agua), <0 en la laguna
+function OuterLands.innerEdge(x: number, z: number): number
+	local s = OuterLands.coastDistance(x, z)
+	local lag = OuterLands.Lagoon + math.noise(x / 520, z / 520, 4.2) * 70 + math.noise(x / 170, z / 170, 6.1) * 22
+	local e = s - lag
+	-- los pasos de tierra: cruzan la laguna desde la costa (tierra desde el primer stud fuera de la isla)
+	if s < lag + 200 then
+		local k = OuterLands.paso(x, z)
+		if k > 0 then
+			e = math.max(e, (s + 60) * k + e * (1 - k))
+		end
+	end
+	-- agua alrededor de las islas pequeñas
+	for _, isl in CityPlan.Islands do
+		local di = math.sqrt((x - isl.X) ^ 2 + (z - isl.Z) ^ 2)
+		e = math.min(e, di - isl.R - OuterLands.IslandWater)
+	end
+	-- y alrededor de lo construido sobre el agua
+	for _, r in OuterLands.KeepWater do
+		local rx = math.max(r.X0 - x, x - r.X1, 0)
+		local rz = math.max(r.Z0 - z, z - r.Z1, 0)
+		e = math.min(e, math.sqrt(rx * rx + rz * rz) - r.Margin)
+	end
+	return e
+end
+
+-- Lo que está de la orilla: >0 en tierra (studs desde la playa más cercana), <0 en el agua
+function OuterLands.edge(x: number, z: number): number
+	local d = VR.outside(x, z)
+	local n2 = math.noise(x / 650, z / 650, 9.2) * 130 + math.noise(x / 210, z / 210, 2.4) * 45
+	local outer = (W - 80) - d + n2
+	-- (a más de 900 del borde del antiguo mar no hay laguna ni isla cerca)
+	if d > 900 then
+		return outer
+	end
+	return math.min(OuterLands.innerEdge(x, z), outer)
+end
+
+-- ¿Cerca de un campamento? (llano). Devuelve 0..1 (1 = llano del todo)
+function OuterLands.flat(x: number, z: number): number
+	local best = 0
+	for _, b in OuterLands.Bridges do
+		local dc = math.sqrt((x - b.CampX) ^ 2 + (z - b.CampZ) ^ 2)
+		best = math.max(best, 1 - smooth(OuterLands.CampRadius, OuterLands.CampRadius + 140, dc))
+	end
+	return best
+end
+
+-- Altura del suelo (Y del mundo) de las Tierras Exteriores (y de su mar de fuera). nil en la isla y en lo
+-- hondo de la laguna (ahí no se escribe: queda lo de TerrainBuilder)
 function OuterLands.height(x: number, z: number): number?
 	local d = VR.outside(x, z)
-	if d <= 0 then
+	if d <= 0 and OuterLands.onIsland(x, z) then
 		return nil
 	end
-	local e = OuterLands.edge(x, z)
+	local n2 = math.noise(x / 650, z / 650, 9.2) * 130 + math.noise(x / 210, z / 210, 2.4) * 45
+	local outer = (W - 80) - d + n2
+	local inner = if d > 900 then math.huge else OuterLands.innerEdge(x, z)
+	local e = math.min(inner, outer)
 	local base
-	if e <= -220 then
+	if inner <= outer and e <= 0 then
+		-- la orilla de la laguna: baja enseguida a su fondo (el de TerrainBuilder)
+		local Lf = OuterLands.LagoonFloor
+		if e < -60 then
+			if d <= 0 then
+				return nil
+			end
+			base = Lf
+		else
+			base = -1 + (e / 60) * (-1 - Lf)
+		end
+	elseif e <= -220 then
 		base = OuterLands.Floor
 	elseif e <= 0 then
-		base = OuterLands.Floor + (e + 220) / 220 * (2 - OuterLands.Floor)
+		base = OuterLands.Floor + (e + 220) / 220 * (-1 - OuterLands.Floor)
 	else
-		base = 2 + math.min(e, 300) / 300 * 5
+		base = -1 + math.min(e, 300) / 300 * 7
 	end
 	local h = base
 	if e > 0 then
@@ -175,6 +276,13 @@ function OuterLands.height(x: number, z: number): number?
 		local rel = RELIEF[r1.Id](x, z) * (1 - f) + RELIEF[r2.Id](x, z) * f
 		local m = smooth(60, 420, e)
 		h = base + rel * m
+	end
+	-- (por los pasos de tierra se anda en seco: sin charcas del pantano entre la ciudad y la tierra de fuera)
+	if d <= 0 and e > 0 and inner < 700 then
+		local k = OuterLands.paso(x, z)
+		if k > 0 then
+			h = h + (math.max(h, 1.5) - h) * k
+		end
 	end
 	local fl = OuterLands.flat(x, z)
 	if fl > 0 then
@@ -196,6 +304,11 @@ function OuterLands.slope(x: number, z: number, step: number?): number
 	local hx = OuterLands.height(x + s, z) or h
 	local hz = OuterLands.height(x, z + s) or h
 	return math.sqrt((hx - h) ^ 2 + (hz - h) ^ 2) / s
+end
+
+-- ¿Escribe aquí el terreno World/OuterLandsBuilder? (fuera de la isla y de lo hondo de la laguna)
+function OuterLands.covers(x: number, z: number): boolean
+	return OuterLands.height(x, z) ~= nil
 end
 
 -- Lo más cerca que queda un campamento
@@ -275,14 +388,15 @@ function OuterLands.decor(): { { [string]: any } }
 	for _, reg in VR.List do
 		local list = OuterLands.DecorPerRegion[reg.Id] or {}
 		for _, entry in list do
-			local kind, count = entry[1], entry[2]
+			-- (×1,5: ahora también hay tierra donde estaba el mar de Valmar)
+			local kind, count = entry[1], math.floor(entry[2] * 1.5)
 			local made = 0
 			for _ = 1, count * 30 do
 				if made >= count then
 					break
 				end
 				local a = reg.Bearing + (rnd() * 2 - 1) * (VR.Width / 2 - 2)
-				local t = 0.08 + rnd() * 0.84
+				local t = -0.75 + rnd() * 1.67
 				local dist = VR.rayBox(a, t * W)
 				local x, z = math.sin(math.rad(a)) * dist, -math.cos(math.rad(a)) * dist
 				local h = OuterLands.height(x, z)

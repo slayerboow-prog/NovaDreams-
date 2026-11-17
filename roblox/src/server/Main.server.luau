@@ -15,11 +15,14 @@ workspace:SetAttribute("ServerReady", false)
 Boot.step("TerrainBuilder", function()
 	require(World.TerrainBuilder).build()
 end, 120)
--- 1b) El mar hondo alrededor de Valmar (World/OceanBuilder, docs/mar/diseno.md): en su hilo y poco a
---     poco (no frena el arranque); solo toca el mar lejos de la costa, los puertos y las islas
-Boot.extra("OceanBuilder", function()
-	require(World.OceanBuilder).build()
-end)
+-- 1b) El mar hondo alrededor de Valmar (World/OceanBuilder, docs/mar/diseno.md). APAGADO desde la fase B
+--     (17-11-2026, el dueño: un solo terreno con el continente): alrededor de la isla solo queda la laguna, y
+--     más allá, tierra (World/OuterLandsBuilder). Config.Sea.ValmarDeep = true lo vuelve a construir.
+if require(game:GetService("ReplicatedStorage").Shared.Config).Sea.ValmarDeep then
+	Boot.extra("OceanBuilder", function()
+		require(World.OceanBuilder).build()
+	end)
+end
 
 -- 1c) El relieve natural fuera de la ciudad (colinas, sierras y acantilados; shared/Relief, horneado al
 --     construir el archivo en ServerStorage.ReliefMap: World/ReliefBake): en su hilo y trozo a trozo.
@@ -33,9 +36,9 @@ Boot.extra("Relief", function()
 	end
 end)
 
--- 1d) LAS TIERRAS EXTERIORES: el continente nuevo alrededor del mar con las ocho regiones de caza, sus puentes
---     y campamentos (World/OuterLandsBuilder, shared/Cosmos/OuterLands). En su hilo, después del relieve (los
---     puentes arrancan del suelo de la isla ya terminado). Solo escribe fuera del mar de Valmar.
+-- 1d) LAS TIERRAS EXTERIORES: la tierra de alrededor de la isla (de la laguna a la costa de fuera) con las ocho
+--     regiones de caza, los cuatro pasos de tierra y los campamentos (World/OuterLandsBuilder, shared/Cosmos/
+--     OuterLands). En su hilo, después del relieve. No toca la isla ni lo hondo de la laguna.
 Boot.extra("TierrasExteriores", function()
 	local t0 = os.clock()
 	while not workspace:GetAttribute("ReliefReady") and os.clock() - t0 < 240 do

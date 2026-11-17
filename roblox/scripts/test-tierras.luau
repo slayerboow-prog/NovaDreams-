@@ -10,7 +10,27 @@ local VR = L.load("src/shared/Cosmos/ValmarRegions")
 local F = VR.Frame
 
 print("🌍 Forma del continente")
-check(OL.height(0, 0) == nil and OL.height(F.MaxX - 10, 0) == nil and OL.height(0, F.MinZ + 10) == nil, "dentro del mar de Valmar no se toca nada (ni la isla ni el mar)")
+check(OL.height(0, 0) == nil and OL.height(-1500, 2000) == nil, "la isla no se toca")
+check(OL.height(-4300, -1500) == nil and OL.height(610, 3500) == nil and OL.height(4450 - 250, 2650) == nil, "lo hondo de la laguna (y el puerto y la Isla del Faro con su agua) tampoco")
+check(OL.covers(F.MaxX - 10, -1500) and OL.isLand(0, F.MinZ + 10) and OL.isLand(-5200, -2500), "más allá de la laguna, tierra hasta el continente (un solo terreno)")
+do
+	-- los cuatro pasos de tierra: de la costa de la isla al continente sin agua
+	local okP = true
+	for _, b in OL.Bridges do
+		local ox, oz = b.X or 0, b.Z or 0
+		local dx, dz = b.Dir[1], b.Dir[2]
+		local s0 = 0
+		for s = 0, 7000, 8 do
+			if OL.onIsland(ox + dx * s, oz + dz * s) then
+				s0 = s
+			end
+		end
+		for s = s0 + 16, s0 + 1200, 16 do
+			okP = okP and OL.isLand(ox + dx * s, oz + dz * s)
+		end
+	end
+	check(okP, "cuatro pasos de tierra cruzan la laguna (norte, este, sur y oeste)")
+end
 check(((F.Width + OL.Band) % 16) == 0 and ((F.MaxX - F.MinX) % 4) == 0 and ((F.MaxZ - F.MinZ) % 4) == 0, "el marco cuadra con los vóxeles y los nudos")
 local land, water, per, maxH = 0, 0, {}, {}
 for x = F.MinX - F.Width - 400, F.MaxX + F.Width + 400, 64 do
@@ -58,15 +78,17 @@ check(OL.material(-7000, 300, 30, 0.1) == "Sand" or OL.material(-7000, 300, 30, 
 check(OL.material(V.X, V.Z, 300, 0.2) == "CrackedLava", "lava en el cráter")
 check(OL.material(-6900, -6400, 260, 0.2) == "Snow", "nieve en lo alto de las Montañas Heladas")
 
-print("🌉 Puentes y campamentos")
+print("⛺ Pasos y campamentos")
 local okB = #OL.Bridges == 4
 for _, b in OL.Bridges do
 	okB = okB and OL.isLand(b.CampX, b.CampZ) and math.abs((OL.height(b.CampX, b.CampZ) or 0) - OL.CampY) < 1
 	okB = okB and OL.isLand(b.EdgeX + b.Dir[1] * 240, b.EdgeZ + b.Dir[2] * 240) and OL.slope(b.CampX, b.CampZ) < 0.1
 	okB = okB and VR.ById[b.Region] ~= nil and VR.at(b.CampX, b.CampZ).Id == b.Region
 end
-check(okB, "cuatro puentes que llegan a tierra firme y un campamento llano en la región que toca")
-check(VR.ById[OL.Bridges[1].Region].MinLevel <= 20 and VR.ById[OL.Bridges[3].Region].MinLevel <= 20, "los puentes del norte y del sur llevan a las regiones de menos nivel")
+check(okB, "cuatro pasos que llegan a tierra firme y un campamento llano en la región que toca")
+check(VR.ById[OL.Bridges[1].Region].MinLevel <= 20 and VR.ById[OL.Bridges[3].Region].MinLevel <= 20, "los pasos del norte y del sur llevan a las regiones de menos nivel")
+local mainSrc = fs.readFile("src/server/Main.server.luau")
+check(string.find(mainSrc, "Sea.ValmarDeep", 1, true) ~= nil, "el mar hondo de Valmar ya no se construye (Config.Sea.ValmarDeep)")
 
 print("🌲 Decoración")
 local deco = OL.decor()

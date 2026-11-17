@@ -1,12 +1,12 @@
 -- OuterLandsBuilder: construye LAS TIERRAS EXTERIORES al arrancar (las cuentas, en shared/Cosmos/OuterLands):
--- el terreno del continente alrededor del mar de Valmar con su mar alrededor, los cuatro puentes desde la isla,
--- un campamento seguro (con Taller) donde llega cada puente, la decoración de cada región y un límite invisible
--- más allá de la costa de fuera.
+-- el terreno de alrededor de la isla (desde la laguna hasta la costa de fuera, con los cuatro pasos de tierra que
+-- la cruzan: un solo terreno con la ciudad, fase B del 17-11-2026), un campamento seguro (con Taller) en cada
+-- región de los pasos, la decoración de cada región y un límite invisible más allá de la costa de fuera.
 --
 --   * En su hilo y trozo a trozo (128 × 128 studs, una espera entre trozos): no frena el arranque. Cuando acaba
 --     pone el atributo TierrasReady en workspace (World/ValmarWilds espera a eso para sacar bestias allí).
---   * Solo escribe FUERA del mar de Valmar (shared/Sea/OceanBiomes: el mar y su fondo no cambian): los trozos
---     van alineados con su borde y nunca lo cruzan.
+--   * No toca la isla ni lo hondo de la laguna (OuterLands.height = nil): en los trozos que lo pisan se lee lo que
+--     hay y se deja igual.
 --   * Rápido: la altura y el material se calculan cada 16 studs y en medio se interpola; los trozos que son
 --     solo mar se rellenan con dos bloques.
 
@@ -47,24 +47,43 @@ local function chunk(terrain: Terrain, x0: number, z0: number, sx: number, sz: n
 	-- nudos cada NODE studs (con un borde de uno para la pendiente)
 	local nx, nz = math.ceil(sx / NODE) + 1, math.ceil(sz / NODE) + 1
 	local H = table.create((nx + 2) * (nz + 2), 0)
+	local Keep = table.create((nx + 2) * (nz + 2), false) -- (nudos de la isla o de lo hondo de la laguna: no se tocan)
 	local top, low = -math.huge, math.huge
+	local kept, own = 0, 0
 	for j = 0, nz + 1 do
 		for i = 0, nx + 1 do
-			local h = OuterLands.height(x0 + (i - 1) * NODE, z0 + (j - 1) * NODE) or Floor
+			local px, pz = x0 + (i - 1) * NODE, z0 + (j - 1) * NODE
+			local h = OuterLands.height(px, pz)
+			local inside = i >= 1 and i <= nx and j >= 1 and j <= nz
+			if h == nil then
+				Keep[j * (nx + 2) + i + 1] = true
+				h = if OuterLands.onIsland(px, pz) then -1 else OuterLands.LagoonFloor
+				if inside then
+					kept += 1
+				end
+			elseif inside then
+				own += 1
+			end
 			H[j * (nx + 2) + i + 1] = h
-			if i >= 1 and i <= nx and j >= 1 and j <= nz then
+			if inside then
 				top = math.max(top, h)
 				low = math.min(low, h)
 			end
 		end
 	end
+	if own == 0 then
+		return 0 -- (todo isla o laguna honda)
+	end
 	local function node(i: number, j: number): number
 		return H[(j + 1) * (nx + 2) + (i + 1) + 1]
+	end
+	local function keepNode(i: number, j: number): boolean
+		return Keep[(j + 1) * (nx + 2) + (i + 1) + 1]
 	end
 	local yb = Floor - 10
 	yb = math.floor(yb / VOXEL) * VOXEL
 	-- solo mar: el fondo de arena y el agua, en dos bloques
-	if top < Surface - 3 then
+	if top < Surface - 3 and kept == 0 then
 		local fh = math.floor((low - yb) / VOXEL) * VOXEL
 		terrain:FillBlock(CFrame.new(x0 + sx / 2, yb + fh / 2, z0 + sz / 2), V3(sx, math.max(VOXEL, fh), sz), Enum.Material.Sand)
 		local wb = yb + math.max(VOXEL, fh)
@@ -84,6 +103,11 @@ local function chunk(terrain: Terrain, x0: number, z0: number, sx: number, sz: n
 	local layers = (ytop - yb) // VOXEL
 	local cx, cz = sx // VOXEL, sz // VOXEL
 	local region = Region3.new(V3(x0, yb, z0), V3(x0 + sx, ytop, z0 + sz))
+	-- (lo que ya hay, para dejar igual las columnas de la isla y de la laguna honda)
+	local oldM, oldO
+	if kept > 0 then
+		oldM, oldO = terrain:ReadVoxels(region, VOXEL)
+	end
 	local materials = table.create(cx)
 	local occupancy = table.create(cx)
 	local Air, Water, Rock, Ground = Enum.Material.Air, Enum.Material.Water, Enum.Material.Rock, Enum.Material.Ground
@@ -102,6 +126,15 @@ local function chunk(terrain: Terrain, x0: number, z0: number, sx: number, sz: n
 			local fz = ((k - 0.5) / per)
 			local k0 = math.min(math.floor(fz), nz - 2)
 			local tz = fz - k0
+			-- (se deja igual solo si los cuatro nudos de alrededor son de la isla o de la laguna honda: así la orilla
+			-- no sale en escalones de 16 studs; entre medias, la altura de repuesto de esos nudos casa con lo de debajo)
+			if oldM and keepNode(i0, k0) and keepNode(i0 + 1, k0) and keepNode(i0, k0 + 1) and keepNode(i0 + 1, k0 + 1) then
+				for y = 1, layers do
+					mx[y][k] = oldM[i][y][k]
+					ox[y][k] = oldO[i][y][k]
+				end
+				continue
+			end
 			local h = (node(i0, k0) * (1 - tx) + node(i0 + 1, k0) * tx) * (1 - tz) + (node(i0, k0 + 1) * (1 - tx) + node(i0 + 1, k0 + 1) * tx) * tz
 			local near = M[math.clamp(math.floor(fz + 0.5), 0, nz - 1) * nx + math.clamp(math.floor(fx + 0.5), 0, nx - 1) + 1]
 			local skin, slope = near[1], near[2]
@@ -125,7 +158,8 @@ local function chunk(terrain: Terrain, x0: number, z0: number, sx: number, sz: n
 	return cx * cz * layers
 end
 
--- Las cuatro franjas del marco (fuera del mar de Valmar, alineadas con su borde)
+-- Las franjas que se escriben: las cuatro del marco y el antiguo mar de Valmar (todo alineado con su borde;
+-- en el antiguo mar, los trozos de la isla y de la laguna honda se saltan o se dejan igual)
 function OuterLandsBuilder.strips(): { { number } }
 	local F = VR.Frame
 	local Wt = F.Width + OuterLands.Band
@@ -134,6 +168,7 @@ function OuterLandsBuilder.strips(): { { number } }
 		{ F.MinX - Wt, F.MaxZ, F.MaxX + Wt, F.MaxZ + Wt }, -- sur (con sus esquinas)
 		{ F.MinX - Wt, F.MinZ, F.MinX, F.MaxZ }, -- oeste
 		{ F.MaxX, F.MinZ, F.MaxX + Wt, F.MaxZ }, -- este
+		{ F.MinX, F.MinZ, F.MaxX, F.MaxZ }, -- el antiguo mar de Valmar (tierra hasta la laguna)
 	}
 end
 
@@ -166,92 +201,6 @@ function OuterLandsBuilder.terrain(yieldEach: boolean?): (number, number)
 		end
 	end
 	return voxels, chunks
-end
-
----------------------------------------------------------------------
--- Puentes
----------------------------------------------------------------------
-local function groundY(x: number, z: number): number
-	local params = RaycastParams.new()
-	params.FilterType = Enum.RaycastFilterType.Exclude
-	params.FilterDescendantsInstances = {}
-	local hit = workspace:Raycast(V3(x, 700, z), V3(0, -900, 0), params)
-	return if hit then hit.Position.Y else 4
-end
-
--- Una losa de A a B (tablero, con barandillas)
-local function slab(parent: Instance, a: Vector3, b: Vector3, width: number)
-	local len = (b - a).Magnitude
-	if len < 0.5 then
-		return
-	end
-	local cf = CFrame.lookAt((a + b) / 2, b)
-	Builder.part({ Name = "Tablero", Size = V3(width, 2, len + 1), CFrame = cf * CFrame.new(0, -1, 0), Color = rgb(150, 146, 140), Material = Enum.Material.Concrete, Parent = parent })
-	Builder.part({ Name = "Asfalto", Size = V3(width - 8, 0.2, len + 1), CFrame = cf * CFrame.new(0, 0.1, 0), Color = rgb(52, 52, 56), Material = Enum.Material.Asphalt, CanQuery = false, Parent = parent })
-	for _, side in { -1, 1 } do
-		Builder.part({ Name = "Barandilla", Size = V3(1.2, 3.6, len + 1), CFrame = cf * CFrame.new(side * (width / 2 - 0.6), 1.8, 0), Color = rgb(190, 186, 178), Material = Enum.Material.Concrete, Parent = parent })
-	end
-end
-
-function OuterLandsBuilder.bridges(parent: Instance): number
-	local n = 0
-	local DeckY = OuterLands.DeckY
-	for _, b in OuterLands.Bridges do
-		local m = Builder.model("Puente" .. b.Id, parent)
-		local dx, dz = b.Dir[1], b.Dir[2]
-		local dir = V3(dx, 0, dz)
-		-- el inicio: la costa de la isla en esa línea (y un poco tierra adentro)
-		local ox = if b.X then b.X else 0
-		local oz = if b.Z then b.Z else 0
-		local coast = 0
-		for s = 0, 7000, 20 do
-			if CityPlan.inside(CityPlan.Coast, ox + dx * s, oz + dz * s) then
-				coast = s
-			end
-		end
-		local s0 = coast - 90
-		local p0 = V3(ox + dx * s0, 0, oz + dz * s0)
-		local y0 = groundY(p0.X, p0.Z) + 0.2
-		local rampLen = math.max(140, math.abs(DeckY - y0) * 9)
-		local sEdge = math.abs((b.EdgeX - ox) * dx + (b.EdgeZ - oz) * dz)
-		local function at(s: number, y: number): Vector3
-			return V3(ox + dx * s, y, oz + dz * s)
-		end
-		-- subida desde la isla, tablero sobre el mar y bajada al campamento
-		slab(m, at(s0, y0), at(s0 + rampLen, DeckY), 40)
-		local s = s0 + rampLen
-		local sEnd = sEdge + 20
-		while s < sEnd - 0.5 do
-			local s2 = math.min(sEnd, s + 200)
-			slab(m, at(s, DeckY), at(s2, DeckY), 40)
-			s = s2
-		end
-		slab(m, at(sEnd, DeckY), at(sEnd + 230, OuterLands.CampY + 0.3), 40)
-		-- pilares y farolas
-		local k = 0
-		for sp = s0 + rampLen + 60, sEnd - 30, 170 do
-			local c = at(sp, 0)
-			Builder.part({ Name = "Pilar", Size = V3(10, DeckY + 92, 8), CFrame = CFrame.lookAt(V3(c.X, (DeckY - 2 - 92) / 2, c.Z), V3(c.X, (DeckY - 2 - 92) / 2, c.Z) + dir), Color = rgb(128, 124, 118), Material = Enum.Material.Concrete, Parent = m })
-			k += 1
-			for _, side in { -1, 1 } do
-				local off = V3(dz, 0, -dx) * side * 21
-				local base = at(sp, DeckY) + off
-				Builder.part({ Name = "Farola", Size = V3(0.7, 12, 0.7), CFrame = CFrame.new(base + V3(0, 6, 0)), Color = rgb(60, 62, 66), Material = Enum.Material.Metal, CastShadow = false, Parent = m })
-				local lampHead = Builder.part({ Name = "Luz", Size = V3(2, 0.8, 2), CFrame = CFrame.new(base + V3(0, 12.4, 0)), Color = rgb(255, 226, 160), Material = Enum.Material.Neon, CastShadow = false, Parent = m })
-				if k % 3 == 0 then
-					local light = Instance.new("PointLight")
-					light.Range = 40
-					light.Brightness = 1.2
-					light.Color = rgb(255, 220, 160)
-					light.Shadows = false
-					light.Parent = lampHead
-				end
-			end
-		end
-		m:SetAttribute("Region", b.Region)
-		n += #m:GetChildren()
-	end
-	return n
 end
 
 ---------------------------------------------------------------------
@@ -293,7 +242,7 @@ function OuterLandsBuilder.camps(parent: Instance): number
 		-- el mástil con la bandera de la región (se ve de lejos)
 		Builder.part({ Name = "Mastil", Size = V3(1, 34, 1), CFrame = CFrame.new(c + V3(0, 17, 26)), Color = rgb(90, 70, 50), Material = Enum.Material.Wood, Parent = m })
 		Builder.part({ Name = "Bandera", Size = V3(0.3, 7, 12), CFrame = CFrame.new(c + V3(0, 30, 32.5)), Color = reg.Color, Material = Enum.Material.Fabric, CanCollide = false, Parent = m })
-		-- empalizada baja alrededor (con hueco hacia el puente)
+		-- empalizada baja alrededor (con hueco hacia la ciudad, por donde llega el paso)
 		for t = 0, 23 do
 			local a = t / 24 * math.pi * 2
 			local p = c + V3(math.cos(a) * 70, 0, math.sin(a) * 70)
@@ -457,12 +406,6 @@ function OuterLandsBuilder.build(): Instance?
 		root.Parent = workspace
 	end
 	local parts = 0
-	local okB, nb = pcall(OuterLandsBuilder.bridges, root)
-	if okB then
-		parts += nb
-	else
-		warn("[TierrasExteriores] puentes", nb)
-	end
 	local voxels, chunks = OuterLandsBuilder.terrain(true)
 	local okC, nc = pcall(OuterLandsBuilder.camps, root)
 	if okC then

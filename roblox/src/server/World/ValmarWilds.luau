@@ -61,7 +61,7 @@ function ValmarWilds.surface(field: Relief.Field, ground: (number, number) -> (n
 			return y
 		end
 		-- (las Tierras Exteriores: la misma cuenta con la que World/OuterLandsBuilder escribe el terreno)
-		if ValmarRegions.outside(x, z) > 0 then
+		if OuterLands.covers(x, z) then
 			return OuterLands.height(x, z) or Relief.surfaceY(field, x, z)
 		end
 		return Relief.surfaceY(field, x, z)
@@ -70,8 +70,8 @@ function ValmarWilds.surface(field: Relief.Field, ground: (number, number) -> (n
 	-- (loose: para las regiones casi sin campo, como el Pantano junto a la playa: vale terreno menos salvaje,
 	-- pero igual de lejos de lo construido)
 	function S.goodSpot(lx: number, lz: number, maxSlope: number, margin: number?, loose: boolean?): boolean
-		-- al otro lado del mar: tierra firme, lejos de los campamentos y del paso de los puentes, sin mucha cuesta
-		if ValmarRegions.outside(lx, lz) > 0 then
+		-- fuera de la isla (la tierra de alrededor): tierra firme, lejos de los campamentos, sin mucha cuesta
+		if not OuterLands.onIsland(lx, lz) then
 			local h = OuterLands.height(lx, lz)
 			return h ~= nil and h > 4 and OuterLands.campDistance(lx, lz) > OuterLands.SafeRadius and OuterLands.flat(lx, lz) < 0.02
 				and OuterLands.slope(lx, lz, 8) <= maxSlope
@@ -167,7 +167,7 @@ function ValmarWilds.publish(Bestiary: any): number
 	if places.Boss then
 		add("GuaridaJefe_Valmar", "GuaridaJefe", places.Boss.X, places.Boss.Z)
 	end
-	-- los campamentos de las Tierras Exteriores (donde llegan los puentes)
+	-- los campamentos de las Tierras Exteriores (en la región de cada paso de tierra)
 	for _, b in OuterLands.Bridges do
 		add("Campamento_" .. b.Id, "Campamento", b.CampX, b.CampZ)
 	end
@@ -175,7 +175,7 @@ function ValmarWilds.publish(Bestiary: any): number
 	for _, reg in ValmarRegions.List do
 		local sx, sz, k = 0, 0, 0
 		for _, lair in places.Lairs do
-			if lair.Region == reg.Id and not lair.Boss and ValmarRegions.outside(lair.X, lair.Z) > 0 then
+			if lair.Region == reg.Id and not lair.Boss and not OuterLands.onIsland(lair.X, lair.Z) then
 				sx += lair.X
 				sz += lair.Z
 				k += 1

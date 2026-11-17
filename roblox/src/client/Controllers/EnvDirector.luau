@@ -206,7 +206,7 @@ function EnvDirector.soundContext(camPos: Vector3, now: number?): Soundscapes.Co
 	-- Nácara: bajo el mar, junto a su plaza (o dentro de la cúpula de aire)
 	pcall(function()
 		local Nacara = lazy("Nacara")
-		if Nacara and body.Y < -2 then
+		if Nacara and body.Y < (Nacara.Surface or -2) then
 			local dx, dz = body.X - Nacara.Center.X, body.Z - Nacara.Center.Z
 			ctx.Nacara = dx * dx + dz * dz < Soundscapes.NacaraRadius * Soundscapes.NacaraRadius
 		end

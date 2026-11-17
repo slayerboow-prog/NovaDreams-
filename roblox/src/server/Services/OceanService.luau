@@ -29,6 +29,9 @@ local DataService = require(script.Parent.DataService)
 local InventoryService = require(script.Parent.InventoryService)
 local DivingService = require(script.Parent.DivingService)
 local StoryEvents = require(script.Parent.Parent.LifeStory.StoryEvents)
+-- (fase B, 17-11-2026: sin mar hondo de Valmar no hay recursos del fondo, cofres ni puntos de buceo en el mapa;
+-- Config.Sea.ValmarDeep = true los vuelve a poner)
+local DEEP = require(ReplicatedStorage.Shared.Config).Sea.ValmarDeep == true
 
 local OceanService = {}
 
@@ -514,7 +517,7 @@ function OceanService.init()
 		poiPositions[poi.Id] = Ocean.poiPosition(poi)
 	end
 	-- Recursos
-	for i, spec in OceanService.plan() do
+	for i, spec in (if DEEP then OceanService.plan() else {}) do
 		local node: Node = { Id = i, Loot = spec.Loot, Zone = spec.Zone, Position = spec.Position, Active = true, BackAt = 0 }
 		node.Part = nodeLook(node)
 		local prompt = node.Prompt
@@ -584,13 +587,17 @@ function OceanService.init()
 		picks[player] = nil
 	end)
 	task.delay(5, function()
-		pcall(publishLandmarks)
+		if DEEP then
+			pcall(publishLandmarks)
+		end
 	end)
 	task.spawn(function()
 		while true do
 			task.wait(1)
 			local ok, err = pcall(function()
-				discoverTick()
+				if DEEP then
+					discoverTick()
+				end
 				respawnTick()
 			end)
 			if not ok then

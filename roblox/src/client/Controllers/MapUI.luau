@@ -713,7 +713,7 @@ local function buildLayer(parent: Instance, scale: number, detailed: boolean): L
 		end
 	end
 	-- LAS TIERRAS EXTERIORES (shared/Cosmos/OuterLands): el continente de alrededor del mar, cada trozo del color
-	-- de su región, y los cuatro puentes. Fuera del dibujo de la isla: se ven alejando el mapa.
+	-- de su región (con los cuatro pasos de tierra que cruzan la laguna). Se ven alejando el mapa.
 	do
 		local cell = if detailed then 260 else 420
 		local F = ValmarRegions.Frame
@@ -721,25 +721,13 @@ local function buildLayer(parent: Instance, scale: number, detailed: boolean): L
 		for x = F.MinX - Wt, F.MaxX + Wt - 1, cell do
 			for z = F.MinZ - Wt, F.MaxZ + Wt - 1, cell do
 				local cx, cz = x + cell / 2, z + cell / 2
-				if ValmarRegions.outside(cx, cz) > 0 and OuterLands.isLand(cx, cz) then
+				if not OuterLands.onIsland(cx, cz) and OuterLands.isLand(cx, cz) then
 					local reg = OuterLands.regions(cx, cz)
 					local h = OuterLands.height(cx, cz) or 0
 					local col = reg.Color:Lerp(Color3.fromRGB(40, 60, 50), 0.45):Lerp(Color3.new(1, 1, 1), math.clamp(h / 900, 0, 0.3))
 					rect(layer, "Tierra", x, z, x + cell + 2, z + cell + 2, col, 1).BackgroundTransparency = 0.05
 				end
 			end
-		end
-		for _, br in OuterLands.Bridges do
-			local ox, oz = br.X or 0, br.Z or 0
-			local dx, dz = br.Dir[1], br.Dir[2]
-			local coast = 0
-			for s = 0, 7000, 40 do
-				if CityPlan.inside(CityPlan.Coast, ox + dx * s, oz + dz * s) then
-					coast = s
-				end
-			end
-			local from = Vector2.new(ox + dx * (coast - 90), oz + dz * (coast - 90))
-			line(from, Vector2.new(br.CampX, br.CampZ), math.max(3, 40 / scale), rgb(235, 225, 200), 3)
 		end
 		;(layer :: any).OuterMin = toPixel(layer, F.MinX - Wt, F.MinZ - Wt)
 		;(layer :: any).OuterMax = toPixel(layer, F.MaxX + Wt, F.MaxZ + Wt)

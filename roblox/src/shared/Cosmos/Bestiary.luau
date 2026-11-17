@@ -772,7 +772,8 @@ function Bestiary.regionPlaces(S: any, out: { [string]: any }): { [string]: any 
 		end
 		return nil, nil
 	end
-	-- un sitio en las Tierras Exteriores del sector: t = 0 (la playa de dentro) .. 1 (la costa de fuera)
+	-- un sitio en las Tierras Exteriores del sector: t = 0 (el borde del antiguo mar de Valmar) .. 1 (la costa de
+	-- fuera); t < 0, en la tierra nueva donde estaba el mar (fase B: un solo terreno con la ciudad)
 	local function findOuter(reg: any, gap: number, t0: number, t1: number, maxSlope: number): (number?, number?)
 		if not R.Frame then
 			return nil, nil
@@ -857,10 +858,10 @@ function Bestiary.regionPlaces(S: any, out: { [string]: any }): { [string]: any 
 				end
 			else
 				local n = Bestiary.LairsPerRegion - 2
-				local t0 = 0.05 + (k - 3) / n * 0.9
-				lx, lz = findOuter(reg, 160, t0, t0 + 0.9 / n, 0.6)
+				local t0 = -0.6 + (k - 3) / n * 1.55
+				lx, lz = findOuter(reg, 160, t0, t0 + 1.55 / n, 0.6)
 				if not lx then
-					lx, lz = findOuter(reg, 150, 0.05, 0.95, 0.65)
+					lx, lz = findOuter(reg, 150, -0.6, 0.95, 0.65)
 				end
 			end
 			if lx then

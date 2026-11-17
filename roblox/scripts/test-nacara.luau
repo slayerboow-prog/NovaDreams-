@@ -486,7 +486,8 @@ do
 	end
 	check(#found == 0, "No da premios ni guarda nada (sin DataService, mochila, DataStore ni StoryEvents)" .. (if #found > 0 then ": " .. table.concat(found, ", ") else ""))
 	-- el mapa
-	check(NacaraService.publishLandmark() and landmarks:FindFirstChild("PuntoNacara_Plaza") ~= nil, "En el mapa: punto «PuntoNacara» (🐚 Nácara)")
+	-- (16-11-2026: Nácara vive en Tálasa: ya no sale en el mapa de Valmar)
+	check(NacaraService.publishLandmark() and landmarks:FindFirstChild("PuntoNacara_Plaza") == nil, "Nácara (en Tálasa) ya no sale en el mapa de Valmar")
 	local MapInfo = L.load("src/shared/MapInfo")
 	local MapLegend = L.load("src/shared/MapLegend")
 	local kind = MapInfo.KindByModel and MapInfo.KindByModel.PuntoNacara

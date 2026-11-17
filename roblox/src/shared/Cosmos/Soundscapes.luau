@@ -225,6 +225,10 @@ function Soundscapes.resolve(env: { [string]: any }?, ctx: Context?, prev: Scape
 	end
 	-- Un planeta: en su superficie, o entrando con su cielo ya a medias (histéresis)
 	local planet = env.Planet
+	-- Nácara vive en la Fosa de Tálasa (16-11-2026): junto a su plaza, bajo el agua, suena a Nácara
+	if c.Nacara and zone == "Planeta" and planet == "Talasa" then
+		return make("Nacara", zone, P.Nacara, 0)
+	end
 	if planet and (zone == "Planeta" or zone == "Entrada") then
 		local mix = env.PlanetMix or 0
 		local inPlanet = zone == "Planeta" or over(mix, prev ~= nil and prev.PlanetSound == true and prev.Planet == planet, 0.55, 0.45)

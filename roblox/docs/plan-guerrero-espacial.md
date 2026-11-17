@@ -39,10 +39,10 @@ El continente de caza queda pegado a la ciudad; los barcos y la pesca pasan al m
 | Fase | Qué | Estado |
 |---|---|---|
 | A | Nácara y los Hondarios al fondo de Tálasa (fuera del mar de Valmar) | hecha en código (pasos 1-5, pruebas verdes); falta verla en Studio y publicar |
-| B | Continente de caza pegado a la ciudad: un solo terreno; mar por fuera | por hacer |
-| C | Ciudad más pequeña: inventario de barrios y edificios; quitar lo que la historia no usa | por hacer |
-| D | Escuela: asignaturas de guerrero espacial (habilidades, armas blancas, espíritu, planetas, naves) | por hacer |
-| E | Historia nueva: capítulos y misiones del sueño de ser guerrero espacial | por hacer |
+| B | Continente de caza pegado a la ciudad: un solo terreno; mar por fuera | hecha en código (17-11-2026): laguna + 4 pasos de tierra, sin mar hondo |
+| C | Ciudad más pequeña: inventario de barrios y edificios; quitar lo que la historia no usa | sustituida por el Distrito Central + distritos de caza (17-11-2026) |
+| D | Escuela: asignaturas de guerrero espacial (habilidades, armas blancas, espíritu, planetas, naves) | hecha: la Academia (17-11-2026) |
+| E | Historia nueva: capítulos y misiones del sueño de ser guerrero espacial | hecha: Academia, Guerrero y Saga reescrita para 17+ (v164) |
 
 Hecho ya (16-11-2026, publicado en v162): combate de MMO (objetivo automático, arco de habilidades, espíritu),
 despliegue de barcos y aviones desde el teléfono donde está el personaje, todas las habilidades para el dueño.
@@ -69,6 +69,19 @@ despliegue de barcos y aviones desde el teléfono donde está el personaje, toda
    SeaEvents, OceanService, DivingService (lo del mar de Valmar), megalodón (SeaBeastService), POIs del mar.
 3. Barcos (shared/Boats.isSea) y pesca: al mar de fuera. Puentes y campamentos: ya no hacen falta puentes.
 4. Pruebas: test-tierras, test-boats, test-bestias y las que dependan de lo quitado (se retiran con ello).
+
+## Cómo quedó la fase B (17-11-2026)
+
+- shared/Cosmos/OuterLands: alrededor de la isla queda la LAGUNA (Lagoon = 330 studs, fondo −14 de TerrainBuilder,
+  agua extra alrededor de las islas pequeñas, del aeropuerto y del puerto: KeepWater). Más allá, tierra hasta la
+  costa de fuera. Cuatro PASOS de tierra (OuterLands.Bridges/Pasos, PasoWidth = 420) cruzan la laguna donde
+  estaban los puentes; por ellos no hay charcas. height = nil en la isla y en lo hondo de la laguna.
+- World/OuterLandsBuilder: escribe también el antiguo mar (lee y deja igual las columnas de isla y laguna honda).
+  Ya no hay puentes. Decoración ×1,5 y también en la tierra nueva.
+- Sin mar hondo: Config.Sea.ValmarDeep = false (Main no construye OceanBuilder; OceanService sin recursos del
+  fondo, cofres ni puntos de buceo). Barcos y pesca, en la laguna (Boats.isLand mira OuterLands.innerEdge).
+- Bestiary: las guaridas de cada región también en la tierra nueva (findOuter con t < 0).
+- Pendiente de ver en Studio el tiempo de construcción en el servidor y que los pasos casan con las playas.
 
 ## Notas para retomar
 

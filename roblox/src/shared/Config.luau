@@ -57,6 +57,9 @@ Config.Sea = {
 	-- Nácara v2 (el mapa del dueño, docs/mar/nacara-v2/diseno.md): el prototipo del Palacio Real y la Plaza
 	-- Central (World/NacaraV2Builder). ENCENDIDO: el dueño aprobó las vistas previas con texturas (fase 1).
 	NacaraV2 = true,
+	-- El mar hondo de Valmar (World/OceanBuilder). Apagado desde la fase B (17-11-2026): un solo terreno con el
+	-- continente; alrededor de la isla solo queda la laguna (shared/Cosmos/OuterLands).
+	ValmarDeep = false,
 }
 
 -- Estaciones y tiempo (shared/Seasons.luau, docs/clima/estaciones.md). Un día de juego dura

@@ -14,6 +14,7 @@ local Shared = game:GetService("ReplicatedStorage").Shared
 local CityPlan = require(Shared.CityPlan)
 local Airport = require(Shared.Airport)
 local PuertoPlan = require(Shared.Port.PuertoPlan)
+local OuterLands = require(Shared.Cosmos.OuterLands)
 
 local Boats = {}
 
@@ -65,7 +66,8 @@ function Boats.isLand(x: number, z: number): boolean
 	if x > land.X0 and x < land.X1 and z > land.Z0 and z < land.Z1 then
 		return true
 	end
-	return false
+	-- (fase B: más allá de la laguna todo es tierra, y los pasos de tierra la cruzan)
+	return OuterLands.innerEdge(x, z) > -5
 end
 
 -- ¿Se puede navegar por (x, z)? Mar (no tierra) y sin salir del mapa

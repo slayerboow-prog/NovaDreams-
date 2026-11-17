@@ -350,8 +350,9 @@ do
 			end
 		end
 	end
-	check(ok and n > 1000, ("Todo el mar navegable tiene agua de sobra bajo el casco (%d puntos)"):format(n))
-	check(deep > n * 0.3, ("…y buena parte es mar hondo (%d de %d puntos con más de 16 m)"):format(deep, n))
+	-- (fase B, 17-11-2026: sin mar hondo; los barcos navegan por la laguna de alrededor de la isla)
+	check(ok and n > 150, ("Todo el mar navegable (la laguna) tiene agua de sobra bajo el casco (%d puntos)"):format(n))
+	local _ = deep
 	-- El barco de pesca y el puerto deportivo: siguen en el agua y en zona tranquila
 	local boatX, boatZ = 640, 3720
 	check(Boats.isSea(boatX, boatZ) and Ocean.zoneAt(boatX, boatZ) == "Orilla", "El barco de pesca (alta mar) sigue en el agua, en el puerto")
@@ -800,8 +801,11 @@ do
 		Snd.setSea(nil)
 		Snd.update(0.1, Nacara.domeCenter() + Vector3.new(0, 4, 0))
 		check(Snd.soundscape().Key == "Nacara" and Snd.valmarAudio() == 0, "y dentro de su cúpula de aire también (no suena la calle de Valmar)")
-		Snd.update(0.1, Vector3.new(-1500, 5, 5300))
-		check(Snd.soundscape().Key == "Valmar", "al salir a la superficie, Valmar otra vez")
+		-- (Nácara está en Tálasa: volver a Valmar es cambiar de planeta, y el cielo tarda un poco en cambiar)
+		for _ = 1, 40 do
+			Snd.update(0.5, Vector3.new(-1500, 5, 2800))
+		end
+		check(Snd.soundscape().Key == "Valmar", "al volver a Valmar, su sonido otra vez")
 		L.mock("src/client/Controllers/StoryAudio", nil)
 	else
 		check(false, "EnvDirector se carga en la prueba: " .. tostring(Director))
