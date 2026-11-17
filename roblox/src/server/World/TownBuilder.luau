@@ -723,6 +723,14 @@ function TownBuilder.build(): Folder
 	-- relieve: así allí el campo sale salvaje y las bestias tienen sitio (Kit/FarmDistricts).
 	local farmStats = require(Kit.FarmDistricts).prune(world)
 	print(("[TownBuilder] distritos de caza: %d modelos y %d piezas quitados"):format(farmStats.Models, farmStats.Parts))
+	-- (17-11-2026) EL ASENTAMIENTO: casas rústicas donde estaban los rascacielos, la empalizada con sus puertas y
+	-- ruinas en los distritos de caza (Kit/Settlement)
+	local okS, setStats = pcall(require(Kit.Settlement).build, world)
+	if okS then
+		print(("[TownBuilder] asentamiento: %d casas, %d tramos de empalizada, %d puertas, %d ruinas"):format(setStats.Houses, setStats.Wall, setStats.Gates, setStats.Ruins))
+	else
+		warn("[TownBuilder] asentamiento: " .. tostring(setStats))
+	end
 	-- Repaso final: que ninguna moldura, bordillo o cristalera parpadee contra la pared de detrás
 	-- (varias pasadas: al crecer una pieza puede quedar a ras de otra)
 	for _ = 1, 8 do

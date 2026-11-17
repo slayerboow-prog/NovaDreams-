@@ -43,20 +43,44 @@ local W = F.Width
 
 -- Los cuatro pasos de tierra (antes, puentes): de la costa de la isla hacia fuera (Dir: unidad); el campamento,
 -- en la región a la que llevan. (Se sigue llamando Bridges por lo que ya lo usaba: MapUI, ValmarWilds…)
+-- (17-11-2026: con el orden de regiones del mapa definitivo; el del suroeste, en diagonal, lleva al Bosque Etéreo,
+-- la región de menos nivel, esquivando el aeropuerto)
 OuterLands.Bridges = {
-	{ Id = "Norte", Name = "Puente del Norte", X = 0, Dir = { 0, -1 }, Region = "BosqueEtereo" },
-	{ Id = "Este", Name = "Puente del Este", Z = 0, Dir = { 1, 0 }, Region = "PantanoMaldito" },
-	{ Id = "Sur", Name = "Puente del Sur", X = -1200, Dir = { 0, 1 }, Region = "LlanurasSalvajes" },
-	{ Id = "Oeste", Name = "Puente del Oeste", Z = 300, Dir = { -1, 0 }, Region = "DesiertoDorado" },
+	{ Id = "Norte", Name = "Paso del Norte", X = 0, Dir = { 0, -1 }, Region = "MontanasHeladas" },
+	{ Id = "Este", Name = "Paso del Este", Z = 0, Dir = { 1, 0 }, Region = "DesiertoDorado" },
+	{ Id = "Sur", Name = "Paso del Sur", X = -1200, Dir = { 0, 1 }, Region = "LlanurasSalvajes" },
+	{ Id = "Oeste", Name = "Paso del Oeste", Z = 300, Dir = { -1, 0 }, Region = "PantanoMaldito" },
+	{ Id = "Suroeste", Name = "Paso del Suroeste", X = 0, Z = 0, Dir = { -0.8660254, 0.5 }, Region = "BosqueEtereo" },
 }
 OuterLands.Pasos = OuterLands.Bridges
 -- dónde cruza cada paso el borde del antiguo mar de Valmar y dónde queda su campamento
 for _, b in OuterLands.Bridges do
 	local dx, dz = b.Dir[1], b.Dir[2]
-	local edgeX = if dx > 0 then F.MaxX elseif dx < 0 then F.MinX else b.X
-	local edgeZ = if dz > 0 then F.MaxZ elseif dz < 0 then F.MinZ else b.Z
-	b.EdgeX, b.EdgeZ = edgeX, edgeZ
-	b.CampX, b.CampZ = edgeX + dx * 430, edgeZ + dz * 430
+	if dx ~= 0 and dz ~= 0 then
+		-- (en diagonal, desde el centro: hasta el borde del antiguo mar siguiendo su rumbo)
+		local bearing = math.deg(math.atan2(dx, -dz))
+		local dist = VR.rayBox(bearing, 0)
+		b.EdgeX, b.EdgeZ = (b.X or 0) + dx * dist, (b.Z or 0) + dz * dist
+	else
+		b.EdgeX = if dx > 0 then F.MaxX elseif dx < 0 then F.MinX else b.X
+		b.EdgeZ = if dz > 0 then F.MaxZ elseif dz < 0 then F.MinZ else b.Z
+	end
+	b.CampX, b.CampZ = b.EdgeX + dx * 430, b.EdgeZ + dz * 430
+end
+-- (17-11-2026) Los SANTUARIOS de cada región (shared/Cosmos/RegionGuide, Kind = "Santuario") también son zona
+-- segura y llana, como los campamentos
+OuterLands.Sanctuaries = {}
+do
+	local okG, RG = pcall(function()
+		return require(script.Parent.RegionGuide)
+	end)
+	if okG then
+		for _, e in RG.all() do
+			if e.Place.Kind == "Santuario" then
+				table.insert(OuterLands.Sanctuaries, { X = e.X, Z = e.Z, Region = e.Region, Name = e.Place.Name })
+			end
+		end
+	end
 end
 OuterLands.CampRadius = 170 -- llano alrededor del campamento
 OuterLands.SafeRadius = 280 -- ninguna guarida tan cerca de un campamento
@@ -78,8 +102,8 @@ local function fbm(x: number, z: number, scale: number, seed: number): number
 	return s / norm * 1.8 -- (más o menos −1..1)
 end
 
--- El volcán de las Tierras Volcánicas (en la esquina suroeste)
-OuterLands.Volcano = { X = -6450, Z = 6450, R = 760, H = 470, Crater = 190, CraterDepth = 270 }
+-- El volcán de las Tierras Volcánicas (en la esquina noreste, como en el mapa definitivo)
+OuterLands.Volcano = { X = 6200, Z = -5900, R = 760, H = 470, Crater = 190, CraterDepth = 270 }
 
 -- El relieve propio de cada región (studs sobre la playa)
 local RELIEF: { [string]: (number, number) -> number } = {
@@ -278,7 +302,7 @@ function OuterLands.height(x: number, z: number): number?
 		h = base + rel * m
 	end
 	-- (por los pasos de tierra se anda en seco: sin charcas del pantano entre la ciudad y la tierra de fuera)
-	if d <= 0 and e > 0 and inner < 700 then
+	if d <= 0 and e > 0 and inner < 1100 then
 		local k = OuterLands.paso(x, z)
 		if k > 0 then
 			h = h + (math.max(h, 1.5) - h) * k
@@ -288,7 +312,22 @@ function OuterLands.height(x: number, z: number): number?
 	if fl > 0 then
 		h = h + (OuterLands.CampY - h) * fl
 	end
+	-- (los santuarios: llanos a su propia altura, la que tendría el suelo en su centro)
+	for _, s in OuterLands.Sanctuaries do
+		if s.Y then
+			local ds = math.sqrt((x - s.X) ^ 2 + (z - s.Z) ^ 2)
+			if ds < 200 then
+				local k = 1 - smooth(80, 200, ds)
+				h = h + (s.Y - h) * k
+			end
+		end
+	end
 	return h
+end
+
+-- (la altura de cada santuario: la del suelo en su centro, sin allanar; como mínimo un poco sobre el agua)
+for _, s in OuterLands.Sanctuaries do
+	s.Y = math.max(OuterLands.Surface + 3, OuterLands.height(s.X, s.Z) or 4)
 end
 
 -- ¿Tierra firme (no agua) en ese punto?
@@ -316,6 +355,9 @@ function OuterLands.campDistance(x: number, z: number): number
 	local best = math.huge
 	for _, b in OuterLands.Bridges do
 		best = math.min(best, math.sqrt((x - b.CampX) ^ 2 + (z - b.CampZ) ^ 2))
+	end
+	for _, s in OuterLands.Sanctuaries do
+		best = math.min(best, math.sqrt((x - s.X) ^ 2 + (z - s.Z) ^ 2))
 	end
 	return best
 end

@@ -1430,6 +1430,17 @@ function MapUI.toggleBig()
 		end
 		return
 	end
+	-- (17-11-2026) En Valmar, el MAPA DEFINITIVO del dueño (Controllers/WorldMapUI) cuando su dibujo está subido
+	local okW, WorldMapUI = pcall(function()
+		return require(script.Parent.WorldMapUI) :: any
+	end)
+	if okW and WorldMapUI.available() and Players.LocalPlayer:GetAttribute("Planeta") == nil then
+		if bigOpen then
+			setBigOpen(false)
+		end
+		WorldMapUI.toggle()
+		return
+	end
 	setBigOpen(not bigOpen)
 end
 

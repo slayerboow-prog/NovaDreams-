@@ -277,6 +277,7 @@ local BARS = {
 }
 
 local status: Frame
+local mmoHud: Frame? = nil -- (17-11-2026) el HUD del mapa definitivo del dueño (UI/MmoHud): sustituye a «status»
 local statusOpen = false -- (móvil) tu estado desplegado entero (al tocarlo o si algo baja mucho)
 local statusToken = 0
 local setStatusOpen: (open: boolean, seconds: number?) -> () = function() end
@@ -2131,7 +2132,10 @@ function refreshVisible()
 	end
 	local baby = player:GetAttribute("LifeStage") == "Bebe"
 	local show = not busy and not baby
-	status.Visible = show and not shipFocus
+	status.Visible = show and not shipFocus and mmoHud == nil
+	if mmoHud then
+		mmoHud.Visible = show and not shipFocus
+	end
 	local clock = gui:FindFirstChild("Clock")
 	if clock and clock:IsA("GuiObject") then
 		clock.Visible = not shipFocus
@@ -2179,6 +2183,38 @@ function Hud.init(openStore: () -> ()): ScreenGui
 	buildClock(gui)
 	buildActivity(gui)
 	buildStatus(gui)
+	-- el HUD del mapa definitivo (retrato con nivel, vida y energía, dinero y gemas, botones de la izquierda)
+	local okMmo, built = pcall(function()
+		local function controller(name: string): any
+			local folder = script.Parent.Parent:FindFirstChild("Controllers")
+			local m = folder and folder:FindFirstChild(name)
+			return m and require(m) :: any
+		end
+		return require(script.Parent.MmoHud).build(gui, {
+			Bag = function()
+				local inv = controller("InventoryUI")
+				if inv then
+					inv.toggle()
+				end
+			end,
+			Stats = function()
+				if actions.Menu then
+					actions.Menu()
+				end
+			end,
+			Menu = function()
+				if actions.Menu then
+					actions.Menu()
+				end
+			end,
+		})
+	end)
+	if okMmo then
+		mmoHud = built
+		status.Visible = false
+	else
+		warn("[Hud] MmoHud: " .. tostring(built))
+	end
 	buildMission(gui)
 	buildAreaBanner(gui)
 	-- Menú, controles y misiones en su propia capa, por encima del minimapa (que es de MapUI)

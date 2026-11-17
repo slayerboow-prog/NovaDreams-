@@ -25,6 +25,8 @@ local Zonas = {
 	{ Name = "Los Pinos", X = 650, Z = -2100, R = 600 },
 	{ Name = "Campus", X = 2720, Z = 1350, R = 450 },
 	{ Name = "Plaza", X = -60, Z = -32, R = 250 },
+	-- (17-11-2026) un trozo del asentamiento: manzanas de casas rústicas y la empalizada del oeste (Kit/Settlement)
+	{ Name = "Asentamiento", X = -1150, Z = -400, R = 360 },
 }
 
 local function inside(cf: any, size: any): boolean

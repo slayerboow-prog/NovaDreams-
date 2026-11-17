@@ -3,6 +3,7 @@
 -- ("rbxassetid://…"). Vacío hasta que se suban: mientras tanto el mapa grande dibuja la isla por código
 -- (Controllers/MapUI, como antes).
 return {
+	definitivo = "rbxassetid://125977514182802",
 	isla_0_0 = "rbxassetid://97200277860370",
 	isla_0_1 = "rbxassetid://88259585607596",
 	isla_0_2 = "rbxassetid://107245378233449",
@@ -15,4 +16,5 @@ return {
 	isla_2_1 = "rbxassetid://96050233506149",
 	isla_2_2 = "rbxassetid://129025166095109",
 	isla_2_3 = "rbxassetid://91236118470789",
+	region_bosque = "rbxassetid://73454908307833",
 } :: { [string]: string }

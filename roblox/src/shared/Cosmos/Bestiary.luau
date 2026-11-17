@@ -227,7 +227,7 @@ Bestiary.Species = {
 		Colors = { Body = rgb(40, 60, 40), Belly = rgb(110, 130, 80), Glow = rgb(160, 255, 80) }, Material = "Slate",
 		Drops = { { "ColmilloDevorador", 1, 1, 1 }, { "LodoMaldito", 2, 4, 1 }, { "Escama", 3, 5, 1 } }, Money = 1900,
 		Lore = "Se tragó el bidón que tiraron desde el laboratorio de Cosme. Creció. Sigue teniendo hambre." },
-	-- Desierto Dorado (nv. 50-70; con la víbora del peñasco)
+	-- Desierto Devastado (nv. 50-70; con la víbora del peñasco)
 	EscorpionGigante = { Planet = "Valmar", Region = "DesiertoDorado", Name = "Escorpión gigante", Icon = "🦂", Body = "Insecto", Size = 4.4, Hp = 170, Damage = 15, Speed = 15, Aggro = 55,
 		Colors = { Body = rgb(170, 120, 60), Belly = rgb(220, 180, 110), Glow = rgb(255, 210, 90) }, Material = "Sandstone",
 		Drops = { { "Quitina", 1, 2, 1 }, { "Glandula", 1, 1, 0.5 }, { "ArenaDorada", 1, 1, 0.2 } }, Money = 18 },
@@ -523,6 +523,10 @@ function Bestiary.cacheLoot(planet: string, roll: () -> number): ({ [string]: nu
 	if roll() < 0.35 then
 		out.PocionCuracion = (out.PocionCuracion or 0) + 1
 	end
+	-- (17-11-2026: y de espíritu, para las habilidades: los botones de pociones del HUD, UI/MmoHud)
+	if roll() < 0.28 then
+		out.PocionEspiritu = (out.PocionEspiritu or 0) + 1
+	end
 	return out, 40 + math.floor(roll() * 80)
 end
 
@@ -737,6 +741,15 @@ Bestiary.FarmPackMin, Bestiary.FarmPackMax = 6, 9
 Bestiary.ShardsPerRegion = 3
 Bestiary.CachesPerRegion = 2
 
+-- (perezoso: RegionGuide pide ValmarRegions, que ya tenemos; así no hay vueltas al cargar)
+local regionGuide: any = nil
+local function RegionGuide(): any
+	if not regionGuide then
+		regionGuide = require(script.Parent.RegionGuide)
+	end
+	return regionGuide
+end
+
 function Bestiary.regionPlaces(S: any, out: { [string]: any }): { [string]: any }
 	local R = S.Regions
 	local r = rng((S.Seed or 7) * 7121 + 991)
@@ -820,8 +833,37 @@ function Bestiary.regionPlaces(S: any, out: { [string]: any }): { [string]: any 
 				Name = if boss then Bestiary.lairOf(sp.Name) else ("%s de %s"):format(names[1 + (#out.Lairs % #names)], sp.Name:lower()),
 			}
 		end
-		-- el jefe: lo más lejos posible (al fondo de las Tierras Exteriores), en llano
-		local bx, bz = findOuter(reg, 300, 0.6, 0.92, 0.35)
+		-- (17-11-2026) LOS LUGARES DE LA REGIÓN (shared/Cosmos/RegionGuide): cada uno con nivel tiene sus guaridas
+		-- alrededor, de ese nivel, y el jefe vive en el suyo (Boss = true). Las áreas jugables del dibujo del dueño.
+		local bx, bz = nil, nil
+		local guide = if S.Id == "Valmar" then RegionGuide().List[reg.Id] else nil
+		local KIND_SPECIES = { Territorio = 1, Cascada = 2, Cueva = 3, Ruinas = 4, Arbol = 4, Campamento = 5, Portal = 5 }
+		for pi, place in (guide and guide.Places or {}) do
+			local px, pz = RegionGuide().worldOf(reg.Id, place)
+			if place.Boss then
+				-- (la guarida del jefe, un poco detrás del lugar: el lugar se queda a la vista)
+				local d = math.sqrt(px * px + pz * pz)
+				bx, bz = px + px / d * 40, pz + pz / d * 40
+			end
+			if place.Level and place.Kind ~= "Santuario" then
+				for k = 1, 2 do
+					local a = (pi * 1.7 + k * math.pi) % (math.pi * 2)
+					local lx, lz = px + math.cos(a) * 48, pz + math.sin(a) * 48
+					local sid = reg.Species[1 + ((KIND_SPECIES[place.Kind] or k) - 1 + k - 1) % #reg.Species]
+					local rec = lairOf(sid, lx, lz, ("L%s%d"):format(place.Id, k))
+					rec.Level = math.clamp(place.Level + (k - 1) * 2, reg.MinLevel, reg.MaxLevel)
+					rec.Tier = math.clamp(1 + math.floor((rec.Level - 10) / 25), 1, 4)
+					rec.Place = place.Name
+					rec.ZoneName = ("%s · %s"):format(reg.Name, place.Name)
+					table.insert(out.Lairs, rec)
+					table.insert(taken, { lx, lz })
+				end
+			end
+		end
+		-- el jefe: en su lugar; si no, lo más lejos posible (al fondo de las Tierras Exteriores), en llano
+		if not bx then
+			bx, bz = findOuter(reg, 300, 0.6, 0.92, 0.35)
+		end
 		if not bx then
 			bx, bz = findOuter(reg, 220, 0.3, 0.95, 0.5)
 		end

@@ -329,6 +329,42 @@ local function giveWeapons(player: Player): (number, number)
 	return WeaponService.grantAll(player)
 end
 
+-- (17-11-2026, el dueño: «elimina las armas de fuego de mi inventario y ponme ítems de los que tenemos y armas de
+-- mano para probarlas») Fuera las armas de fuego y su munición; dentro todas las armas de mano, armaduras, cascos,
+-- escudos, botas, accesorios y pociones del Taller (shared/Crafting.Gear). Devuelve (quitadas, puestas).
+function TesterService.meleeKit(player: Player): (number, number)
+	local Inv = service("InventoryService")
+	local data = DataService.get(player)
+	if not Inv or not data then
+		return 0, 0
+	end
+	local Weapons = require(ReplicatedStorage.Shared.Weapons)
+	local removed, added = 0, 0
+	for _, w in Weapons.List do
+		local id = Weapons.itemId(w.Id)
+		local have = tonumber((data.Items or {})[id]) or 0
+		if have > 0 and Inv.remove(player, id, have) then
+			removed += 1
+		end
+		if w.Ammo then
+			local ammo = tonumber((data.Items or {})[w.Ammo]) or 0
+			if ammo > 0 then
+				Inv.remove(player, w.Ammo, ammo)
+			end
+		end
+	end
+	local Crafting = require(ReplicatedStorage.Shared.Crafting)
+	for _, g in Crafting.Gear do
+		local count = if g.Kind == "Potion" then 10 elseif g.Kind == "Blade" or g.Kind == "Armor" or g.Kind == "Accessory" then 1 else 0
+		if count > 0 and (tonumber((data.Items or {})[g.Id]) or 0) < count then
+			if Inv.add(player, g.Id, count - (tonumber((data.Items or {})[g.Id]) or 0)) then
+				added += 1
+			end
+		end
+	end
+	return removed, added
+end
+
 ---------------------------------------------------------------------
 -- Vehículos del pase (los premium de shared/PremiumVehicles): sacarlos y dártelos
 ---------------------------------------------------------------------
@@ -751,7 +787,9 @@ function TesterService.handle(player: Player, kind: any, a: any, b: any): boolea
 			s.Bypass = true
 			publishFlags(player)
 			giveLicences(player)
-			local _, missing = giveWeapons(player)
+			-- (17-11-2026: armas de mano y equipo del Taller, no armas de fuego: TesterService.meleeKit)
+			local missing = 0
+			pcall(TesterService.meleeKit, player)
 			pcall(giveVehicles, player)
 			maxLevel(player)
 			refill(player)
@@ -1081,6 +1119,24 @@ function TesterService.init()
 	pcall(function()
 		service("CinematecaService").setSender(function(player: Player, payload: { [string]: any })
 			send(player, "Cinemateca", payload)
+		end)
+	end)
+	-- el dueño, una vez: fuera las armas de fuego y dentro las armas de mano y el equipo (data.Tester.KitMano)
+	pcall(function()
+		DataService.onLoaded(function(player: Player)
+			if not (game.CreatorType == Enum.CreatorType.User and game.CreatorId ~= 0 and player.UserId == game.CreatorId) then
+				return
+			end
+			local s = settingsOf(player)
+			if s and not s.KitMano then
+				task.delay(3, function()
+					local ok, removed, added = pcall(TesterService.meleeKit, player)
+					if ok then
+						s.KitMano = true
+						toast(player, "Success", ("⚔ Armas de fuego fuera (%d). Armas de mano, equipo y pociones en tu mochila (%d)."):format(removed :: number, added :: number))
+					end
+				end)
+			end
 		end)
 	end)
 	;(existing :: RemoteEvent).OnServerEvent:Connect(function(player, kind, a, b)

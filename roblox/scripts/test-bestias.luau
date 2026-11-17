@@ -363,10 +363,10 @@ do
 	end
 	check(regOk, "cada región: tres criaturas de Valmar y su jefe, una cada 45 grados, niveles de menos a más")
 	check(rareOk, "las criaturas nuevas sueltan el material de su región")
-	check(VR.at(0, 0) == nil and VR.at(0, -3000).Id == "BosqueEtereo" and VR.at(3000, 0).Id == "PantanoMaldito" and VR.at(-2100, 2100).Id == "TierrasVolcanicas",
-		"norte bosque, este pantano, suroeste volcán; la ciudad no es región")
-	local lo = VR.levelAt(VR.ById.BosqueEtereo, 0, -1600)
-	local hi = VR.levelAt(VR.ById.BosqueEtereo, 0, -6900)
+	check(VR.at(0, 0) == nil and VR.at(0, -3000).Id == "MontanasHeladas" and VR.at(-3000, 0).Id == "PantanoMaldito" and VR.at(2100, -2100).Id == "TierrasVolcanicas" and VR.at(-2100, 2100).Id == "BosqueEtereo" and VR.at(3000, 0).Id == "DesiertoDorado",
+		"como el mapa definitivo: norte hielo, oeste pantano, noreste volcán, suroeste bosque, este desierto; la ciudad no es región")
+	local lo = VR.levelAt(VR.ById.BosqueEtereo, -1131, 1131)
+	local hi = VR.levelAt(VR.ById.BosqueEtereo, -7000, 7000)
 	check(lo <= 12 and hi >= 28 and hi <= 30, ("el nivel sube hacia la costa (%d → %d)"):format(lo, hi))
 	check(VR.rewardFactor(80, 15) < 0.2 and VR.rewardFactor(20, 15) == 1 and VR.danger(VR.ById.TierrasVolcanicas, 10) == "Peligro",
 		"quien supera de largo a la bestia saca poco; aviso de peligro a los novatos")
@@ -414,6 +414,34 @@ do
 	check(outerN >= 60, ("casi todas las guaridas, al otro lado del mar (%d en las Tierras Exteriores)"):format(outerN))
 	check(eachOk and #p.Bosses >= 9 and #p.Shards >= 12 and #p.Caches >= 6,
 		("guaridas y jefe en cada región (%s), %d jefes, %d esquirlas, %d alijos"):format(table.concat(counts, "/"), #p.Bosses, #p.Shards, #p.Caches))
+	-- las áreas jugables de cada región (shared/Cosmos/RegionGuide): guaridas en cada lugar y el jefe en el suyo
+	do
+		local RG = L.load("src/shared/Cosmos/RegionGuide")
+		local placesOk, bossOk, nPlaces = true, true, 0
+		for _, e in RG.all() do
+			if e.Place.Level and e.Place.Kind ~= "Santuario" then
+				nPlaces += 1
+				local found = 0
+				for _, l in p.Lairs do
+					if l.Place == e.Place.Name and l.Region == e.Region and math.abs(l.Level - e.Place.Level) <= 4 then
+						found += 1
+					end
+				end
+				placesOk = placesOk and found >= 2
+			end
+			if e.Place.Boss then
+				local near = false
+				for _, b in p.Bosses do
+					if b.Region == e.Region and not b.Id:find("_Elite$") and math.sqrt((b.X - e.X) ^ 2 + (b.Z - e.Z) ^ 2) < 80 then
+						near = true
+					end
+				end
+				bossOk = bossOk and near
+			end
+		end
+		check(placesOk and nPlaces >= 40, ("cada lugar de cada región tiene sus guaridas de su nivel (%d lugares)"):format(nPlaces))
+		check(bossOk, "el jefe de cada región vive en su lugar (el Guardián Ancestral, junto al Árbol Ancestral…)")
+	end
 	local z = Bestiary.lairZone(p.Lairs[#p.Lairs])
 	check(z.Level == p.Lairs[#p.Lairs].Level and z.Name ~= nil and z.Hp >= 1, "la zona de una guarida de región lleva su nivel y su nombre")
 	-- los nuevos sitios en el mapa
@@ -426,9 +454,9 @@ do
 	end
 	check(mapOk, "cada región y su jefe salen en el mapa y en su leyenda")
 	-- el suelo de cada región
-	check(Relief.material(40, 0.1, -3600, 0, nil, 1) == "Sand" or Relief.material(40, 0.1, -3600, 40, nil, 1) == "Sand" or Relief.material(40, 0.1, -3640, -20, nil, 1) == "Sand",
-		"arena en el Desierto Dorado")
-	check(Relief.material(40, 0.1, 100, 100, nil, 1) ~= "Sand" and Relief.material(40, 0.1, -3600, 0, nil, 0) ~= "Sand", "en la ciudad y junto a lo construido, el suelo de siempre")
+	check(Relief.material(40, 0.1, 3600, 0, nil, 1) == "Sand" or Relief.material(40, 0.1, 3600, 40, nil, 1) == "Sand" or Relief.material(40, 0.1, 3640, -20, nil, 1) == "Sand",
+		"arena en el Desierto Devastado")
+	check(Relief.material(40, 0.1, 100, 100, nil, 1) ~= "Sand" and Relief.material(40, 0.1, 3600, 0, nil, 0) ~= "Sand", "en la ciudad y junto a lo construido, el suelo de siempre")
 end
 
 print("🔌 Conexiones")

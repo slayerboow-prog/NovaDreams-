@@ -63,6 +63,22 @@ local Chapters: { [string]: Chapter } = {
 		IntroKey = "El uniforme no protege de nada. Patrullas en los distritos perdidos, tu primera nave y un mundo que nadie de Valmar ha pisado.",
 		OutroKey = "Guerrero de primera. Lo que atacó Valmar viene de fuera, y no ha terminado.",
 		Main = { "Gue01_Patrulla", "Gue02_MasLejos", "Gue03_Despegue", "Gue04_OtroMundo", "Gue05_Ascenso" },
+		Next = "Reconquista_Valmar",
+		Music = "VidaAdulta",
+	},
+
+	-- (17-11-2026) LA RECONQUISTA (Misiones/Reconquista): el asentamiento sale a recuperar el planeta, zona a zona,
+	-- en terreno hostil (cada misión cuenta las bestias solo de su zona)
+	Reconquista_Valmar = {
+		Id = "Reconquista_Valmar",
+		Order = 43,
+		Stage = { Min = "AdultoJoven" },
+		Requires = { Flags = { "GuerreroDePrimera" } },
+		Enabled = true,
+		TitleKey = "La Reconquista",
+		IntroKey = "Dos años detrás de una empalizada. Hoy el asentamiento sale a recuperar lo que la Caída se llevó: zona a zona, bestia a bestia.",
+		OutroKey = "La primera bandera ondea en el norte. Quedan siete regiones. Y el cielo.",
+		Main = { "Rec01_Baliza", "Rec02_Agua", "Rec03_Pantano", "Rec04_Campus", "Rec05_Bandera" },
 		Next = "Adulto_TuVida",
 		Music = "VidaAdulta",
 	},

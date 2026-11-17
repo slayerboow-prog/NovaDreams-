@@ -39,7 +39,7 @@ done
 # Qué archivos se suben
 # ---------------------------------------------------------------------------
 FILES=()
-for file in textures/mapa/isla_*.png; do
+for file in textures/mapa/isla_*.png textures/mapa/definitivo.png textures/mapa/region_*.png; do
 	[ -f "$file" ] && FILES+=("$file")
 done
 if [ "${#FILES[@]}" -eq 0 ]; then

@@ -233,7 +233,38 @@ local function humanoidOf(player: Player): Humanoid?
 	return c and c:FindFirstChildOfClass("Humanoid")
 end
 
-local function usePotion(player: Player, g: { [string]: any })
+local usePotion: (Player, { [string]: any }) -> ()
+local lastQuick: { [Player]: number } = {}
+
+-- Los botones de pociones del HUD (UI/MmoHud): "HP" toma la mejor de vida que lleves, "MP" la de espíritu
+CraftingService.QuickOrder = { HP = { "PocionCuracion", "PocionRegeneracion" }, MP = { "PocionEspiritu" } }
+function CraftingService.quickPotion(player: Player, kind: any): boolean
+	local order = CraftingService.QuickOrder[kind]
+	if not order then
+		return false
+	end
+	local t = os.clock()
+	if t - (lastQuick[player] or 0) < 0.8 then
+		return false
+	end
+	lastQuick[player] = t
+	local d = data(player)
+	local items = d and d.Items or {}
+	for _, id in order do
+		if (tonumber(items[id]) or 0) > 0 then
+			for _, g in Crafting.Gear do
+				if g.Id == id then
+					usePotion(player, g)
+					return true
+				end
+			end
+		end
+	end
+	tell(player, "Info", if kind == "HP" then "🧪 No te quedan pociones de vida. Fabrícalas en el Taller o caza bestias." else "💧 No te quedan pociones de espíritu. Fabrícalas en el Taller o caza bestias.")
+	return false
+end
+
+function usePotion(player: Player, g: { [string]: any })
 	local hum = humanoidOf(player)
 	if not hum or hum.Health <= 0 then
 		return
@@ -252,6 +283,9 @@ local function usePotion(player: Player, g: { [string]: any })
 	end
 	if g.Effect == "Heal" then
 		hum.Health = math.min(hum.MaxHealth, hum.Health + g.Amount)
+	elseif g.Effect == "Mana" then
+		local max = tonumber(player:GetAttribute("EspirituMax")) or 100
+		player:SetAttribute("Espiritu", math.min(max, (tonumber(player:GetAttribute("Espiritu")) or 0) + g.Amount))
 	elseif g.Effect == "Regen" then
 		task.spawn(function()
 			for _ = 1, g.Seconds do
@@ -355,6 +389,8 @@ function CraftingService.init()
 			CraftingService.openFor(player, "Mochila", nil)
 		elseif action == "Close" then
 			open[player] = nil
+		elseif action == "QuickPotion" then
+			CraftingService.quickPotion(player, a)
 		end
 	end)
 	ProximityPromptService.PromptTriggered:Connect(function(prompt, player)

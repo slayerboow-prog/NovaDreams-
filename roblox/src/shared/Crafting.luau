@@ -49,7 +49,7 @@ Crafting.Materials = {
 	{ "MaderaEterea", "Madera etérea", "🌿", "Madera del Bosque Etéreo que pesa como una pluma y no se quema." },
 	{ "CrinSalvaje", "Crin salvaje", "🐎", "Crin de las bestias de las Llanuras Salvajes. Para cuerdas que no se rompen." },
 	{ "LodoMaldito", "Lodo maldito", "🦠", "Barro del Pantano Maldito que se mueve solo. Mejor no preguntar." },
-	{ "ArenaDorada", "Arena dorada", "✨", "Arena del Desierto Dorado que brilla de noche. Endurece el metal." },
+	{ "ArenaDorada", "Arena dorada", "✨", "Arena del Desierto Devastado que brilla de noche. Endurece el metal." },
 	{ "ReliquiaRunica", "Reliquia rúnica", "📜", "Un trozo de piedra con las mismas marcas que los cristales de la Grieta." },
 	{ "EscarchaPerpetua", "Escarcha perpetua", "❄", "Escarcha de las Montañas Heladas que no se derrite nunca." },
 	{ "FragmentoSombra", "Fragmento de sombra", "🌑", "Un trozo de oscuridad sólida de las Tierras Oscuras. Frío al tacto." },
@@ -67,7 +67,7 @@ Crafting.Materials = {
 	{ "CoronaAncestral", "Corona del Guardián Ancestral", "🌳", "Ramas que siguen creciendo. Trofeo del Bosque Etéreo." },
 	{ "CrinRey", "Crin del Rey de las Llanuras", "🐾", "Dorada y dura como alambre. Trofeo de las Llanuras Salvajes." },
 	{ "ColmilloDevorador", "Colmillo del Devorador", "🐊", "Largo como un brazo. Trofeo del Pantano Maldito." },
-	{ "NucleoColoso", "Núcleo del Coloso", "🗿", "Una piedra caliente con un mapa grabado. Trofeo del Desierto Dorado." },
+	{ "NucleoColoso", "Núcleo del Coloso", "🗿", "Una piedra caliente con un mapa grabado. Trofeo del Desierto Devastado." },
 	{ "CoronaRuinas", "Corona del Rey de las Ruinas", "👑", "La corona que esperaba. Trofeo de las Ruinas Antiguas." },
 	{ "EscamaInvierno", "Escama del Dragón del Invierno", "💠", "Fría como el espacio. Trofeo de las Montañas Heladas." },
 	{ "CorazonSombra", "Corazón de sombra", "🖤", "Late al revés. Trofeo de las Tierras Oscuras." },
@@ -160,6 +160,7 @@ Crafting.Gear = {
 	{ Id = "PendientesEstelares", Name = "Pendientes estelares", Icon = "💍", Kind = "Accessory", Slot = "Pendientes", Vigor = 24, Defense = 0.04, Level = 5, Desc = "Pendientes: recuperas 24 de vida por bestia y un 4 % menos de daño." },
 	-- Pociones
 	{ Id = "PocionCuracion", Name = "Poción de curación", Icon = "🧪", Kind = "Potion", Effect = "Heal", Amount = 50, Level = 1, Desc = "Úsala desde la mochila: te cura 50 de vida al momento." },
+	{ Id = "PocionEspiritu", Name = "Poción de espíritu", Icon = "💧", Kind = "Potion", Effect = "Mana", Amount = 60, Level = 1, Desc = "Te devuelve 60 de energía (espíritu) al momento: para seguir lanzando habilidades." },
 	{ Id = "PocionRegeneracion", Name = "Poción de regeneración", Icon = "💚", Kind = "Potion", Effect = "Regen", Amount = 4, Seconds = 25, Level = 2, Desc = "Te cura 4 de vida por segundo durante 25 segundos." },
 	{ Id = "PocionFuerza", Name = "Poción de fuerza", Icon = "💪", Kind = "Potion", Effect = "Strength", Amount = 0.5, Seconds = 90, Level = 2, Desc = "Durante 90 segundos tus golpes a las bestias hacen un 50 % más." },
 	{ Id = "PocionPiedra", Name = "Poción de piel de piedra", Icon = "🗿", Kind = "Potion", Effect = "Stone", Amount = 0.25, Seconds = 90, Level = 3, Desc = "Durante 90 segundos recibes un 25 % menos de daño (además de tu armadura)." },
@@ -236,6 +237,7 @@ Crafting.Recipes = {
 	{ Id = "SelloHerrero", Makes = 1, Bench = "Forja", Category = "Materiales", Level = 4, Needs = { PiedraTemple = 2, EsenciaEstelar = 1 } },
 	-- Pociones
 	{ Id = "PocionCuracion", Makes = 2, Bench = "Mesa", Category = "Pociones", Level = 1, Needs = { Glandula = 1, SaviaAmbar = 0 } },
+	{ Id = "PocionEspiritu", Makes = 2, Bench = "Mesa", Category = "Pociones", Level = 1, Needs = { Glandula = 1, Cristal = 1 } },
 	{ Id = "PocionRegeneracion", Makes = 1, Bench = "Alquimia", Category = "Pociones", Level = 2, Needs = { Glandula = 2, SaviaAmbar = 1 } },
 	{ Id = "PocionFuerza", Makes = 1, Bench = "Alquimia", Category = "Pociones", Level = 2, Needs = { Glandula = 1, Colmillo = 1, BrasaViva = 1 } },
 	{ Id = "PocionPiedra", Makes = 1, Bench = "Alquimia", Category = "Pociones", Level = 3, Needs = { Glandula = 1, Escama = 2, HieloEterno = 1 } },

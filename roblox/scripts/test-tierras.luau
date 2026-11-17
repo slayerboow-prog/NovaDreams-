@@ -29,7 +29,7 @@ do
 			okP = okP and OL.isLand(ox + dx * s, oz + dz * s)
 		end
 	end
-	check(okP, "cuatro pasos de tierra cruzan la laguna (norte, este, sur y oeste)")
+	check(okP, "cinco pasos de tierra cruzan la laguna (norte, este, sur, oeste y suroeste)")
 end
 check(((F.Width + OL.Band) % 16) == 0 and ((F.MaxX - F.MinX) % 4) == 0 and ((F.MaxZ - F.MinZ) % 4) == 0, "el marco cuadra con los vóxeles y los nudos")
 local land, water, per, maxH = 0, 0, {}, {}
@@ -65,7 +65,7 @@ local rim = OL.height(V.X + V.Crater * 1.3, V.Z) or 0
 local pit = OL.height(V.X, V.Z) or 0
 check(rim > 200 and pit < rim - 40, ("un volcán con su cráter (borde %d, fondo %d)"):format(math.floor(rim), math.floor(pit)))
 local pools = 0
-for x = 5900, 7400, 40 do
+for x = -7400, -5900, 40 do
 	for z = -1800, 1800, 40 do
 		local h = OL.height(x, z)
 		if h and h < OL.Surface and OL.edge(x, z) > 300 then
@@ -74,19 +74,19 @@ for x = 5900, 7400, 40 do
 	end
 end
 check(pools > 5, ("charcas en el Pantano Maldito (%d)"):format(pools))
-check(OL.material(-7000, 300, 30, 0.1) == "Sand" or OL.material(-7000, 300, 30, 0.1) == "Sandstone", "arena en el Desierto Dorado")
+check(OL.material(7000, 300, 30, 0.1) == "Sand" or OL.material(7000, 300, 30, 0.1) == "Sandstone", "arena en el Desierto Devastado")
 check(OL.material(V.X, V.Z, 300, 0.2) == "CrackedLava", "lava en el cráter")
-check(OL.material(-6900, -6400, 260, 0.2) == "Snow", "nieve en lo alto de las Montañas Heladas")
+check(OL.material(200, -6900, 260, 0.2) == "Snow", "nieve en lo alto de las Montañas Heladas")
 
 print("⛺ Pasos y campamentos")
-local okB = #OL.Bridges == 4
+local okB = #OL.Bridges == 5
 for _, b in OL.Bridges do
 	okB = okB and OL.isLand(b.CampX, b.CampZ) and math.abs((OL.height(b.CampX, b.CampZ) or 0) - OL.CampY) < 1
 	okB = okB and OL.isLand(b.EdgeX + b.Dir[1] * 240, b.EdgeZ + b.Dir[2] * 240) and OL.slope(b.CampX, b.CampZ) < 0.1
 	okB = okB and VR.ById[b.Region] ~= nil and VR.at(b.CampX, b.CampZ).Id == b.Region
 end
-check(okB, "cuatro pasos que llegan a tierra firme y un campamento llano en la región que toca")
-check(VR.ById[OL.Bridges[1].Region].MinLevel <= 20 and VR.ById[OL.Bridges[3].Region].MinLevel <= 20, "los pasos del norte y del sur llevan a las regiones de menos nivel")
+check(okB, "cinco pasos que llegan a tierra firme y un campamento llano en la región que toca")
+check(VR.ById[OL.Bridges[5].Region].MinLevel <= 20 and VR.ById[OL.Bridges[3].Region].MinLevel <= 20, "los pasos del suroeste y del sur llevan a las regiones de menos nivel")
 local mainSrc = fs.readFile("src/server/Main.server.luau")
 check(string.find(mainSrc, "Sea.ValmarDeep", 1, true) ~= nil, "el mar hondo de Valmar ya no se construye (Config.Sea.ValmarDeep)")
 

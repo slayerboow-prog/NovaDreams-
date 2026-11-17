@@ -197,6 +197,7 @@ HelpUI.onGo(function()
 	Guide.mark("Mision")
 end)
 task.spawn(MapUI.init) -- minimapa y mapa grande (tecla M)
+task.spawn(require(script.Parent.Controllers.WorldMapUI).init) -- el mapa definitivo de Valmar (el dibujo del dueño)
 task.spawn(InventoryUI.init) -- mochila estilo Minecraft (barra rápida 1-9, tecla E)
 task.spawn(DialogueUI.init) -- conversaciones de las misiones (con respuestas y cámara)
 task.spawn(DebugHud.init) -- panel de depuración del dueño (F8); a los demás jugadores no les llega nada
@@ -333,6 +334,8 @@ safeInit("AmbientShips", function() -- las naves que vuelan sobre las ciudades d
 end)
 safeInit("HunterSkillsUI", function() -- las habilidades de cazador (Services/HunterSkillService)
 	require(script.Parent.Controllers.HunterSkillsUI).init()
+	-- los efectos de las habilidades (animación, estelas y partículas: Controllers/SkillFx)
+	task.spawn(require(script.Parent.Controllers.SkillFx).init)
 end)
 safeInit("RegionBanner", function() -- el cartel al entrar en una de las ocho regiones de caza de Valmar
 	require(script.Parent.Controllers.RegionBanner).init()

@@ -10,7 +10,7 @@
 
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
-local TweenService = game:GetService("TweenService")
+local _TweenService = game:GetService("TweenService")
 
 local Combat = require(ReplicatedStorage.Shared.Combat)
 local Crafting = require(ReplicatedStorage.Shared.Crafting)
@@ -131,25 +131,12 @@ function HunterSkillService.levelOf(player: Player): number
 	return Crafting.hunterLevel(d and type(d.Hunter) == "table" and d.Hunter.Xp or 0)
 end
 
-local function ring(at: Vector3, radius: number, color: Color3)
-	local p = Instance.new("Part")
-	p.Name = "HabilidadFx"
-	p.Shape = Enum.PartType.Cylinder
-	p.Anchored = true
-	p.CanCollide = false
-	p.CanQuery = false
-	p.CanTouch = false
-	p.CastShadow = false
-	p.Material = Enum.Material.Neon
-	p.Color = color
-	p.Transparency = 0.35
-	p.Size = Vector3.new(0.4, 4, 4)
-	p.CFrame = CFrame.new(at) * CFrame.Angles(0, 0, math.pi / 2)
-	p.Parent = workspace
-	TweenService:Create(p, TweenInfo.new(0.45, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), { Size = Vector3.new(0.4, radius * 2, radius * 2), Transparency = 1 }):Play()
-	task.delay(0.6, function()
-		p:Destroy()
-	end)
+-- Los efectos (17-11-2026: antes, cilindros de neón; ahora animación, estelas y partículas en Controllers/SkillFx):
+-- se avisa a todos los clientes y cada uno lo dibuja
+local function fx(player: Player, id: string, from: Vector3, dir: Vector3)
+	if Remote then
+		(Remote :: RemoteEvent):FireAllClients("Fx", player.UserId, id, from, dir)
+	end
 end
 
 -- Usa una habilidad. now: para las pruebas. Devuelve (ok, texto o nil, bestias alcanzadas)
@@ -189,7 +176,7 @@ function HunterSkillService.use(player: Player, id: any, now: number?): (boolean
 		local name = sk.Buff or "Furia"
 		player:SetAttribute("Buff" .. name, HunterSkills.buffAmount(sk, rank))
 		player:SetAttribute("Buff" .. name .. "Hasta", workspace:GetServerTimeNow() + sk.Seconds)
-		ring(root.Position - Vector3.new(0, 2.5, 0), 8, if name == "Coraza" then Color3.fromRGB(120, 200, 255) elseif name == "Punteria" then Color3.fromRGB(255, 230, 120) else Color3.fromRGB(255, 120, 40))
+		fx(player, sk.Id, root.Position, root.CFrame.LookVector)
 	else
 		local Beasts = beastService()
 		local base = Combat.Damage[#Combat.Damage] * HunterSkills.power(sk, rank)
@@ -221,13 +208,8 @@ function HunterSkillService.use(player: Player, id: any, now: number?): (boolean
 				end
 			end
 		end
-		if sk.Kind == "Dash" then
-			-- el empujón hacia delante (el cliente manda en su personaje: se lo pide el remoto «Used»)
-			ring(from - Vector3.new(0, 2.5, 0), 6, Color3.fromRGB(120, 220, 255))
-			ring(from + dir * sk.Distance * 0.6 - Vector3.new(0, 2.5, 0), 6, Color3.fromRGB(120, 220, 255))
-		else
-			ring(from - Vector3.new(0, 2.5, 0), sk.Radius, if sk.Id == "GolpeSismico" then Color3.fromRGB(255, 200, 90) else Color3.fromRGB(200, 230, 255))
-		end
+		-- (el empujón de la Embestida lo hace el cliente en su personaje: se lo pide el remoto «Used»)
+		fx(player, sk.Id, from, dir)
 	end
 	return true, nil, hits
 end

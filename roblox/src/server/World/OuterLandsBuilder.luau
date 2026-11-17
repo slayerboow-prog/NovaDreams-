@@ -420,6 +420,13 @@ function OuterLandsBuilder.build(): Instance?
 	if not okD then
 		warn("[TierrasExteriores] decoración", nd)
 	end
+	-- (17-11-2026) los lugares de cada región: santuario, árbol ancestral, cueva, cascada, campamento, portal…
+	local okL, nl = pcall(function()
+		return require(script.Parent.RegionLandmarks).build(root)
+	end)
+	if not okL then
+		warn("[TierrasExteriores] lugares: " .. tostring(nl))
+	end
 	pcall(OuterLandsBuilder.limit, root)
 	OuterLandsBuilder.Stats = { Chunks = chunks, Voxels = voxels, Seconds = os.clock() - started, Parts = parts + #decorFolder:GetDescendants() }
 	OuterLandsBuilder.State = "Ready"
