@@ -40,7 +40,7 @@ return {
 	mision({
 		Id = "Gue01_Patrulla",
 		Title = "Primera patrulla",
-		Description = "Ya llevas el uniforme. Las bestias de los distritos de caza se acercan cada noche a las calles del centro: toca empujarlas hacia fuera.",
+		Description = "Cada noche las manadas llegan más cerca de la muralla. Anoche cruzaron la Ronda y una familia del centro no llegó a casa.",
 		Duration = { 8, 12 },
 		Type = "Guerrero · Patrulla",
 		Next = { "Gue02_MasLejos" },
@@ -53,14 +53,14 @@ return {
 		},
 		Dialogues = {
 			Orden = { Lines = {
-				{ S = "Kael", T = "Guerrero {nombre}. Suena bien, ¿eh? Pues se acabó la ceremonia." },
-				{ S = "Kael", T = "Anoche una manada llegó hasta la Ronda. Quiero los distritos del Oeste y del Sur limpios antes de que anochezca." },
-				{ S = "Brenn", T = "Yo cubro el norte del centro. Si ves algo con más dientes que tú, no te hagas el héroe: llama." },
+				{ S = "Kael", T = "Guerrero {nombre}. Se acabaron las prácticas." },
+				{ S = "Kael", T = "Anoche una manada cruzó la Ronda. Tres muertos en la calle de las Torres. Quiero el Oeste y el Sur limpios antes de que anochezca." },
+				{ S = "Brenn", T = "Yo cubro la muralla norte. Si encuentras algo que no puedes con ello, retírate y avisa. Morir no ayuda a nadie." },
 			} },
 			Parte = { Lines = {
-				{ S = "Kael", T = "Ocho bestias y ni un rasguño en las calles. Así se patrulla." },
-				{ S = "Sorel", T = "Yo me he perdido dos veces. Pero he vuelto. Eso cuenta, ¿no?" },
-				{ S = "Kael", T = "Cuenta. Mañana, más lejos: el Este y el campus abandonado. Ahí ya no son cachorros." },
+				{ S = "Kael", T = "Ocho bestias. Esta noche nadie del centro va a tener que correr." },
+				{ S = "Sorel", T = "En el Sur he encontrado mochilas de niños en una parada de autobús. De la noche de la Caída. Las he traído." },
+				{ S = "Kael", T = "Déjalas en la pared de la entrada. Mañana, más lejos: el Este y el campus. Ahí las manadas son más grandes y más listas." },
 			}, Effects = { Rel = { Kael = 3 } } },
 		},
 	}),
@@ -68,7 +68,7 @@ return {
 	mision({
 		Id = "Gue02_MasLejos",
 		Title = "Más allá de la Ronda",
-		Description = "El campus abandonado y las playas del Este: bestias de más nivel, en grupo. Ve con todo lo que te enseñó la Academia.",
+		Description = "El campus abandonado y las playas del Este: manadas grandes, bestias que aprenden. Sorel va contigo hasta donde pueda.",
 		Duration = { 10, 15 },
 		Difficulty = 3,
 		Type = "Guerrero · Caza",
@@ -82,22 +82,24 @@ return {
 		},
 		Dialogues = {
 			Lejos = { Lines = {
-				{ S = "Kael", T = "En el campus abandonado hay osos que antes eran de peluche en las vitrinas. Es broma. Son peores." },
-				{ S = "Kael", T = "Usa la Furia antes de entrar y guarda la Coraza para cuando te rodeen. El espíritu no es infinito." },
-				{ S = "Sorel", T = "Voy contigo hasta la Ronda. Luego… luego ya veré." },
+				{ S = "Kael", T = "El campus fue un refugio durante la Caída. Aguantó tres días. Lo que hay dentro ahora vive de lo que encontró allí." },
+				{ S = "Kael", T = "Furia antes de entrar. Coraza cuando te rodeen. Si te quedas sin espíritu, sal de ahí con la Embestida y no mires atrás." },
+				{ S = "Sorel", T = "Voy contigo. No me mires así: si me pasa algo, que sea haciendo esto." },
 			} },
 			Vuelta = { Lines = {
-				{ S = "Kael", T = "Quince. En el Este. Sola o solo, sin pedir ayuda. Me han llegado tres llamadas preguntando quién eras." },
-				{ S = "Brenn", T = "Dos eran mías." },
-				{ S = "Kael", T = "Ha llegado el momento. Ve al puerto espacial: tu nave está lista. Hay mundos ahí arriba que necesitan guerreros." },
-			}, Effects = { Rel = { Kael = 4, Brenn = 3 } } },
+				{ S = "Narrador", T = "Sorel vuelve con el brazo vendado y la cara gris. Una bestia del campus la arrastró diez metros antes de que llegaras." },
+				{ S = "Sorel", T = "Estoy bien. Estoy viva. Gracias a ti." },
+				{ S = "Kael", T = "Quince bestias y una compañera de vuelta. Eso es lo que significa el juramento." },
+				{ S = "Brenn", T = "Hay guerreros con diez años de servicio que no han hecho lo que tú hoy." },
+				{ S = "Kael", T = "Ve al puerto espacial. Tu nave está lista. La Grieta no se abrió aquí por casualidad: la respuesta está ahí arriba." },
+			}, Effects = { Rel = { Kael = 4, Brenn = 3, Sorel = 6 } } },
 		},
 	}),
 
 	mision({
 		Id = "Gue03_Despegue",
 		Title = "El primer despegue",
-		Description = "Toda la vida mirando las naves desde abajo. Hoy subes a la tuya.",
+		Description = "La Grieta no nació en Valmar. Hay que saber de dónde vienen las bestias, y para eso hay que subir.",
 		Duration = { 6, 10 },
 		Type = "Guerrero · Espacio",
 		Locations = { "PuertoEspacial" },
@@ -111,10 +113,10 @@ return {
 		},
 		Dialogues = {
 			Nave = { Lines = {
-				{ S = "Narrador", T = "En la plataforma hay una nave con tu nombre pintado en el costado. Mal escrito. Alguien lo ha corregido con rotulador." },
-				{ S = "Sorel", T = "¡Fui yo! Ponía «Guerrera». O «Guerrero». No me acordaba. Bueno, ya está bien." },
-				{ S = "Kael", T = "Despega, sal de la atmósfera y elige un planeta. El que quieras. Aterriza, mira a tu alrededor y vuelve con vida." },
-				{ S = "Kael", T = "La primera vez que yo vi Valmar desde arriba, lloré. No se lo digas a nadie." },
+				{ S = "Narrador", T = "En la plataforma espera una nave de patrulla. Tiene arañazos de garras en el casco: perteneció a la escuadra de Kael." },
+				{ S = "Kael", T = "Era de Ilen, mi segunda al mando. No volvió de Tefra. La nave sí. Ahora es tuya." },
+				{ S = "Sorel", T = "Ojalá pudiera ir contigo. En cuanto me quiten la venda, te sigo." },
+				{ S = "Kael", T = "Despega, sal de la atmósfera y elige un planeta. Aterriza, mira, aprende y vuelve. Y si algo te dice que te vayas, hazle caso." },
 			} },
 		},
 	}),
@@ -122,7 +124,7 @@ return {
 	mision({
 		Id = "Gue04_OtroMundo",
 		Title = "Otro mundo",
-		Description = "Estás en un planeta que nadie de tu barrio ha pisado. La Academia necesita muestras: recoge material y aguanta lo que te eche.",
+		Description = "Un mundo desconocido, con su propio aire y sus propias bestias. La Academia necesita muestras para entender la Grieta.",
 		Duration = { 8, 12 },
 		Difficulty = 3,
 		Type = "Guerrero · Planetas",
@@ -140,7 +142,7 @@ return {
 	mision({
 		Id = "Gue05_Ascenso",
 		Title = "Guerrero de primera",
-		Description = "Vuelves de tu primer planeta con las botas llenas de polvo de otro mundo. En la Academia te están esperando.",
+		Description = "Vuelves de otro mundo con muestras, heridas y más preguntas que respuestas. En la Academia te están esperando.",
 		Duration = { 4, 6 },
 		Type = "Guerrero · Rango",
 		Moment = "Te nombraron guerrero de primera",
@@ -151,12 +153,12 @@ return {
 		},
 		Dialogues = {
 			Ascenso = { Lines = {
-				{ S = "Kael", T = "Has patrullado, has cazado lejos y has pisado otro mundo. Casi nadie lo hace en su primer año." },
-				{ S = "Kael", T = "Desde hoy eres guerrero de primera. Puedes aceptar misiones de cualquier planeta y de la Grieta." },
-				{ S = "Brenn", T = "Y yo sigo de segunda. La vida es injusta. Enhorabuena, de verdad." },
-				{ S = "Sorel", T = "Algún día iremos juntos a Tefra. O a Nivalis. ¡O a todos!" },
-				{ S = "Kael", T = "Cosme, el del garaje, lleva días preguntando por ti. Dice que hay algo raro en el cielo. Escúchale: casi nunca se equivoca." },
-				{ S = "Narrador", T = "Tu sueño era ser guerrero espacial. Ya lo eres. Ahora empieza lo difícil: ser uno de los buenos." },
+				{ S = "Kael", T = "Las muestras que trajiste tienen el mismo rastro que la Grieta. Lo que atacó Valmar viene de fuera. Y no ha terminado." },
+				{ S = "Kael", T = "Desde hoy eres guerrero de primera. Puedes aceptar misiones en cualquier planeta y en la Grieta. También puedes morir en cualquiera de ellos." },
+				{ S = "Brenn", T = "Mi hermano quería este rango. Llévalo bien." },
+				{ S = "Sorel", T = "Ya me han quitado la venda. La próxima vez, subo contigo." },
+				{ S = "Kael", T = "Hay un tipo en un garaje del centro, Cosme. Lleva meses midiendo cosas en el cielo que nadie más ve. Ve a hablar con él." },
+				{ S = "Narrador", T = "Soñabas con ser guerrero espacial. Ahora sabes lo que cuesta. Y aun así, sigues aquí." },
 			}, Effects = { Rel = { Kael = 6, Sorel = 4, Brenn = 3 } } },
 		},
 	}),

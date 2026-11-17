@@ -236,10 +236,10 @@ local People: { [string]: Person } = {
 		Name = "Comandante Kael", Voice = "Profe",
 		Skin = rgb(170, 120, 90), Shirt = rgb(35, 45, 70), Pants = rgb(25, 28, 38),
 		Hair = rgb(200, 200, 205), LongSleeves = true,
-		Bio = "Dirige la Academia de Guerreros. Ha pilotado en tres planetas. Seca, justa y sin paciencia para las excusas.",
+		Bio = "Dirige la Academia de Guerreros. Perdió a su escuadra en Tefra y volvió a una Valmar arrasada. Seca, justa, no promete nada que no pueda cumplir.",
 	},
-	Brenn = { Name = "Brenn", Voice = "Nino", Teen = true, Skin = rgb(225, 180, 140), Shirt = rgb(120, 30, 30), Pants = rgb(30, 30, 35), Hair = rgb(25, 20, 18), Bio = "Cadete de último curso. Entrena a los nuevos. Presume mucho, pero no deja a nadie tirado." },
-	Sorel = { Name = "Sorel", Voice = "Nino", Teen = true, Skin = rgb(140, 95, 70), Shirt = rgb(40, 110, 160), Pants = rgb(40, 40, 50), Hair = rgb(15, 12, 10), LongHair = true, Bio = "Entra en la Academia el mismo día que tú. Nerviosa, lista y obsesionada con las naves." },
+	Brenn = { Name = "Brenn", Voice = "Nino", Teen = true, Skin = rgb(225, 180, 140), Shirt = rgb(120, 30, 30), Pants = rgb(30, 30, 35), Hair = rgb(25, 20, 18), Bio = "Cadete de último curso. Su hermano murió en el Sur la noche de la Caída. Duro con los nuevos porque no quiere enterrar a ninguno." },
+	Sorel = { Name = "Sorel", Voice = "Nino", Teen = true, Skin = rgb(140, 95, 70), Shirt = rgb(40, 110, 160), Pants = rgb(40, 40, 50), Hair = rgb(15, 12, 10), LongHair = true, Bio = "Entra en la Academia el mismo día que tú. Vivía en el Sur antes de la Caída. Quiere recuperar lo que perdió." },
 	Delegada = { Name = "Delegada de 4.º", Voice = "Nino", Teen = true, Skin = rgb(185, 135, 100), Shirt = rgb(230, 170, 60), Pants = rgb(30, 30, 30), Hair = rgb(30, 20, 15), LongHair = true, Bio = "Organizada, amable, siempre con una carpeta." },
 
 	Dario = { Name = "Darío", Voice = "Nino", Kid = true, Skin = rgb(230, 190, 150), Shirt = rgb(20, 120, 60), Pants = rgb(30, 30, 40), Hair = rgb(30, 25, 20), Bio = "De segundo, el gracioso del equipo de fútbol. No es malo: no piensa antes de hacer las cosas." },
