@@ -430,7 +430,7 @@ return {
 		FadeIn = true,
 		Sting = "Momento",
 		Anchors = {
-			Patio = "Place:PatioInstituto",
+			Patio = "Place:Patio",
 			Yo = "Player",
 			Grieta = "Rift",
 			Bajada = { Place = "PatioInstituto", Offset = V(0, 0, -8), Ground = true },
@@ -476,23 +476,23 @@ return {
 			},
 			Actors = {
 				{ At = 0, Use = { Key = "Cosme", Npc = "Cosme", Anchor = "Patio", Offset = V(2, 0, 3) } },
-				{ At = 0, Use = { Key = "Omar", Npc = "Omar", Anchor = "Patio", Offset = V(-5, 0, 6) } },
-				{ At = 0, Use = { Key = "Sara", Npc = "Sara", Anchor = "Patio", Offset = V(-3, 0, 8) } },
+				{ At = 0, Use = { Key = "Sorel", Npc = "Sorel", Anchor = "Patio", Offset = V(-5, 0, 6) } },
+				{ At = 0, Use = { Key = "Brenn", Npc = "Brenn", Anchor = "Patio", Offset = V(-3, 0, 8) } },
 				{ At = 0, Use = { Key = "Nico", Npc = "Nico", Anchor = "Patio", Offset = V(5, 0, 7) } },
 				{ At = 0.4, Gesture = { Key = "Nico", Play = "Cheer" } },
 				{ At = 3.5, Look = { Key = "Cosme", At = "Grieta" } },
 				{ At = 3.6, Look = { Key = "Nico", At = "Grieta" } },
-				{ At = 3.7, Look = { Key = "Omar", At = "Grieta" } },
-				{ At = 3.8, Look = { Key = "Sara", At = "Grieta" } },
+				{ At = 3.7, Look = { Key = "Sorel", At = "Grieta" } },
+				{ At = 3.8, Look = { Key = "Brenn", At = "Grieta" } },
 				{ At = 3.9, Mood = { Key = "Nico", Mood = "Surprise" } },
 				{ At = 4, Mood = { Key = "Cosme", Mood = "Fear" } },
-				{ At = 4.1, Mood = { Key = "Omar", Mood = "Surprise" } },
-				{ At = 4.2, Mood = { Key = "Sara", Mood = "Nervous" } },
-				{ At = 4.6, Gesture = { Key = "Omar", Play = "Point" } },
+				{ At = 4.1, Mood = { Key = "Sorel", Mood = "Surprise" } },
+				{ At = 4.2, Mood = { Key = "Brenn", Mood = "Nervous" } },
+				{ At = 4.6, Gesture = { Key = "Sorel", Play = "Point" } },
 				{ At = 6.6, Look = { Key = "Cosme", At = "Speaker" } },
 				{ At = 14.1, Look = { Key = "Cosme", At = "Bajada" } },
-				{ At = 14.2, Look = { Key = "Omar", At = "Bajada" } },
-				{ At = 14.2, Look = { Key = "Sara", At = "Bajada" } },
+				{ At = 14.2, Look = { Key = "Sorel", At = "Bajada" } },
+				{ At = 14.2, Look = { Key = "Brenn", At = "Bajada" } },
 				{ At = 14.3, Look = { Key = "Nico", At = "Bajada" } },
 				-- Baja Cósimo
 				{ At = 15.7, Spawn = { Key = "Cosimo", Npc = "Cosimo", Anchor = "Bajada" } },
@@ -502,14 +502,14 @@ return {
 				{ At = 19.5, Mood = { Key = "Cosme", Mood = "Angry" } },
 			},
 			Dialogue = {
-				{ At = 0.6, S = "Nico", T = "¡Graduados! ¡GRA-DUA-DOS! ¡Que alguien me pellizque!", Mood = "Joy" },
+				{ At = 0.6, S = "Nico", T = "Guerreros. Por fin. Todos.", Mood = "Joy" },
 				{ At = 6.8, S = "Cosme", T = "No. Hoy no. Hoy es su día.", Shot = "Reaccion:Cosme", Mood = "Fear" },
-				-- Si saboteaste la fiesta de MegaVerso, Omar ata cabos: la cuenta atrás era por hoy
-				{ At = 9.5, S = "Omar", T = "Los números del cielo de la fiesta… Marcaban hoy. Marcaban esto.", Shot = "DosPlanos:Omar,Sara", If = { Memories = { "FiestaFinDelMundo" } } },
-				{ At = 9.5, S = "Sara", T = "Eso no es un fenómeno meteorológico. …Es una cremallera.", Shot = "DosPlanos:Omar,Sara", IfNot = { Memories = { "FiestaFinDelMundo" } } },
+				-- Si saboteaste la fiesta de MegaVerso, Sorel ata cabos: la cuenta atrás era por hoy
+				{ At = 9.5, S = "Sorel", T = "Los números de la feria… Marcaban hoy. Marcaban esto.", Shot = "DosPlanos:Sorel,Brenn", If = { Memories = { "FiestaFinDelMundo" } } },
+				{ At = 9.5, S = "Brenn", T = "Eso no es una tormenta. Se está abriendo.", Shot = "DosPlanos:Sorel,Brenn", IfNot = { Memories = { "FiestaFinDelMundo" } } },
 			},
 			Titles = {
-				{ At = 19.8, Text = "🌀 La costura se rompe", Sub = "Tu graduación del instituto", Duration = 3 },
+				{ At = 19.8, Text = "🌀 La costura se rompe", Sub = "Tu ceremonia en la Academia", Duration = 3 },
 			},
 			-- Lo que se queda (fase 5): donde aterriza Cósimo, losas levantadas (StageSets.BajadaInstituto)
 			World = {

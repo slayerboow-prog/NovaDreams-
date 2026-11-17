@@ -14,7 +14,7 @@ La mecánica es la de siempre: Cosme viene a tu graduación «por casualidad», 
 | 1 |  |  | 1 · Talk «Casualidad» |
 | 2 | Cinematic |  | — |
 | 3 |  |  | 3 · Scene «Cosimo» |
-| 4 |  |  | 4 · Fight @ PatioInstituto |
+| 4 |  |  | 4 · Fight @ Patio |
 | 5 |  |  | 5 · Scene «Secuestro» |
 
 ## Errores
@@ -24,37 +24,22 @@ _Ninguno._
 
 ## Aplicado
 
-- PASO 1 → paso 1 del juego (Talk «Casualidad»): conversación «Casualidad» con 9 frases nuevas
-- PASO 3 → paso 3 del juego (Scene «Cosimo»): conversación «Cosimo» con 7 frases nuevas
-- PASO 4 → paso 4 del juego (Fight): 4 frases al empezar el paso (escena ligera «Saga_12_G4_Entra», la lanza el paso 3 al cumplirse; el jugador no pierde el control)
-- PASO 5 → paso 5 del juego (Scene «Secuestro»): conversación «Secuestro» con 8 frases nuevas
+- PASO 1 → paso 1 del juego (Talk «Casualidad»): conversación «Casualidad» con 5 frases nuevas
+- PASO 3 → paso 3 del juego (Scene «Cosimo»): conversación «Cosimo» con 6 frases nuevas
+- PASO 4 → paso 4 del juego (Fight): 1 frases al empezar el paso (escena ligera «Saga_12_G4_Entra», la lanza el paso 3 al cumplirse; el jugador no pierde el control)
+- PASO 5 → paso 5 del juego (Scene «Secuestro»): conversación «Secuestro» con 9 frases nuevas
 
 ## Adaptado (y por qué)
 
 - PASO 2 [Cinematic] @ : no corresponde a ningún paso del juego: no se aplica
 - PASO 1: el guion lo escribe como [] y en el juego es conversación (Talk): se conserva el tipo del juego y su mecánica
 - PASO 3: el guion lo escribe como [] y en el juego es conversación (Scene): se conserva el tipo del juego y su mecánica
-- frase quitada (es una acotación, no se dice): «(Intenta ayudar aunque no sabe qué hacer.)»
-- frase quitada (es una acotación, no se dice): «(Pero uno de los drones lo separa.)»
-- frase quitada (es una acotación, no se dice): «…»
-- frase quitada (es una acotación, no se dice): «(Ya no puede comportarse como si todo fuera una aventura divertida.)»
-- frase quitada (es una acotación, no se dice): «(Eso lo hace más inquietante.)»
-- frase quitada (es una acotación, no se dice): «(Este es su primer gran cambio.)»
+- frase quitada (es una acotación, no se dice): «(recoge del suelo la bata de Cosme, quemada por un lado)»
 - PASO 5: el guion lo escribe como [] y en el juego es conversación (Scene): se conserva el tipo del juego y su mecánica
-- PASO 5: «graduacion_completada = true» no la lee ninguna misión: no se crea
-- PASO 5: «saga_acto_ii_completado = true» no la lee ninguna misión: no se crea
-- PASO 5: «cosimo_se_llevo_cosme = true» no la lee ninguna misión: no se crea
-- PASO 5: «cosme_desaparecido = true» no la lee ninguna misión: no se crea
-- PASO 5: «grieta_reabierta = true» no la lee ninguna misión: no se crea
-- PASO 5: «defendiste_amigos_graduacion = true» no la lee ninguna misión: no se crea
-- PASO 5: «bata_cosme_obtenida = true» no la lee ninguna misión: no se crea
-- PASO 5: «omar_exige_la_verdad = true» no la lee ninguna misión: no se crea
-- PASO 5: «cosimo_te_espera_en_universidad = true» no la lee ninguna misión: no se crea
 
 ## Género ({o/a}) corregido en frases dirigidas al jugador
 
-_Ninguna corrección._
-
+- PASO 1 (línea 33) · Sorel: «¿Ese es Cosme? ¿El del garaje? Kael dice que es el hombre más listo de Valmar. Y el más cabezota.» → «¿Ese es Cosme? ¿El del garaje? Kael dice que es el hombre más list{o/a} de Valmar. Y el más cabezota.»
 
 ## Avisos
 
@@ -63,13 +48,8 @@ _Ninguno._
 
 ## Notas del guion sin equivalente directo (bloques de dirección, minijuegos, memoria…)
 
-- PASO 1 · OBJETIVO: Habla con Cosme.
-- PASO 3 · OBJETIVO: Protege la graduación.
-- PASO 4 · OBJETIVO: Protege a tus amigos.
-- PASO 5 · FLAGS: 
-- PASO 5 · Consecuencia:: Cosme ha desaparecido.
-- PASO 5 · DIRECCIÓN DE ACTUACIÓN: Durante el comienzo: / * Nervioso. / * Intentando fingir normalidad. / * Feliz por la graduación. / Cuando aparece la grieta: / * Miedo real. / * Protección. / * Determinación. / Durante el secuestro: / * No debe parecer derrotado. / * Debe intentar proteger al protagonista hasta el último segundo. / La frase: / COSME: No sueltes el Ancla
-- PASO 5 · OBJETIVO:: Habla con Pip.
+_Ninguna._
+
 
 ## Cómo se traduce el formato
 

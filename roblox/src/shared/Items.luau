@@ -389,7 +389,7 @@ local KEEPSAKES = {
 	{ "FolletoMegaVerso", "Folleto del Consorcio", "📄", "«¿Tu mundo se rompe? Te ofrecemos otro». Letra pequeña: el mundo fusionado pasa a ser suyo." },
 	{ "CintaArchivo", "La grabación de «La noche»", "📼", "El laboratorio de Lía la noche de la Caída. Lía te sacó de allí. Tu historia." },
 	{ "RelojArena", "Reloj de arena de Cronos", "⏳", "Regalo de Cronos, de la Aduana: «Si la situación se vuelve imposible, gírelo. Vendré»." },
-	{ "BataChamuscada", "La bata chamuscada de Cosme", "🥼", "La recogió Omar del suelo del patio. Todavía huele a batido de apio." },
+	{ "BataChamuscada", "La bata chamuscada de Cosme", "🥼", "La recogió Sorel del suelo del patio de la Academia el día que Cósimo se llevó a Cosme." },
 	{ "CuadernoCosme", "El cuaderno de Cosme", "📓", "Fórmulas, dibujos de gallinas y, en la última página: «Si me pasa algo, que lo lea la criatura». Eres tú." },
 	{ "CollarDiplomatico", "Collar diplomático de Gatonia", "📿", "Regalo del Presidente Bigotes. Con él, cualquier gato te trata de usted." },
 	{ "PaseVIP", "Pase VIP del reality", "🎟️", "«Abducidos: edición especial». Temporada 3, capítulo 8. Sales en los créditos." },
