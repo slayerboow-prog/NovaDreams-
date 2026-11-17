@@ -22,23 +22,13 @@ _Ninguno._
 
 ## Aplicado
 
-- PASO 1 → paso 1 del juego (Talk «Oferta»): conversación «Oferta» con 19 frases nuevas
-- PASO 3 → paso 3 del juego (Scene «Respuesta»): conversación «Respuesta» con 10 frases nuevas
+- PASO 1 → paso 1 del juego (Talk «Oferta»): conversación «Oferta» con 9 frases nuevas
+- PASO 2 → paso 2 del juego (Choice): 1 frases al empezar el paso (escena ligera «Saga_22_G2_Entra», la lanza el paso 1 al cumplirse; el jugador no pierde el control)
+- PASO 3 → paso 3 del juego (Scene «Respuesta»): conversación «Respuesta» con 5 frases nuevas
 
 ## Adaptado (y por qué)
 
 - PASO 1: el guion lo escribe como [] y en el juego es conversación (Talk): se conserva el tipo del juego y su mecánica
-- PASO 2: «OPCIÓN A — «NO. ASÍ DE SIMPLE.»» — la opción No del juego no tiene conversación propia: sus frases no se aplican
-- PASO 2: «OPCIÓN B — «FINGIR QUE ACEPTAS… PARA TENDERLE UNA TRAMPA EN EL MONTE.»» — la opción Trampa del juego no tiene conversación propia: sus frases no se aplican
-- PASO 2 → paso 2 del juego (Choice): solo trae planos (sin frases): en un paso jugable no se quita el control, así que no se aplican
-- frase quitada (es una acotación, no se dice): «(Segunda fase)»
-- PASO 3: «cosimo_trato_rechazado = true» no la lee ninguna misión: no se crea
-- PASO 3: «saga_22_completada = true» no la lee ninguna misión: no se crea
-- PASO 3: «cosimo_visito_casa = true» no la lee ninguna misión: no se crea
-- PASO 3: «cosimo_ofrecio_trato = true» no la lee ninguna misión: no se crea
-- PASO 3: «cosimo_quiere_ancla = true» no la lee ninguna misión: no se crea
-- PASO 3: «gran_fusion_inminente = true» no la lee ninguna misión: no se crea
-- PASO 3: «Flags» del guion no se pone a toda la conversación «Respuesta» (es de una rama o una nota; lo pone la mecánica)
 
 ## Género ({o/a}) corregido en frases dirigidas al jugador
 
@@ -52,13 +42,8 @@ _Ninguno._
 
 ## Notas del guion sin equivalente directo (bloques de dirección, minijuegos, memoria…)
 
-- PASO 2 · OBJETIVO: Cósimo te ofrece una vida perfecta en la 66-B a cambio de soltar el Ancla. ¿Qué haces?
-- PASO 2 · OPCIÓN A — «NO. ASÍ DE SIMPLE.»: La selección debe sentirse contundente. / No añadir un discurso enorme. / El jugador simplemente rechaza.
-- PASO 2 · OPCIÓN B — «FINGIR QUE ACEPTAS… PARA TENDERLE UNA TRAMPA EN EL MONTE.»: La expresión del jugador puede cambiar ligeramente. / Cósimo observa.
-- PASO 3 · Al terminar:: «Le dijiste que no a Cósimo»
-- PASO 3 · CONSECUENCIAS EN SAGA_23_FUSION: Cósimo sabe que el jugador viene a enfrentarse a él. / Su entrada en el Monte del Silencio debe ser más agresiva. / Cósimo cree inicialmente que ha ganado. / Su comportamiento inicial es más relajado. / Cuando ve al grupo de aliados: / Debe existir una reacción específica: / «Habías aceptado.» /  / «Y has traído un ejército.» / Entonces comprende: / Narrador: Entonces comprende: «Me has engañado.» / Esto enlaza directamente con el diálogo original de la Gran Fusión.
-- PASO 3 · DIRECCIÓN DE ACTUACIÓN — CÓSIMO: Esta misión depende principalmente de su actuación.
-- PASO 3 · DIRECCIÓN DE LA CASA: No congelar la casa durante la conversación.
+_Ninguna._
+
 
 ## Cómo se traduce el formato
 
