@@ -14,7 +14,7 @@ La mecánica es la de siempre: cruzar a la Valmar 66-B, mirar la plaza, hablar c
 | 1 | Transition |  | 1 · Transition |
 | 2 |  |  | 2 · Use (Cartel) |
 | 3 |  |  | 3 · Talk «Malvado» |
-| 4 |  |  | 4 · Escape @ Universidad |
+| 4 |  |  | 4 · Escape @ OficinasFinanciero |
 | 5 |  |  | 5 · Use (Rejilla) |
 
 ## Errores
@@ -24,20 +24,18 @@ _Ninguno._
 
 ## Aplicado
 
-- PASO 1 → paso 1 del juego (Transition): 12 frases al cumplirlo (escena ligera «Saga_16_G1_Fin», sin quitar el control)
-- PASO 2 → paso 2 del juego (Use): lo que pasa al usarlo va en la conversación del objeto «Cartel» (4 frases)
-- PASO 2 → paso 2 del juego (Use): objetivo «Investiga la Plaza Mayor de la 66-B»
-- PASO 3 → paso 3 del juego (Talk «Malvado»): conversación «Malvado» con 18 frases nuevas
-- PASO 4 → paso 4 del juego (Escape): objetivo «Llega a la universidad de la 66-B»
-- PASO 4 → paso 4 del juego (Escape): 5 frases al empezar el paso (escena ligera «Saga_16_G4_Entra», la lanza el paso 3 al cumplirse; el jugador no pierde el control)
-- PASO 5 → paso 5 del juego (Use): lo que pasa al usarlo va en la conversación del objeto «Rejilla» (16 frases)
+- PASO 1 → paso 1 del juego (Transition): 2 frases al cumplirlo (escena ligera «Saga_16_G1_Fin», sin quitar el control)
+- PASO 2 → paso 2 del juego (Use): lo que pasa al usarlo va en la conversación del objeto «Cartel» (2 frases)
+- PASO 3 → paso 3 del juego (Talk «Malvado»): conversación «Malvado» con 2 frases nuevas
+- PASO 4 → paso 4 del juego (Escape): 1 frases al empezar el paso (escena ligera «Saga_16_G4_Entra», la lanza el paso 3 al cumplirse; el jugador no pierde el control)
+- PASO 5 → paso 5 del juego (Use): lo que pasa al usarlo va en la conversación del objeto «Rejilla» (4 frases)
 
 ## Adaptado (y por qué)
 
-- PASO 1: 7 PLANO de un paso jugable (Transition) no se convierten en cámara para no quitar el control; se usan para colocar las frases (antes/después de la acción) y los destellos de la Grieta
-- frase quitada (es una acotación, no se dice): «(El otro yo se sienta.)»
 - PASO 3: el guion lo escribe como [] y en el juego es conversación (Talk): se conserva el tipo del juego y su mecánica
-- frase quitada (es una acotación, no se dice): «(No solamente acompaña.)»
+- PASO 3: la conversación del juego tenía 1 preguntas y el guion 0: las que faltan se conservan tal cual al final (guardan decisiones que usa la historia)
+- PASO 4 (línea 74): la acotación «(por el comunicador)» no tiene gesto en el juego: se queda solo la frase
+- PASO 5 (línea 94): la acotación «(por el comunicador)» no tiene gesto en el juego: se queda solo la frase
 
 ## Género ({o/a}) corregido en frases dirigidas al jugador
 
@@ -51,13 +49,8 @@ _Ninguno._
 
 ## Notas del guion sin equivalente directo (bloques de dirección, minijuegos, memoria…)
 
-- PASO 1 · OBJETIVO: Cruzar el portal hacia la dimensión 66-B.
-- PASO 2 · Objetivo: Investiga la Plaza Mayor de la 66-B: El jugador debe localizar tres elementos, no simplemente pulsar un único cartel.
-- PASO 2 · Flag:: 
-- PASO 4 · Objetivo: Llega a la universidad de la 66-B: Lugar: Plaza -> calles -> Universidad de Valmar 66-B
-- PASO 5 · DIRECCIÓN DE ACTUACIÓN: No debe parecer un villano. / Debe parecer: / Tú 66-B: Una versión del protagonista que tomó malas decisiones durante mucho tiempo.
-- PASO 5 · Objetivo:: Vuelve al garaje de Cosme. / Al llegar: / Pip estará preparando el equipo. / Sobre una mesa habrá: / * el mapa de 66-B; / * la grabación de Ñoz; / * el mando dimensional; / * el cuaderno de Cosme; / * el collar de Gatonia. / La cámara hará un breve Inserto sobre cada objeto. / Después, Pip: / Pip: Mañana vamos a por el señor.
-- PASO 5 · MOMENTO DE BIOGRAFÍA: Pip: Entraste en la Valmar malvada
+_Ninguna._
+
 
 ## Cómo se traduce el formato
 

@@ -393,7 +393,7 @@ local KEEPSAKES = {
 	{ "CuadernoCosme", "El cuaderno de Cosme", "📓", "Coordenadas, cálculos y una página titulada «Si me pasa algo». Debajo, tachado: «Dile que estoy orgulloso»." },
 	{ "CollarDiplomatico", "Collar de G-4", "📿", "La señal del pueblo de Bigotes. En cualquier refugio de los suyos, te abrirán la puerta." },
 	{ "PaseVIP", "Frecuencia de la capitana Ñoz", "🎟️", "Un canal para avisar a su nave. «Si salís vivos, esa historia valdrá mucho.»" },
-	{ "MapaMalvado", "Mapa de la 66-B", "🗺️", "Dibujado por tu versión malvada. Las calles son las mismas; los carteles, no." },
+	{ "MapaMalvado", "Mapa de la 66-B", "🗺️", "Dibujado por Sorel. Las calles son las mismas que en tu Valmar; los carteles, no." },
 	{ "FotoSinMemoria", "Foto de Cosme sin memoria", "📷", "Cosme, con una manta, preguntando quién eres. Detrás, a boli: «Pero se quedó a cenar»." },
 	{ "AlbumRecuerdos", "Álbum de recuerdos", "📔", "El microondas, las gallinas, el anclaje del parque. Todo lo que le devolviste a Cosme." },
 	{ "AgujaDeOro", "La aguja de oro", "🧵", "La que cerró la Grieta para siempre. En la punta pone, muy pequeñito: «Gracias, Ancla»." },

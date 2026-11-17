@@ -30,6 +30,7 @@ FarmDistricts.Keep = {
 	Mirador = true,
 	PuertoEspacial = true,
 	PortalPuertoEspacial = true,
+	MonteSilencio = true, -- (el Monte del Silencio de la Saga: Kit/Wilds, junto al distrito de caza del Oeste)
 }
 
 type Box = { X0: number, X1: number, Z0: number, Z1: number }
