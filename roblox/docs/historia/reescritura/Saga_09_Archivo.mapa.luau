@@ -2,6 +2,7 @@
 -- 4 PASO = 4 pasos del juego (Pip, el archivo, la cinta en el proyector y Cosme en la puerta).
 return {
 	Prefijo = "Saga_09",
+	Hablantes = { ["LÍA"] = "Lia", ["CÓSIMO"] = "Cosimo" },
 	Variables = {
 		sabe_fusion = { Flag = "SabeFusion" },
 		["el jugador no tiene esa informacion"] = { If = { NotFlags = { "SabeFusion" } } },

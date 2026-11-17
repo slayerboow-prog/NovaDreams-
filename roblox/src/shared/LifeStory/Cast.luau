@@ -231,6 +231,8 @@ local People: { [string]: Person } = {
 		Bio = "De la pandilla de Rayo. Lista, sarcástica. Va con ellos porque no sabe con quién más ir. Dibuja cómics que no enseña a nadie.",
 	},
 	Veterano = { Name = "Alumno de 4.º", Voice = "Nino", Teen = true, Skin = rgb(215, 170, 130), Shirt = rgb(30, 30, 30), Pants = rgb(40, 40, 70), Hair = rgb(20, 20, 22), Bio = "Le encanta tomar el pelo a los de primero." },
+	-- Lía, la hermana de Cosme: desapareció en la Grieta la noche de la Caída (sale en grabaciones: Saga_09)
+	Lia = { Name = "Lía", Voice = "Profe", Skin = rgb(225, 190, 160), Shirt = rgb(230, 230, 235), Pants = rgb(60, 60, 70), Hair = rgb(70, 45, 30), LongHair = true, LongSleeves = true, Bio = "La hermana de Cosme. Midió la Grieta antes que nadie y diseñó la aguja. Desapareció la noche de la Caída al sacarte del laboratorio." },
 	-- La Academia de Guerreros Espaciales (Misiones/Academia)
 	Kael = {
 		Name = "Comandante Kael", Voice = "Profe",

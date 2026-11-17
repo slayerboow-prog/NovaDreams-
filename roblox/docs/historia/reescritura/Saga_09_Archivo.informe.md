@@ -23,42 +23,33 @@ _Ninguno._
 
 ## Aplicado
 
-- PASO 1 → paso 1 del juego (Talk «Pip»): conversación «Pip» con 13 frases nuevas
-- PASO 2 → paso 2 del juego (Use): lo que pasa al usarlo va en la conversación del objeto «Caja» (5 frases)
-- PASO 3 → paso 3 del juego (Use): lo que pasa al usarlo va en la conversación del objeto «Proyector» (15 frases)
-- PASO 4 → paso 4 del juego (Talk «Cosme»): conversación «Cosme» con 35 frases nuevas
+- PASO 1 → paso 1 del juego (Talk «Pip»): conversación «Pip» con 3 frases nuevas
+- PASO 2 → paso 2 del juego (Use): lo que pasa al usarlo va en la conversación del objeto «Caja» (2 frases)
+- PASO 3 → paso 3 del juego (Use): lo que pasa al usarlo va en la conversación del objeto «Proyector» (10 frases)
+- PASO 4 → paso 4 del juego (Talk «Cosme»): conversación «Cosme» con 6 frases nuevas
 
 ## Adaptado (y por qué)
 
 - PASO 1: el guion lo escribe como [] y en el juego es conversación (Talk): se conserva el tipo del juego y su mecánica
-- frase quitada (es una acotación, no se dice): «Silencio.»
-- frase quitada (es una acotación, no se dice): «…»
-- PASO 4 · opción A: sin equivalente: «cosme_relationship +12»
-- PASO 4 · opción A: marca nueva «PerdonaCosme» (perdona_cosme = true)
-- PASO 4 · opción B: sin equivalente: «cosme_relationship +4»
+- PASO 3 (línea 87): la acotación «(te empuja hacia la puerta)» no tiene gesto en el juego: se queda solo la frase
 - frase quitada (es una acotación, no se dice): «…»
 - PASO 4: el guion lo escribe como [] y en el juego es conversación (Talk): se conserva el tipo del juego y su mecánica
-- PASO 4: «ancla_revelada = true» no la lee ninguna misión: no se crea
-- PASO 4: «vio_la_noche = true» no la lee ninguna misión: no se crea
-- PASO 4: «archivo_pip_abierto = true» no la lee ninguna misión: no se crea
-- PASO 4: «cosme_secret_revealed = true» no la lee ninguna misión: no se crea
-- PASO 4: «Flags» del guion no se pone a toda la conversación «Cosme» (es de una rama o una nota; lo pone la mecánica)
+- PASO 4: la conversación del juego tenía 1 preguntas y el guion 0: las que faltan se conservan tal cual al final (guardan decisiones que usa la historia)
 
 ## Género ({o/a}) corregido en frases dirigidas al jugador
 
-- PASO 1 (línea 110) · Pip: «Está nervioso.» → «Está nervios{o/a}.»
-- PASO 3 (línea 908) · Narrador: «Algo pequeño.» → «Algo pequeñ{o/a}.»
+_Ninguna corrección._
+
 
 ## Avisos
 
-- PASO 3 (línea 450): «Objeto» no está en el reparto del juego: sus frases no se aplican (si es alguien, ponlo en Hablantes del mapa)
-- PASO 4 (línea 1885): «Nacimiento / estabilización» no está en el reparto del juego: sus frases no se aplican (si es alguien, ponlo en Hablantes del mapa)
-- PASO 4 (línea 1891): «Revelación del Ancla» no está en el reparto del juego: sus frases no se aplican (si es alguien, ponlo en Hablantes del mapa)
+_Ninguno._
+
 
 ## Notas del guion sin equivalente directo (bloques de dirección, minijuegos, memoria…)
 
-- PASO 4 · CONSECUENCIAS PERSISTENTES: Guardar: / Conservar: / perdona_cosme / enfado_con_cosme / según la elección. / Inventario: / Cinta_La_Noche
-- PASO 4 · DIRECCIÓN DE LA CINEMÁTICA «LA NOCHE»: No mostrar la cinta como una simple pantalla rectangular flotante.
+_Ninguna._
+
 
 ## Cómo se traduce el formato
 

@@ -58,6 +58,7 @@ local PEOPLE: { [string]: { G: string, P: number, S: number } } = {
 	Javier = { G = "M", P = -1, S = 0.92 },
 	Carmen = { G = "F", P = -0.5, S = 0.9 }, -- escucha más que habla
 	Kael = { G = "F", P = -1.5, S = 0.95 }, -- la comandante de la Academia
+	Lia = { G = "F", P = 0, S = 1.05 }, -- la hermana de Cosme (grabaciones)
 	Brenn = { G = "M", P = 0.5, S = 1.05 },
 	Sorel = { G = "F", P = 1, S = 1.08 },
 	Leire = { G = "F", P = 5, S = 1.02 },
