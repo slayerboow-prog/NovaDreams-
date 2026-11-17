@@ -29,59 +29,32 @@ _Ninguno._
 
 ## Aplicado
 
-- PASO 1 → paso 1 del juego (Talk «Lista»): conversación «Lista» con 9 frases nuevas
-- PASO 2.1 → paso 2.1 del juego (Talk «Compis»): conversación «Compis» con 9 frases nuevas
-- PASO 2.2 → paso 2.2 del juego (Talk «Cronos»): conversación «Cronos» con 4 frases nuevas
-- PASO 2.3 → paso 2.3 del juego (Talk «Bigotes»): conversación «Bigotes» con 3 frases nuevas
+- PASO 1 → paso 1 del juego (Talk «Lista»): conversación «Lista» con 2 frases nuevas
+- PASO 2.1 → paso 2.1 del juego (Talk «Compis»): conversación «Compis» con 3 frases nuevas
+- PASO 2.2 → paso 2.2 del juego (Talk «Cronos»): conversación «Cronos» con 2 frases nuevas
+- PASO 2.3 → paso 2.3 del juego (Talk «Bigotes»): conversación «Bigotes» con 2 frases nuevas
 - PASO 2.4 → paso 2.4 del juego (Talk «Rex»): conversación «Rex» con 1 frases nuevas
-- PASO 2.5 → paso 2.5 del juego (Talk «Perez»): conversación «Perez» con 3 frases nuevas
-- PASO 2.7 → paso 2.7 del juego (Talk «Malvado»): conversación «Malvado» con 4 frases nuevas
-- PASO 3 → paso 3 del juego (Scene «Reunion»): conversación «Reunion» con 18 frases nuevas
-- Conversación «Compis»: se conservan al final 1 frases del juego que dependen de lo vivido
-- Conversación «Lista»: se conservan delante 1 frases del juego que dependen de lo vivido
-- Conversación «Cronos»: se conservan al final 2 frases del juego que dependen de lo vivido
-- Conversación «Bigotes»: se conservan al final 1 frases del juego que dependen de lo vivido
-- Conversación «Rex»: se conservan al final 1 frases del juego que dependen de lo vivido
-- Conversación «Perez»: se conservan al final 2 frases del juego que dependen de lo vivido
-- Conversación «Malvado»: se conservan al final 2 frases del juego que dependen de lo vivido
-- Conversación «Reunion»: se conservan delante 1 frases del juego que dependen de lo vivido
+- PASO 2.5 → paso 2.5 del juego (Talk «Perez»): conversación «Perez» con 1 frases nuevas
+- PASO 2.6 → paso 2.6 del juego (Talk «Gnomos»): conversación «Gnomos» con 1 frases nuevas
+- PASO 3 → paso 3 del juego (Scene «Reunion»): conversación «Reunion» con 5 frases nuevas
 
 ## Adaptado (y por qué)
 
 - PASO 1: el guion lo escribe como [] y en el juego es conversación (Talk): se conserva el tipo del juego y su mecánica
 - PASO 2 → paso 2 del juego (Group): solo trae planos (sin frases): en un paso jugable no se quita el control, así que no se aplican
 - PASO 2.1: el guion lo escribe como [] y en el juego es conversación (Talk): se conserva el tipo del juego y su mecánica
-- PASO 2.1: «ivan_aliado_confirmado = true» no la lee ninguna misión: no se crea
-- PASO 2.1: «candela_aliada_confirmada = true» no la lee ninguna misión: no se crea
 - PASO 2.2: el guion lo escribe como [] y en el juego es conversación (Talk): se conserva el tipo del juego y su mecánica
-- PASO 2.2: «cronos_aliado_confirmado = true» no la lee ninguna misión: no se crea
-- PASO 2.2: «Flags» del guion no se pone a toda la conversación «Cronos» (es de una rama o una nota; lo pone la mecánica)
 - PASO 2.3: el guion lo escribe como [] y en el juego es conversación (Talk): se conserva el tipo del juego y su mecánica
-- PASO 2.3: «bigotes_aliado_confirmado = true» no la lee ninguna misión: no se crea
-- PASO 2.3: «gatos_de_gatonia_activados = true» no la lee ninguna misión: no se crea
-- PASO 2.3: «Flags» del guion no se pone a toda la conversación «Bigotes» (es de una rama o una nota; lo pone la mecánica)
 - PASO 2.4: el guion lo escribe como [] y en el juego es conversación (Talk): se conserva el tipo del juego y su mecánica
-- PASO 2.4: «rex_aliado_confirmado = true» no la lee ninguna misión: no se crea
-- PASO 2.4: «Flags» del guion no se pone a toda la conversación «Rex» (es de una rama o una nota; lo pone la mecánica)
 - PASO 2.5: el guion lo escribe como [] y en el juego es conversación (Talk): se conserva el tipo del juego y su mecánica
-- PASO 2.5: «huelga_raton_perez = true» no la lee ninguna misión: no se crea
-- PASO 2.5: «raton_perez_aliado = true» no la lee ninguna misión: no se crea
 - PASO 2.6: el guion lo escribe como [] y en el juego es conversación (Talk): se conserva el tipo del juego y su mecánica
-- PASO 2.7: la elección tiene 2 opciones y solo 0 grupos de respuesta detrás: las demás ramas siguen sin respuesta propia
 - PASO 2.7: el guion lo escribe como [] y en el juego es conversación (Talk): se conserva el tipo del juego y su mecánica
-- PASO 2.7: «malvado_66b_aliado = true» no la lee ninguna misión: no se crea
-- PASO 2.7: «malvado_66b_aliado = true» no la lee ninguna misión: no se crea
-- PASO 2.7: «Flags» del guion no se pone a toda la conversación «Malvado» (es de una rama o una nota; lo pone la mecánica)
 - PASO 3: el guion lo escribe como [] y en el juego es conversación (Scene): se conserva el tipo del juego y su mecánica
-- PASO 3: «saga_20_completada = true» no la lee ninguna misión: no se crea
-- PASO 3: «equipo_aliados_reunido = true» no la lee ninguna misión: no se crea
-- PASO 3: «servidor_megaverso_localizado = true» no la lee ninguna misión: no se crea
-- PASO 3: «alianzas_activas_registradas = true» no la lee ninguna misión: no se crea
-- PASO 3: «servidor_megaverso_localizado = true» no la lee ninguna misión: no se crea
 
 ## Género ({o/a}) corregido en frases dirigidas al jugador
 
-- PASO 2.5 (línea 488) · RatonPerez: «Así que vine preparado.» → «Así que vine preparad{o/a}.»
+_Ninguna corrección._
+
 
 ## Avisos
 
@@ -90,18 +63,8 @@ _Ninguno._
 
 ## Notas del guion sin equivalente directo (bloques de dirección, minijuegos, memoria…)
 
-- PASO 2.1 · OBJETIVO: Explicar la situación sin convertir la escena en una exposición larga.
-- PASO 2.1 · FLAG: 
-- PASO 2.2 · FLAG: 
-- PASO 2.3 · FLAG: 
-- PASO 2.4 · OBJETIVO: Busca a Rex.
-- PASO 2.4 · FLAG: 
-- PASO 2.5 · FLAG: 
-- PASO 2.6 · FLAG: 
-- PASO 3 · OBJETIVO DESBLOQUEADO: 
-- PASO 3 · DIRECCIÓN DE ACTUACIÓN: Los aliados no deben formar una fila inmóvil.
-- PASO 3 · DIRECCIÓN DE CÁMARA: Utilizar exclusivamente:
-- PASO 3 · DIRECCIÓN MUSICAL: Utilizar exclusivamente:
+_Ninguna._
+
 
 ## Cómo se traduce el formato
 

@@ -5,7 +5,7 @@
 -- completadas, ConoceTuMalvado… La misión nunca bloquea: Iván y Candela siempre están.
 return {
 	Prefijo = "Saga_20",
-	Hablantes = { ["Otro Yo"] = "TuMalvado", ["Otro yo"] = "TuMalvado", ["Tu otro yo"] = "TuMalvado" },
+	Hablantes = { ["Otro Yo"] = "TuMalvado", ["Otro yo"] = "TuMalvado", ["Tu otro yo"] = "TuMalvado", REX = "Rex", ["RATÓN PÉREZ"] = "RatonPerez", RIGOBERTO = "Gnomo1", KAEL = "Kael" },
 	Variables = {
 		-- (el álbum de recuerdos sería un sistema nuevo: esas frases no salen)
 		album_recuerdos_obtenido = { Nunca = true },
@@ -23,14 +23,5 @@ return {
 		{ "Esto permitirá que diferentes partidas produzcan grupos distintos.", { Nunca = true } },
 	},
 	-- (las frases del juego que recuerdan lo que viviste antes se quedan: la continuidad de la Saga)
-	ConservarFrases = {
-		{ Conversacion = "Compis", Marcas = { "EquipoRescate" }, Al = "final" },
-		{ Conversacion = "Lista", Marcas = { "CosmeRecuerda" }, Tras = "He hecho una lista." },
-		{ Conversacion = "Cronos", Marcas = { "CronosAliado", "CronosLimpio" }, Al = "final" },
-		{ Conversacion = "Bigotes", Marcas = { "CancillerGatonia" }, Al = "final" },
-		{ Conversacion = "Rex", Marcas = { "RexAbogado" }, Al = "final" },
-		{ Conversacion = "Perez", Marcas = { "PatrullaRatones", "RataContratada" }, Al = "final" },
-		{ Conversacion = "Malvado", Marcas = { "MalvadoAyudo", "MalvadoAprendeBondad" }, Al = "final" },
-		{ Conversacion = "Reunion", Marcas = { "NaveEnElFinal" }, Tras = "A todos." },
-	},
+	ConservarFrases = {}, -- (17-11-2026: guion nuevo, sin las frases de las misiones locas)
 }
