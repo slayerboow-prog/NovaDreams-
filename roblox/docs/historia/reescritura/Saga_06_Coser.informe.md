@@ -27,25 +27,25 @@ _Ninguno._
 
 ## Aplicado
 
-- PASO 1 → paso 1 del juego (Talk «Plan»): conversación «Plan» con 21 frases nuevas
-- PASO 2 → paso 2 del juego (Group): objetivo «Clava los tres anclajes del cielo en Valmar»
-- PASO 3 → paso 3 del juego (Fight): 5 frases al empezar el paso (escena ligera «Saga_06_G3_Entra», la lanza el paso 2 al cumplirse; el jugador no pierde el control)
-- PASO 5 → paso 5 del juego (Scene «Voz»): conversación «Voz» con 13 frases nuevas
-- Momento de la biografía: «Cosiste el cielo de Valmar.»
+- PASO 1 → paso 1 del juego (Talk «Plan»): conversación «Plan» con 4 frases nuevas
+- PASO 2.1 → paso 2.1 del juego (Use): lo que pasa al usarlo va en la conversación del objeto «Anclaje» (1 frases)
+- PASO 2.2 → paso 2.2 del juego (Use): lo que pasa al usarlo va en la conversación del objeto «Anclaje» (1 frases)
+- PASO 2.3 → paso 2.3 del juego (Use): lo que pasa al usarlo va en la conversación del objeto «Anclaje» (1 frases)
+- PASO 3 → paso 3 del juego (Fight): 2 frases al empezar el paso (escena ligera «Saga_06_G3_Entra», la lanza el paso 2 al cumplirse; el jugador no pierde el control)
+- PASO 5 → paso 5 del juego (Scene «Voz»): conversación «Voz» con 11 frases nuevas
 
 ## Adaptado (y por qué)
 
 - PASO 4 [Cinematic] @ : no corresponde a ningún paso del juego: no se aplica
+- frase quitada (es una acotación, no se dice): «(Cosme mira a Escamas. Escamas se calla.)»
 - PASO 1: el guion lo escribe como [] y en el juego es conversación (Talk): se conserva el tipo del juego y su mecánica
-- PASO 2.1 → paso 2.1 del juego (Use): solo trae planos (sin frases): en un paso jugable no se quita el control, así que no se aplican
-- PASO 2.2 → paso 2.2 del juego (Use): solo trae planos (sin frases): en un paso jugable no se quita el control, así que no se aplican
-- PASO 2.3 → paso 2.3 del juego (Use): solo trae planos (sin frases): en un paso jugable no se quita el control, así que no se aplican
-- frase quitada (es una acotación, no se dice): «…»
-- frase quitada (es una acotación, no se dice): «(Está completamente pálido.)»
+- PASO 1: la conversación del juego tenía 1 preguntas y el guion 0: las que faltan se conservan tal cual al final (guardan decisiones que usa la historia)
+- PASO 2 → paso 2 del juego (Group): solo trae planos (sin frases): en un paso jugable no se quita el control, así que no se aplican
 
 ## Género ({o/a}) corregido en frases dirigidas al jugador
 
-- PASO 5 (línea 912) · Cosimo: «La última vez eras así de pequeño/a.» → «La última vez eras así de pequeñ{o/a}.»
+_Ninguna corrección._
+
 
 ## Avisos
 
@@ -54,9 +54,8 @@ _Ninguno._
 
 ## Notas del guion sin equivalente directo (bloques de dirección, minijuegos, memoria…)
 
-- PASO 2 · Objetivo: Clava los tres anclajes del cielo en Valmar: El jugador debe recorrer la ciudad.
-- PASO 3 · OBJETIVO: Desactiva los dos comunicadores.
-- PASO 5 · MOMENTO DE BIOGRAFÍA: «Cosiste el cielo de Valmar.»
+_Ninguna._
+
 
 ## Cómo se traduce el formato
 

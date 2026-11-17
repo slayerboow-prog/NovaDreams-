@@ -397,9 +397,9 @@ return {
 				{ At = 20.2, Gesture = { Key = "Cosme", Play = "Cheer" } },
 				{ At = 20.5, Gesture = { Key = "Pip", Play = "Cheer" } },
 			},
-			Dialogue = coserDialogue({ At = 12.7, S = "Pip", T = "Puntada. Otra. Puntada… Mis sensores están llorando aceite.", Duration = 3.1 }),
+			Dialogue = coserDialogue({ At = 12.7, S = "Pip", T = "Puntada uno. Dos. Tres. Resonancia bajando.", Duration = 3.1 }),
 			Titles = {
-				{ At = 22.3, Text = "✨ El cielo está cosido", Sub = "Fin del Acto I · La Grieta", Duration = 3.4 },
+				{ At = 22.3, Text = "✨ La Grieta está cerrada", Sub = "Fin del Acto I · La Grieta", Duration = 3.4 },
 			},
 			-- Lo que se queda (fase 5): la marca de la aguja en el patio (StageSets.AgujaPatio)
 			World = {
