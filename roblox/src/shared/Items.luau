@@ -396,8 +396,8 @@ local KEEPSAKES = {
 	{ "MapaMalvado", "Mapa de la 66-B", "🗺️", "Dibujado por Sorel. Las calles son las mismas que en tu Valmar; los carteles, no." },
 	{ "FotoSinMemoria", "Foto de Cosme sin memoria", "📷", "Cosme, con una manta, preguntando quién eres. Detrás, a boli: «Pero se quedó a cenar»." },
 	{ "AlbumRecuerdos", "Álbum de recuerdos", "📔", "El detector, la pared de los caídos, el anclaje del parque. Todo lo que le devolviste a Cosme." },
-	{ "AgujaDeOro", "La aguja de oro", "🧵", "La que cerró la Grieta para siempre. En la punta pone, muy pequeñito: «Gracias, Ancla»." },
-	{ "AgujaCuantica", "Aguja cuántica", "🧵", "Con ella cosiste el cielo de Valmar. Todavía brilla un poco cuando hay luna llena." },
+	{ "AgujaDeOro", "La aguja de oro", "🧵", "La que cerró la Grieta para siempre, desde los dos lados a la vez." },
+	{ "AgujaCuantica", "Aguja cuántica", "🧵", "La aguja que diseñó Lía. Con ella cerraste la Grieta por primera vez." },
 	-- Restos de la Grieta (colección de las rarezas)
 	{ "SelloDelAyer", "Sello del ayer", "📮", "Resto de la Grieta. Un sello con matasellos de ayer. Siempre de ayer, lo mires cuando lo mires." },
 	{ "BombillaTenor", "Bombilla tenor", "💡", "Resto de la Grieta. Si la acercas al oído, tararea «Fígaro». Bajito, por fin." },

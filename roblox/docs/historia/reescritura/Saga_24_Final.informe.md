@@ -14,7 +14,6 @@ La mecánica es la de siempre: el garaje, ir al patio del cole (donde clavaste e
 | 1 | Scene |  | 1 · Scene «Garaje» |
 | 2 |  |  | 2 · Reach @ Patio |
 | 3 | Cinematic |  | 4 · Scene «Final» |
-| 4 | Scene |  | 4 · Scene «Final» |
 
 ## Errores
 
@@ -23,21 +22,15 @@ _Ninguno._
 
 ## Aplicado
 
-- PASO 1 → paso 1 del juego (Scene «Garaje»): conversación «Garaje» con 24 frases nuevas
-- PASO 2 → paso 2 del juego (Reach): 10 frases al empezar el paso (escena ligera «Saga_24_G2_Entra», la lanza el paso 1 al cumplirse; el jugador no pierde el control)
-- PASO 3+4 → paso 4 del juego (Scene «Final»): conversación «Final» con 29 frases nuevas
-- Conversación «Garaje»: se conservan delante 1 frases del juego que dependen de lo vivido
+- PASO 1 → paso 1 del juego (Scene «Garaje»): conversación «Garaje» con 7 frases nuevas
+- PASO 2 → paso 2 del juego (Reach): objetivo «Ve al patio de la Academia, donde clavaste el primer anclaje»
+- PASO 3 → paso 4 del juego (Scene «Final»): conversación «Final» con 10 frases nuevas
 
 ## Adaptado (y por qué)
 
-- PASO 4 · opción B: sin equivalente: «curiosidad += 2»
+- frase quitada (es una acotación, no se dice): «…»
 - PASO 3: el guion lo escribe como [Cinematic] y en el juego es conversación (Scene): se conserva el tipo del juego y su mecánica
-- PASO 3+4: «saga_grieta_completada = true» no la lee ninguna misión: no se crea
-- PASO 3+4: «grieta_cerrada = true» no la lee ninguna misión: no se crea
-- PASO 3+4: «ancla_libre = true» no la lee ninguna misión: no se crea
-- PASO 3+4: «jugador_es_persona = true» no la lee ninguna misión: no se crea
-- PASO 3+4: «aguja_oro_obtenida = true» no la lee ninguna misión: no se crea
-- PASO 3+4: «cosme_recuerda = true» no se guarda aparte (el mapa la deja como condición o ya la da el juego)
+- PASO 3: la conversación del juego tenía 1 preguntas y el guion 0: las que faltan se conservan tal cual al final (guardan decisiones que usa la historia)
 
 ## Género ({o/a}) corregido en frases dirigidas al jugador
 
@@ -46,11 +39,12 @@ _Ninguna corrección._
 
 ## Avisos
 
-- PASO 4 (línea 1341): «Silencio» no está en el reparto del juego: sus frases no se aplican (si es alguien, ponlo en Hablantes del mapa)
+_Ninguno._
+
 
 ## Notas del guion sin equivalente directo (bloques de dirección, minijuegos, memoria…)
 
-- PASO 4 · DIRECCIÓN FINAL: La misión completa debe transmitir:
+- PASO 2 · Objetivo:: 
 
 ## Cómo se traduce el formato
 

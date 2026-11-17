@@ -2,11 +2,11 @@
 -- 4 PASO = 4 pasos del juego (el garaje, ir al patio del cole, la cinemática Grieta_Final y el final).
 return {
 	Prefijo = "Saga_24",
+	Hablantes = { KAEL = "Kael" },
 	-- (la cinemática Grieta_Final se queda como está —su cámara, sus variantes por lo que decidiste con
 	-- Cósimo, sus 33 s—: ya dice el principio del PASO 3; el cierre —«Ya no eres un Ancla», «Criatura»,
 	-- «Estoy orgulloso de ti»— abre la conversación final del paso 4, justo después)
 	Pasos = { ["3"] = "4" },
-	Lineas = { ["3"] = { { 852, 1002 } } },
 	-- (la Grieta se abrió la noche en que naciste: el año depende de tu partida, así que «2003» es «aquella noche»)
 	Reemplazos = {
 		["en 2003"] = "aquella noche",
@@ -37,7 +37,5 @@ return {
 		{ "Después de lo del monte", { Memories = { "GranFusion" } } },
 	},
 	-- (la minuta de Rex, que el guion cuenta con acotaciones: la frase del juego)
-	ConservarFrases = {
-		{ Conversacion = "Garaje", Marcas = { "AbogadoRex" }, Tras = "Éxito total." },
-	},
+	ConservarFrases = {},
 }
