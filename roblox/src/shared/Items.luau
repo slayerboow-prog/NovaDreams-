@@ -391,7 +391,7 @@ local KEEPSAKES = {
 	{ "RelojArena", "Reloj de arena de Cronos", "⏳", "Regalo de Cronos, de la Aduana: «Si la situación se vuelve imposible, gírelo. Vendré»." },
 	{ "BataChamuscada", "La bata chamuscada de Cosme", "🥼", "La recogió Sorel del suelo del patio de la Academia el día que Cósimo se llevó a Cosme." },
 	{ "CuadernoCosme", "El cuaderno de Cosme", "📓", "Coordenadas, cálculos y una página titulada «Si me pasa algo». Debajo, tachado: «Dile que estoy orgulloso»." },
-	{ "CollarDiplomatico", "Collar diplomático de Gatonia", "📿", "Regalo del Presidente Bigotes. Con él, cualquier gato te trata de usted." },
+	{ "CollarDiplomatico", "Collar de G-4", "📿", "La señal del pueblo de Bigotes. En cualquier refugio de los suyos, te abrirán la puerta." },
 	{ "PaseVIP", "Pase VIP del reality", "🎟️", "«Abducidos: edición especial». Temporada 3, capítulo 8. Sales en los créditos." },
 	{ "MapaMalvado", "Mapa de la 66-B", "🗺️", "Dibujado por tu versión malvada. Las calles son las mismas; los carteles, no." },
 	{ "FotoSinMemoria", "Foto de Cosme sin memoria", "📷", "Cosme, con una manta, preguntando quién eres. Detrás, a boli: «Pero se quedó a cenar»." },

@@ -23,28 +23,19 @@ _Ninguno._
 
 ## Aplicado
 
-- PASO 1 → paso 1 del juego (Transition): 8 frases al cumplirlo (escena ligera «Saga_14_G1_Fin», sin quitar el control)
-- PASO 2 → paso 2 del juego (Escape): 5 frases al empezar el paso (van detrás de las del final del paso 1, en su escena «Saga_14_G1_Fin»)
-- PASO 3+4 → paso 3 del juego (Talk «Presidente»): conversación «Presidente» con 43 frases nuevas (música Descubrimiento→Tension)
+- PASO 1 → paso 1 del juego (Transition): 1 frases al cumplirlo (escena ligera «Saga_14_G1_Fin», sin quitar el control)
+- PASO 2 → paso 2 del juego (Escape): 2 frases al empezar el paso (van detrás de las del final del paso 1, en su escena «Saga_14_G1_Fin»)
+- PASO 3+4 → paso 3 del juego (Talk «Presidente»): conversación «Presidente» con 10 frases nuevas
 
 ## Adaptado (y por qué)
 
-- PASO 1: 6 PLANO de un paso jugable (Transition) no se convierten en cámara para no quitar el control; se usan para colocar las frases (antes/después de la acción) y los destellos de la Grieta
-- frase quitada (es una acotación, no se dice): «Lo acerca a su cara.»
-- frase quitada (es una acotación, no se dice): «Lo huele.»
 - PASO 3: el guion lo escribe como [] y en el juego es conversación (Talk): se conserva el tipo del juego y su mecánica
 - PASO 4: el guion lo escribe como [] y en el juego es conversación (Talk): se conserva el tipo del juego y su mecánica
-- PASO 3+4: «saga_14_completada = true» no la lee ninguna misión: no se crea
-- PASO 3+4: «bigotes_ayudo = true» no la lee ninguna misión: no se crea
-- PASO 3+4: «coordenadas_66B_obtenidas = true» no la lee ninguna misión: no se crea
-- PASO 3+4: «collar_gatonia_obtenido = true» no la lee ninguna misión: no se crea
-- PASO 3+4: «equipo_rescate_activo = true» no la lee ninguna misión: no se crea
-- PASO 3+4: «bigotes_reconoce_jugador = true» no la lee ninguna misión: no se crea
-- PASO 3+4: «Flags» del guion no se pone a toda la conversación «Presidente» (es de una rama o una nota; lo pone la mecánica)
 
 ## Género ({o/a}) corregido en frases dirigidas al jugador
 
-- PASO 1 (línea 72) · Ivan: «Perfecto. Me quedo mucho más tranquilo.» → «Perfecto. Me quedo mucho más tranquil{o/a}.»
+_Ninguna corrección._
+
 
 ## Avisos
 
@@ -53,11 +44,8 @@ _Ninguno._
 
 ## Notas del guion sin equivalente directo (bloques de dirección, minijuegos, memoria…)
 
-- PASO 1 · OBJETIVO: Entrar en la dimensión G-4.
-- PASO 1 · Objetivo desbloqueado:: Llega al palacio presidencial de Gatonia.
-- PASO 3 · OBJETIVO: Bigotes XVII: Hablar con Bigotes sobre la dimensión 66-B.
-- PASO 4 · DIRECCIÓN DE ACTUACIÓN: Los NPC nunca deben quedarse completamente inmóviles mientras hablan.
-- PASO 4 · Al terminar (momento de la biografía):: «Pediste ayuda al presidente de los gatos»
+_Ninguna._
+
 
 ## Cómo se traduce el formato
 
