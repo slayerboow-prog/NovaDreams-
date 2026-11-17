@@ -341,7 +341,7 @@ local LUNCH_TEACHER = { V(1.5, 0, 4), V(-1, 0, 0) }
 local RECESS_SPOTS = { V(0, 0, 0), V(2.6, 0, 1.4), V(-2.2, 0, 2) }
 
 local function kidIndex(npcId: string): number
-	return table.find(SchoolLife.Kids, npcId) or 1
+	return table.find(SchoolLife.Kids, npcId) or table.find(SchoolLife.AcademyKids, npcId) or 1
 end
 
 local computeGoal
@@ -712,20 +712,20 @@ local function populate(recess: BasePart)
 		Recess = recess,
 		Model = model,
 		Instituto = instituto,
-		Scale = if instituto then 0.85 else 0.65, -- en el instituto ya son adolescentes
+		Scale = if instituto then 0.85 else 0.92, -- (la Academia: cadetes adolescentes, casi adultos)
 		People = {},
 		Active = false,
 		Canteen = nil,
 		CanteenCheckedAt = -math.huge,
 		Goals = {},
 	}
-	for _, kid in SchoolLife.Kids do
+	for _, kid in (if instituto then SchoolLife.Kids else SchoolLife.AcademyKids) do
 		local person = makePerson(school, kid, true)
 		if person then
 			school.People[kid] = person
 		end
 	end
-	local teacherId = if instituto then SchoolLife.Teachers.Instituto else SchoolLife.Teachers.Colegio
+	local teacherId = if instituto then SchoolLife.Teachers.Instituto else SchoolLife.AcademyTeacher
 	local teacher = makePerson(school, teacherId, false)
 	if teacher then
 		school.People[teacherId] = teacher

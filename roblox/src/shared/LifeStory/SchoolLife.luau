@@ -49,9 +49,16 @@ SchoolLife.Kids = { "Nico", "Sara", "Omar" }
 SchoolLife.Teacher = "Lucia"
 -- La profe de cada sitio (la tutora del cole; en el instituto, el tutor de 1.º C)
 SchoolLife.Teachers = { Colegio = "Lucia", Instituto = "Javier" }
+-- (17-11-2026) Quien anda por el edificio, que ahora es la ACADEMIA DE GUERREROS (Services/SchoolService): los
+-- cadetes Sorel, Brenn y Nico y la comandante Kael. (Kids y Teacher siguen siendo los de los días de cole antiguos.)
+SchoolLife.AcademyKids = { "Sorel", "Brenn", "Nico" }
+SchoolLife.AcademyTeacher = "Kael"
 
 -- Lo que dicen al hablar con ellos fuera de las misiones (la primera vez, y luego alguna de las demás)
 SchoolLife.Lines = {
+	Sorel = { First = "Aquí estás. Kael ha dicho que hoy toca pista hasta que no podamos con las piernas.", Lines = { "Anoche soñé con el Sur. Con mi calle. Algún día la recuperamos.", "¿Has visto la pared de la entrada? Cada semana leo los nombres.", "Si sales a cazar, avísame. No me gusta que nadie vaya sin compañía." } },
+	Brenn = { First = "Cadete. Calienta antes de entrenar o mañana no te levantas.", Lines = { "Las bestias del Oeste son las más flojas. No te confíes igualmente.", "Mi hermano decía que el miedo es una herramienta. Úsalo, no lo escondas.", "Kael nunca grita dos veces. Si te lo dice una, hazlo." } },
+	Kael = { First = "Guerrero. A la pista. Las bestias no esperan a que estés listo.", Lines = { "Golpea primero, pregunta después. Pero pregunta.", "Cuida tu espíritu. Sin él, una manada te come vivo.", "Nadie se queda atrás. Ni en la pista ni ahí fuera." } },
 	Nico = { First = "DLG.NICO.COLE", Lines = { "DLG.NICO.BICI", "DLG.NICO.SUENO", "DLG.NICO.RECREO" } },
 	Sara = { First = "DLG.SARA.COLE.01", Lines = { "DLG.SARA.CIENCIA.01", "DLG.SARA.EXAMEN", "DLG.SARA.RECREO" } },
 	Omar = { First = "DLG.OMAR.COCINA.01", Lines = { "DLG.OMAR.RECREO", "DLG.OMAR.DIBUJO", "DLG.OMAR.MERIENDA" } },
