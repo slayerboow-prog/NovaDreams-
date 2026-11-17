@@ -25,37 +25,25 @@ _Ninguno._
 
 ## Aplicado
 
-- PASO 1 → paso 1 del juego (Talk «Auxilio»): conversación «Auxilio» con 25 frases nuevas (música Descubrimiento→Tension)
-- PASO 2 → paso 2 del juego (Group): objetivo «Prepara la huida de Don Escamas»
+- PASO 1 → paso 1 del juego (Talk «Auxilio»): conversación «Auxilio» con 6 frases nuevas
 - PASO 2.1 → paso 2.1 del juego (Use): lo que pasa al usarlo va en la conversación del objeto «Cubo» (1 frases)
-- PASO 2.1 → paso 2.1 del juego (Use): objetivo «Consigue algo donde Don Escamas pueda viajar»
-- PASO 2.2 → paso 2.2 del juego (Use): lo que pasa al usarlo va en la conversación del objeto «Tarjeta» (4 frases)
-- PASO 2.2 → paso 2.2 del juego (Use): objetivo «Busca algo que hayan dejado los agentes»
-- PASO 3 → paso 3 del juego (Escape): objetivo «Lleva a Don Escamas al garaje de Cosme sin que te atrapen»
-- PASO 3 → paso 3 del juego (Escape): 2 frases al empezar el paso (escena ligera «Saga_03_G3_Entra», la lanza el paso 2 al cumplirse; el jugador no pierde el control)
-- PASO 4 → paso 4 del juego (Scene «Pecera»): conversación «Pecera» con 33 frases nuevas (música Descubrimiento)
+- PASO 2.2 → paso 2.2 del juego (Use): lo que pasa al usarlo va en la conversación del objeto «Tarjeta» (5 frases)
+- PASO 3 → paso 3 del juego (Escape): objetivo «Lleva a Escamas al garaje de Cosme sin que te atrapen»
+- PASO 4 → paso 4 del juego (Scene «Pecera»): conversación «Pecera» con 10 frases nuevas
 
 ## Adaptado (y por qué)
 
-- PASO 1 · opción A: marca nueva «DonEscamasConfia» (don_escamas_confia = true)
 - PASO 1: el guion lo escribe como [] y en el juego es conversación (Talk): se conserva el tipo del juego y su mecánica
+- PASO 1: la conversación del juego tenía 1 preguntas y el guion 0: las que faltan se conservan tal cual al final (guardan decisiones que usa la historia)
+- PASO 2 → paso 2 del juego (Group): solo trae planos (sin frases): en un paso jugable no se quita el control, así que no se aplican
 - frase quitada (es una acotación, no se dice): «…»
+- frase quitada (es una acotación, no se dice): «(Cosme y Pip se miran. No te miran a ti.)»
 - PASO 4: el guion lo escribe como [] y en el juego es conversación (Scene): se conserva el tipo del juego y su mecánica
-- PASO 4: «don_escamas_aliado = true» no la lee ninguna misión: no se crea
-- PASO 4: «saga_03_pez_completada = true» no la lee ninguna misión: no se crea
-- PASO 4: «don_escamas_conocido = true» no la lee ninguna misión: no se crea
-- PASO 4: «don_escamas_aliado = true» no la lee ninguna misión: no se crea
-- PASO 4: «megaverso_conocido = true» no la lee ninguna misión: no se crea
-- PASO 4: «proyecto_fusion_mencionado = true» no la lee ninguna misión: no se crea
-- PASO 4: «ancla_mencionada = true» no la lee ninguna misión: no se crea
-- PASO 4: «dimension_66B_confirmada = true» no la lee ninguna misión: no se crea
-- PASO 4: «cosimo_vinculado_megaverso = true» no la lee ninguna misión: no se crea
-- PASO 4: «escama_brillante = true» no la lee ninguna misión: no se crea
 
 ## Género ({o/a}) corregido en frases dirigidas al jugador
 
-- PASO 1 (línea 133) · DonEscamas: «Cuando estoy nervioso, hablo más.» → «Cuando estoy nervios{o/a}, hablo más.»
-- PASO 1 (línea 139) · DonEscamas: «Y ahora estoy MUY nervioso.» → «Y ahora estoy MUY nervios{o/a}.»
+_Ninguna corrección._
+
 
 ## Avisos
 
@@ -64,16 +52,7 @@ _Ninguno._
 
 ## Notas del guion sin equivalente directo (bloques de dirección, minijuegos, memoria…)
 
-- PASO 1 · Objetivo:: Lugar: Estanque del parque.
-- PASO 2 · Objetivo:: El jugador debe completar los objetivos en cualquier orden.
-- PASO 2.1 · Objetivo:: El jugador encuentra un cubo del parque.
-- PASO 2.2 · Objetivo:: El jugador explora la zona.
 - PASO 3 · Objetivo:: 
-- PASO 4 · Objetivo:: * Cosme / * Pip / * Don Escamas
-- PASO 4 · SFX: Zumbido.
-- PASO 4 · CONSECUENCIAS PERSISTENTES: Registrar: / Objeto:
-- PASO 4 · DIRECCIÓN DE LOS AGENTES: Los agentes grises no deben actuar como villanos caricaturescos. / Su comportamiento debe ser demasiado coordinado. / * caminan sincronizados / * giran la cabeza simultáneamente / * sonríen al mismo tiempo / * nunca levantan la voz / * nunca corren innecesariamente / * hablan con educación excesiva / Cósimo: Eso los hará más inquietantes.
-- PASO 4 · DIRECCIÓN DE DON ESCAMAS: Don Escamas debe convertirse en un personaje recurrente.
 
 ## Cómo se traduce el formato
 
