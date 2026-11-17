@@ -289,7 +289,7 @@ return {
 		Kind = "Side",
 		Canon = true,
 		Title = "La noche de lo perdido",
-		Description = "Esta noche la Grieta ha devuelto lo que se perdió en la Caída: los objetos de los que no volvieron, amontonados en el gimnasio de la Academia.",
+		Description = "Esta noche la Grieta ha devuelto lo que se perdió en la Caída: los objetos de los muertos y desaparecidos, amontonados en el gimnasio de la Academia.",
 		Type = "Saga de la Grieta · Acto I (5/6)",
 		Duration = { 25, 35 },
 		Npcs = { "Ramon", "Lucia", "Nico", "CalcetinMonstruo", "Pip" },

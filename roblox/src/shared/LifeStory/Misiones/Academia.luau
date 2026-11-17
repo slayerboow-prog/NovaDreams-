@@ -49,7 +49,7 @@ return {
 	mision({
 		Id = "Acad01_Llegada",
 		Title = "La Academia de Guerreros",
-		Description = "Dos años después de la Caída, Valmar es una ciudad amurallada rodeada de barrios vacíos. La Academia busca a quien quiera recuperarlos. Hoy entras tú.",
+		Description = "Dos años después de la Caída, Valmar es una ciudad amurallada rodeada de barrios muertos. La Academia busca a quien quiera recuperarlos. Hoy entras tú.",
 		Duration = { 5, 8 },
 		Type = "Academia · Tutorial",
 		Next = { "Acad02_Tecnicas" },
@@ -73,10 +73,10 @@ return {
 		Dialogues = {
 			Llegada = { Lines = {
 				{ S = "Narrador", T = "La Academia ocupa el viejo colegio del barrio. Las ventanas de la planta baja están tapiadas desde la Caída. En la puerta, un escudo nuevo: una estrella partida atravesada por una espada." },
-				{ S = "Kael", T = "Soy la comandante Kael. Hace dos años las bestias de la Grieta entraron por el Sur y en una noche perdimos cuatro distritos. Yo estaba en Tefra. Cuando volví, ya era tarde." },
+				{ S = "Kael", T = "Soy la comandante Kael. Hace dos años las bestias de la Grieta entraron por el Sur y en una noche perdimos cuatro distritos. Yo estaba en Tefra. Cuando volví, ya no quedaba nada que defender." },
 				{ S = "Kael", T = "De cada diez que entran por esa puerta, terminan cuatro. No es una amenaza: es estadística. Si alguien quiere irse, este es el momento." },
 				{ S = "Narrador", T = "Nadie se mueve. A tu lado, una chica aprieta tanto la correa de la mochila que tiene los nudillos blancos." },
-				{ S = "Sorel", T = "Soy Sorel. Vivía en el Sur, en la calle del mercado. Ahora allí solo hay hierba y ruinas. Quiero volver a ver mi casa, aunque esté en ruinas." },
+				{ S = "Sorel", T = "Soy Sorel. Vivía en el Sur, en la calle del mercado. Ahora allí solo hay hierba y huesos. Quiero volver a ver mi casa, aunque esté en ruinas." },
 				{ Ask = "¿Qué le dices?", Options = {
 					{ T = "«Volveremos. Y la recuperaremos.»", Effects = { Rel = { Sorel = 5 }, Traits = { Empatia = 1 } }, Then = {
 						{ S = "Sorel", T = "No prometas eso. …Pero gracias." },
@@ -94,7 +94,7 @@ return {
 			} },
 			Primero = { Lines = {
 				{ S = "Kael", T = "Lento, pero no te has rendido. Eso no se enseña." },
-				{ S = "Brenn", T = "(en voz baja) Mi hermano peleaba así. No volvió del Sur la noche de la Caída. No hagas lo mismo que él: no te quedes cuando hay que retirarse." },
+				{ S = "Brenn", T = "(en voz baja, limpiándose la sangre del labio) Mi hermano peleaba así. Murió en el Sur la noche de la Caída. No hagas lo mismo que él: no te quedes cuando hay que retirarse." },
 				{ S = "Sorel", T = "¿Estás bien? Tienes un corte en la ceja. …Mañana nos toca a nosotras ganar." },
 			}, Effects = { Rel = { Brenn = 4 } } },
 		},
@@ -119,7 +119,7 @@ return {
 		},
 		Dialogues = {
 			Tajo = { Lines = {
-				{ S = "Kael", T = "En la Caída, a la mayoría no la derribó la primera bestia. La derribó la tercera, la que llegó por detrás mientras peleaba con las dos primeras." },
+				{ S = "Kael", T = "En la Caída, la mayoría no murió por una bestia. Murió por la tercera, la que llegó por detrás mientras peleaba con las dos primeras." },
 				{ S = "Kael", T = "Si te rodean, giras y cortas a todas: el Tajo circular. Gasta espíritu, la barra azul. Se recupera sola, más rápido cuando no estás peleando. Si te quedas sin él en mitad de un combate, estás muerto." },
 				{ S = "Narrador", T = "Has aprendido el Tajo circular 🌀." },
 			}, Effects = { Skills = { "TajoCircular" } } },
@@ -155,11 +155,11 @@ return {
 			Antes = { Lines = {
 				{ S = "Kael", T = "Pasada la última calle del centro empiezan los distritos perdidos. Ahí ya no hay vecinos: hay guaridas." },
 				{ S = "Kael", T = "Las bestias más débiles rondan cerca de la muralla. Cuanto más os alejéis, más duras. No os separéis más de lo necesario." },
-				{ S = "Brenn", T = "Si caes, despiertas en el hospital. Aquí. Fuera de Valmar, nadie va a recogerte." },
+				{ S = "Brenn", T = "Si caes, despiertas en el hospital. Esta vez. Fuera de Valmar no hay hospital que te recoja." },
 			} },
 			Vuelta = { Lines = {
 				{ S = "Kael", T = "Tres bestias y vuelves por tu propio pie. Bien." },
-				{ S = "Sorel", T = "Fui a mi calle. La puerta de mi casa sigue ahí, con el número. Dentro había un nido de bestias. Lo he limpiado." },
+				{ S = "Sorel", T = "Fui a mi calle. La puerta de mi casa sigue ahí, con el número. Dentro había un nido. Lo quemé." },
 				{ S = "Narrador", T = "Nadie dice nada durante un rato." },
 				{ S = "Kael", T = "Siguiente lección: el espíritu. Tormenta de acero para limpiar un grupo; Furia del cazador cuando necesitas que cada golpe cuente." },
 				{ S = "Narrador", T = "Has aprendido la Tormenta de acero ⚔ y la Furia del cazador 🔥." },
@@ -199,7 +199,7 @@ return {
 	mision({
 		Id = "Acad05_Juramento",
 		Title = "El juramento",
-		Description = "El examen final: diez bestias, sin ayuda. Si vuelves, juras como guerrero espacial. Los que no vuelven tienen su nombre en la pared de la entrada.",
+		Description = "El examen final: diez bestias, sin ayuda. Si vuelves, juras como guerrero espacial. Si no, tu nombre va a la pared de la entrada.",
 		Duration = { 10, 15 },
 		Difficulty = 3,
 		Type = "Academia · Examen",

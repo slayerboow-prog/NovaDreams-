@@ -54,7 +54,7 @@ return {
 		Dialogues = {
 			Orden = { Lines = {
 				{ S = "Kael", T = "Guerrero {nombre}. Se acabaron las prácticas." },
-				{ S = "Kael", T = "Anoche una manada cruzó la Ronda. Tres heridos en la calle de las Torres. Quiero el Oeste y el Sur limpios antes de que anochezca." },
+				{ S = "Kael", T = "Anoche una manada cruzó la Ronda. Tres muertos en la calle de las Torres. Quiero el Oeste y el Sur limpios antes de que anochezca." },
 				{ S = "Brenn", T = "Yo cubro la muralla norte. Si encuentras algo que no puedes con ello, retírate y avisa. Morir no ayuda a nadie." },
 			} },
 			Parte = { Lines = {
