@@ -110,6 +110,7 @@ local EFFECTS = {
 	OnlyIfUntouched = true, Degree = true, SetStage = true, Teleport = true, Conduct = true,
 	World = true, -- memoria del mundo (WorldMemoryService): { ["Cielo.Crater.Parque"] = "Frio" }
 	Scene = true, -- lanza una escena del motor sin parar la historia (HappeningService)
+	Skills = true, -- la Academia te enseña habilidades ({ "TajoCircular" }; "*" = te gradúas): HunterSkillService.learn
 }
 -- Una clave de texto es MAYÚSCULAS.CON.PUNTOS; cualquier otra cosa es un texto ya escrito
 local function isKey(value: string): boolean

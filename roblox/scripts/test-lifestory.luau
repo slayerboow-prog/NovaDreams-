@@ -352,6 +352,17 @@ end
 check(table.find(biography, "MOMENT.PRIMER_SUELDO") ~= nil and table.find(biography, "QUEST.REGION.OPT_PLAYA") ~= nil, "La biografía guarda momentos y decisiones")
 check(pcall(serde.encode, "json", data), "Los datos se pueden guardar (JSON válido)")
 
+print("\n▶ Sin prólogo: un personaje nuevo empieza en la Academia de Guerreros (17-11-2026)")
+local nora = newPlayer("Nora")
+task.wait(0.2)
+local noraData = profiles[nora]
+check(noraData.Life.Stage == "Adolescente", "Un personaje nuevo empieza adolescente (cadete)")
+check(noraData.Story.Active.Acad01_Llegada ~= nil and noraData.Story.Chapter == "Academia_Guerreros", "Su primera misión es la llegada a la Academia")
+check(noraData.Story.Active.Prologo_Sueno == nil and nora:GetAttribute("InPrologue") == nil, "No hay prólogo")
+check(type(noraData.Hunter) == "table" and next(noraData.Hunter.Learned) == nil and noraData.Hunter.Graduated == false, "Empieza sin habilidades (las enseña la Academia)")
+
+-- (el resto de la prueba sigue jugando la infancia antigua: se nace bebé solo aquí)
+Config.LifeStory.NewCharacterStage = "Bebe"
 print("\n▶ Fase 2: nacer, aprender a caminar, explorar la casa y crecer")
 local leo = newPlayer("Leo") -- personaje nuevo
 task.wait(0.2)

@@ -34,6 +34,23 @@ export type Chapter = {
 }
 
 local Chapters: { [string]: Chapter } = {
+	-- (17-11-2026, el dueño) SIN PRÓLOGO: el juego empieza en la ACADEMIA DE GUERREROS ESPACIALES, que es el
+	-- tutorial y donde se aprenden las habilidades (Misiones/Academia). Los personajes nuevos nacen adolescentes
+	-- (Config.NewCharacterStage) y al jurar como guerreros pasan a adultos jóvenes.
+	Academia_Guerreros = {
+		Id = "Academia_Guerreros",
+		Order = 5,
+		Stage = { Min = "Adolescente", Max = "Adolescente" },
+		Requires = { NotCompleted = { "Ins01_NuevoInstituto", "Cole12_UltimoDia" } }, -- (quien jugó la infancia antigua o ya iba por el instituto, lo sigue)
+		Enabled = true,
+		TitleKey = "La Academia de Guerreros",
+		IntroKey = "Toda la vida mirando las naves. Hoy entras en la Academia de Guerreros Espaciales.",
+		OutroKey = "Has jurado como guerrero espacial. El cielo ya no es un sueño.",
+		Main = { "Acad01_Llegada", "Acad02_Tecnicas", "Acad03_PrimeraCaza", "Acad04_Espiritu", "Acad05_Juramento" },
+		Next = "Adulto_NuevaVida",
+		Music = "TemaValmar",
+	},
+
 	-- FASE 2 · Bebé (5-10 min) en la casa familiar de Los Pinos.
 	Bebe_PrimerosPasos = {
 		Id = "Bebe_PrimerosPasos",

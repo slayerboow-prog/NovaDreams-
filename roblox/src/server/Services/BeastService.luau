@@ -834,6 +834,13 @@ local function die(b: Beast, killer: Player?)
 		end
 	end
 	lootBeam(b.Root.Position, best, b.Champion)
+	-- (la historia: la primera caza de la Academia, misiones de distrito de caza)
+	for p in got do
+		pcall(function()
+			local StoryEvents = require(script.Parent.Parent.LifeStory.StoryEvents) :: any
+			StoryEvents.emit(p, "BeastKilled", { Species = b.Species, Planet = b.Planet, Boss = b.Sp.Boss == true })
+		end)
+	end
 	if b.Sp.Boss then
 		for _, p in Players:GetPlayers() do
 			if p:GetAttribute("Planeta") == b.Planet or (b.Planet == "Valmar" and p:GetAttribute("Planeta") == nil) then

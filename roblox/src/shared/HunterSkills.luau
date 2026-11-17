@@ -77,8 +77,47 @@ function HunterSkills.rankName(rank: number): string
 	return if rank >= HunterSkills.MaxRank then "Maestra" else ("Rango %d"):format(rank)
 end
 
-function HunterSkills.unlocked(sk: { [string]: any }, hunterLevel: number): boolean
+-- (17-11-2026) Las habilidades se APRENDEN EN LA ACADEMIA (la escuela de guerreros: Misiones/Acad*). known =
+-- { Learned = { [Id] = true }, Graduated = bool } o nil. Mientras estudias solo tienes las que te han enseñado;
+-- al graduarte (y en las partidas de antes de la Academia) las demás llegan con el nivel de cazador.
+function HunterSkills.unlocked(sk: { [string]: any }, hunterLevel: number, known: { [string]: any }?): boolean
+	if type(known) == "table" then
+		if type(known.Learned) == "table" and known.Learned[sk.Id] then
+			return true
+		end
+		if not known.Graduated then
+			return false
+		end
+	end
 	return hunterLevel >= sk.Level
+end
+
+-- Lo que sabes, en un texto para el atributo HabilidadesSabidas del jugador: "*" = graduado; luego las ids
+function HunterSkills.knownToText(known: { [string]: any }): string
+	local parts = {}
+	if known.Graduated then
+		table.insert(parts, "*")
+	end
+	for _, sk in HunterSkills.List do
+		if type(known.Learned) == "table" and known.Learned[sk.Id] then
+			table.insert(parts, sk.Id)
+		end
+	end
+	return table.concat(parts, ",")
+end
+function HunterSkills.knownFromText(text: any): { [string]: any }?
+	if type(text) ~= "string" then
+		return nil
+	end
+	local known = { Learned = {}, Graduated = false }
+	for part in string.gmatch(text, "[^,]+") do
+		if part == "*" then
+			known.Graduated = true
+		else
+			known.Learned[part] = true
+		end
+	end
+	return known
 end
 
 -- Cuánto falta para volver a usarla (0 = lista)

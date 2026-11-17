@@ -11,6 +11,8 @@ EventCatalog.Names = {
 	Talk = true, TalkDone = true, PropUsed = true, EnemyDefeated = true, Caught = true, FightRetry = true,
 	-- Prólogo (tutorial de controles): empezar a correr (ProgressionService) y abrir el mapa (LifeStoryService)
 	Sprinted = true, MapOpened = true,
+	-- La Academia de Guerreros: usar una habilidad (HunterSkillService, { Skill }) y cazar una bestia (BeastService, { Species, Planet, Boss })
+	SkillUsed = true, BeastKilled = true,
 	-- Bebé y casa familiar (BabyService)
 	BabyStood = true, BabySteps = true, BabyInteract = true, LookedOutside = true,
 	-- Vida diaria

@@ -147,7 +147,7 @@ local function open()
 			local head = row(46, rgb(30, 40, 62))
 			Theme.label({ Size = UDim2.fromScale(1, 1), TextWrapped = true, TextSize = 13, RichText = true, Text = ("<b>Puntos de habilidad: %d</b>  · Ganas uno por cada nivel de cazador. Cada rango: +12 %% de fuerza y algo menos de espera. Rango 10 = Maestra."):format(left), Parent = head })
 			for _, sk in HunterSkills.List do
-				local unlocked = HunterSkills.unlocked(sk, lvl)
+				local unlocked = HunterSkills.unlocked(sk, lvl, HunterSkills.knownFromText(game:GetService("Players").LocalPlayer:GetAttribute("HabilidadesSabidas")))
 				local rank = HunterSkills.rankOf(ranks, sk.Id)
 				local f = row(if Theme.isTouch() then 80 else 72)
 				Theme.label({ Size = UDim2.new(1, -150, 0, 22), Text = ("%s %s · %s"):format(sk.Icon, sk.Name, if unlocked then HunterSkills.rankName(rank) else ("nivel %d"):format(sk.Level)), TextSize = 15, TextColor3 = if not unlocked then C.Muted elseif rank >= HunterSkills.MaxRank then rgb(255, 200, 90) else C.Text, Parent = f })

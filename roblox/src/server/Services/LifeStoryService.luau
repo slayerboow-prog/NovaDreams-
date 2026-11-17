@@ -647,6 +647,12 @@ local function applyEffects(player: Player, data: Data, effects: { [string]: any
 		LifeStoryService.remember(player, entry.Npc, entry.Fact)
 		LifeStoryService.addAffinity(player, entry.Npc, 1)
 	end
+	-- La Academia de Guerreros enseña habilidades (Misiones/Academia)
+	for _, skillId in effects.Skills or {} do
+		pcall(function()
+			(require(script.Parent.HunterSkillService) :: any).learn(player, skillId)
+		end)
+	end
 	for id, count in effects.Items or {} do
 		if not InventoryService.add(player, id, count) then
 			-- Mochila llena: se avisa y se guarda hasta que hagas hueco (antes el regalo se perdía)
@@ -5059,6 +5065,12 @@ local function onLoadedImpl(player: Player, data: Data)
 		local veteran = data.Stats and data.Stats.PlaySeconds and data.Stats.PlaySeconds > 0
 		data.Life.Stage = if veteran then CFG.VeteranStage else CFG.NewCharacterStage
 		LifeStoryService.logEvent(player, "STAGE." .. data.Life.Stage, nil, "Stage")
+		if not veteran then
+			-- (17-11-2026) personaje nuevo: cadete de la Academia, sin habilidades hasta que se las enseñen
+			data.Hunter = if type(data.Hunter) == "table" then data.Hunter else { Xp = 0 }
+			data.Hunter.Learned = {}
+			data.Hunter.Graduated = false
+		end
 	end
 	-- Edad: si no tiene (o es menor que la de su etapa, como los veteranos que cargaban con 0 años),
 	-- la primera edad de su etapa

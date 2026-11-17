@@ -128,7 +128,7 @@ Config.TesterNames = {} :: { string }
 Config.LifeStory = {
 	-- Un personaje NUEVO nace bebé (tutorial de bebé, fase 2). Quien ya jugaba antes de la
 	-- historia de vida (tiene tiempo jugado guardado) sigue siendo adulto.
-	NewCharacterStage = "Bebe",
+	NewCharacterStage = "Adolescente", -- (17-11-2026: el juego empieza en la Academia de Guerreros, no de bebé)
 	VeteranStage = "Adulto",
 	DefaultAge = 0,
 	TickSeconds = 0.5, -- cada cuánto se comprueban llegadas y esperas
@@ -138,7 +138,7 @@ Config.LifeStory = {
 	MaxLifeEvents = 200, -- acontecimientos guardados en la biografía
 	ReachPadding = 14, -- studs de margen alrededor de un edificio para contar como "has llegado"
 	-- Prólogo jugable («El sueño», tutorial de controles) para personajes nuevos, una sola vez
-	Prologue = true,
+	Prologue = false, -- (17-11-2026, el dueño: sin prólogo; el tutorial es la Academia)
 	PrologueMaxSeconds = 480, -- tope real: si se atasca, se cierra solo y se sigue con el juego normal
 	-- «Anteriormente en tu vida…»: al volver al juego, si llevabas fuera al menos este tiempo
 	RecapMinAwaySeconds = 60,

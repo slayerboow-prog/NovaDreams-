@@ -59,8 +59,8 @@ function HunterSkillService.rankUp(player: Player, id: any): (boolean, string)
 	d.Hunter = if type(d.Hunter) == "table" then d.Hunter else { Xp = 0 }
 	d.Hunter.Skills = if type(d.Hunter.Skills) == "table" then d.Hunter.Skills else {}
 	local level = Crafting.hunterLevel(d.Hunter.Xp)
-	if not HunterSkills.unlocked(sk, level) then
-		return false, ("%s se desbloquea con nivel de cazador %d."):format(sk.Name, sk.Level)
+	if not HunterSkills.unlocked(sk, level, HunterSkillService.knownOf(player)) then
+		return false, ("%s se aprende en la Academia (o con nivel de cazador %d al graduarte)."):format(sk.Name, sk.Level)
 	end
 	local rank = HunterSkills.rankOf(d.Hunter.Skills, sk.Id)
 	if rank >= HunterSkills.MaxRank then
@@ -71,6 +71,59 @@ function HunterSkillService.rankUp(player: Player, id: any): (boolean, string)
 	end
 	d.Hunter.Skills[sk.Id] = rank + 1
 	return true, ("%s %s: %s"):format(sk.Icon, sk.Name, HunterSkills.rankName(rank + 1))
+end
+
+-- Lo que sabes (shared/HunterSkills.unlocked). Las partidas de antes de la Academia (sin Learned): graduadas.
+function HunterSkillService.knownOf(player: Player): { [string]: any }?
+	local d = dataOf(player)
+	if not d then
+		return nil
+	end
+	d.Hunter = if type(d.Hunter) == "table" then d.Hunter else { Xp = 0 }
+	if type(d.Hunter.Learned) ~= "table" then
+		d.Hunter.Learned = {}
+		if d.Hunter.Graduated == nil then
+			d.Hunter.Graduated = true
+		end
+	end
+	return { Learned = d.Hunter.Learned, Graduated = d.Hunter.Graduated == true }
+end
+
+local function publishKnown(player: Player)
+	local known = HunterSkillService.knownOf(player)
+	if known then
+		player:SetAttribute("HabilidadesSabidas", HunterSkills.knownToText(known))
+	end
+end
+
+-- Personaje nuevo: empieza sin habilidades (las enseña la Academia). Lo llama LifeStoryService al crearlo.
+function HunterSkillService.startStudent(player: Player)
+	local d = dataOf(player)
+	if not d then
+		return
+	end
+	d.Hunter = if type(d.Hunter) == "table" then d.Hunter else { Xp = 0 }
+	d.Hunter.Learned = {}
+	d.Hunter.Graduated = false
+	publishKnown(player)
+end
+
+-- La Academia te enseña una habilidad ("*" o "Graduado": te gradúas y las demás llegan con el nivel)
+function HunterSkillService.learn(player: Player, id: string): boolean
+	local known = HunterSkillService.knownOf(player)
+	if not known then
+		return false
+	end
+	local d = dataOf(player) :: any
+	if id == "*" or id == "Graduado" then
+		d.Hunter.Graduated = true
+	elseif HunterSkills.get(id) then
+		d.Hunter.Learned[id] = true
+	else
+		return false
+	end
+	publishKnown(player)
+	return true
 end
 
 function HunterSkillService.levelOf(player: Player): number
@@ -112,8 +165,8 @@ function HunterSkillService.use(player: Player, id: any, now: number?): (boolean
 		return false, nil, 0
 	end
 	local onPlanet = type(player:GetAttribute("Planeta")) == "string"
-	if not HunterSkills.unlocked(sk, HunterSkillService.levelOf(player)) and not allUnlocked(player) then
-		return false, ("%s se desbloquea con nivel de cazador %d."):format(sk.Name, sk.Level), 0
+	if not HunterSkills.unlocked(sk, HunterSkillService.levelOf(player), HunterSkillService.knownOf(player)) and not allUnlocked(player) then
+		return false, ("%s se aprende en la Academia de guerreros (o con nivel de cazador %d al graduarte)."):format(sk.Name, sk.Level), 0
 	end
 	local t = now or os.clock()
 	used[player] = used[player] or {}
@@ -195,6 +248,10 @@ function HunterSkillService.init()
 			local ok, text = HunterSkillService.use(player, id)
 			if ok and sk then
 				(Remote :: RemoteEvent):FireClient(player, "Used", sk.Id, HunterSkills.cooldown(sk, HunterSkillService.rankOf(player, sk.Id)))
+				pcall(function() -- (las clases de la Academia esperan a que la uses)
+					local StoryEvents = require(script.Parent.Parent.LifeStory.StoryEvents) :: any
+					StoryEvents.emit(player, "SkillUsed", { Skill = sk.Id })
+				end)
 			elseif text then
 				(Remote :: RemoteEvent):FireClient(player, "No", id, text)
 			end
@@ -204,6 +261,7 @@ function HunterSkillService.init()
 		local level = HunterSkillService.levelOf(player)
 		player:SetAttribute("NivelCazador", level)
 		player:SetAttribute("HabilidadesTodas", allUnlocked(player)) -- (el cliente las enseña desbloqueadas)
+		publishKnown(player)
 		local max = HunterSkills.manaMax(level)
 		player:SetAttribute("EspirituMax", max)
 		if player:GetAttribute("Espiritu") == nil then
