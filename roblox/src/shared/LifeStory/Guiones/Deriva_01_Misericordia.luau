@@ -10,7 +10,7 @@ return {
 	Scenes = {
 		Deriva1_G1_Entra = {
 			Light = true,
-			Duration = 23,
+			Duration = 22.3,
 			Anchors = { Sitio = "Player", Yo = "Player" },
 			Tracks = {
 				Actors = {
@@ -29,11 +29,11 @@ return {
 					{
 						At = 7.2,
 						S = "Cosme",
-						T = "Las balizas no se encienden solas, criatura. Alguien quiere que la encontremos. O alguien quiere ver quién viene.",
+						T = "Las balizas no se encienden solas. Alguien quiere que la encontremos. O alguien quiere ver quién viene.",
 						To = "Yo",
 						A = "HandsOnHips",
 					},
-					{ At = 16.1, S = "Pip", T = "Señor, en la Deriva las cosas sí se encienden solas. Por eso no viene nadie.", To = "Yo", A = "ArmsCrossed" },
+					{ At = 15.4, S = "Pip", T = "Señor, en la Deriva las cosas sí se encienden solas. Por eso no viene nadie.", To = "Yo", A = "ArmsCrossed" },
 				},
 				Music = { { At = 0, Intensity = "Tension" } },
 			},

@@ -6,7 +6,7 @@ PASO 1 [Action] @ La Misericordia
 Reparto: Cosme, NILDA, Pip
 Musica: Tension
 NILDA: (señala) Ahí está. La Misericordia. Sin motores, sin luces… y con la baliza médica encendida.
-Cosme: (brazos en jarra) Las balizas no se encienden solas, criatura. Alguien quiere que la encontremos. O alguien quiere ver quién viene.
+Cosme: (brazos en jarra) Las balizas no se encienden solas. Alguien quiere que la encontremos. O alguien quiere ver quién viene.
 Pip: (cruza los brazos) Señor, en la Deriva las cosas sí se encienden solas. Por eso no viene nadie.
 
 PASO 2 [Action] @ La Misericordia

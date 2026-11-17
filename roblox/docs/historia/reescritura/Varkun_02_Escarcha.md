@@ -6,7 +6,7 @@ PASO 1 [Action] @ Nube Escarcha
 Reparto: Cosme, NILDA
 Musica: Tension
 NILDA: (pensativo) Anomalía delante. No es una tormenta ni una nebulosa. Es un nudo. Un nudo de hilos de luz del tamaño de una casa.
-Cosme: (brazos en jarra) Igual que los del carguero. Alguien está cosiendo el espacio por aquí, criatura.
+Cosme: (brazos en jarra) Igual que los del carguero. Alguien está cosiendo el espacio por aquí.
 
 PASO 2 [Action] @ Nube Escarcha
 Reparto: NILDA
@@ -33,5 +33,5 @@ Cosme: (señala) Eso lo veremos, Deshilador. Yo también sé coser.
 Pip: (cruza los brazos) Señor, se va. La Rueca se va.
 NILDA: (pensativo) Mi abuela conoció ese nombre. Hay un archivo cerrado en mi memoria. Dice: «Para V., si alguna vez vuelve».
 Pip: (levanta una ceja) Señor, la Aguja de oro está temblando. Ha oído otro desgarro.
-Cosme: (pensativo) La señal es de mi casa, criatura. De Tefra.
+Cosme: (pensativo) Viene de Tefra. Donde Kael perdió a su escuadra.
 Cosme: (asiente) Coge el casco. Esto acaba de empezar.

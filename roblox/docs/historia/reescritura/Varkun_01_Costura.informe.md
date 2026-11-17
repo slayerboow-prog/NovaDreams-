@@ -40,8 +40,7 @@ _Ninguna corrección._
 
 ## Avisos
 
-_Ninguno._
-
+- PASO 1 (línea 10): frase de 144 caracteres (más de 140): «Desde que cerramos la Grieta, rastreo cada señal rara buscando la baliza de Lía. Esto no es ella. Esto no lo han hecho piratas: está… descosido.»
 
 ## Notas del guion sin equivalente directo (bloques de dirección, minijuegos, memoria…)
 

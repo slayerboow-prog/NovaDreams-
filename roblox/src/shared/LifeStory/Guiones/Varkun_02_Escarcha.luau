@@ -10,7 +10,7 @@ return {
 	Scenes = {
 		Varkun2_G1_Fin = {
 			Light = true,
-			Duration = 23.3,
+			Duration = 22.6,
 			Anchors = { Sitio = "Player", Yo = "Player" },
 			Tracks = {
 				Actors = { { At = 0, Use = { Key = "NILDA", Npc = "NILDA" } }, { At = 0, Use = { Key = "Cosme", Npc = "Cosme" } } },
@@ -22,10 +22,10 @@ return {
 						To = "Yo",
 						A = "ThinkChin",
 					},
-					{ At = 9.3, S = "Cosme", T = "Igual que los del carguero. Alguien está cosiendo el espacio por aquí, criatura.", To = "Yo", A = "HandsOnHips" },
-					{ At = 15.8, S = "NILDA", T = "Necesito escanearla desde dentro. Veinte segundos. No te alejes, que pierdo la señal.", To = "Yo", A = "Nod" },
+					{ At = 9.3, S = "Cosme", T = "Igual que los del carguero. Alguien está cosiendo el espacio por aquí.", To = "Yo", A = "HandsOnHips" },
+					{ At = 15.1, S = "NILDA", T = "Necesito escanearla desde dentro. Veinte segundos. No te alejes, que pierdo la señal.", To = "Yo", A = "Nod" },
 				},
-				Music = { { At = 0, Intensity = "Tension" }, { At = 11.3, Intensity = "Tension" } },
+				Music = { { At = 0, Intensity = "Tension" }, { At = 11, Intensity = "Tension" } },
 			},
 		},
 		Varkun2_G3_Entra = {
@@ -65,7 +65,7 @@ return {
 		},
 		Varkun2_G4_Entra = {
 			Light = true,
-			Duration = 40.6,
+			Duration = 41,
 			Anchors = { Sitio = "Player", Yo = "Player" },
 			Tracks = {
 				Actors = {
@@ -87,8 +87,8 @@ return {
 						A = "ThinkChin",
 					},
 					{ At = 27.5, S = "Pip", T = "Señor, la Aguja de oro está temblando. Ha oído otro desgarro.", To = "Yo", A = "Ask" },
-					{ At = 32.6, S = "Cosme", T = "La señal es de mi casa, criatura. De Tefra.", To = "Yo", A = "ThinkChin" },
-					{ At = 36.5, S = "Cosme", T = "Coge el casco. Esto acaba de empezar.", To = "Yo", A = "Nod" },
+					{ At = 32.6, S = "Cosme", T = "Viene de Tefra. Donde Kael perdió a su escuadra.", To = "Yo", A = "ThinkChin" },
+					{ At = 36.9, S = "Cosme", T = "Coge el casco. Esto acaba de empezar.", To = "Yo", A = "Nod" },
 				},
 				Music = { { At = 0, Intensity = "Intima" } },
 			},

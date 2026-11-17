@@ -10,7 +10,7 @@ return {
 	Scenes = {
 		Varkun1_G1_Fin = {
 			Light = true,
-			Duration = 50.2,
+			Duration = 52.7,
 			Anchors = { Sitio = "Player", Yo = "Player" },
 			Tracks = {
 				Actors = {
@@ -30,39 +30,33 @@ return {
 					{
 						At = 14.1,
 						S = "Cosme",
-						T = "Esto no lo han hecho unos piratas, criatura. Los piratas rompen. Esto está… descosido.",
+						T = "Desde que cerramos la Grieta, rastreo cada señal rara buscando la baliza de Lía. Esto no es ella. Esto no lo han hecho piratas: está… descosido.",
 						To = "Yo",
 						A = "HandsOnHips",
 					},
 					{
-						At = 21.1,
+						At = 25.2,
 						S = "Pip",
 						T = "Señor, hay hilos. Hilos de verdad, uniendo los trozos. Como si alguien hubiera intentado zurcir una nave.",
 						To = "Yo",
 						A = "ArmsCrossed",
 					},
-					{ At = 29.4, S = "NILDA", T = "Aviso. Tres firmas pequeñas detrás de los restos. Rápidas. Muy rápidas.", To = "Yo", A = "Nod" },
+					{ At = 33.5, S = "NILDA", T = "Aviso. Tres firmas pequeñas detrás de los restos. Rápidas. Muy rápidas.", To = "Yo", A = "Nod" },
+					{ At = 39.4, S = "Cosme", T = "Agujas. Así las voy a llamar. Pinchan, pasan de largo y vuelven.", To = "Yo", G = "Point" },
 					{
-						At = 35.3,
-						S = "Cosme",
-						T = "¡Ja! Agujas. Así las voy a llamar. Pinchan, pasan de largo y vuelven. Como mi dentista.",
-						To = "Yo",
-						G = "Point",
-					},
-					{
-						At = 42.3,
+						At = 44.8,
 						S = "NILDA",
 						T = "No llevan piloto: son tela tensada con una luz dentro. No te quedes quieto, que te pinchan.",
 						To = "Yo",
 						A = "No",
 					},
 				},
-				Music = { { At = 0, Intensity = "Tension" }, { At = 24.8, Intensity = "Tension" } },
+				Music = { { At = 0, Intensity = "Tension" }, { At = 26, Intensity = "Tension" } },
 			},
 		},
 		Varkun1_G3_Entra = {
 			Light = true,
-			Duration = 24.5,
+			Duration = 21.8,
 			Anchors = { Sitio = "Player", Yo = "Player" },
 			Tracks = {
 				Actors = {
@@ -86,21 +80,14 @@ return {
 						A = "Nervous",
 						Mood = "Fear",
 					},
-					{
-						At = 16.2,
-						S = "Cosme",
-						T = "Llévalo a la Cénit. Allí tienen una caja fuerte que ni yo sé abrir. Y mira que lo he intentado.",
-						To = "Yo",
-						A = "Happy",
-						Mood = "Joy",
-					},
+					{ At = 16.2, S = "Cosme", T = "Llévalo a la Cénit. Allí tienen una caja fuerte de verdad.", To = "Yo", A = "Nod" },
 				},
 				Music = { { At = 0, Intensity = "Descubrimiento" } },
 			},
 		},
 		Varkun1_G4_Entra = {
 			Light = true,
-			Duration = 42.7,
+			Duration = 40.7,
 			Anchors = { Sitio = "Player", Yo = "Player" },
 			Tracks = {
 				Actors = {
@@ -122,10 +109,10 @@ return {
 					{
 						At = 25.2,
 						S = "Cosme",
-						T = "¿Te acuerdas de la lucecita que vimos en el cielo, el día del patio, cuando cosimos la Grieta? Pensé que era una estrella. Ya no lo pienso.",
+						T = "Pip captó la baliza de Lía al otro lado de la Grieta. Y ahora alguien cose el espacio. No creo en casualidades.",
 						To = "Yo",
 					},
-					{ At = 36, S = "NILDA", T = "Guardaré la señal original. Tiene un ritmo. Como una costura hecha a mano.", To = "Yo", A = "ThinkChin" },
+					{ At = 34, S = "NILDA", T = "Guardaré la señal original. Tiene un ritmo. Como una costura hecha a mano.", To = "Yo", A = "ThinkChin" },
 				},
 				Music = { { At = 0, Intensity = "Descubrimiento" } },
 			},
