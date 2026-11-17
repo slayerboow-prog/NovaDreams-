@@ -11,8 +11,8 @@ La mecánica es la de siempre: el pasillo del laboratorio (desconectar a los gua
 
 | PASO del guion | Tipo | Lugar | Paso del juego |
 |---|---|---|---|
-| 1 |  |  | 1 · Fight @ Universidad |
-| 2 |  |  | 1 · Fight @ Universidad |
+| 1 |  |  | 1 · Fight @ OficinasFinanciero |
+| 2 |  |  | 1 · Fight @ OficinasFinanciero |
 | 3 |  |  | 2 · Use (Capsula) |
 | 4 |  |  | 3 · Escape @ GarajeCosme |
 | 5 |  |  | 3 · Escape @ GarajeCosme |
@@ -24,37 +24,30 @@ _Ninguno._
 
 ## Aplicado
 
-- PASO 1+2 → paso 1 del juego (Fight): objetivo «Desconecta a los guardias del laboratorio ({count}/{total})»
-- PASO 1+2 → paso 1 del juego (Fight): 23 frases al cumplirlo (escena ligera «Saga_17_G1_2_Fin», sin quitar el control)
-- PASO 3 → paso 2 del juego (Use): lo que pasa al usarlo va en la conversación del objeto «Capsula» (14 frases)
-- PASO 4+5 → paso 3 del juego (Escape): 27 frases al empezar el paso (escena ligera «Saga_17_G4_5_Entra», la lanza el paso 2 al cumplirse; el jugador no pierde el control)
-- Momento de la biografía: «Rescataste a Cosme de la dimensión 66-B»
+- PASO 1+2 → paso 1 del juego (Fight): 4 frases al cumplirlo (escena ligera «Saga_17_G1_2_Fin», sin quitar el control)
+- PASO 3 → paso 2 del juego (Use): lo que pasa al usarlo va en la conversación del objeto «Capsula» (7 frases)
+- PASO 4+5 → paso 3 del juego (Escape): 5 frases al empezar el paso (escena ligera «Saga_17_G4_5_Entra», la lanza el paso 2 al cumplirse; el jugador no pierde el control)
 
 ## Adaptado (y por qué)
 
-- PASO 1+2: no hay paso de antes que pueda lanzar las 23 frases del principio (es el primero, o un objetivo de un Group, o el de antes ya lanza escena): suenan al cumplir el paso 1
-- PASO 4 · opción A: marca nueva «DefendioCosme» (defendio_cosme = true)
-- PASO 4 · opción A: sin equivalente: «lealtad_cosme +2»
-- PASO 4 · opción B: marca nueva «QuiereVerdad» (quiere_verdad = true)
-- PASO 4+5: ELECCION en un paso jugable del juego (Escape): no hay conversación donde preguntarla; sus respuestas se dicen como frases
+- PASO 1+2: no hay paso de antes que pueda lanzar las 4 frases del principio (es el primero, o un objetivo de un Group, o el de antes ya lanza escena): suenan al cumplir el paso 1
+- PASO 3 (línea 66): la acotación «(por los altavoces)» no tiene gesto en el juego: se queda solo la frase
+- PASO 4 (línea 82): la acotación «(confuso)» no tiene gesto en el juego: se queda solo la frase
 
 ## Género ({o/a}) corregido en frases dirigidas al jugador
 
-- PASO 3 (línea 543) · Pip: «Ya está preparado.» → «Ya está preparad{o/a}.»
+_Ninguna corrección._
+
 
 ## Avisos
 
-- PASO 2 (línea 329): condición «una cámara detecta al jugador» con una variable que el juego aún no guarda (UnaCamaraDetectaAlJugador)
-- PASO 5 (línea 1364): «Noche» no está en el reparto del juego: sus frases no se aplican (si es alguien, ponlo en Hablantes del mapa)
+_Ninguno._
+
 
 ## Notas del guion sin equivalente directo (bloques de dirección, minijuegos, memoria…)
 
-- PASO 1 · OBJETIVO: Prepara el equipo de rescate.
-- PASO 1 · Al terminar:: Pip: Equipo preparado.
-- PASO 2 · Objetivo: Desconecta a los guardias del laboratorio ({count}/{total}): 
-- PASO 3 · OBJETIVO: Encuentra a Cosme.
-- PASO 3 · OBJETIVO: Libera a Cosme.
-- PASO 5 · MOMENTO DE BIOGRAFÍA: «Rescataste a Cosme de la dimensión 66-B»
+_Ninguna._
+
 
 ## Cómo se traduce el formato
 
