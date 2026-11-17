@@ -22,29 +22,18 @@ _Ninguno._
 
 ## Aplicado
 
-- PASO 1 → paso 1 del juego (Talk «Capitana»): conversación «Capitana» con 23 frases nuevas
-- PASO 2 → paso 2 del juego (MiniGame): objetivo «Completa el rodaje sin fallos»
-- PASO 2 → paso 2 del juego (MiniGame): 7 frases al empezar el paso (escena ligera «Saga_15_G2_Entra», la lanza el paso 1 al cumplirse; el jugador no pierde el control)
-- PASO 3 → paso 3 del juego (Scene «Grabacion»): conversación «Grabacion» con 22 frases nuevas (música Tension)
+- PASO 1 → paso 1 del juego (Talk «Capitana»): conversación «Capitana» con 6 frases nuevas
+- PASO 2 → paso 2 del juego (MiniGame): 1 frases al empezar el paso (escena ligera «Saga_15_G2_Entra», la lanza el paso 1 al cumplirse; el jugador no pierde el control)
+- PASO 3 → paso 3 del juego (Scene «Grabacion»): conversación «Grabacion» con 7 frases nuevas
 
 ## Adaptado (y por qué)
 
-- frase quitada (es una acotación, no se dice): «(Ñoz cambia completamente su expresión.)»
 - PASO 1: el guion lo escribe como [] y en el juego es conversación (Talk): se conserva el tipo del juego y su mecánica
-- frase quitada (es una acotación, no se dice): «…»
-- PASO 3: «saga_15_completada = true» no la lee ninguna misión: no se crea
-- PASO 3: «laboratorio_cosimo_confirmado = true» no la lee ninguna misión: no se crea
-- PASO 3: «cosme_vivo_confirmado = true» no la lee ninguna misión: no se crea
-- PASO 3: «pase_vip_plato = true» no la lee ninguna misión: no se crea
-- PASO 3: «coordenadas_66B_obtenidas = true» no la lee ninguna misión: no se crea
-- PASO 3: «collar_gatonia_obtenido = true» no la lee ninguna misión: no se crea
-- PASO 3: «equipo_rescate_activo = true» no la lee ninguna misión: no se crea
-- PASO 3: «Flags» del guion no se pone a toda la conversación «Grabacion» (es de una rama o una nota; lo pone la mecánica)
-- PASO 3: «Unflags» del guion no se pone a toda la conversación «Grabacion» (es de una rama o una nota; lo pone la mecánica)
 
 ## Género ({o/a}) corregido en frases dirigidas al jugador
 
-- PASO 1 (línea 126) · CapitanNoz: «¡Mi terrícola favorito/a!» → «¡Mi terrícola favorit{o/a}!»
+_Ninguna corrección._
+
 
 ## Avisos
 
@@ -53,9 +42,8 @@ _Ninguno._
 
 ## Notas del guion sin equivalente directo (bloques de dirección, minijuegos, memoria…)
 
-- PASO 1 · OBJETIVO: Habla con la Capitana Ñoz.
-- PASO 2 · Objetivo: Completa el rodaje sin fallos: 
-- PASO 3 · MOMENTO DE BIOGRAFÍA: «Protagonizaste un episodio especial de «Terrícolas en apuros»»
+_Ninguna._
+
 
 ## Cómo se traduce el formato
 
