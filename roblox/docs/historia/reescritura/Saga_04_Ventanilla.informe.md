@@ -25,31 +25,22 @@ _Ninguno._
 
 ## Aplicado
 
-- PASO 1+2 → paso 2 del juego (Talk «Ventanilla1»): conversación «Ventanilla1» con 15 frases nuevas (música Tension)
-- PASO 3+4+5+6 → paso 3 del juego (Talk «Ventanilla2»): conversación «Ventanilla2» con 65 frases nuevas (música Tension)
+- PASO 1+2 → paso 2 del juego (Talk «Ventanilla1»): conversación «Ventanilla1» con 8 frases nuevas
+- PASO 3+4+5+6 → paso 3 del juego (Talk «Ventanilla2»): conversación «Ventanilla2» con 13 frases nuevas
 
 ## Adaptado (y por qué)
 
 - PASO 1: el guion lo escribe como [] y en el juego es conversación (Talk): se conserva el tipo del juego y su mecánica
 - PASO 2: el guion lo escribe como [] y en el juego es conversación (Talk): se conserva el tipo del juego y su mecánica
-- PASO 1+2: «grieta_admitida = true» no la lee ninguna misión: no se crea
 - PASO 3: el guion lo escribe como [] y en el juego es conversación (Talk): se conserva el tipo del juego y su mecánica
 - PASO 4: el guion lo escribe como [] y en el juego es conversación (Talk): se conserva el tipo del juego y su mecánica
 - PASO 5: el guion lo escribe como [] y en el juego es conversación (Talk): se conserva el tipo del juego y su mecánica
 - PASO 6: el guion lo escribe como [] y en el juego es conversación (Talk): se conserva el tipo del juego y su mecánica
-- PASO 3+4+5+6: «saga_04_ventanilla_completada = true» no la lee ninguna misión: no se crea
-- PASO 3+4+5+6: «megaverso_contacto_directo = true» no la lee ninguna misión: no se crea
-- PASO 3+4+5+6: «jugador_detectado_dimensionalmente = true» no la lee ninguna misión: no se crea
-- PASO 3+4+5+6: «convergencia_jugador = true» no la lee ninguna misión: no se crea
-- PASO 3+4+5+6: «ancla_inestable = true» no la lee ninguna misión: no se crea
-- PASO 3+4+5+6: «cosimo_sabe_tornillo = true» no la lee ninguna misión: no se crea
-- PASO 3+4+5+6: «ventanilla_megaverso_cerrada = true» no la lee ninguna misión: no se crea
-- PASO 3+4+5+6: «cosme_revelo_que_cosisimo_busca_jugador = true» no la lee ninguna misión: no se crea
-- PASO 3+4+5+6: «jugador_intenta_evitar_grieta = true» no la lee ninguna misión: no se crea
 
 ## Género ({o/a}) corregido en frases dirigidas al jugador
 
-- PASO 2 (línea 155) · Funcionaria: «Bienvenido/a al Consorcio MegaVerso.» → «Bienvenid{o/a} al Consorcio MegaVerso.»
+_Ninguna corrección._
+
 
 ## Avisos
 
@@ -58,12 +49,8 @@ _Ninguno._
 
 ## Notas del guion sin equivalente directo (bloques de dirección, minijuegos, memoria…)
 
-- PASO 1 · Objetivo:: Lugar: Calle cercana al barrio.
-- PASO 2 · Objetivo:: El jugador puede acercarse.
-- PASO 3 · Objetivo:: El empleado intenta cerrar la ventanilla.
-- PASO 6 · Objetivo:: El jugador debe interactuar con tres puntos:
-- PASO 6 · CONSECUENCIAS PERSISTENTES: Registrar: / Estas variables no deben alterar el argumento principal, pero sí los diálogos futuros.
-- PASO 6 · DIRECCIÓN MUSICAL: Usar únicamente: / * Comedia — ventanilla y empleado. / * Tension — anomalía, máquina, tornillo y revelación. / * Accion — llegada de Cosme y cierre de la ventanilla. / * Calma — exploración inicial.
+_Ninguna._
+
 
 ## Cómo se traduce el formato
 
