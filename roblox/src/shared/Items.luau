@@ -381,10 +381,10 @@ local KEEPSAKES = {
 	{ "PinzaDeOro", "Pinza de oro de Don Pinzas", "🦀", "Se le cayó al cangrejo abogado. Según el tratado de 1734, ahora un metro de playa es tuyo." },
 	{ "FotoCosmeCosimo", "Foto de Cosme y Cósimo, jóvenes", "📸", "«La noche antes de la prueba». Dos jóvenes con bata delante de una máquina. Uno de ellos, con una sonrisa de anuncio." },
 	-- Saga de la Grieta
-	{ "MonedaPerilla", "Moneda de la 66-B", "💰", "Caliente, como recién salida de un horno. En una cara, la cara de Cosme… con perilla." },
-	{ "EscamaBrillante", "Escama brillante", "✨", "Regalo de Don Escamas: «Por si necesitas un contable. O un amigo. Soy las dos cosas»." },
-	{ "SelloAduana", "Sello de la Aduana del Tiempo", "📄", "De repuesto. «Nunca se sabe cuándo hay que sellar algo.» — Agente Cronos." },
-	{ "CalcetinSolitario", "Calcetín solitario", "🧦", "Verde. Sin pareja. Del Monstruo de los Calcetines Desparejados. Te mira." },
+	{ "MonedaPerilla", "Placa de la 66-B", "💰", "Placa de identificación caída de la Grieta. La cara grabada es la de Cosme, más vieja y con una cicatriz: Cósimo." },
+	{ "EscamaBrillante", "Escama de Escamas", "✨", "Regalo de Escamas, el desertor del Consorcio: «Si necesita leer sus cuentas, ya sabe dónde estoy»." },
+	{ "SelloAduana", "Sello de la Aduana", "📄", "El sello que evitó que la Aduana aislara Valmar. Todavía está caliente." },
+	{ "CalcetinSolitario", "Calcetín de niño", "🧦", "Chamuscado. Lo devolvió la Grieta con lo perdido en la Caída. Nadie lo ha reclamado." },
 	{ "CredencialAyudante", "Credencial de ayudante oficial", "💳", "«Laboratorio Cosme. Nivel: casi de confianza». Sales fatal en la foto." },
 	{ "FolletoMegaVerso", "Folleto de MegaVerso", "📄", "«¡Cambia de vida sin cambiar de casa!». Letra pequeña: la dimensión pasa a ser de ellos." },
 	{ "CintaArchivo", "La cinta de «La noche»", "📼", "La noche en que naciste. La noche en que se abrió la Grieta. Tu historia." },
@@ -603,7 +603,7 @@ end
 --   Effect = Sling (bellota en arco) | Beam (rayo) | Bubbles (burbujas) | Teleport (salto de dimensión) | Message (dice algo) | Sparkle (brillo)
 local GADGETS = {
 	{ "Tirachinas", "El tirachinas de tu abu", "🎯", "El de verdad, el del Gran Torneo de 1962. Dispara bellotas que vuelan en arco y hacen «¡plof!». Regla de oro: nunca a personas ni a animales de verdad.", { Effect = "Sling", Cooldown = 0.8 } },
-	{ "PistolaBurbujas", "Pistola de burbujas cuánticas", "🔵", "Invento de Cosme. Las burbujas existen en tres dimensiones a la vez. Explotan en las tres.", { Effect = "Bubbles" } },
+	{ "PistolaBurbujas", "Pistola de burbujas cuánticas", "🔵", "Prototipo de Cosme: lanza esferas de campo inestable. Lo que viene de la Grieta no las deja pasar.", { Effect = "Bubbles" } },
 	{ "RayoEncogedor", "Rayo encogedor", "🔬", "El rayo que convirtió un pollo de 6 metros en un pollo normal. Ahora solo hace «bzzzt» y da cosquillas.", { Effect = "Beam", Color = { 190, 90, 255 }, Cooldown = 1 } },
 	{ "MovilFuturo", "Móvil del futuro", "📱", "Recibe mensajes de ti dentro de 10 años. Casi todos son sobre qué no comer.", { Effect = "Message", Lines = "Futuro", Cooldown = 4 } },
 	{ "CascosAntiHipnosis", "Cascos anti-hipnosis", "🎧", "Suena una canción tan pegadiza que anula cualquier otra. Incluidas las de los alienígenas.", { Effect = "Sparkle", Color = { 255, 120, 220 }, Cooldown = 2 } },

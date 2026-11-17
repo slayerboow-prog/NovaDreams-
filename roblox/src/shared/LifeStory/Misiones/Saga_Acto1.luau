@@ -288,13 +288,13 @@ return {
 		Id = "Saga_05_Perdidas",
 		Kind = "Side",
 		Canon = true,
-		Title = "La noche de las cosas perdidas",
-		Description = "Esta noche la Grieta ha absorbido todo lo que se ha perdido alguna vez en Valmar. Y lo ha escupido en el gimnasio del cole.",
+		Title = "La noche de lo perdido",
+		Description = "Esta noche la Grieta ha devuelto lo que se perdió en la Caída: los objetos de los muertos y desaparecidos, amontonados en el gimnasio de la Academia.",
 		Type = "Saga de la Grieta · Acto I (5/6)",
 		Duration = { 25, 35 },
 		Npcs = { "Ramon", "Lucia", "Nico", "CalcetinMonstruo", "Pip" },
 		Offer = { Place = "EntradaColegio" },
-		OfferKey = "El gimnasio del cole está lleno hasta el techo de cosas perdidas. Ramón, el conserje, no da crédito",
+		OfferKey = "El gimnasio de la Academia está lleno de objetos de la noche de la Caída. Ramón te espera en la entrada",
 		-- «Esta noche»: pasa de noche, con el cole cerrado (Ramón os abre), no en horario de clase
 		Requires = (function()
 			local req = after("Saga_04_Ventanilla")
@@ -302,23 +302,23 @@ return {
 			return req
 		end)(),
 		Schedule = false,
-		Moment = "Devolviste las cosas perdidas de Valmar",
+		Moment = "Devolviste lo que la Caída se llevó",
 		Memory = "CosasPerdidas",
 		Rewards = { Items = { CalcetinSolitario = 1 }, Flags = { "VecinosNotanRarezas" } },
 		Props = {
-			Llaves = { Kind = "Llavero", Name = "Un manojo de llaves antiguo", Prompt = "Coger las llaves", Place = "GimnasioColegio", Offset = V(-4, 0, 3), Dialogue = "Llaves", Once = true },
-			Balon = { Kind = "Balon", Name = "Un balón firmado", Prompt = "Coger el balón", Place = "GimnasioColegio", Offset = V(4, 0, 3), Color = Color3.fromRGB(250, 250, 250), Dialogue = "Balon", Once = true },
-			Diario = { Kind = "Libro", Name = "Un diario con candado", Prompt = "Coger el diario", Place = "GimnasioColegio", Offset = V(0, 0, 6), Color = Color3.fromRGB(240, 196, 60), Dialogue = "Diario", Once = true },
+			Llaves = { Kind = "Llavero", Name = "Unas llaves con etiqueta", Prompt = "Coger las llaves", Place = "GimnasioColegio", Offset = V(-4, 0, 3), Dialogue = "Llaves", Once = true },
+			Balon = { Kind = "Balon", Name = "Un balón pequeño y gastado", Prompt = "Coger el balón", Place = "GimnasioColegio", Offset = V(4, 0, 3), Color = Color3.fromRGB(250, 250, 250), Dialogue = "Balon", Once = true },
+			Diario = { Kind = "Libro", Name = "Un diario de tapas amarillas", Prompt = "Coger el diario", Place = "GimnasioColegio", Offset = V(0, 0, 6), Color = Color3.fromRGB(240, 196, 60), Dialogue = "Diario", Once = true },
 		},
 		Steps = {
-			{ Type = "Talk", Npc = "Ramon", Dialogue = "Ramon", Text = "Habla con Ramón en la entrada del cole",
+			{ Type = "Talk", Npc = "Ramon", Dialogue = "Ramon", Text = "Habla con Ramón en la entrada de la Academia",
 				Actors = { { Npc = "Ramon", Place = "EntradaColegio", Offset = V(0, 0, 4) }, { Npc = "Pip", Place = "EntradaColegio", Offset = V(4, 0, 5) } } },
-			{ Type = "Group", Text = "Encuentra en el gimnasio las cosas más importantes y devuélvelas",
+			{ Type = "Group", Text = "Busca en el gimnasio lo que tiene dueño vivo",
 				Actors = { { Npc = "Pip", Mode = "Follow" } },
 				Steps = {
-					{ Type = "Use", Prop = "Llaves", Text = "Unas llaves muy viejas" },
-					{ Type = "Use", Prop = "Balon", Text = "Un balón firmado" },
-					{ Type = "Use", Prop = "Diario", Text = "Un diario amarillo" },
+					{ Type = "Use", Prop = "Llaves", Text = "Unas llaves con una dirección del Sur" },
+					{ Type = "Use", Prop = "Balon", Text = "Un balón con un nombre: Teo" },
+					{ Type = "Use", Prop = "Diario", Text = "Un diario de la evacuación" },
 				} },
 			{ Type = "Group", Text = "Devuelve cada cosa a su dueño",
 				Actors = {
@@ -331,14 +331,14 @@ return {
 					{ Type = "Talk", Npc = "Nico", Dialogue = "DevolverBalon", Text = "El balón, a Nico" },
 					{ Type = "Talk", Npc = "Lucia", Dialogue = "DevolverDiario", Text = "El diario, a Lucía" },
 				} },
-			{ Type = "Fight", Place = "GimnasioColegio", Respawn = "EntradaColegio", Action = "Emparejar calcetines 🧦", HP = 8, BeamColor = Color3.fromRGB(255, 120, 200),
-				Text = "¡El Monstruo de los Calcetines embiste! Empareja sus calcetines",
-				CaughtLine = "¡ABRAZO DE CALCETÍN! (Te lanza contra las colchonetas de un golpe. Vuelves a la entrada, sin aire.)",
+			{ Type = "Fight", Place = "GimnasioColegio", Respawn = "EntradaColegio", Action = "Golpear ⚔", HP = 8, BeamColor = Color3.fromRGB(255, 120, 200),
+				Text = "Los objetos se levantan: algo de la Grieta los mueve. Golpea donde brilla",
+				CaughtLine = "(Te lanza contra la pared. Vuelves en ti en la entrada, sin aire.)",
 				Actors = { { Npc = "Pip", Place = "GimnasioColegio", Offset = V(6, 0, 6), Mode = "Cheer" } },
 				Enemies = {
 					{ Npc = "CalcetinMonstruo", Offset = V(0, 0, -6), Speed = 10, HP = 8, Scale = 1.6,
-						Hurt = "¡Ese es de rayas! ¡Yo busco uno de lunares! …¡Pero qué bien quedan juntos!",
-						Bye = "¡Por fin tengo pareja! ¡Tengo MUCHAS parejas! (Se deshace en cientos de pares de calcetines, felices, que salen volando por la ventana.)" },
+						Hurt = "(Un rugido hueco, como mil voces debajo de una manta.)",
+						Bye = "(La figura se deshace. Los objetos caen al suelo y se quedan quietos.)" },
 				} },
 			{ Type = "Scene", Dialogue = "Final", Actors = { { Npc = "Pip", Place = "GimnasioColegio", Offset = V(3, 0, 3) } } },
 		},
@@ -360,10 +360,10 @@ return {
 			Diario = { Lines = {
 				{ S = "Narrador", T = "Un diario amarillo con candado. En la portada: «Lucía, 3.º B, 1998. PRIVADO. Si lo lees, eres un cotilla»." },
 				{ Ask = "¿Lo abres?", Options = {
-					{ T = "No. Es de Lucía.", Effects = { Traits = { Responsabilidad = 1 }, Rel = { Lucia = 3 } } },
+					{ T = "No. No es mío.", Effects = { Traits = { Responsabilidad = 1 }, Rel = { Lucia = 3 } } },
 					{ T = "Solo la primera página…", Effects = { Traits = { Curiosidad = 1 } }, Then = {
-						{ S = "Narrador", T = "Primera página: «Hoy he decidido que de mayor seré profe. Y que no le leeré el diario a nadie. Ni a los cotillas»." },
-						{ S = "Narrador", T = "…Cierras el diario muy despacio.", Pause = 0.6 },
+						{ S = "Narrador", T = "Primera página: «Hora 2. No hay luz. Los niños preguntan por sus padres y no sé qué decirles»." },
+						{ S = "Narrador", T = "Cierras el diario.", Pause = 0.6 },
 					} },
 				} },
 			} },

@@ -8,49 +8,43 @@ local _ = V
 return {
 	Source = "docs/historia/reescritura/Saga_05_Perdidas.md",
 	Dialogues = {
+		Balon = {
+			Lines = { { S = "Narrador", T = "Un balón pequeñ{o/a}, gastado. Con rotulador: «De Teo». Nico tenía un hermano pequeñ{o/a} que se llamaba Teo." } },
+		},
 		DevolverBalon = {
 			Lines = {
-				{ S = "Nico", T = "¡MI BALÓN! ¡El del torneo!", To = "Yo", A = "Happy" },
-				{ S = "Nico", T = "¡Lo busqué por todas partes! ¿Dónde estaba? ¿En el gimnasio? ¿En el cielo? Vale. No voy a preguntar.", To = "Yo" },
-				{ S = "Nico", T = "Bueno… sí voy a preguntar.", To = "Yo" },
-				{ S = "Pip", T = "Recuperación completada.", To = "Yo", A = "ArmsCrossed" },
-				{ S = "Nico", T = "Ese robot me cae bien.", To = "Yo", A = "Shrug" },
+				{ S = "Nico", T = "Es de Teo. Lo llevaba siempre.", To = "Yo" },
+				{ S = "Nico", T = "Yo le solté la mano cuando corríamos. Un segundo. Fue suficiente.", To = "Yo" },
+				{ S = "Nico", T = "…Gracias por traérmelo. No sé si quería volver a verlo. Pero gracias.", To = "Yo" },
 			},
 		},
 		DevolverDiario = {
 			Lines = {
-				{ S = "Lucia", T = "Mi diario. De cuando tenía tu edad.", To = "Yo", A = "Happy" },
-				{ S = "Lucia", T = "Lo perdí durante una excursión. ¿Lo has leído? No contestes. No está enfadada. Gracias.", To = "Yo", Pause = 0.9 },
-				{ S = "Lucia", T = "Hay cosas que perdemos…", To = "Yo", Pause = 0.9 },
-				{ S = "Ramon", T = "Eso no lo hacía antes.", To = "Yo", A = "Nod", Pause = 0.9 },
-				{ S = "Pip", T = "Detecto movimiento. Algo grande. Y viene hacia aquí.", To = "Yo", A = "ThinkChin" },
+				{ S = "Lucia", T = "Lo escribí en el refugio, mientras esperábamos. Para no pensar.", To = "Yo" },
+				{ S = "Lucia", T = "La última página dice: «Si alguien lee esto, que sepa que lo intentamos».", To = "Yo" },
+				{ S = "Lucia", T = "Gracias. Hay cosas que perdemos y no sabemos cuánto pesaban hasta que vuelven.", To = "Yo" },
+				{ S = "Narrador", T = "Del gimnasio llega un ruido enorme. Como si toda la montaña de objetos se moviera a la vez." },
 			},
 		},
 		DevolverLlaves = {
 			Lines = {
-				{ S = "Ramon", T = "Mis llaves. O que alguien las había encontrado. No funciona.", To = "Yo", A = "Nod", Pause = 0.9 },
-				{ S = "Ramon", T = "Con estas se abre la sala del reloj.", To = "Yo" },
-				{ S = "Ramon", T = "Nadie entra ahí desde entonces. Otro día te cuento. O no.", To = "Yo" },
+				{ S = "Ramon", T = "Las llaves de mi casa. La casa ya no existe. Las llaves sí.", To = "Yo" },
+				{ S = "Ramon", T = "Gracias. Las guardaré. Algún día volveré al Sur y abriré lo que quede de la puerta.", To = "Yo" },
 			},
 		},
 		Diario = {
 			Lines = {
-				{ S = "Narrador", T = "En la portada: «Lucía · 3.º B · 1998»" },
-				{ S = "Pip", T = "El objeto pertenece a otra persona.", To = "Yo", A = "Shrug", Pause = 0.9 },
+				{ S = "Narrador", T = "Un diario de tapas amarillas. En la portada: «Lucía. Evacuación del Sur». Escrito durante la noche de la Caída." },
 				{
 					Ask = "¿Lo abres?",
 					Options = {
+						{ T = "No. No es mío.", Effects = { Rel = { Lucia = 3 }, Traits = { Responsabilidad = 1 } } },
 						{
-							T = "«No. Es de Lucía.»",
-							Effects = { Rel = { Lucia = 3 }, Traits = { Responsabilidad = 1 } },
-							Then = { { S = "Pip", T = "Buena decisión.", To = "Yo" } },
-						},
-						{
-							T = "«Solo la primera página…»",
+							T = "Solo la primera página…",
 							Effects = { Traits = { Curiosidad = 1 } },
 							Then = {
-								{ S = "Narrador", T = "Debajo: «Y que no le leeré el diario a nadie.» «Ni a los cotillas.»", Pause = 0.9 },
-								{ S = "Pip", T = "Curiosidad satisfecha. Privacidad intacta.", To = "Yo" },
+								{ S = "Narrador", T = "Primera página: «Hora 2. No hay luz. Los niños preguntan por sus padres y no sé qué decirles»." },
+								{ S = "Narrador", T = "Cierras el diario.", Pause = 0.6 },
 							},
 						},
 					},
@@ -59,36 +53,39 @@ return {
 		},
 		Final = {
 			Lines = {
-				{ S = "Pip", T = "Hay un problema. Esta vez lo ha visto todo el barrio. Los vecinos.", To = "Yo", A = "ArmsCrossed" },
-				{ S = "Pip", T = "El señor Cosme dice que hay que coserla. Ya. No llega a abrirse.", To = "Yo", Pause = 1.8 },
-				{ S = "Pip", T = "Pero pulsa. Como un golpe contra una puerta.", To = "Yo" },
-				{ S = "Narrador", T = "No parece peligroso.", Pause = 0.9 },
-				{ S = "Narrador", T = "Pero después de esta noche ya no estás segur{o/a} de qué cosas pueden ser normales.", Pause = 0.9 },
+				{ S = "Pip", T = "Neutralizado. Los objetos vuelven a ser solo objetos.", To = "Yo" },
+				{ S = "Pip", T = "Esta vez lo ha visto medio Distrito Central. Ya no se podrá ocultar.", To = "Yo" },
+				{ S = "Pip", T = "Y la Grieta sigue creciendo. El doctor Cosme dice que hay que cerrarla. Esta semana.", To = "Yo" },
+				{ S = "Narrador", T = "Entre los restos queda un calcetín de niño, chamuscado. Nadie lo reclama. Te lo guardas." },
 			},
 		},
-		Llaves = { Lines = { { S = "Pip", T = "Parece que alguien ha esperado mucho tiempo para recuperarlas.", To = "Yo", A = "ArmsCrossed", Pause = 0.9 } } },
+		Llaves = {
+			Lines = { { S = "Narrador", T = "Un manojo de llaves con una etiqueta escrita a mano: «Casa. Calle del Molino, 14». Es la letra de Ramón." } },
+		},
 		Ramon = {
 			Lines = {
-				{ S = "Ramon", T = "Treinta años de conserje. Treinta. He visto de todo.", To = "Yo", A = "HandsOnHips", Pause = 0.9 },
-				{ S = "Ramon", T = "El gimnasio está lleno de cosas perdidas. Hay un bolso de 1950.", To = "Yo" },
-				{ S = "Pip", T = "Confirmado. ¿Y los devuelve aquí? Donde le parece.", To = "Yo", A = "ArmsCrossed", Pause = 0.9 },
-				{ S = "Ramon", T = "Cosme ha dicho algo de una… ¿Papelera cósmica?", To = "Yo", A = "ThinkChin" },
-				{ S = "Pip", T = "«Fallo de la papelera cósmica».", To = "Yo", A = "ArmsCrossed" },
-				{ S = "Pip", T = "Es la explicación oficial del señor Cosme. Claro.", To = "Yo", Pause = 0.9 },
+				{ S = "Ramon", T = "Treinta años cuidando este edificio. Primero colegio, luego refugio, ahora Academia.", To = "Yo" },
+				{ S = "Ramon", T = "Esta noche el gimnasio se ha llenado hasta el techo. Mochilas, zapatos, juguetes. Todo de la noche de la Caída.", To = "Yo" },
+				{ S = "Ramon", T = "Hay cosas con nombre. He reconocido una chaqueta. Era de mi vecino del Sur.", To = "Yo" },
+				{ S = "Pip", T = "La Grieta absorbió muchas cosas aquella noche. Ahora las está devolviendo. No sabemos por qué.", To = "Yo" },
+				{ S = "Pip", T = "El doctor Cosme sugiere devolver primero lo que tenga dueño vivo. Lo demás… lo catalogaremos.", To = "Yo" },
 			},
 		},
 	},
 	Scenes = {
 		Saga_05_G4_Entra = {
 			Light = true,
-			Duration = 12.7,
+			Duration = 18.4,
 			Anchors = { Sitio = "Player", Yo = "Player" },
 			Tracks = {
 				Actors = { { At = 0, Use = { Key = "Pip", Npc = "Pip" } } },
 				Dialogue = {
-					{ At = 0.4, S = "Pip", T = "Identificación. No disponible.", To = "Yo", A = "Shrug" },
-					{ At = 3.3, S = "Pip", T = "Solo queda un calcetín. Sin pareja. Monstruo emparejado. Bueno.", To = "Yo" },
-					{ At = 9.5, S = "Pip", T = "Pero estará orgulloso.", To = "Yo" },
+					{
+						At = 0.4,
+						S = "Narrador",
+						T = "Los objetos se juntan y se levantan. Una figura enorme hecha de mochilas, zapatos y chaquetas. Algo de la Grieta la mueve por dentro.",
+					},
+					{ At = 10.7, S = "Pip", T = "No es un recuerdo. Es una bestia que usa los restos como armadura. Golpee donde brilla.", To = "Yo" },
 				},
 			},
 		},

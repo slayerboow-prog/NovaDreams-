@@ -28,30 +28,29 @@ _Ninguno._
 
 ## Aplicado
 
-- PASO 1 → paso 1 del juego (Talk «Ramon»): conversación «Ramon» con 6 frases nuevas
+- PASO 1 → paso 1 del juego (Talk «Ramon»): conversación «Ramon» con 5 frases nuevas
 - PASO 2.1 → paso 2.1 del juego (Use): lo que pasa al usarlo va en la conversación del objeto «Llaves» (1 frases)
-- PASO 2.3 → paso 2.3 del juego (Use): lo que pasa al usarlo va en la conversación del objeto «Diario» (6 frases)
-- PASO 3.1 → paso 3.1 del juego (Talk «DevolverLlaves»): conversación «DevolverLlaves» con 3 frases nuevas
-- PASO 3.2 → paso 3.2 del juego (Talk «DevolverBalon»): conversación «DevolverBalon» con 5 frases nuevas
-- PASO 3.3 → paso 3.3 del juego (Talk «DevolverDiario»): conversación «DevolverDiario» con 5 frases nuevas
-- PASO 4 → paso 4 del juego (Fight): 3 frases al empezar el paso (escena ligera «Saga_05_G4_Entra», la lanza el paso 3 al cumplirse; el jugador no pierde el control)
-- PASO 5 → paso 5 del juego (Scene «Final»): conversación «Final» con 5 frases nuevas
+- PASO 2.2 → paso 2.2 del juego (Use): lo que pasa al usarlo va en la conversación del objeto «Balon» (1 frases)
+- PASO 2.3 → paso 2.3 del juego (Use): lo que pasa al usarlo va en la conversación del objeto «Diario» (1 frases)
+- PASO 3.1 → paso 3.1 del juego (Talk «DevolverLlaves»): conversación «DevolverLlaves» con 2 frases nuevas
+- PASO 3.2 → paso 3.2 del juego (Talk «DevolverBalon»): conversación «DevolverBalon» con 3 frases nuevas
+- PASO 3.3 → paso 3.3 del juego (Talk «DevolverDiario»): conversación «DevolverDiario» con 4 frases nuevas
+- PASO 4 → paso 4 del juego (Fight): 2 frases al empezar el paso (escena ligera «Saga_05_G4_Entra», la lanza el paso 3 al cumplirse; el jugador no pierde el control)
+- PASO 5 → paso 5 del juego (Scene «Final»): conversación «Final» con 4 frases nuevas
 
 ## Adaptado (y por qué)
 
 - PASO 1: el guion lo escribe como [] y en el juego es conversación (Talk): se conserva el tipo del juego y su mecánica
 - PASO 2 → paso 2 del juego (Group): solo trae planos (sin frases): en un paso jugable no se quita el control, así que no se aplican
-- PASO 2.2 → paso 2.2 del juego (Use): solo trae planos (sin frases): en un paso jugable no se quita el control, así que no se aplican
+- PASO 2.3: la conversación del juego tenía 1 preguntas y el guion 0: las que faltan se conservan tal cual al final (guardan decisiones que usa la historia)
 - PASO 3 → paso 3 del juego (Group): solo trae planos (sin frases): en un paso jugable no se quita el control, así que no se aplican
 - PASO 3.1: el guion lo escribe como [] y en el juego es conversación (Talk): se conserva el tipo del juego y su mecánica
-- frase quitada (es una acotación, no se dice): «Lo agarra.»
 - PASO 3.2: el guion lo escribe como [] y en el juego es conversación (Talk): se conserva el tipo del juego y su mecánica
-- frase quitada (es una acotación, no se dice): «Lo guarda con cuidado.»
 - PASO 3.3: el guion lo escribe como [] y en el juego es conversación (Talk): se conserva el tipo del juego y su mecánica
 
 ## Género ({o/a}) corregido en frases dirigidas al jugador
 
-- PASO 5 (línea 833) · Narrador: «Pero después de esta noche ya no estás seguro de qué cosas pueden ser normales.» → «Pero después de esta noche ya no estás segur{o/a} de qué cosas pueden ser normales.»
+- PASO 2.2 (línea 58) · Narrador: «Un balón pequeño, gastado. Con rotulador: «De Teo». Nico tenía un hermano pequeño que se llamaba Teo.» → «Un balón pequeñ{o/a}, gastado. Con rotulador: «De Teo». Nico tenía un hermano pequeñ{o/a} que se llamaba Teo.»
 
 ## Avisos
 
@@ -60,10 +59,8 @@ _Ninguno._
 
 ## Notas del guion sin equivalente directo (bloques de dirección, minijuegos, memoria…)
 
-- PASO 1 · Objetivo: Hablar con Ramón en la entrada.: 
-- PASO 2.1 · OBJETIVO: Encontrar:
-- PASO 4 · OBJETIVO: Empareja los calcetines antes de que el montón vuelva a crecer.
-- PASO 5 · DIRECCIÓN AAA: Esta misión no debe ejecutarse como una cadena de NPC -> diálogo -> NPC.
+_Ninguna._
+
 
 ## Cómo se traduce el formato
 
