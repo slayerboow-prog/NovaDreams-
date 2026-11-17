@@ -23,6 +23,10 @@ local CityPlan = require(script.Parent.CityPlan)
 -- Los 6 distritos del plano de la ciudad (CityPlan.Districts)
 MapInfo.Districts = {} :: { District }
 for _, d in CityPlan.Districts do
+	if d.MapMerged then
+		continue -- (el Norte va dentro del Distrito Central)
+	end
+	local poly = d.MapPoly or d.Poly
 	local cx, cz = 0, 0
 	for _, p in d.Poly do
 		cx += p[1]
@@ -34,7 +38,7 @@ for _, d in CityPlan.Districts do
 		Theme = d.Theme,
 		Icon = d.Icon,
 		Color = Color3.fromRGB(d.Color[1], d.Color[2], d.Color[3]),
-		Poly = d.Poly,
+		Poly = poly,
 		Center = Vector2.new(cx / #d.Poly, cz / #d.Poly),
 	})
 end

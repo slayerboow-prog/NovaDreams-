@@ -16,6 +16,7 @@
 local Relief = require(game:GetService("ReplicatedStorage").Shared.Relief)
 local ValmarRegions = require(game:GetService("ReplicatedStorage").Shared.Cosmos.ValmarRegions)
 local OuterLands = require(game:GetService("ReplicatedStorage").Shared.Cosmos.OuterLands)
+local CityPlan = require(game:GetService("ReplicatedStorage").Shared.CityPlan)
 
 local ValmarWilds = {}
 
@@ -41,6 +42,16 @@ function ValmarWilds.surface(field: Relief.Field, ground: (number, number) -> (n
 	S.ZoneR = ValmarWilds.ZoneR
 	-- las ocho regiones (shared/Cosmos/ValmarRegions): Bestiary.regionPlaces reparte por ellas guaridas y jefes
 	S.Regions = ValmarRegions
+	-- (17-11-2026) los distritos de caza de la isla (shared/CityPlan: Farm) y el Distrito Central, que es seguro
+	S.Farms = {}
+	for _, d in CityPlan.Districts do
+		if d.Farm then
+			table.insert(S.Farms, d)
+		end
+	end
+	function S.insideFarm(d: { [string]: any }, x: number, z: number): boolean
+		return CityPlan.inside(d.Poly, x, z)
+	end
 	local function inField(x: number, z: number): boolean
 		return x > field.MinX + 64 and z > field.MinZ + 64 and x < field.MinX + (field.NX - 2) * field.Cell and z < field.MinZ + (field.NZ - 2) * field.Cell
 	end
@@ -67,6 +78,9 @@ function ValmarWilds.surface(field: Relief.Field, ground: (number, number) -> (n
 		end
 		if not inField(lx, lz) then
 			return false
+		end
+		if CityPlan.isCentral(lx, lz) then
+			return false -- (el Distrito Central es la zona segura: ninguna bestia)
 		end
 		if Relief.amplitude(field, lx, lz) < (if loose then ValmarWilds.LooseWild else ValmarWilds.MinWild) then
 			return false

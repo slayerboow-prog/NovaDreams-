@@ -10,6 +10,7 @@ local check = L.check
 
 local Registry = L.load("src/shared/Cosmos/PlanetRegistry")
 local Bestiary = L.load("src/shared/Cosmos/Bestiary")
+local CityPlanT = L.load("src/shared/CityPlan") -- (los distritos de caza: 17-11-2026)
 local Crafting = L.load("src/shared/Crafting")
 local Items = L.load("src/shared/Items")
 
@@ -373,7 +374,16 @@ do
 	check(math.abs(k5.Hp - 1) < 1e-6 and k110.Hp > 10 and k110.Damage > 4 and k110.Reward > 10, "a más nivel, más vida, daño y premio")
 	local p = Bestiary.places(S)
 	local per, bosses, inCity, inSector, levelsOk = {}, {}, false, true, true
+	local farm, farmOk, farmCentral = {}, true, false
 	for _, l in p.Lairs do
+		if type(l.Region) == "string" and l.Region:sub(1, 5) == "Farm_" then
+			-- (17-11-2026) guaridas de los distritos de caza de la isla: dentro de su distrito y con su nivel
+			local d = CityPlanT.farmAt(l.X, l.Z)
+			farm[l.Region] = (farm[l.Region] or 0) + 1
+			farmOk = farmOk and d ~= nil and "Farm_" .. d.Id == l.Region and l.Level >= d.Farm.Min and l.Level <= d.Farm.Max
+			farmCentral = farmCentral or CityPlanT.isCentral(l.X, l.Z)
+			continue
+		end
 		inCity = inCity or (math.abs(l.X) < 1400 and math.abs(l.Z) < 1400)
 		local reg = VR.ById[l.Region]
 		inSector = inSector and reg ~= nil and VR.inside(reg, l.X, l.Z, -1)
@@ -390,6 +400,11 @@ do
 		table.insert(counts, ("%d"):format(per[reg.Id] or 0))
 	end
 	check(not inCity and inSector and levelsOk, "cada guarida en el campo de su región y con un nivel de su franja")
+	local farmCount = 0
+	for _ in farm do
+		farmCount += 1
+	end
+	check(farmCount == 4 and farmOk and not farmCentral, ("los cuatro distritos de caza tienen guaridas de su nivel y el Distrito Central ninguna (%d distritos)"):format(farmCount))
 	local outerN = 0
 	for _, l in p.Lairs do
 		if VR.outside(l.X, l.Z) > 0 then

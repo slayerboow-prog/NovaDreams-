@@ -729,6 +729,7 @@ end
 -- tres criaturas (el nivel sube hacia la costa), su jefe en lo más lejano, esquirlas y alijos. Repetible.
 ---------------------------------------------------------------------
 Bestiary.LairsPerRegion = 10 -- (2 en el campo de la isla y 8 al otro lado del mar, en las Tierras Exteriores)
+Bestiary.LairsPerFarm = 7 -- guaridas en cada distrito de caza de la isla (shared/CityPlan.Districts con Farm)
 Bestiary.ShardsPerRegion = 3
 Bestiary.CachesPerRegion = 2
 
@@ -893,6 +894,49 @@ function Bestiary.regionPlaces(S: any, out: { [string]: any }): { [string]: any 
 			if lx then
 				table.insert(out.Caches, { Id = ("%s_%s_A%d"):format(S.Id, reg.Id, k), X = lx, Z = lz, Y = y(lx, lz), Region = reg.Id })
 				table.insert(taken, { lx, lz })
+			end
+		end
+	end
+	-- (17-11-2026) LOS DISTRITOS DE CAZA de la isla (S.Farms: los distritos de fuera del Distrito Central, con
+	-- Farm = { Min, Max, Species }): guaridas de nivel bajo, de Min (la primera) a Max (la última). Aquí empiezan
+	-- los cadetes de la Academia.
+	for _, d in S.Farms or {} do
+		local F = d.Farm
+		local x0, x1, z0, z1 = math.huge, -math.huge, math.huge, -math.huge
+		for _, pt in d.Poly do
+			x0, x1 = math.min(x0, pt[1]), math.max(x1, pt[1])
+			z0, z1 = math.min(z0, pt[2]), math.max(z1, pt[2])
+		end
+		local placed = 0
+		local n = Bestiary.LairsPerFarm
+		for pass = 1, 2 do
+			for _ = 1, 3000 do
+				if placed >= n then
+					break
+				end
+				local lx, lz = x0 + r() * (x1 - x0), z0 + r() * (z1 - z0)
+				if S.insideFarm(d, lx, lz) and far(lx, lz, if pass == 1 then 220 else 150) and S.goodSpot(lx, lz, if pass == 1 then 0.5 else 0.7, 10, true) then
+					placed += 1
+					local level = F.Min + math.floor((F.Max - F.Min) * (placed - 1) / math.max(1, n - 1) + 0.5)
+					local sid = F.Species[1 + (placed - 1) % #F.Species]
+					local sp = Bestiary.Species[sid]
+					local names = LAIR_NAMES[sp.Body] or LAIR_NAMES.Cuadrupedo
+					table.insert(out.Lairs, {
+						Id = ("%s_%s_F%d"):format(S.Id, d.Id, placed),
+						Species = sid,
+						X = lx,
+						Z = lz,
+						Y = y(lx, lz),
+						Count = Bestiary.PackMin + math.floor(r() * (Bestiary.PackMax - Bestiary.PackMin + 1)),
+						Look = F.Look or "Roca",
+						Tier = 1,
+						Level = level,
+						Region = "Farm_" .. d.Id,
+						ZoneName = d.Name,
+						Name = ("%s de %s"):format(names[1 + (#out.Lairs % #names)], sp.Name:lower()),
+					})
+					table.insert(taken, { lx, lz })
+				end
 			end
 		end
 	end

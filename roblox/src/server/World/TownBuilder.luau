@@ -718,6 +718,11 @@ function TownBuilder.build(): Folder
 	-- fachada o de manzana, campos de deporte junto a la calle, plazas): al final, para que todo lo
 	-- anterior (y las claves de los edificios que guardan las partidas) salga igual que antes
 	require(Kit.Districts).finish(world, Region.centers())
+	-- (17-11-2026) DISTRITOS DE CAZA: fuera lo construido en los cuatro distritos de fuera del Distrito Central
+	-- (quedan las carreteras principales, el metro, el tren, el aeropuerto, la cárcel y el puerto). Antes del
+	-- relieve: así allí el campo sale salvaje y las bestias tienen sitio (Kit/FarmDistricts).
+	local farmStats = require(Kit.FarmDistricts).prune(world)
+	print(("[TownBuilder] distritos de caza: %d modelos y %d piezas quitados"):format(farmStats.Models, farmStats.Parts))
 	-- Repaso final: que ninguna moldura, bordillo o cristalera parpadee contra la pared de detrás
 	-- (varias pasadas: al crecer una pieza puede quedar a ras de otra)
 	for _ = 1, 8 do

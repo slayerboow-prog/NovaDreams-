@@ -205,7 +205,14 @@ function Ambient.publish(roads: { { [string]: any } }, segments: { { [string]: a
 	roadFolder.Name = "Roads"
 	roadFolder.Parent = folder
 	local n = 0
+	local CityPlan = require(ReplicatedStorage.Shared.CityPlan)
 	for _, road in roads do
+		-- (las calles de barrio de los distritos de caza ya no existen: Kit/FarmDistricts)
+		local mid = (road.From + road.To) / 2
+		local mx, mz = if road.Axis == "X" then mid else road.At, if road.Axis == "X" then road.At else mid
+		if CityPlan.farmAt and CityPlan.farmAt(mx, mz) then
+			continue
+		end
 		n += 1
 		local config = Instance.new("Configuration")
 		config.Name = "Road" .. n

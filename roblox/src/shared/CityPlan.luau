@@ -67,19 +67,32 @@ CityPlan.Mountains = {
 }
 
 -- Los 6 distritos (polígonos). Town = zona de la historia que contiene (o nil)
+-- (17-11-2026, el dueño: «reduce Valmar a un solo distrito central y el resto, de farmeo».) El Centro y el
+-- Norte (la Academia, tu casa, el hospital, la comisaría, las tiendas) son UN SOLO DISTRITO CENTRAL; los otros
+-- cuatro son DISTRITOS DE CAZA: lo construido se quita al montar el mapa (World/Kit/FarmDistricts) y allí salen
+-- bestias de nivel bajo (Farm: niveles y criaturas, shared/Cosmos/Bestiary.farmPlaces). Los polígonos siguen
+-- igual (de ellos sale el estilo de los edificios que quedan).
 CityPlan.Districts = {
-	{ Id = "Centro", Name = "Distrito Centro", Theme = "El corazón de Valmar", Icon = "🏙️", Color = { 50, 130, 255 },
-		Poly = { { -1330, -1330 }, { 1330, -1330 }, { 1380, 0 }, { 1330, 1330 }, { -1330, 1330 }, { -1380, 0 } } },
-	{ Id = "Norte", Name = "Distrito Norte", Theme = "Residencial y vida tranquila", Icon = "🏡", Color = { 70, 190, 90 },
+	{ Id = "Centro", Name = "Distrito Central", Theme = "La Academia, tu casa, el hospital y las tiendas", Icon = "🏙️", Color = { 50, 130, 255 },
+		Central = true,
+		Poly = { { -1330, -1330 }, { 1330, -1330 }, { 1380, 0 }, { 1330, 1330 }, { -1330, 1330 }, { -1380, 0 } },
+		-- (en el mapa, el Centro y el Norte juntos)
+		MapPoly = { { -1450, -2400 }, { -600, -2650 }, { 600, -2650 }, { 1380, -2350 }, { 1330, -1330 }, { 1380, 0 }, { 1330, 1330 }, { -1330, 1330 }, { -1380, 0 }, { -1330, -1330 } } },
+	{ Id = "Norte", Name = "Distrito Central", Theme = "La Academia, tu casa, el hospital y las tiendas", Icon = "🏙️", Color = { 50, 130, 255 },
+		Central = true, MapMerged = "Centro",
 		Poly = { { -1330, -1330 }, { 1330, -1330 }, { 1380, -2350 }, { 600, -2650 }, { -600, -2650 }, { -1450, -2400 } } },
-	{ Id = "Oeste", Name = "Distrito Oeste", Theme = "Costa, lujo y naturaleza", Icon = "🌴", Color = { 230, 70, 70 },
+	{ Id = "Oeste", Name = "Caza del Oeste", Theme = "Bosques y costa · bestias de nivel 1-8", Icon = "🐺", Color = { 70, 150, 70 },
+		Farm = { Min = 1, Max = 8, Species = { "LoboBosque", "AranaBosque", "BandidoBosque", "EspirituBosque" }, Look = "Roca" },
 		Poly = { { -1450, -2400 }, { -1380, 0 }, { -1400, 3050 }, { -2700, 2650 }, { -3350, 1950 }, { -3750, 1000 }, { -4050, 0 }, { -4150, -1000 }, { -3950, -2000 }, { -3300, -2600 }, { -2300, -2500 } } },
-	{ Id = "Este", Name = "Distrito Este", Theme = "Comercio, ocio y playa", Icon = "🛍️", Color = { 160, 90, 240 },
-		Poly = { { 1700, -2600 }, { 2600, -2550 }, { 3400, -2500 }, { 3950, -2000 }, { 4150, -1000 }, { 4200, -250 }, { 1700, -250 } } },
-	{ Id = "Universitario", Name = "Distrito Universitario", Theme = "Estudios y juventud", Icon = "🎓", Color = { 40, 200, 220 },
-		Poly = { { 1700, 250 }, { 4200, 250 }, { 4000, 800 }, { 3850, 1600 }, { 3550, 2400 }, { 2950, 3000 }, { 2100, 3300 }, { 1700, 3100 } } },
-	{ Id = "Sur", Name = "Distrito Sur", Theme = "Industria, trabajo y negocios", Icon = "🏭", Color = { 245, 190, 40 },
+	{ Id = "Sur", Name = "Caza del Sur", Theme = "Ruinas del puerto · bestias de nivel 4-12", Icon = "🐗", Color = { 200, 160, 60 },
+		Farm = { Min = 4, Max = 12, Species = { "AcechadorPradera", "SaqueadorNomada", "BestiaSalvaje", "LoboBosque" }, Look = "Roca" },
 		Poly = { { -1330, 1330 }, { 1330, 1330 }, { 1350, 3250 }, { 900, 3400 }, { 0, 3500 }, { -1000, 3400 }, { -1400, 3050 } } },
+	{ Id = "Este", Name = "Caza del Este", Theme = "Playas salvajes · bestias de nivel 8-16", Icon = "🐅", Color = { 200, 110, 60 },
+		Farm = { Min = 8, Max = 16, Species = { "AcechadorPradera", "GuerreroNomada", "OsoGigante", "AranaBosque" }, Look = "Roca" },
+		Poly = { { 1700, -2600 }, { 2600, -2550 }, { 3400, -2500 }, { 3950, -2000 }, { 4150, -1000 }, { 4200, -250 }, { 1700, -250 } } },
+	{ Id = "Universitario", Name = "Caza del Campus", Theme = "El campus abandonado · bestias de nivel 12-20", Icon = "🐻", Color = { 170, 70, 70 },
+		Farm = { Min = 12, Max = 20, Species = { "OsoGigante", "Depredador", "GuerreroNomada", "BestiaSalvaje" }, Look = "Roca" },
+		Poly = { { 1700, 250 }, { 4200, 250 }, { 4000, 800 }, { 3850, 1600 }, { 3550, 2400 }, { 2950, 3000 }, { 2100, 3300 }, { 1700, 3100 } } },
 }
 
 -- Dónde va cada zona de la historia (su cuadrícula de 720 × 720 studs, centrada aquí)
@@ -201,6 +214,26 @@ function CityPlan.riverDistance(x: number, z: number): number
 		best = math.min(best, CityPlan.segmentDistance(x, z, pts[i][1], pts[i][2], pts[i + 1][1], pts[i + 1][2]))
 	end
 	return best
+end
+
+-- ¿Es un distrito de caza (fuera del Distrito Central)? Devuelve el distrito (con su Farm) o nil
+function CityPlan.farmAt(x: number, z: number): { [string]: any }?
+	for _, d in CityPlan.Districts do
+		if d.Farm and CityPlan.inside(d.Poly, x, z) then
+			return d
+		end
+	end
+	return nil
+end
+
+-- ¿Está en el Distrito Central (el Centro y el Norte)?
+function CityPlan.isCentral(x: number, z: number): boolean
+	for _, d in CityPlan.Districts do
+		if d.Central and CityPlan.inside(d.Poly, x, z) then
+			return true
+		end
+	end
+	return false
 end
 
 function CityPlan.districtAt(x: number, z: number): { [string]: any }?

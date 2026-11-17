@@ -24,6 +24,16 @@ las armas de fuego quedan en segundo plano). Cada fase se publica cuando el due�
 megalodón, Abismo Silente, ruinas de Valmar la Vieja, Cañón de las Catedrales, arrecifes, eventos de mar) se elimina.
 El continente de caza queda pegado a la ciudad; los barcos y la pesca pasan al mar de fuera del continente.
 
+## Petición del dueño del 17-11-2026
+
+- **Sin prólogo**: el juego empieza en la **Academia de Guerreros Espaciales** (Misiones/Academia, capítulo
+  Academia_Guerreros). La Academia es el tutorial y donde se aprenden las seis habilidades (Effects.Skills →
+  HunterSkillService.learn); al jurar (Acad05) te gradúas y las demás llegan con el nivel. Personajes nuevos:
+  adolescentes (Config.NewCharacterStage). Hecho en código y probado (test-lifestory, test-playthrough, test-cast).
+- **Un solo Distrito Central** (Centro + Norte: Academia, casa, hospital, tiendas) y **cuatro distritos de caza**
+  (Oeste nv. 1-8, Sur 4-12, Este 8-16, Campus 12-20): shared/CityPlan.Districts (Farm), World/Kit/FarmDistricts
+  (quita lo construido al montar el mapa) y Bestiary (7 guaridas por distrito). Sustituye a la fase C.
+
 ## Fases
 
 | Fase | Qué | Estado |
