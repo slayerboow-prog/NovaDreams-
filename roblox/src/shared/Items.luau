@@ -386,7 +386,7 @@ local KEEPSAKES = {
 	{ "SelloAduana", "Sello de la Aduana", "📄", "El sello que evitó que la Aduana aislara Valmar. Todavía está caliente." },
 	{ "CalcetinSolitario", "Calcetín de niño", "🧦", "Chamuscado. Lo devolvió la Grieta con lo perdido en la Caída. Nadie lo ha reclamado." },
 	{ "CredencialAyudante", "Credencial del laboratorio Cosme", "💳", "«Colaborador de campo». Si alguien de la Academia pregunta, es un carné de biblioteca." },
-	{ "FolletoMegaVerso", "Folleto de MegaVerso", "📄", "«¡Cambia de vida sin cambiar de casa!». Letra pequeña: la dimensión pasa a ser de ellos." },
+	{ "FolletoMegaVerso", "Folleto del Consorcio", "📄", "«¿Tu mundo se rompe? Te ofrecemos otro». Letra pequeña: el mundo fusionado pasa a ser suyo." },
 	{ "CintaArchivo", "La cinta de «La noche»", "📼", "La noche en que naciste. La noche en que se abrió la Grieta. Tu historia." },
 	{ "RelojArena", "Reloj de arena de Cronos", "⏳", "Gíralo cuando la cosa se ponga fea. Llegará. Tarde, pero llegará." },
 	{ "BataChamuscada", "La bata chamuscada de Cosme", "🥼", "La recogió Omar del suelo del patio. Todavía huele a batido de apio." },

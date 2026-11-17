@@ -108,13 +108,13 @@ return {
 		Id = "Saga_08_MegaVerso",
 		Kind = "Side",
 		Canon = true,
-		Title = "MegaVerso S.A.",
-		Description = "El Consorcio ha abierto oficina en el Distrito Financiero. Moqueta gris, plantas de plástico y una recepcionista que sonríe sin parpadear. Hay que entrar.",
+		Title = "MegaVerso",
+		Description = "El Consorcio ha abierto una oficina en el Distrito Financiero que solo ven los que han tocado la Grieta. Hay que entrar y averiguar qué preparan.",
 		Type = "Saga de la Grieta · Acto II (2/6)",
 		Duration = { 25, 35 },
 		Npcs = { "AgenteGris2", "AgenteGris1", "RobotSeguridad" },
 		Offer = { Place = OFICINA },
-		OfferKey = "La oficina de MegaVerso S.A. ya está abierta. Nadie más la ve. Tú sí",
+		OfferKey = "La oficina del Consorcio ya está abierta. Nadie más la ve. Tú sí",
 		Requires = after("Saga_07_Costuras"),
 		Moment = "Descubriste el Proyecto Fusión",
 		Memory = "ProyectoFusion",
@@ -125,7 +125,7 @@ return {
 			Mapa = { Kind = "Mural", Name = "Un mapa de Valmar en la pared", Prompt = "Mirar el mapa", Place = OFICINA, Offset = V(0, 0, 8), Color = Color3.fromRGB(230, 230, 220), Dialogue = "Mapa", Once = true },
 		},
 		Steps = {
-			{ Type = "Talk", Npc = "AgenteGris2", Dialogue = "Recepcion", Text = "Habla con la recepcionista de la oficina de MegaVerso",
+			{ Type = "Talk", Npc = "AgenteGris2", Dialogue = "Recepcion", Text = "Habla con la recepcionista de la oficina del Consorcio",
 				Actors = { { Npc = "AgenteGris2", Place = OFICINA, Offset = V(0, 0, 3) } } },
 			{ Type = "Group", Text = "Mientras nadie mira, busca información",
 				Actors = { { Npc = "AgenteGris2", Place = OFICINA, Offset = V(0, 0, 3), Mode = "Chat" }, { Npc = "AgenteGris1", Place = OFICINA, Offset = V(2, 0, 4), Mode = "Chat" } },
@@ -135,8 +135,8 @@ return {
 					{ Type = "Use", Prop = "Mapa", Text = "El mapa de la pared" },
 				} },
 			{ Type = "Escape", Place = "PlazaFinanciera", Respawn = OFICINA, Catch = 4,
-				Text = "¡Te han visto! Huye a la plaza del Distrito Financiero",
-				CaughtLine = "Tiene usted una llamada de ventas. (Te empotran contra la pared. Te zafas de un codazo y vuelves a intentarlo.)",
+				Text = "Te han visto: huye a la plaza del Distrito Financiero",
+				CaughtLine = "«Permanezca donde está.» (Te empujan contra la pared. Te zafas y vuelves a intentarlo.)",
 				Actors = {
 					{ Npc = "RobotSeguridad", Place = OFICINA, Offset = V(-6, 0, 8), Mode = "Hunt", Speed = 11, Prompt = false },
 					{ Npc = "AgenteGris1", Place = OFICINA, Offset = V(6, 0, 8), Mode = "Hunt", Speed = 12, Prompt = false },
@@ -148,11 +148,11 @@ return {
 				{ S = "AgenteGris2", T = "¡{Bienvenido/Bienvenida} a MegaVerso S.A.!", Shot = "Medio:AgenteGris2", A = "Happy" },
 				{ S = "AgenteGris2", T = "¿Viene por las vacaciones dimensionales? ¿Por la tarjeta de fidelización? ¿O por la Gran Fusión?" },
 				{ Ask = "¿Qué le dices?", Options = {
-					{ T = "«Vengo a informarme. Soy de un colegio. Trabajo de clase.»", Effects = { Traits = { Humor = 1 } }, Then = {
-						{ S = "AgenteGris2", T = "¡Qué adorable! Sírvase usted mismo. Las cámaras solo graban a los adultos. Es nuestra política de privacidad." },
+					{ T = "«Vengo a informarme. Mi familia quiere irse de Valmar.»", Effects = { Traits = { Curiosidad = 1 } }, Then = {
+						{ S = "AgenteGris2", T = "Una decisión inteligente. Sírvase usted mismo los folletos. Un asesor le atenderá enseguida." },
 					} },
 					{ T = "Enseñas la credencial de ayudante de Cosme", Effects = { Traits = { Valentia = 1 }, Flags = { "EnseñasteCredencial" } }, Then = {
-						{ S = "AgenteGris2", T = "¿Laboratorio… Cosme? …Un momento, por favor. Voy a consultar con mi… con la máquina de café. Sírvase usted mismo." },
+						{ S = "AgenteGris2", T = "Laboratorio Cosme. …Un momento, por favor. Tengo que consultarlo. No se mueva de aquí." },
 					} },
 				} },
 			} },

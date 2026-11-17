@@ -26,37 +26,32 @@ _Ninguno._
 
 ## Aplicado
 
-- PASO 1 → paso 1 del juego (Talk «Recepcion»): conversación «Recepcion» con 11 frases nuevas
-- PASO 2.1 → paso 2.1 del juego (Use): lo que pasa al usarlo va en la conversación del objeto «Folleto» (4 frases)
-- PASO 2.2 → paso 2.2 del juego (Use): lo que pasa al usarlo va en la conversación del objeto «Ordenador» (1 frases)
-- PASO 2.3 → paso 2.3 del juego (Use): lo que pasa al usarlo va en la conversación del objeto «Mapa» (1 frases)
-- PASO 3 → paso 3 del juego (Escape): 1 frases al empezar el paso (escena ligera «Saga_08_G3_Entra», la lanza el paso 2 al cumplirse; el jugador no pierde el control)
-- PASO 4 → paso 4 del juego (Scene «Fuera»): conversación «Fuera» con 6 frases nuevas
+- PASO 1 → paso 1 del juego (Talk «Recepcion»): conversación «Recepcion» con 0 frases nuevas
+- PASO 2.1 → paso 2.1 del juego (Use): lo que pasa al usarlo va en la conversación del objeto «Folleto» (2 frases)
+- PASO 2.2 → paso 2.2 del juego (Use): lo que pasa al usarlo va en la conversación del objeto «Ordenador» (3 frases)
+- PASO 2.3 → paso 2.3 del juego (Use): lo que pasa al usarlo va en la conversación del objeto «Mapa» (3 frases)
+- PASO 3 → paso 3 del juego (Escape): objetivo «Te han visto. Huye hasta la plaza del Distrito Financiero»
+- PASO 4 → paso 4 del juego (Scene «Fuera»): conversación «Fuera» con 3 frases nuevas
 
 ## Adaptado (y por qué)
 
 - PASO 1: el guion lo escribe como [] y en el juego es conversación (Talk): se conserva el tipo del juego y su mecánica
 - PASO 1: la conversación del juego tenía 1 preguntas y el guion 0: las que faltan se conservan tal cual al final (guardan decisiones que usa la historia)
 - PASO 2 → paso 2 del juego (Group): solo trae planos (sin frases): en un paso jugable no se quita el control, así que no se aplican
-- frase quitada (es una acotación, no se dice): «…»
-- PASO 4: «megaverso_infiltrado = true» no la lee ninguna misión: no se crea
-- PASO 4: «descubrio_proyecto_fusion = true» no la lee ninguna misión: no se crea
-- PASO 4: «folio_megaverso = true» no la lee ninguna misión: no se crea
-- PASO 4: «fecha_fusion_descubierta = true» no la lee ninguna misión: no se crea
-- PASO 4: «Flags» del guion no se pone a toda la conversación «Fuera» (es de una rama o una nota; lo pone la mecánica)
 
 ## Género ({o/a}) corregido en frases dirigidas al jugador
 
-- PASO 1 (línea 150) · AgenteGris2: «¡Bienvenido/Bienvenida a MegaVerso S.A.!» → «¡Bienvenid{o/a} a MegaVerso S.A.!»
+_Ninguna corrección._
+
 
 ## Avisos
 
-- PASO 3 (línea 769): «Destino» no está en el reparto del juego: sus frases no se aplican (si es alguien, ponlo en Hablantes del mapa)
+_Ninguno._
+
 
 ## Notas del guion sin equivalente directo (bloques de dirección, minijuegos, memoria…)
 
-- PASO 4 · CONSECUENCIAS PERSISTENTES: Guardar: / enseñaste_credencial = true
-- PASO 4 · DIRECCIÓN DE MEGAVERSO: MegaVerso no debe parecer una empresa malvada típica.
+- PASO 3 · Objetivo:: 
 
 ## Cómo se traduce el formato
 

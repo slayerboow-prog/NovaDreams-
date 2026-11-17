@@ -10,75 +10,54 @@ return {
 	Dialogues = {
 		Folleto = {
 			Lines = {
-				{ S = "Narrador", T = "El folleto parece una publicidad normal." },
-				{ S = "Narrador", T = "Hasta que lees la letra pequeña.", Pause = 0.9 },
-				{ S = "Narrador", T = "No es una empresa que quiera venderte una casa." },
-				{ S = "Narrador", T = "Quiere quedarse con el lugar donde está tu casa.", Pause = 0.9 },
+				{ S = "Narrador", T = "¿Tu mundo se rompe? MegaVerso lo une a otro más estable. Más seguridad. Más futuro." },
+				{ S = "Narrador", T = "Letra pequeña: «El mundo fusionado pasa a ser propiedad del Consorcio y de su socio científico, el Dr. C.»." },
 			},
 		},
 		Fuera = {
 			Lines = {
-				{ S = "Narrador", T = "Has salido. Pero no has salido solo." },
-				{ S = "Narrador", T = "Solo estuvo ahí un segundo." },
-				{ S = "Narrador", T = "Pero sabía que estabas dentro.", Pause = 0.9 },
-				{ S = "Narrador", T = "MegaVerso no está intentando encontrar la Grieta. Ya la encontró." },
-				{ S = "Narrador", T = "Y parece saber exactamente dónde estás tú." },
-				{ S = "Narrador", T = "Pero cuando escucha: «Cosme»" },
+				{ S = "Narrador", T = "Llegas a la plaza sin aliento. Detrás de ti, la puerta del Consorcio se cierra sola." },
+				{ S = "Narrador", T = "En el cristal, el reflejo de un hombre con la cara de Cosme y una cicatriz sonríe un segundo y desaparece." },
+				{ S = "Narrador", T = "Te llevas un folleto. Cosme tiene que verlo. Y tiene que contarte qué es el Ancla. Hoy." },
 			},
 		},
-		Mapa = { Lines = { { S = "Narrador", T = "Tres lugares. Tus anclajes." } } },
-		Ordenador = { Lines = { { S = "Yo", T = "Mi graduación. Hablan de mi graduación.", Pause = 0.9 } } },
+		Mapa = {
+			Lines = {
+				{
+					S = "Narrador",
+					T = "Un mapa del Distrito Central con tres marcas rojas: el parque, el patio de la Academia y la plaza. Los anclajes de la aguja. Todos tachados.",
+				},
+				{ S = "Narrador", T = "Y una marca dorada sobre tu casa. Con una etiqueta: «ANCLA»." },
+				{ S = "AgenteGris2", T = "Visitante no autorizado detectado. Por favor, permanezca donde está.", To = "Yo" },
+			},
+		},
+		Ordenador = {
+			Lines = {
+				{ S = "Narrador", T = "Un informe: «Proyecto Fusión. Valmar (dimensión principal) + Valmar (dimensión 66-B). Estado: bloqueado»." },
+				{ S = "Narrador", T = "«Motivo del bloqueo: el Ancla. Fecha prevista de desbloqueo: ceremonia de rango de la Academia»." },
+				{ S = "Yo", T = "La ceremonia de la Academia. Es la mía." },
+			},
+		},
 		Recepcion = {
 			Lines = {
-				{ S = "Narrador", T = "El edificio no estaba aquí la última vez." },
-				{ S = "Narrador", T = "Pero parece llevar años aquí.", Pause = 0.9 },
-				{ S = "AgenteGris2", T = "¡Bienvenid{o/a} a MegaVerso S.A.!", To = "Yo", G = "Wave" },
-				{ S = "AgenteGris2", T = "¿Viene por las vacaciones dimensionales?", To = "Yo", Pause = 0.9 },
-				{ S = "AgenteGris2", T = "¿Por la tarjeta de fidelización?", To = "Yo", Pause = 0.9 },
-				{ S = "AgenteGris2", T = "¿O por la Gran Fusión? ¡Qué adorable! Sírvase usted mismo.", To = "Yo", Pause = 0.9 },
-				{ S = "AgenteGris2", T = "Las cámaras solo graban a los adultos.", To = "Yo", Pause = 0.9 },
-				{ S = "AgenteGris2", T = "Es nuestra política de privacidad. Laboratorio… Cosme.", To = "Yo", Pause = 0.9 },
-				{ S = "AgenteGris2", T = "Un momento, por favor.", To = "Yo", Pause = 0.9 },
-				{ S = "AgenteGris2", T = "Voy a consultar con mi…", To = "Yo" },
-				{ S = "AgenteGris2", T = "…con la máquina de café. Sírvase usted mismo.", To = "Yo", Pause = 0.9 },
 				{
 					Ask = "¿Qué le dices?",
 					Options = {
 						{
-							T = "«Vengo a informarme. Soy de un colegio. Trabajo de clase.»",
-							Effects = { Traits = { Humor = 1 } },
-							Then = {
-								{
-									S = "AgenteGris2",
-									T = "¡Qué adorable! Sírvase usted mismo. Las cámaras solo graban a los adultos. Es nuestra política de privacidad.",
-								},
-							},
+							T = "«Vengo a informarme. Mi familia quiere irse de Valmar.»",
+							Effects = { Traits = { Curiosidad = 1 } },
+							Then = { { S = "AgenteGris2", T = "Una decisión inteligente. Sírvase usted mismo los folletos. Un asesor le atenderá enseguida." } },
 						},
 						{
 							T = "Enseñas la credencial de ayudante de Cosme",
 							Effects = { Flags = { "EnseñasteCredencial" }, Traits = { Valentia = 1 } },
-							Then = {
-								{
-									S = "AgenteGris2",
-									T = "¿Laboratorio… Cosme? …Un momento, por favor. Voy a consultar con mi… con la máquina de café. Sírvase usted mismo.",
-								},
-							},
+							Then = { { S = "AgenteGris2", T = "Laboratorio Cosme. …Un momento, por favor. Tengo que consultarlo. No se mueva de aquí." } },
 						},
 					},
 				},
 			},
 		},
 	},
-	Scenes = {
-		Saga_08_G3_Entra = {
-			Light = true,
-			Duration = 10,
-			Anchors = { Sitio = "Player", Yo = "Player" },
-			Tracks = {
-				Actors = { { At = 0, Use = { Key = "AgenteGris2", Npc = "AgenteGris2" } } },
-				Dialogue = { { At = 2.2, S = "AgenteGris2", T = "Que no salga. Dos segundos. Por favor.", To = "Yo", A = "Nod" } },
-			},
-		},
-	},
-	Steps = { ["2"] = { Effects = { Scene = "Saga_08_G3_Entra" } } },
+	Scenes = {},
+	Steps = { ["3"] = { Set = { Text = "Te han visto. Huye hasta la plaza del Distrito Financiero" } } },
 }
