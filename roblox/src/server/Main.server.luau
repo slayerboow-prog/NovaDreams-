@@ -348,6 +348,7 @@ local order = {
 	"BeastService", -- las bestias de los planetas, sus jefes escondidos y los alijos (shared/Cosmos/Bestiary)
 	"GearService", -- el equipo puesto se ve en el personaje (en los planetas) y marca el estilo de golpe
 	"HunterSkillService", -- las habilidades de cazador contra las bestias (shared/HunterSkills)
+	"HuntContractService", -- los contratos de caza de los tablones (Academia y campamentos: shared/HuntContracts)
 	"CraftingService", -- el Taller: fabricar armas, armaduras, pociones y herramientas (shared/Crafting)
 	"PlanetPerilService", -- los peligros del terreno de cada planeta (arenas movedizas, hielo fino, rayos, ráfagas…: shared/Cosmos/TerrainPerils)
 	"PlanetJobService", -- marco común de los planetas: sus oficios hechos con datos (tablones «Trabajar» de cada barrio)

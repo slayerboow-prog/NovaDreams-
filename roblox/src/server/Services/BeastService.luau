@@ -960,7 +960,8 @@ local function die(b: Beast, killer: Player?)
 	for p in got do
 		pcall(function()
 			local StoryEvents = require(script.Parent.Parent.LifeStory.StoryEvents) :: any
-			StoryEvents.emit(p, "BeastKilled", { Species = b.Species, Planet = b.Planet, Boss = b.Sp.Boss == true })
+			-- (Region: la zona de la guarida, para los contratos de caza: Services/HuntContractService)
+			StoryEvents.emit(p, "BeastKilled", { Species = b.Species, Planet = b.Planet, Boss = b.Sp.Boss == true, Region = b.Model:GetAttribute("Region") })
 		end)
 	end
 	if b.Sp.Boss then

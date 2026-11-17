@@ -744,6 +744,25 @@ local function errandStep(errand: { [string]: any }): string
 	return step
 end
 
+-- Los contratos de caza que llevas (Services/HuntContractService: atributo HuntContracts)
+local function huntState(): { { [string]: any } }
+	local raw = player:GetAttribute("HuntContracts")
+	if type(raw) ~= "string" then
+		return {}
+	end
+	local ok, list = pcall(function()
+		return HttpService:JSONDecode(raw)
+	end)
+	return if ok and type(list) == "table" then list else {}
+end
+
+local function abandonHunt(index: number)
+	local remote = Remotes:FindFirstChild("HuntContracts")
+	if remote then
+		(remote :: RemoteEvent):FireServer("Abandon", index)
+	end
+end
+
 local function abandonErrand()
 	local remote = Remotes:FindFirstChild("CityErrand")
 	if remote then
@@ -973,6 +992,18 @@ local function renderQuestList(list: Frame, state: { [string]: any })
 		objectiveRow(box, nextOrder(), ("Te lo ha pedido %s · %s y %d XP"):format(errand.Giver or "alguien", Format.money(errand.Money or 0), errand.Xp or 0), false)
 		local drop = Theme.button({ Size = UDim2.fromOffset(170, 32), Text = "Dejar el encargo", TextSize = 14, BackgroundColor3 = rgb(140, 40, 50), LayoutOrder = nextOrder(), Parent = box })
 		drop.Activated:Connect(abandonErrand)
+	end
+	-- Los contratos de caza (tablones de la Academia y de los campamentos)
+	local hunts = huntState()
+	if #hunts > 0 then
+		local box = section(list, nextOrder(), "Contratos de caza", rgb(255, 196, 110))
+		for i, c in hunts do
+			objectiveRow(box, nextOrder(), ("%s · %d/%d"):format(tostring(c.Title), tonumber(c.Have) or 0, tonumber(c.Need) or 1), false, true, tostring(c.Reward or ""))
+			local drop = Theme.button({ Size = UDim2.fromOffset(150, 28), Text = "Dejar el contrato", TextSize = 13, BackgroundColor3 = rgb(140, 40, 50), LayoutOrder = nextOrder(), Parent = box })
+			drop.Activated:Connect(function()
+				abandonHunt(i)
+			end)
+		end
 	end
 	-- EVENTO GLOBAL: la Invasión de la Grieta (y, después, «Recuperar la normalidad»)
 	local inv = invasionState()
@@ -1327,6 +1358,11 @@ local function buildMission(parent: Instance)
 	end)
 	player:GetAttributeChangedSignal("CityErrand"):Connect(function()
 		paintMission()
+		if questList and questWindow and questWindow.Parent then
+			renderQuestList(questList, storyState)
+		end
+	end)
+	player:GetAttributeChangedSignal("HuntContracts"):Connect(function()
 		if questList and questWindow and questWindow.Parent then
 			renderQuestList(questList, storyState)
 		end
