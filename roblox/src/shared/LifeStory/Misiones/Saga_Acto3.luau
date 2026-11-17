@@ -31,19 +31,19 @@ return {
 		Kind = "Side",
 		Canon = true,
 		Title = "Sin Cosme",
-		Description = "El garaje de Cosme lleva meses cerrado. Pip limpia el polvo cada día «por si vuelve». Don Escamas ha adelgazado. Hay que traerle de vuelta.",
+		Description = "Meses sin Cosme. Pip mantiene el garaje como lo dejó, por si vuelve. Cosme dejó instrucciones por si le pasaba algo. Hay que traerle de vuelta.",
 		Type = "Saga de la Grieta · Acto III (1/6)",
 		Duration = { 25, 35 },
-		Npcs = { "Pip", "DonEscamas", "Ivan", "Candela" },
+		Npcs = { "Pip", "DonEscamas", "Sorel", "Brenn" },
 		Offer = { Place = "GarajeCosme" },
-		OfferKey = "El garaje de Cosme. Cerrado. Pip te abre la puerta: «Por fin. Tenemos que hablar»",
+		OfferKey = "Pip te abre la puerta del garaje de Cosme: «Tenemos que hablar»",
 		Requires = after("Saga_12_Graduacion"),
 		Moment = "Formaste el equipo de rescate",
 		Memory = "EquipoRescate",
 		Rewards = { Items = { CuadernoCosme = 1 }, Flags = { "EquipoRescate", "CompisSabenGrieta" } },
 		Props = {
 			Cuaderno = { Kind = "Libro", Name = "El cuaderno de Cosme", Prompt = "Leer el cuaderno", Place = "GarajeCosme", Offset = V(-2, 0, 3), Color = Color3.fromRGB(120, 60, 40), Dialogue = "Cuaderno", Once = true },
-			Mando = { Kind = "Maquina", Name = "El prototipo de mando de rescate", Prompt = "Coger el mando", Place = "GarajeCosme", Offset = V(2, 0, 3), Color = Color3.fromRGB(90, 255, 110), Dialogue = "Mando", Once = true },
+			Mando = { Kind = "Maquina", Name = "El mando de salto entre dimensiones", Prompt = "Coger el mando", Place = "GarajeCosme", Offset = V(2, 0, 3), Color = Color3.fromRGB(90, 255, 110), Dialogue = "Mando", Once = true },
 		},
 		Steps = {
 			{ Type = "Talk", Npc = "Pip", Dialogue = "Pip", Text = "Habla con Pip", Actors = { PIP, ESCAMAS } },
@@ -52,26 +52,26 @@ return {
 					{ Type = "Use", Prop = "Cuaderno", Text = "Su cuaderno" },
 					{ Type = "Use", Prop = "Mando", Text = "El mando del banco de trabajo" },
 				} },
-			{ Type = "Talk", Npc = "Candela", Dialogue = "Equipo", Text = "Vuelve a la residencia: necesitas un equipo",
+			{ Type = "Talk", Npc = "Sorel", Dialogue = "Equipo", Text = "Ve a la Academia: necesitas un equipo",
 				Actors = {
-					{ Npc = "Ivan", Place = "HabitacionResidencia", Offset = V(-3, 0, 2) },
-					{ Npc = "Candela", Place = "HabitacionResidencia", Offset = V(3, 0, 2) },
+					{ Npc = "Brenn", Place = "Pista", Offset = V(-3, 0, 2) },
+					{ Npc = "Sorel", Place = "Pista", Offset = V(3, 0, 2) },
 				} },
-			{ Type = "Scene", Dialogue = "Plan", Actors = { PIP, ESCAMAS, { Npc = "Ivan", Place = "GarajeCosme", Offset = V(-4, 0, 5) }, { Npc = "Candela", Place = "GarajeCosme", Offset = V(4, 0, 5) } } },
+			{ Type = "Scene", Dialogue = "Plan", Actors = { PIP, ESCAMAS, { Npc = "Brenn", Place = "GarajeCosme", Offset = V(-4, 0, 5) }, { Npc = "Sorel", Place = "GarajeCosme", Offset = V(4, 0, 5) } } },
 		},
 		Dialogues = {
 			Pip = { Lines = {
 				{ S = "Pip", T = "{Saludo}. Llevo cuatrocientos doce días limpiando el polvo del garaje. Por si vuelve.", Shot = "Medio:Pip", A = "Sad" },
 				{ S = "Pip", T = "Tiene que encontrarlo limpio. Si no, se queja.", Beat = "Baja" },
 				-- Desde la graduación (Saga_12), el garaje no ha vuelto a oler a batido de apio
-				{ S = "Pip", T = "Desde su graduación, aquí no huele a batido de apio. Nunca pensé que lo echaría de menos.", If = { Memories = { "GraduacionInterdimensional" } } },
+				{ S = "Pip", T = "Desde su ceremonia, el garaje está en silencio. Nunca pensé que echaría de menos sus explosiones.", If = { Memories = { "GraduacionInterdimensional" } } },
 				{ S = "DonEscamas", T = "He calculado nuestras posibilidades de rescatarle sin ayuda: un 3 %. Con ayuda: un 4 %.", Shot = "Medio:DonEscamas" },
 				{ S = "DonEscamas", T = "Pero con amigos, las matemáticas cambian.", Pause = 0.6, To = "Yo" },
 				-- Le sacaste del estanque en un cubo (Saga_03)
-				{ S = "DonEscamas", T = "Tú me sacaste de un estanque en un cubo. Ahora me toca a mí sacar a alguien. Aunque sea desde una pecera.", If = { Memories = { "DonEscamas" } } },
+				{ S = "DonEscamas", T = "Usted me sacó del parque delante del Consorcio. Ahora me toca a mí ayudar a sacar a alguien.", If = { Memories = { "DonEscamas" } } },
 				{ S = "Pip", T = "El señor dejó dicho que usted sabría qué hacer. Yo creo que lo dijo por decir. Pero aquí estamos.", To = "Yo" },
 				-- La credencial de ayudante oficial (Saga_07)
-				{ S = "Pip", T = "Además, usted es ayudante oficial. Lo pone la credencial. Eso le convierte en jefe en funciones.", If = { Flags = { "AyudanteOficial" } }, G = "Nod" },
+				{ S = "Pip", T = "Además, tiene la credencial del laboratorio. Eso le convierte en responsable en su ausencia.", If = { Flags = { "AyudanteOficial" } }, G = "Nod" },
 			} },
 			Cuaderno = { Lines = {
 				{ S = "Narrador", T = "El cuaderno de Cosme, lleno de dibujos y coordenadas. En la última página, escrito deprisa: «Si me pasa algo:»." },
@@ -84,10 +84,9 @@ return {
 				{ S = "Pip", T = "El señor lo dejó casi hecho. Siempre deja las cosas casi hechas.", A = "Sad" },
 			} },
 			Equipo = { Lines = {
-				{ S = "Candela", T = "Así que tu vecino inventor está secuestrado en otra dimensión por su gemelo malvado con perilla.", Shot = "Medio:Candela", A = "ThinkChin" },
-				{ S = "Candela", T = "Y hay que rescatarle. Vale. Lo apunto.", Pause = 0.6 },
-				{ S = "Ivan", T = "¿Otra dimensión? ¿Con portal y todo? ¡Voy! Llevo zumo. De mora. De día.", G = "Cheer", To = "Candela" },
-				{ S = "Candela", T = "Iré. Pero con un plan plastificado. Nadie cruza un portal sin plan plastificado. Es la norma.", To = "Ivan" },
+				{ S = "Sorel", T = "Cosme está al otro lado de la Grieta, con la otra versión de sí mismo. Y hay que ir a buscarle.", Shot = "Medio:Sorel" },
+				{ S = "Brenn", T = "Sin permiso de la Academia, sin refuerzos y sin saber qué hay allí. Me apunto." },
+				{ S = "Sorel", T = "Yo también. Le debo una por lo de la feria. Y tú me sacaste del campus." },
 			} },
 			Plan = { Lines = {
 				{ S = "Candela", T = "Plan: uno, la dimensión de los gatos. Dos, una capitana alienígena con cámaras. Tres, rescate.", Shot = "General", G = "Point" },

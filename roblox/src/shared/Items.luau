@@ -390,7 +390,7 @@ local KEEPSAKES = {
 	{ "CintaArchivo", "La grabación de «La noche»", "📼", "El laboratorio de Lía la noche de la Caída. Lía te sacó de allí. Tu historia." },
 	{ "RelojArena", "Reloj de arena de Cronos", "⏳", "Regalo de Cronos, de la Aduana: «Si la situación se vuelve imposible, gírelo. Vendré»." },
 	{ "BataChamuscada", "La bata chamuscada de Cosme", "🥼", "La recogió Sorel del suelo del patio de la Academia el día que Cósimo se llevó a Cosme." },
-	{ "CuadernoCosme", "El cuaderno de Cosme", "📓", "Fórmulas, dibujos de gallinas y, en la última página: «Si me pasa algo, que lo lea la criatura». Eres tú." },
+	{ "CuadernoCosme", "El cuaderno de Cosme", "📓", "Coordenadas, cálculos y una página titulada «Si me pasa algo». Debajo, tachado: «Dile que estoy orgulloso»." },
 	{ "CollarDiplomatico", "Collar diplomático de Gatonia", "📿", "Regalo del Presidente Bigotes. Con él, cualquier gato te trata de usted." },
 	{ "PaseVIP", "Pase VIP del reality", "🎟️", "«Abducidos: edición especial». Temporada 3, capítulo 8. Sales en los créditos." },
 	{ "MapaMalvado", "Mapa de la 66-B", "🗺️", "Dibujado por tu versión malvada. Las calles son las mismas; los carteles, no." },

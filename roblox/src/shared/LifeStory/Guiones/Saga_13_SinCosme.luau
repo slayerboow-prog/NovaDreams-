@@ -10,35 +10,39 @@ return {
 	Dialogues = {
 		Cuaderno = {
 			Lines = {
-				{ S = "Pip", T = "Técnicamente… Ya no está. No tiene llave. Tú.", To = "Yo", A = "ThinkChin", Pause = 0.9 },
-				{ S = "Pip", T = "Sabía que funcionaría.", To = "Yo" },
-				{ S = "Pip", T = "Y esperaba equivocarme.", To = "Yo", Pause = 0.9 },
+				{ S = "Narrador", T = "El cuaderno de Cosme. Coordenadas, cálculos y una página con el título «Si me pasa algo»." },
+				{ S = "Narrador", T = "1. G-4: el refugio de la gente de Bigotes. Él sabe llegar a la 66-B." },
+				{ S = "Narrador", T = "2. La capitana Ñoz vende información de todas las dimensiones. Cara, pero nunca falla." },
+				{ S = "Narrador", T = "3. Que no vaya sin compañía." },
+				{ S = "Narrador", T = "Debajo, más pequeñ{o/a}, tachado pero legible: «Dile que estoy orgulloso. Por si acaso»." },
 			},
 		},
 		Mando = {
 			Lines = {
-				{ S = "Pip", T = "¿Quieres que la lea yo?", To = "Yo", A = "Ask" },
-				{ S = "Pip", T = "No dejó instrucciones sobre cómo encontrarlo.", To = "Yo", Pause = 0.9 },
-				{ S = "Pip", T = "Dejó instrucciones sobre cómo empezar.", To = "Yo", Pause = 0.9 },
+				{ S = "Narrador", T = "En el banco de trabajo, un mando de salto entre dimensiones, a medio montar." },
+				{ S = "Pip", T = "Lo dejó casi terminado. Siempre deja las cosas casi terminadas. Dame diez minutos.", To = "Yo" },
 			},
 		},
 		Pip = {
 			Lines = {
-				{ S = "Pip", T = "Hola, criatura. No sabía cómo recibirte. Yo tampoco.", To = "Yo", G = "Wave" },
-				{ S = "Pip", T = "Cosme siempre decía que las malas noticias debían servirse con algo dulce. No dejó dulces.", To = "Yo" },
+				{ S = "Pip", T = "Llevo ciento doce días manteniendo el garaje igual que lo dejó. Por si vuelve.", To = "Yo" },
+				{ S = "Pip", T = "La lectura de la Grieta sube cada noche. Él sabría qué hacer. Yo solo sé medirla.", To = "Yo" },
+				{ S = "Pip", T = "He calculado nuestras posibilidades de traerle de vuelta solos. No le voy a decir el número.", To = "Yo" },
+				{ S = "Pip", T = "Pero con un equipo, los números cambian.", To = "Yo" },
+				{ S = "Pip", T = "El doctor dejó dicho que usted sabría qué hacer. No sé si lo creía o lo deseaba. Pero aquí estamos.", To = "Yo" },
 				{
 					S = "Pip",
-					T = "Desde su graduación, aquí no huele a batido de apio. Nunca pensé que lo echaría de menos.",
+					T = "Desde su ceremonia, el garaje está en silencio. Nunca pensé que echaría de menos sus explosiones.",
 					If = { Memories = { "GraduacionInterdimensional" } },
 				},
 				{
 					S = "DonEscamas",
-					T = "Tú me sacaste de un estanque en un cubo. Ahora me toca a mí sacar a alguien. Aunque sea desde una pecera.",
+					T = "Usted me sacó del parque delante del Consorcio. Ahora me toca a mí ayudar a sacar a alguien.",
 					If = { Memories = { "DonEscamas" } },
 				},
 				{
 					S = "Pip",
-					T = "Además, usted es ayudante oficial. Lo pone la credencial. Eso le convierte en jefe en funciones.",
+					T = "Además, tiene la credencial del laboratorio. Eso le convierte en responsable en su ausencia.",
 					G = "Nod",
 					If = { Flags = { "AyudanteOficial" } },
 				},
@@ -46,10 +50,17 @@ return {
 		},
 		Plan = {
 			Lines = {
-				{ S = "Pip", T = "Cosme dijo que siguieras las costuras.", To = "Yo", A = "ArmsCrossed" },
-				{ S = "Pip", T = "Creo que acabamos de encontrar una.", To = "Yo", Pause = 0.9 },
-				{ S = "Pip", T = "Ese día…", To = "Yo", A = "ThinkChin" },
-				{ S = "Pip", T = "Cosme sabía que volverías aquí.", To = "Yo", Pause = 1.8 },
+				{ S = "Sorel", T = "Primero G-4, luego la capitana, luego la 66-B. Y luego volvemos. Todos.", To = "Yo" },
+				{
+					S = "Brenn",
+					T = "Kael no puede saberlo oficialmente. Extraoficialmente, ha dicho que no quiere enterarse de nada hasta que volvamos.",
+					To = "Yo",
+				},
+				{ S = "Pip", T = "Iré con ustedes. El doctor me pidió que no fuera sin compañía. Por una vez, voy a obedecerle sin discutir.", To = "Yo" },
+				{
+					S = "Narrador",
+					T = "Te llevas el cuaderno de Cosme. Ya hay un equipo de rescate: dos guerreros de la Academia, un androide, un desertor del Consorcio y tú.",
+				},
 			},
 		},
 	},

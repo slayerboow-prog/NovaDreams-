@@ -24,33 +24,21 @@ _Ninguno._
 
 ## Aplicado
 
-- PASO 1 → paso 1 del juego (Talk «Pip»): conversación «Pip» con 2 frases nuevas
-- PASO 2 → paso 2.1 del juego (Use): lo que pasa al usarlo va en la conversación del objeto «Cuaderno» (3 frases)
-- PASO 3 → paso 2.2 del juego (Use): lo que pasa al usarlo va en la conversación del objeto «Mando» (3 frases)
+- PASO 1 → paso 1 del juego (Talk «Pip»): conversación «Pip» con 5 frases nuevas
+- PASO 2 → paso 2.1 del juego (Use): lo que pasa al usarlo va en la conversación del objeto «Cuaderno» (5 frases)
+- PASO 3 → paso 2.2 del juego (Use): lo que pasa al usarlo va en la conversación del objeto «Mando» (2 frases)
 - PASO 4+5 → paso 4 del juego (Scene «Plan»): conversación «Plan» con 4 frases nuevas
 - Conversación «Pip»: se conservan al final 3 frases del juego que dependen de lo vivido
 
 ## Adaptado (y por qué)
 
 - PASO 1: el guion lo escribe como [] y en el juego es conversación (Talk): se conserva el tipo del juego y su mecánica
-- frase quitada (es una acotación, no se dice): «(«Léela.»)»
-- frase quitada (es una acotación, no se dice): «(«La leeré yo.»)»
 - PASO 4: el guion lo escribe como [] y en el juego es conversación (Scene): se conserva el tipo del juego y su mecánica
 - PASO 5: el guion lo escribe como [] y en el juego es conversación (Scene): se conserva el tipo del juego y su mecánica
-- PASO 4+5: «saga_13_completada = true» no la lee ninguna misión: no se crea
-- PASO 4+5: «caja_cosme_abierta = true» no la lee ninguna misión: no se crea
-- PASO 4+5: «carta_cosme_leida = true» no la lee ninguna misión: no se crea
-- PASO 4+5: «aguja_cosme_obtenida = true» no la lee ninguna misión: no se crea
-- PASO 4+5: «primera_costura_encontrada = true» no la lee ninguna misión: no se crea
-- PASO 4+5: «investigo_casa_origen = true» no la lee ninguna misión: no se crea
-- PASO 4+5: «foto_cosme_cosimo_encontrada = true» no la lee ninguna misión: no se crea
-- PASO 4+5: «pip_leyo_carta = true» no la lee ninguna misión: no se crea
-- PASO 4+5: «jugador_leyo_carta = true» no la lee ninguna misión: no se crea
 
 ## Género ({o/a}) corregido en frases dirigidas al jugador
 
-_Ninguna corrección._
-
+- PASO 2 (línea 61) · Narrador: «Debajo, más pequeño, tachado pero legible: «Dile que estoy orgulloso. Por si acaso».» → «Debajo, más pequeñ{o/a}, tachado pero legible: «Dile que estoy orgulloso. Por si acaso».»
 
 ## Avisos
 
@@ -59,14 +47,8 @@ _Ninguno._
 
 ## Notas del guion sin equivalente directo (bloques de dirección, minijuegos, memoria…)
 
-- PASO 1 · OBJETIVO: Entra en el garaje de Cosme.
-- PASO 2 · OBJETIVO: Busca la caja que dejó Cosme.
-- PASO 3 · OBJETIVO: Descubre qué dejó Cosme.
-- PASO 4 · OBJETIVO: Investiga el lugar donde comenzó todo.
-- PASO 5 · OBJETIVO: Encuentra la costura oculta.
-- PASO 5 · FLAGS: Opcional:
-- PASO 5 · CONSECUENCIA: A partir de esta misión:
-- PASO 5 · DIRECCIÓN CINEMATOGRÁFICA: Esta misión debe tener un ritmo deliberadamente diferente.
+_Ninguna._
+
 
 ## Cómo se traduce el formato
 
