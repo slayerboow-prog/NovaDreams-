@@ -13,6 +13,8 @@ EventCatalog.Names = {
 	Sprinted = true, MapOpened = true,
 	-- La Academia de Guerreros: usar una habilidad (HunterSkillService, { Skill }) y cazar una bestia (BeastService, { Species, Planet, Boss })
 	SkillUsed = true, BeastKilled = true,
+	-- Aterrizar en un planeta (PlanetService: { Planet }): el primer despegue del guerrero (Misiones/Guerrero)
+	PlanetLanded = true,
 	-- Bebé y casa familiar (BabyService)
 	BabyStood = true, BabySteps = true, BabyInteract = true, LookedOutside = true,
 	-- Vida diaria

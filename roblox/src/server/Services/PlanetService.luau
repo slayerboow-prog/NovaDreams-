@@ -140,8 +140,15 @@ function PlanetService.statusFor(player: Player): { [string]: string }
 end
 
 local function setOnPlanet(player: Player, id: string?)
+	local before = player:GetAttribute("Planeta")
 	player:SetAttribute("Planeta", id)
 	player:SetAttribute("SpaceReturn", if id then Access.arrival().Position else nil)
+	if id and before ~= id then
+		pcall(function() -- (la historia: el primer despegue del guerrero)
+			local StoryEvents = require(script.Parent.Parent.LifeStory.StoryEvents)
+			StoryEvents.emit(player, "PlanetLanded", { Planet = id })
+		end)
+	end
 end
 
 -- Línea del panel de la nave en el planeta

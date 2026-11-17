@@ -37,7 +37,7 @@ return {
 		Offer = { Place = "GarajeCosme" },
 		OfferKey = "¡BUM! Humo verde en el garaje del vecino…",
 		-- (desde niño y sin límite: si no la hiciste de pequeño, la saga sigue esperándote de mayor)
-		Requires = { Stage = { Min = "Nino" } },
+		Requires = { Stage = { Min = "Nino" }, NotFlags = { "CadeteAcademia" } }, -- (los cadetes de la Academia: al ser guerreros de primera)
 		Moment = "Conociste a Cosme, el inventor del garaje",
 		Memory = "ConociCosme",
 		Rewards = { Items = { PistolaBurbujas = 1 }, Flags = { "AmigoDeCosme", "GrietaVista" } },

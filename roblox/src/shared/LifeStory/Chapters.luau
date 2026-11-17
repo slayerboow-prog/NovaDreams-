@@ -47,8 +47,24 @@ local Chapters: { [string]: Chapter } = {
 		IntroKey = "Toda la vida mirando las naves. Hoy entras en la Academia de Guerreros Espaciales.",
 		OutroKey = "Has jurado como guerrero espacial. El cielo ya no es un sueño.",
 		Main = { "Acad01_Llegada", "Acad02_Tecnicas", "Acad03_PrimeraCaza", "Acad04_Espiritu", "Acad05_Juramento" },
-		Next = "Adulto_NuevaVida",
+		Next = "Guerrero_Primeras",
 		Music = "TemaValmar",
+	},
+
+	-- (17-11-2026) Después del juramento: las primeras misiones de guerrero espacial (Misiones/Guerrero): patrullas
+	-- en los distritos de caza, el primer despegue, el primer planeta y el ascenso a guerrero de primera.
+	Guerrero_Primeras = {
+		Id = "Guerrero_Primeras",
+		Order = 42,
+		Stage = { Min = "AdultoJoven" },
+		Requires = { Flags = { "GuerreroEspacial" } },
+		Enabled = true,
+		TitleKey = "Guerrero espacial",
+		IntroKey = "Ya llevas el uniforme. Ahora hay que ganárselo: patrullas, bestias, tu primera nave y tu primer planeta.",
+		OutroKey = "Guerrero de primera. Los planetas y la Grieta te esperan.",
+		Main = { "Gue01_Patrulla", "Gue02_MasLejos", "Gue03_Despegue", "Gue04_OtroMundo", "Gue05_Ascenso" },
+		Next = "Adulto_TuVida",
+		Music = "VidaAdulta",
 	},
 
 	-- FASE 2 · Bebé (5-10 min) en la casa familiar de Los Pinos.
@@ -169,7 +185,7 @@ local Chapters: { [string]: Chapter } = {
 		Id = "Adulto_NuevaVida",
 		Order = 50,
 		Stage = { Min = "AdultoJoven" },
-		Requires = { NotCompleted = { "Ins06_LaGranDecision" } }, -- quien ya jugaba antes (sin infancia jugada)
+		Requires = { NotCompleted = { "Ins06_LaGranDecision" }, NotFlags = { "GuerreroEspacial" } }, -- quien ya jugaba antes (sin infancia jugada ni Academia)
 		Enabled = true,
 		TitleKey = "CHAPTER.NUEVA_VIDA.TITLE",
 		IntroKey = "CHAPTER.NUEVA_VIDA.INTRO",
@@ -188,9 +204,9 @@ local Chapters: { [string]: Chapter } = {
 		Order = 60,
 		Stage = { Min = "Adulto" },
 		Enabled = true,
-		TitleKey = "Tu vida",
-		IntroKey = "Ahora tu vida es tuya: trabaja, compra una casa, conoce la región… Y Cosme sigue en su garaje: la Saga de la Grieta y las misiones locas te esperan en el mapa.",
-		OutroKey = "Toda una vida en Valmar. Y la historia sigue: la ciudad no se para.",
+		TitleKey = "Tu vida de guerrero",
+		IntroKey = "Tu vida es tuya: caza en los distritos y en las regiones, mejora tu equipo, viaja a los planetas… Y Cosme sigue en su garaje: la Saga de la Grieta te espera en el mapa.",
+		OutroKey = "Toda una vida defendiendo Valmar y los mundos de más allá. Y la historia sigue.",
 		Main = { "Adulto_MirarAtras" }, -- el final de la vida: Vida_MirarAtras (Happenings/Etapas)
 		Loop = "Adulto_Jornada",
 		IntroCinematic = "TuVida_Entrada",

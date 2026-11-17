@@ -94,6 +94,15 @@ local function buildIndex()
 			end
 		end
 	end
+	-- (lo que no está dentro de Town: el puerto espacial, World/SpaceWorld)
+	for _, child in workspace:GetChildren() do
+		if child:IsA("Model") and wanted[child.Name] and not byModelName[child.Name] then
+			local spot = spotFor(child)
+			if spot then
+				byModelName[child.Name] = { spot }
+			end
+		end
+	end
 	indexed = true
 end
 

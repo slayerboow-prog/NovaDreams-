@@ -224,6 +224,7 @@ Locations.Places = {
 	Columpios = { NameKey = "PLACE.COLUMPIOS", Model = "Playground", Zone = "Home" },
 	CentroSalud = { NameKey = "PLACE.CENTRO_SALUD", Model = "CentroSalud", Zone = "Home" },
 	Hospital = { NameKey = "PLACE.HOSPITAL", Model = "Hospital" },
+	PuertoEspacial = { NameKey = "Puerto espacial", Model = "PuertoEspacial", Radius = 40 }, -- (World/SpaceWorld, en el islote del oeste)
 	Bomberos = { NameKey = "PLACE.BOMBEROS", Model = "Bomberos" },
 	Policia = { NameKey = "PLACE.POLICIA", Model = "Policia" },
 	Autoescuela = { NameKey = "Autoescuela", Tag = "DrivingSchool" },

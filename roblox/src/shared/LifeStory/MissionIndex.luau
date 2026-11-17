@@ -8,6 +8,7 @@ local Misiones = script.Parent.Misiones
 return {
 	require(Misiones.Prologo_Sueno), -- el prólogo jugable (apagado desde el 17-11-2026: Config.Prologue)
 	require(Misiones.Academia), -- la Academia de Guerreros: el tutorial y las habilidades (el juego empieza aquí)
+	require(Misiones.Guerrero), -- después del juramento: patrullas, el primer despegue, el primer planeta y el ascenso
 	require(Misiones.Cole01_PrimerDia),
 	require(Misiones.Cole02_Mochila),
 	require(Misiones.Cole03_Grupo),

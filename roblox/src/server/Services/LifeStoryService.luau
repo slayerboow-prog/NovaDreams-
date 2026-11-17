@@ -3230,6 +3230,11 @@ local function canOffer(player: Player, data: Data, questId: string): boolean
 	if not rt or story.Active[questId] then
 		return false
 	end
+	-- (17-11-2026) Mientras eres cadete de la Academia (hasta guerrero de primera: Misiones/Guerrero) no salen
+	-- secundarias de la vida de antes ni de Cosme: la historia es la Academia
+	if story.Flags.CadeteAcademia and quest and quest.Kind == "Side" then
+		return false
+	end
 	-- Nada se ofrece en mitad de una conversación, una escena o una clase (el aviso taparía lo que pasa)
 	if rt.Busy or DialogueService.isBusy(player) or player:GetAttribute("InDialogue") or inScene(player) then
 		return false
