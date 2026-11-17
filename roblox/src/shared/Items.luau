@@ -395,7 +395,7 @@ local KEEPSAKES = {
 	{ "PaseVIP", "Frecuencia de la capitana Ñoz", "🎟️", "Un canal para avisar a su nave. «Si salís vivos, esa historia valdrá mucho.»" },
 	{ "MapaMalvado", "Mapa de la 66-B", "🗺️", "Dibujado por Sorel. Las calles son las mismas que en tu Valmar; los carteles, no." },
 	{ "FotoSinMemoria", "Foto de Cosme sin memoria", "📷", "Cosme, con una manta, preguntando quién eres. Detrás, a boli: «Pero se quedó a cenar»." },
-	{ "AlbumRecuerdos", "Álbum de recuerdos", "📔", "El microondas, las gallinas, el anclaje del parque. Todo lo que le devolviste a Cosme." },
+	{ "AlbumRecuerdos", "Álbum de recuerdos", "📔", "El detector, la pared de los caídos, el anclaje del parque. Todo lo que le devolviste a Cosme." },
 	{ "AgujaDeOro", "La aguja de oro", "🧵", "La que cerró la Grieta para siempre. En la punta pone, muy pequeñito: «Gracias, Ancla»." },
 	{ "AgujaCuantica", "Aguja cuántica", "🧵", "Con ella cosiste el cielo de Valmar. Todavía brilla un poco cuando hay luna llena." },
 	-- Restos de la Grieta (colección de las rarezas)

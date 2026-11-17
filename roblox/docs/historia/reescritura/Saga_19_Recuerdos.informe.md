@@ -25,44 +25,31 @@ _Ninguno._
 
 ## Aplicado
 
-- PASO 1 → paso 1 del juego (Talk «Lista»): conversación «Lista» con 14 frases nuevas
-- PASO 2.1 → paso 2.1 del juego (Use): lo que pasa al usarlo va en la conversación del objeto «Microondas» (4 frases)
-- PASO 2.2 → paso 2.2 del juego (Use): lo que pasa al usarlo va en la conversación del objeto «Gallina» (6 frases)
-- PASO 2.3 → paso 2.3 del juego (Use): lo que pasa al usarlo va en la conversación del objeto «Anclaje» (2 frases)
-- PASO 3 → paso 3 del juego (Scene «Vuelve»): conversación «Vuelve» con 18 frases nuevas
+- PASO 1 → paso 1 del juego (Talk «Lista»): conversación «Lista» con 4 frases nuevas
+- PASO 2.1 → paso 2.1 del juego (Use): lo que pasa al usarlo va en la conversación del objeto «Microondas» (3 frases)
+- PASO 2.2 → paso 2.2 del juego (Use): lo que pasa al usarlo va en la conversación del objeto «Gallina» (5 frases)
+- PASO 2.3 → paso 2.3 del juego (Use): lo que pasa al usarlo va en la conversación del objeto «Anclaje» (3 frases)
+- PASO 3 → paso 3 del juego (Scene «Vuelve»): conversación «Vuelve» con 7 frases nuevas
 
 ## Adaptado (y por qué)
 
 - PASO 1: el guion lo escribe como [] y en el juego es conversación (Talk): se conserva el tipo del juego y su mecánica
-- PASO 1: «cosme_recuerda_tu_nombre = true» no se guarda aparte (el mapa la deja como condición o ya la da el juego)
 - PASO 2 → paso 2 del juego (Group): solo trae planos (sin frases): en un paso jugable no se quita el control, así que no se aplican
-- PASO 2.3: 1 PLANO de un paso jugable (Use) no se convierten en cámara para no quitar el control; se usan para colocar las frases (antes/después de la acción) y los destellos de la Grieta
-- PASO 3: «saga_19_completada = true» no la lee ninguna misión: no se crea
-- PASO 3: «cosme_recuerdos_completos = true» no la lee ninguna misión: no se crea
-- PASO 3: «cosme_memoria_progreso = 100» no la lee ninguna misión: no se crea
-- PASO 3: «cosme_recuerda_todo = true» no la lee ninguna misión: no se crea
-- PASO 3: «cosme_sabe_liberar_ancla = true» no la lee ninguna misión: no se crea
-- PASO 3: «album_recuerdos_obtenido = true» no la lee ninguna misión: no se crea
-- PASO 3: «equipo_rescate_activo = true» no la lee ninguna misión: no se crea
-- PASO 3: «recuerdo_microondas = true» no la lee ninguna misión: no se crea
-- PASO 3: «recuerdo_granja = true» no la lee ninguna misión: no se crea
-- PASO 3: «recuerdo_ancla = true» no la lee ninguna misión: no se crea
-- PASO 3: «cosme_revela_como_liberar_ancla = true» no la lee ninguna misión: no se crea
 
 ## Género ({o/a}) corregido en frases dirigidas al jugador
 
-- PASO 1 (línea 198) · Cosme: «Es lo único que sé seguro.» → «Es lo único que sé segur{o/a}.»
+- PASO 1 (línea 37) · Cosme: «Sé tu nombre. Es lo único que tengo seguro. Empezaremos por ahí.» → «Sé tu nombre. Es lo único que tengo segur{o/a}. Empezaremos por ahí.»
+- PASO 3 (línea 131) · Pip: «Bienvenido, doctor. Esta vez de verdad.» → «Bienvenid{o/a}, doctor. Esta vez de verdad.»
 
 ## Avisos
 
-- PASO 2.2 (línea 609): condición «gallina_seis_metros = true» con una variable que el juego aún no guarda (GallinaSeisMetros)
-- PASO 2.2 (línea 613): condición «gallina_seis_metros = true» con una variable que el juego aún no guarda (GallinaSeisMetros)
+_Ninguno._
+
 
 ## Notas del guion sin equivalente directo (bloques de dirección, minijuegos, memoria…)
 
-- PASO 3 · DIRECCIÓN DE ACTUACIÓN: Inicio: / * confundido; / * inseguro; / * mira objetos buscando significado. / * empieza a reconocer sensaciones; / * ríe antes de comprender por qué; / * se sorprende de sus propios recuerdos. / * baja el tono; / * movimientos lentos; / * contacto visual con el jugador; / * orgullo contenido. / Parque: Final:
-- PASO 3 · DIRECCIÓN DE CÁMARA: Usar exclusivamente:
-- PASO 3 · DIRECCIÓN MUSICAL: Usar exclusivamente:
+_Ninguna._
+
 
 ## Cómo se traduce el formato
 
