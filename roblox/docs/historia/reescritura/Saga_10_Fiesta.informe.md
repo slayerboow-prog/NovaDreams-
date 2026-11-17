@@ -26,42 +26,31 @@ _Ninguno._
 
 ## Aplicado
 
-- PASO 1 → paso 1 del juego (Talk «Amigos»): conversación «Amigos» con 24 frases nuevas
-- PASO 2.1 → paso 2.1 del juego (Use): lo que pasa al usarlo va en la conversación del objeto «Cabina» (3 frases)
-- PASO 2.2 → paso 2.2 del juego (Use): lo que pasa al usarlo va en la conversación del objeto «Taquilla» (4 frases)
-- PASO 2.3 → paso 2.3 del juego (Use): lo que pasa al usarlo va en la conversación del objeto «Cuenta» (6 frases)
+- PASO 1 → paso 1 del juego (Talk «Amigos»): conversación «Amigos» con 5 frases nuevas
+- PASO 2.1 → paso 2.1 del juego (Use): lo que pasa al usarlo va en la conversación del objeto «Cabina» (2 frases)
+- PASO 2.2 → paso 2.2 del juego (Use): lo que pasa al usarlo va en la conversación del objeto «Taquilla» (2 frases)
+- PASO 2.3 → paso 2.3 del juego (Use): lo que pasa al usarlo va en la conversación del objeto «Cuenta» (1 frases)
 - PASO 3 → paso 3 del juego (Fight): 1 frases al empezar el paso (escena ligera «Saga_10_G3_Entra», la lanza el paso 2 al cumplirse; el jugador no pierde el control)
-- PASO 4 → paso 4 del juego (Scene «Final»): conversación «Final» con 13 frases nuevas
+- PASO 4 → paso 4 del juego (Scene «Final»): conversación «Final» con 5 frases nuevas
 
 ## Adaptado (y por qué)
 
-- frase quitada (es una acotación, no se dice): «(Ya no está bromeando.)»
 - PASO 1: el guion lo escribe como [] y en el juego es conversación (Talk): se conserva el tipo del juego y su mecánica
 - PASO 2 → paso 2 del juego (Group): solo trae planos (sin frases): en un paso jugable no se quita el control, así que no se aplican
-- frase quitada (es una acotación, no se dice): «(Está agotado.)»
-- PASO 4: «fiesta_musica = sabotaje» no la lee ninguna misión: no se crea
-- PASO 4: «fiesta_entradas = sabotaje» no la lee ninguna misión: no se crea
-- PASO 4: «fiesta_cuenta_atras = sabotaje» no la lee ninguna misión: no se crea
-- PASO 4: «omar_conoce_grieta = true» no la lee ninguna misión: no se crea
-- PASO 4: «omar_sabe_fusion = true» no la lee ninguna misión: no se crea
-- PASO 4: «ancla_revelada = true» no la lee ninguna misión: no se crea
-- PASO 4: «Flags» del guion no se pone a toda la conversación «Final» (es de una rama o una nota; lo pone la mecánica)
 
 ## Género ({o/a}) corregido en frases dirigidas al jugador
 
-- PASO 1 (línea 398) · Omar: «Él/Ella dice que sí.» → «{Él/Ella} dice que sí.»
+- PASO 2.1 (línea 50) · Narrador: «La cabina emite un mensaje en bucle: «El Distrito Central no es seguro. El Consorcio sí».» → «La cabina emite un mensaje en bucle: «El Distrito Central no es segur{o/a}. El Consorcio sí».»
 
 ## Avisos
 
-- PASO 4 (línea 1624): «Descubrimiento de Cósimo» no está en el reparto del juego: sus frases no se aplican (si es alguien, ponlo en Hablantes del mapa)
+_Ninguno._
+
 
 ## Notas del guion sin equivalente directo (bloques de dirección, minijuegos, memoria…)
 
-- PASO 1 · OBJETIVO: Aparece:
-- PASO 1 · OBJETIVO: Averigua qué está preparando MegaVerso.
-- PASO 3 · Objetivo:: 
-- PASO 4 · CONSECUENCIAS PERSISTENTES: Guardar: / Mantener:
-- PASO 4 · DIRECCIÓN DE LA FIESTA: La primera mitad debe ser luminosa y divertida.
+_Ninguna._
+
 
 ## Cómo se traduce el formato
 
