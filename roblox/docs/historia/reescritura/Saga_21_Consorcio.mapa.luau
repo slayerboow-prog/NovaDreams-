@@ -3,7 +3,7 @@
 -- (apartar a la seguridad), el pendrive de Don Escamas en el servidor y la quiebra con el agente Glub.
 return {
 	Prefijo = "Saga_21",
-	Hablantes = { ["Otro NPC"] = "@Vecino", ["Agente Glub"] = "Glub" },
+	Hablantes = { ["Otro NPC"] = "@Vecino", ["Agente Glub"] = "Glub", ["AGENTE GRIS"] = "AgenteGris2" },
 	Variables = {
 		-- (si te detectan, la pelea del juego te devuelve al punto seguro: no se sabe cuándo pasa)
 		["el jugador es detectado"] = { Nunca = true },

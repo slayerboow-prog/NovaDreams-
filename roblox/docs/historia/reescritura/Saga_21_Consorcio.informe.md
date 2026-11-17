@@ -11,9 +11,8 @@ La mecánica es la de siempre: el asalto a la oficina de MegaVerso (la de Saga_0
 
 | PASO del guion | Tipo | Lugar | Paso del juego |
 |---|---|---|---|
-| 1 |  |  | 2 · Use (Servidor) |
-| 1 |  |  | 2 · Use (Servidor) |
-| 2 |  |  | 3 · Scene «Quiebra» |
+| 1 |  |  | 1 · Fight @ OficinasFinanciero |
+| 2 |  |  | 2 · Use (Servidor) |
 | 3 | Scene |  | 3 · Scene «Quiebra» |
 
 ## Errores
@@ -23,20 +22,13 @@ _Ninguno._
 
 ## Aplicado
 
-- PASO 1+1 → paso 2 del juego (Use): lo que pasa al usarlo va en la conversación del objeto «Servidor» (11 frases)
-- PASO 2+3 → paso 3 del juego (Scene «Quiebra»): conversación «Quiebra» con 30 frases nuevas
+- PASO 1 → paso 1 del juego (Fight): 2 frases al cumplirlo (escena ligera «Saga_21_G1_Fin», sin quitar el control)
+- PASO 2 → paso 2 del juego (Use): lo que pasa al usarlo va en la conversación del objeto «Servidor» (4 frases)
+- PASO 3 → paso 3 del juego (Scene «Quiebra»): conversación «Quiebra» con 8 frases nuevas
 
 ## Adaptado (y por qué)
 
-- PASO 2: el guion lo escribe como [] y en el juego es conversación (Scene): se conserva el tipo del juego y su mecánica
-- PASO 2+3: «saga_21_completada = true» no la lee ninguna misión: no se crea
-- PASO 2+3: «megaverso_intervenido = true» no la lee ninguna misión: no se crea
-- PASO 2+3: «cuentas_megaverso_congeladas = true» no la lee ninguna misión: no se crea
-- PASO 2+3: «financiacion_fusion_bloqueada = true» no la lee ninguna misión: no se crea
-- PASO 2+3: «cosimo_sin_financiacion = true» no se guarda aparte (el mapa la deja como condición o ya la da el juego)
-- PASO 2+3: «cosimo_presionado = true» no la lee ninguna misión: no se crea
-- PASO 2+3: «cosimo_ejecuta_fusion_solo = true» no la lee ninguna misión: no se crea
-- PASO 2+3: «Flags» del guion no se pone a toda la conversación «Quiebra» (es de una rama o una nota; lo pone la mecánica)
+- PASO 1: no hay paso de antes que pueda lanzar las 2 frases del principio (es el primero, o un objetivo de un Group, o el de antes ya lanza escena): suenan al cumplir el paso 1
 
 ## Género ({o/a}) corregido en frases dirigidas al jugador
 
@@ -50,10 +42,8 @@ _Ninguno._
 
 ## Notas del guion sin equivalente directo (bloques de dirección, minijuegos, memoria…)
 
-- PASO 1 · OBJETIVO: Cuando el jugador llega a la zona restringida:
-- PASO 1 · FLAG: Esto permite una ruta más sencilla.
-- PASO 3 · CONSECUENCIA: La pantalla principal cambia:
-- PASO 3 · DIRECCIÓN DE ACTUACIÓN: Debe sentirse como el cerebro de la operación. / * analiza; / * observa; / * anticipa; / * no celebra demasiado; / * entiende inmediatamente la gravedad. / Iván: Es el contraste emocional.
+_Ninguna._
+
 
 ## Cómo se traduce el formato
 
