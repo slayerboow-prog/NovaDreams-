@@ -4,6 +4,7 @@
 > Base auditada: `docs/historia/biblia-narrativa.md` (v1, «Los Ocho Mundos»), contrastada con lo que ya está en el juego:
 > las 46 misiones (`src/shared/LifeStory/Misiones/`), el reparto (`Cast.luau`) y el motor de escenas (`Sequencer`,
 > `CameraShots`, `SceneDirector`, `ActorStaging`, `WorldState`, `StageSets`).
+> **Ojo: la §2 (contradicciones) queda sustituida por `choques-y-estructura-biblia-maestra.md`; la propuesta C3 sobre Kael era errónea.**
 > **No cambia nada todavía.** Cada cambio de esta auditoría es una propuesta que el dueño tiene que aprobar (§8).
 
 ---
