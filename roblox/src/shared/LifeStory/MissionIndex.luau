@@ -9,7 +9,8 @@ local Misiones = script.Parent.Misiones
 -- de la vida de antes del cambio a guerrero espacial (colegio, instituto, universidad, adulto, las «misiones locas»,
 -- las rarezas, el metro, los aliados de la saga vieja) quedan RETIRADAS: siguen cargadas (las partidas viejas y las
 -- pruebas no se rompen), pero ya no se ofrecen ni empiezan solas (Services/LifeStoryService: canOffer). También
--- la Saga de la Grieta de antes (con humor absurdo): la sustituye «La Grieta: Proyecto Umbral» (Misiones/Grieta_Umbral).
+-- la Saga de la Grieta de antes (con humor absurdo) y los episodios viejos de los planetas: los sustituyen la
+-- historia principal nueva (Grieta_Umbral, Coalicion_*) y las secundarias nuevas de cada planeta.
 local function retire(entry: any): any
 	local list = if type(entry) == "table" and entry.Id then { entry } else entry
 	for _, quest in list do
@@ -84,29 +85,29 @@ return {
 	-- Metro de Valmar: secundarias que se hacen viajando en metro
 	retire(require(Misiones.Metro_Secundarias)),
 	-- Invasión de la Grieta: lo que tu historia recuerda del evento global (docs/invasion.md)
-	require(Misiones.Invasion),
+	retire(require(Misiones.Invasion)),
 	-- Saga 2 «Ragnarock» · Tefra: el episodio 1 «Ceniza en Bastión» y sus cadenas secundarias
 	-- (solo en el planeta: Requires.Planet; docs/planetas/tefra-misiones.md)
-	require(Misiones.Tefra_Episodio),
-	require(Misiones.Tefra_Cadenas),
+	retire(require(Misiones.Tefra_Episodio)),
+	retire(require(Misiones.Tefra_Cadenas)),
 	-- Saga 2 · Miasma (Anclaje Siete) y Siroco (Puerto Calcina): su primera parte jugable (marco común de los
 	-- planetas: docs/planetas/marco-planetas.md; solo en su planeta: Requires.Planet)
-	require(Misiones.Miasma_Episodio),
-	require(Misiones.Siroco_Episodio),
+	retire(require(Misiones.Miasma_Episodio)),
+	retire(require(Misiones.Siroco_Episodio)),
 	-- Saga 2 · Nivalis (Fortaleza Albor): su primera parte jugable (docs/planetas/nivalis-umbria.md)
-	require(Misiones.Nivalis_Episodio),
+	retire(require(Misiones.Nivalis_Episodio)),
 	-- Saga 2 · Tálasa (Abisalia): su primera parte jugable (docs/planetas/talasa-vertice.md)
-	require(Misiones.Talasa_Episodio),
+	retire(require(Misiones.Talasa_Episodio)),
 	-- Saga 2 · Vértice (Distrito Cero): su primera parte jugable (docs/planetas/talasa-vertice.md)
-	require(Misiones.Vertice_Episodio),
+	retire(require(Misiones.Vertice_Episodio)),
 	-- Saga 2 · Umbría (Raíz Honda): su primera parte jugable (docs/planetas/nivalis-umbria.md)
-	require(Misiones.Umbria_Episodio),
+	retire(require(Misiones.Umbria_Episodio)),
 	-- Saga 2 · los peligros del terreno: una secundaria por planeta que presenta su problema propio del suelo
 	-- o del clima (arenas movedizas, hielo fino, rayos, ramas, paneles: shared/Cosmos/TerrainPerils)
-	require(Misiones.Planetas_Peligros),
+	retire(require(Misiones.Planetas_Peligros)),
 	-- Saga 2 · el prólogo del espacio «La costura negra» (Varkun, el Deshilador: docs/universo/diseno-espacio.md)
 	retire(require(Misiones.Saga2_Prologo)),
-	require(Misiones.Deriva_ActoI),
+	retire(require(Misiones.Deriva_ActoI)),
 	-- El mar de los Hondarios · «La canción de lo hondo»: Prólogo y Acto I (fase 1; docs/mar/civilizacion-marina.md)
-	require(Misiones.Mar_Acto1),
+	retire(require(Misiones.Mar_Acto1)),
 }
