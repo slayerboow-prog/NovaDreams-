@@ -107,9 +107,9 @@ Cada propuesta procura no tocar lo que el jugador ya ha visto.
 
 ### C5 · ¿Los Heraldos «aceptan» o no?
 - **Problema:** §D dice que cada Heraldo es «un nativo que aceptó la oferta del Coro». Pero la misma biblia dice que
-  Teo «no eligió» y que ÁGORA «no tuvo elección».
+  Tomás «no eligió» y que ÁGORA «no tuvo elección».
 - **Propuesta:** la regla se mantiene, y estos dos casos son sus versiones más oscuras.
-  - **Teo dijo que sí mientras moría.** La Marea le ofreció que dejara de doler. Tenía 17 años, estaba solo y su
+  - **Tomás dijo que sí mientras moría.** La Marea le ofreció que dejara de doler. Tenía 17 años, estaba solo y su
     hermano le había dicho que esperara. Aceptó sin entender. Eso es más trágico que «lo eligieron» y hace que el
     combate final sea contra alguien que dijo que sí a lo que cualquiera diría.
   - **ÁGORA eligió por cálculo.** La IA de MegaVerso llegó a la conclusión de Ithar solo con matemáticas: el Coro
@@ -197,9 +197,9 @@ Cada propuesta procura no tocar lo que el jugador ya ha visto.
 - **Kael.** Falta su vida antes de la expedición: de dónde es, por qué entró en el Consorcio y a quién quería. Su culpa
   se ve en sus silencios: nunca entra en ascensores (una compuerta), cierra todas las puertas que atraviesa y cuenta a
   los cadetes al volver. Tiene que haber al menos **una escena en la que se ría**, para que su muerte duela.
-- **Brenn y Teo.** Es la historia central de Valmar y hoy cabe en una línea. Faltan el pasado de los dos hermanos (el
-  balón con el nombre de Teo ya existe en el juego), la llamada de las 23:52 (ya está en `Grieta_Umbral`), el primer
-  vistazo a Teo entre los Velados, la deserción de Brenn y el combate final, en el que Teo pide descanso.
+- **Brenn y Tomás.** Es la historia central de Valmar y hoy cabe en una línea. Faltan el pasado de los dos hermanos (la
+  espada «B. y T.» ya existe en el juego), la llamada de las 23:52 (ya está en `Grieta_Umbral`), el primer
+  vistazo a Tomás entre los Velados, la deserción de Brenn y el combate final, en el que Tomás pide descanso.
 - **Cosme.** El humor como defensa tiene que tener grietas visibles: una escena en la que el chiste no le sale, y la
   decisión sobre Lía.
 - **Varn.** Tiene que ser más que «el malo educado». Su lógica: «salvé a diez mil cerrando el Sur». Es el Gran Corte en
@@ -221,7 +221,7 @@ de 15 h por planeta tarda semanas en terminarse y el jugador olvida la trama.
 
 | Campaña | Horas | Por qué |
 |---|---|---|
-| Valmar | 12 | Presenta el mundo, el grupo, a Brenn y a Teo, y las reglas del juego. Ya hay unas 5 h hechas. |
+| Valmar | 12 | Presenta el mundo, el grupo, a Brenn y a Tomás, y las reglas del juego. Ya hay unas 5 h hechas. |
 | Tefra | 11 | La guerra, Cosme, Lía y Corvo |
 | Miasma | 9 | Historia íntima (Andrés, Mara y Leo) |
 | Siroco | 9 | Revelación del Gran Corte |
@@ -291,7 +291,7 @@ que un discurso» se hace con el cuerpo y la cámara, no con microexpresiones. S
   - Nunca el aspecto genérico de Roblox.
 - **Tono de escritura.** Frases cortas y subtexto. Nadie explica lo que acaba de verse. Hay humor de personaje y nunca
   de chiste.
-- **Regla de las muertes.** No se añade ninguna muerte nueva. Solo mueren quienes tienen motivo y consecuencia: Teo,
+- **Regla de las muertes.** No se añade ninguna muerte nueva. Solo mueren quienes tienen motivo y consecuencia: Tomás,
   Kael, Ithar y, según las decisiones, Sorel y Lía.
 
 ---
@@ -306,7 +306,7 @@ que un discurso» se hace con el cuerpo y la cámara, no con microexpresiones. S
    - ÁGORA es la Heraldo de Vértice y Halvek el humano que huye;
    - la princesa se llama **Ámbar**.
 2. **Duración:** ¿unas **88 h** variables por planeta en lugar de 124 h?
-3. **Pilares que siguen de la v1:** Ithar y Oren, la muerte de Kael al final de Tálasa, la traición de Ilse y Teo como
+3. **Pilares que siguen de la v1:** Ithar y Oren, la muerte de Kael al final de Tálasa, la traición de Ilse y Tomás como
    Heraldo de Valmar. ¿Se confirman?
 4. **Arte:** ¿se acepta que el **kit de arquitectura por planeta** sea un proyecto propio, empezando por Valmar y
    Tefra, en paralelo a la escritura?

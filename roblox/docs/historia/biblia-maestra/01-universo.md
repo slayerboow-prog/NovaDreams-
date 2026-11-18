@@ -96,7 +96,7 @@ y la Marea no puede cruzarla. Juntos sostienen el borde del Telar.
 
 | Mundo | Función | Su Sello | Dónde está |
 |---|---|---|---|
-| **Valmar** | El Jardín: el granero del Telar y su corazón político | El **Árbol Antiguo**, esqueje del Árbol Primero de Oren | Bajo el santuario. Sus raíces llegan hasta el Distrito Central. |
+| **Valmar** | El Jardín: el granero del Telar y su corazón político | El **Árbol Ancestral** del Santuario del Bosque, esqueje del Árbol Primero de Oren (RC-031) | Bosque Etéreo. Su Raíz Mayor llega hasta el Distrito Central. |
 | **Tefra** | La Forja: metales y herramientas | La **Lanza**, un yunque-columna clavado en el volcán | Fondo del Pozo de Magma |
 | **Miasma** | El Filtro: limpiaba el aire del Telar | El **Fondo**, la máquina que respira bajo la niebla; la niebla era el filtro | Bajo el Anclaje Seis |
 | **Siroco** | El Archivo: la memoria de los Tejedores | La **Biblioteca de Arena** | Bajo el desierto |
@@ -146,7 +146,7 @@ juego da una fecha, esta tabla la respeta.
 | 0-90 | Las colonias borran la votación de sus archivos. Siroco guarda una copia en la Biblioteca y Nivalis la guarda en canciones, que acaban prohibidas. En tres generaciones, Oren es un cuento. | Biblia |
 | 0-1.064 | Era aislada: cada mundo desarrolla su cultura, sus guerras y sus dioses | Biblia |
 | 1.064 | Se redescubre el viaje por los Hilos. Los ocho mundos se reencuentran. | Biblia |
-| 1.124 | Empieza la guerra de Tefra entre el Dominio y la resistencia, que dura noventa años | Juego: «noventa años con el fin del mundo» |
+| 1.124 | Empieza la guerra de Tefra entre el **Dominio de Bastión** y su luna **Ovilla**, que dura noventa años. Los Desertores del Ovillo (la resistencia) son los que no quieren luchar en ella (RC-032). | Juego: «noventa años con el fin del mundo» |
 | 1.174 | La voz de Ithar llega a **Augusto Halvek**, en Vértice, por un Hilo dormido de la Consola. Nace el **Consorcio Umbral** y empiezan las perforaciones (las «anclas»). | Biblia |
 | 1.176 | Prueba del Consorcio en Tefra: se abre «un agujero en el cielo» sobre la Calle del Horno. **Cosme, con nueve años, cae dentro** y aparece en Valmar envejecido (R4). Su hermana Lía se queda en Tefra. | Juego (`Coalicion_Marea`) |
 | 1.194 | **La expedición del Consorcio** cruza la perforación de la Torre de Vértice. Van **Kael** (26 años, seguridad del Consorcio) e **Irene Ferran** (ingeniera). Ithar perdona a Kael («vuelve y cuéntaselo»). Kael cierra la compuerta con su equipo al otro lado. | Biblia + choque 3 |
@@ -175,7 +175,7 @@ ha rendido**. Es el último bastión porque cumple cuatro condiciones que ningú
 1. **Gobierno propio.** El Consejo y la Academia gobiernan sin pacto con el Coro. Están corruptos, pero son libres.
 2. **Ningún Heraldo en el poder.** Tomás vaga por el Sur muerto, pero no ha podido cruzar la muralla.
 3. **Fuerza armada que resiste.** La Academia forma guerreros y recupera barrios (Reconquista).
-4. **El Sello sigue vivo.** El Árbol Antiguo sigue encendido bajo la ciudad, y **la muralla del Distrito Central
+4. **El Sello sigue vivo.** El Árbol Ancestral sigue vivo, su Raíz Mayor recorre el subsuelo de la ciudad, y **la muralla del Distrito Central
    coincide con el alcance de sus raíces**. Por eso el asentamiento aguantó cuando cayó todo lo demás, aunque nadie lo
    sabe todavía. Es una revelación de la campaña de Valmar.
 

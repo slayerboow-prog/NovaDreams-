@@ -119,10 +119,10 @@ dejaron contra la Marea. Las «grietas» del Consorcio no son agujeros al azar: 
 
 | Mundo | Heraldo | Por qué aceptó | Antagonista humano |
 |---|---|---|---|
-| Valmar | **Teo**, el hermano de Brenn, «el Hermano Gris». Murió en el Sur con 17 años… y volvió Velado | No eligió: lo eligieron. Es la prueba viva del crimen de Varn | **Consejero Varn** y el Consejo |
+| Valmar | **Tomás**, el hermano de Brenn, «el Hermano Gris». Murió en el Sur con 17 años… y volvió Velado | No eligió: lo eligieron. Es la prueba viva del crimen de Varn | **Consejero Varn** y el Consejo |
 | Tefra | **General Bastián Corvo** | Perdió a sus dos hijos en la guerra de la Forja. El Coro se los devolvió… grises y tranquilos | El **Dominio de Bastión** |
 | Miasma | **Comandante Andrés** | Exmarido de Mara. Firmó «la Calma», una niebla que seda a las ciudades, para que su hijo dejara de tener miedo | Los **Ingenieros de la Calma** |
-| Siroco | **Marisa Duna**, la Baronesa del Agua | Su hijo Cholo murió de sed. Juró que nadie volvería a morir así… y se quedó con toda el agua | El **Cártel de las Cisternas** |
+| Siroco | **Luz Pozo**, la dueña del agua (corregido, RC-019) | Su madre Ana murió de sed cuando ella tenía doce años. Juró que nunca tendría sed… y se quedó con toda el agua | El **Cártel de las Cisternas** |
 | Nivalis | **Lord Regente Casimir Varga** | Vendió el sol (Cláusula 19) y luego vendió su alma para no rendir cuentas | Las **Casas Nobles** |
 | Umbría | **Madre Savia** | Firmó la tala que pudrió la raíz. Cree que el bosque gris es un renacimiento: la gran sacerdotisa de Varn | **Hijos de la Ceniza** |
 | Tálasa | **Almirante Coria** | Selló las compuertas de la Cúpula Honda con su gente dentro («diez mil por mil»). Ahora lo hace la Marea por ella | El **Consejo de Mareas** |
@@ -173,9 +173,9 @@ que le sigue.
 **Brenn — el rival que se vuelve líder.**
 - **Edad y aspecto:** 20 años. Grande, nudillos vendados, mirada dura.
 - **Voz:** seca. Sarcasmo cuando duele.
-- **Historia:** le dijo a su hermano Teo que esperara a la evacuación del Sur. Teo murió.
+- **Historia:** le dijo a su hermano Tomás que esperara a la evacuación del Sur. Tomás murió.
 - **Lo que quiere y teme:** al principio quiere venganza contra Varn; teme ser un cobarde.
-- **Arco:** de rival a enemigo (Valmar) a aliado a líder. En Valmar descubre que Teo es el Heraldo. Al morir Kael, toma
+- **Arco:** de rival a enemigo (Valmar) a aliado a líder. En Valmar descubre que Tomás es el Heraldo. Al morir Kael, toma
   el mando.
 
 **Ilse Maren — la ingeniera.**
@@ -231,10 +231,10 @@ que le sigue.
   - Ambiguo: **Andrés**, el padre que sedó a una ciudad por amor.
 - **Siroco**
   - **Rafa y Nina Quiroga**: piloto de carreras retirado y su hija.
-  - **Luz Pozo**: la zahorí que encontró el acuífero escondido.
+  - **Luz Pozo**: la dueña del agua y Heraldo de Siroco (RC-019).
   - **Tavo Aguador**: el contrabandista de agua.
   - **La Tía Cifra**: la corredora de apuestas.
-  - Ambigua: **Marisa Duna**.
+  - **Marisa Duna**: madre de Cholo, muerto en la Gran Vuelta (secundaria, no es Heraldo).
 - **Nivalis**
   - **Tila**: farolera y espía de 16 años.
   - **La princesa heredera**: oficialmente muerta, manda la resistencia en las Minas. Se propone renombrarla
@@ -335,7 +335,7 @@ mundo, cada uno con su vida.
 - el pasado de Kael;
 - el contrato del Consorcio;
 - los Sellos;
-- el destino de Teo, de los hijos de Corvo y de la madre de Noa.
+- el destino de Tomás, de los hijos de Corvo y de la madre de Noa.
 
 **Quedan abiertos (para expansiones):**
 - **«Lo que viene detrás».** Lys dice que la Marea no es el principio: ella también huye de algo.
@@ -372,11 +372,11 @@ Sin relleno: ninguna misión de «mata 20». El combate siempre tiene un porqué
 **1 · VALMAR — «La última ciudad»** (lo ya hecho cubre los actos I-II, unas 5 h)
 - **I.** Academia: entrar, perder contra Kael, la chapa de Dara.
 - **II.** Guerrero espacial y la Reconquista: faros, agua, el diario del campus, la bandera.
-- **III.** La Grieta y el Umbral: el archivo, Varn, el Sur fue una firma. Además, Brenn ve a Teo entre los Velados.
+- **III.** La Grieta y el Umbral: el archivo, Varn, el Sur fue una firma. Además, Brenn ve a Tomás entre los Velados.
 - **IV.** El asedio del asentamiento: los Hijos de la Ceniza abren las puertas desde dentro. Brenn deserta para cazar a
   Varn.
-- **V.** El Hermano Gris: mazmorra en el Sur muerto, jefe Teo. Decisión: dejar que Brenn termine con su hermano o
-  intentar traerlo de vuelta (no se puede: Teo pide descanso). Se enciende el Árbol. Kael funda la Coalición.
+- **V.** El Hermano Gris: mazmorra en el Sur muerto, jefe Tomás. Decisión: dejar que Brenn termine con su hermano o
+  intentar traerlo de vuelta (no se puede: Tomás pide descanso). Se enciende el Árbol. Kael funda la Coalición.
 
 **2 · TEFRA — «La Forja»** (mundo industrial convertido en fábrica de criaturas)
 - **I.** Aterrizaje en tierra quemada. Cosme vuelve y no hay casa.
@@ -397,9 +397,9 @@ Sin relleno: ninguna misión de «mata 20». El combate siempre tiene un porqué
 **4 · SIROCO — «La sed»** (civilización bajo tierra)
 - **I.** Un desierto sin nadie: todos viven abajo, en las Cisternas.
 - **II.** Carreras clandestinas por agua (Rafa y Nina) y deudas de agua.
-- **III.** Luz Pozo encuentra el acuífero que Marisa esconde. La Tía Cifra vende al grupo.
+- **III.** Luz Pozo controla el acuífero. La Tía Cifra vende al grupo.
 - **IV.** Tormenta de fuego y asalto a las Cisternas.
-- **V.** Mazmorra de la Biblioteca de Arena, jefa Marisa. Gran revelación: nueve estrellas y el Gran Corte. Aparece el
+- **V.** Mazmorra de la Biblioteca de Arena, jefa Luz Pozo. Gran revelación: nueve estrellas y el Gran Corte. Aparece el
   nombre de Ithar.
 
 **5 · NIVALIS — «La noche larga»** (casas nobles de espacio medieval, hielo, faroles)
@@ -530,6 +530,6 @@ suenan naturales? ¿Evita clichés? ¿Las consecuencias son coherentes? ¿Deja c
 
 1. ¿Apruebas el antagonista **Ithar** y el universo de **Oren y los Tejedores**?
 2. ¿Apruebas las dos muertes y traiciones grandes: **Kael muere al final de Tálasa** e **Ilse traiciona**?
-3. ¿Apruebas que **Teo** (el hermano de Brenn) sea el Heraldo de Valmar?
+3. ¿Apruebas que **Tomás** (el hermano de Brenn) sea el Heraldo de Valmar?
 4. ¿Renombramos a la princesa de Nivalis como **Elin**?
 5. ¿Empiezo por **ampliar Valmar a 15 h** (actos IV-V)?

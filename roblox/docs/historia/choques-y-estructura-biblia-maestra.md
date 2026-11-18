@@ -142,7 +142,7 @@ expedición de la biblia. La pista de la Academia (Kael nunca entra en ascensore
 - El juego empieza en **1.214**.
 - Valmar no es la última en caer: es **la última que resiste**. Es una ciudad de chatarra con una Academia, mientras
   los otros siete mundos viven bajo ocupación.
-- La caída de Valmar no se pierde: el jugador la vive en recuerdos jugables (el Sur, la llamada de las 23:52 de Teo) y
+- La caída de Valmar no se pierde: el jugador la vive en recuerdos jugables (el Sur, la llamada de las 23:52 de Tomás) y
   en la secuencia cinematográfica «La caída de Valmar», que pide la directiva.
 
 **Cronología corregida:**
@@ -228,7 +228,7 @@ tiene consecuencias: por eso el Heraldo contraataca.
 |---|---|---|
 | **Corvo** (Tefra) | Heraldo; el Coro le devolvió a sus hijos grises | Firma la tregua y une el Dominio a la Coalición «por vergüenza» |
 | **Andrés** (Miasma) | Heraldo | Une Miasma a la Coalición (choque 5) |
-| **Marisa Duna** (Siroco) | Heraldo; «su hijo Cholo murió de sed» | Madre que deja flores. Cholo murió **hace diez años en la Gran Vuelta**: Rafa forzó el motor en la última curva (`Siroco_Episodio`, retirado) |
+| **Luz Pozo** (Siroco; antes se proponía a Marisa Duna, ver RC-019) | Heraldo | La dueña del agua de `Sir02`; su madre Ana murió de sed cuando ella tenía doce años. (Marisa Duna, madre de Cholo, queda como secundaria aparte.) |
 | **Savia** (Umbría) | «Madre Savia», sacerdotisa de la Ceniza | **Alcaldesa** cuya hija Nía siguió a Varn; Nía oyó a su abuela en la raíz. Une Umbría a la Coalición. |
 | **Varga** (Nivalis) | El Lord Regente vendió el sol | La princesa: «**Mi padre** firmó ese contrato. Cuando apagaron el sol, se encerró en la torre». El padre llora en el balcón cuando vuelve la luz. |
 | **Coria** (Tálasa) | Heraldo; selló la Cúpula Honda con su gente dentro | «Salvaría a diez mil aunque perdiera a mil». Une Tálasa a la Coalición. |
@@ -242,13 +242,13 @@ Acto I y los vea caer es exactamente eso. Hay dos tipos de Heraldo:
 
 | Tipo | Quiénes | Cómo funciona |
 |---|---|---|
-| **Ya eran del Coro** antes de que llegue el jugador | Teo, Varga, ÁGORA | Ocupantes desde el principio. Su misterio es por qué aceptaron. |
-| **Caen durante la campaña** | Corvo, Andrés, Marisa, Savia, Coria | El jugador los conoce, confía en ellos y los ve cruzar la línea por un motivo que entiende. |
+| **Ya eran del Coro** antes de que llegue el jugador | Tomás, Varga, ÁGORA | Ocupantes desde el principio. Su misterio es por qué aceptaron. |
+| **Caen durante la campaña** | Corvo, Andrés, Luz Pozo, Savia, Coria | El jugador los conoce, confía en ellos y los ve cruzar la línea por un motivo que entiende. |
 
 Cada caída tiene su detonante:
 - **Corvo:** sus dos hijos vuelven del frente grises y tranquilos. El Coro se los devuelve a cambio de la Lanza.
 - **Andrés:** la Calma (choque 5).
-- **Marisa:** Rafa corre «una última carrera» por el agua del pueblo, la misma carrera en la que murió su hijo. El Coro
+- **(Superado por RC-019: ver Luz Pozo en el Vol. II §2.4.)** Propuesta antigua: Rafa corre «una última carrera» por el agua del pueblo, la misma carrera en la que murió su hijo. El Coro
   le ofrece oír otra vez a Cholo, y ella se queda con toda el agua para que nadie más tenga que correr por ella. Cholo
   no murió de sed: **murió por agua**, en una carrera por el premio de un pozo.
 - **Savia:** su hija Nía oyó a la abuela dentro de la raíz. Savia no quiere perder también a su madre: se hace
@@ -268,13 +268,13 @@ primero aliado y después Heraldo, que da más drama y está mejor preparado.
 ### 8 · Heraldos «que no eligieron» y el caso Halvek
 
 **Qué choca.** Según §D de la biblia, cada Heraldo es «un nativo que **aceptó** la oferta del Coro». La misma biblia
-dice que Teo «no eligió» y que ÁGORA «no tuvo elección». Además, Vértice tiene dos Heraldos (ÁGORA y Halvek), y Halvek
+dice que Tomás «no eligió» y que ÁGORA «no tuvo elección». Además, Vértice tiene dos Heraldos (ÁGORA y Halvek), y Halvek
 huye en el Arca, de modo que su historia no se cierra.
 
 **Por qué pasa.** Una contradicción interna de la v1: la regla se escribió después de los ejemplos.
 
 **Solución.** La regla se mantiene, y estos casos son sus versiones más oscuras:
-- **Teo dijo que sí mientras moría.** Tenía 17 años, estaba solo en el Sur y su hermano le había dicho que esperara.
+- **Tomás dijo que sí mientras moría.** Tenía 17 años, estaba solo en el Sur y su hermano le había dicho que esperara.
   La Marea le ofreció que dejara de doler, y aceptó sin entender. El combate final es contra alguien que dijo lo que
   cualquiera diría.
 - **ÁGORA eligió por cálculo.** La IA de MegaVerso llegó a la conclusión de Ithar solo con matemáticas: el Coro reduce
@@ -283,7 +283,7 @@ huye en el Arca, de modo que su historia no se cierra.
   40 años. Huye en el Arca, y esa huida es el gancho para una expansión. Así cada Heraldo tiene su conclusión
   emocional, como pide la directiva.
 
-**Qué se conserva.** Teo, ÁGORA, Halvek, el Arca y la regla.
+**Qué se conserva.** Tomás, ÁGORA, Halvek, el Arca y la regla.
 
 ---
 

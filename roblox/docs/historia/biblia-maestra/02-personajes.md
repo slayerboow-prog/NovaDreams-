@@ -107,7 +107,7 @@ Según cuándo aceptaron la oferta del Coro, hay dos tipos (choque 7):
 | **3 · Relación con el conflicto** | Es la prueba viva del crimen de Varn: la orden de las 23:40 hecha persona |
 | **4 · Conversaciones** | Acto IV, en la muralla, Tomás a Brenn: «Me dijiste que esperara. Esperé.» Acto V, en la calle del mercado: «Aquí no se olvida a nadie. Allí arriba ya os habéis olvidado de nosotros.» |
 | **5 · Motivación** | La lealtad a los muertos y una herida que se convirtió en misión |
-| **6 · Consecuencias** | Su muerte libera a los Velados del Sur. El Árbol Antiguo se enciende del todo. Brenn queda roto y libre a la vez. |
+| **6 · Consecuencias** | Su muerte libera a los Velados del Sur. El Árbol Ancestral se enciende del todo. Brenn queda roto y libre a la vez. |
 | **7 · Combate** | **Fase 1:** en las calles del Sur, Tomás pelea como Brenn: repite las técnicas que el jugador aprendió en la Academia (`Acad02`). **Fase 2:** llama a los Velados del Sur; el jugador protege a Brenn, que no es capaz de atacar a su hermano. **Fase 3:** en la torre del reloj, parada a las 23:52, un recuerdo de Tomás sale a la superficie y deja de pelear. |
 | **8 · Conclusión** | Tomás pide descanso: «No vinieron. Ya lo sé. No fue culpa tuya.» **Decisión:** que Brenn termine con él, hacerlo tú o dejar que la luz del Árbol se lo lleve en brazos de Brenn. Tomás muere en los tres casos: no se le puede traer de vuelta, porque ya no tiene cuerpo propio (R9). Sus últimas palabras son la aparición 1 de Ithar. |
 
@@ -115,7 +115,7 @@ Según cuándo aceptaron la oferta del Coro, hay dos tipos (choque 7):
 | | |
 |---|---|
 | **Quién es** | Unos 60 años. Jefe del Ejército de Bastión y del Dominio. Habla poco y nunca levanta la voz. «Llevamos noventa años con el fin del mundo.» Quiere ganar la guerra «para que no haya otra». Sabe lo que la Lanza le hace al planeta. |
-| **Familia** | Dos hijos, **Darío** y **Marco**, oficiales del Dominio, dados por muertos en el frente de la Forja en 1.212 |
+| **Familia** | Dos hijos, **Darío** y **Marco**, oficiales del Dominio, dados por muertos en el frente de Ovilla en 1.212 |
 | **Por qué cae** | Acto III: sus hijos vuelven del frente grises, tranquilos y sin sombra. El Coro se los devuelve a cambio de la Lanza. Corvo sabe que no son ellos del todo, pero le basta con que no vuelvan a ir a la guerra. |
 | **1 · Presentación** | Acto I (ya en el juego, `Tef02`): firma la tregua y une el Dominio a la Coalición «por vergüenza» |
 | **2 · Presencia** | Acto II: aliado incómodo, con conversaciones con el jugador sobre el precio de la paz. Acto III: los hijos vuelven. Acto IV: dirige la defensa de Bastión para el Coro. |
@@ -492,7 +492,7 @@ Ilse no quiere oír.
 ### Tefra
 - **Dalia Renn.** Exoficial del Dominio y líder de la Resistencia del Ovillo. **Arco:** de odiar a Valmar a ser su
   aliada; gobierna Tefra en el epílogo.
-- **Capitán Tobi Renn.** Su hermano, al otro lado de la guerra. **Arco:** se queda con Corvo hasta que ve a los hijos
+- **Capitán Tobi Renn.** Su hermano, capitán de la Milicia de Ovilla, al otro lado de la guerra (RC-032). **Arco:** la tregua le acerca a Dalia; cuando ve a los hijos de Corvo, rompe con todo
   grises.
 - **Doctora Fermina.** Cura a los dos bandos; tiene la cicatriz de un Velado al que no quiso abandonar.
 - **Ingeniero Orsi** y **Brasa:** la mano de obra de la resistencia.
