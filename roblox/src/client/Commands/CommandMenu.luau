@@ -895,7 +895,7 @@ function CommandMenu.init()
 		Covers = true,
 		FreshPress = true, -- (solo un toque nuevo: un dedo apoyado mientras Atacar pasa a «Leer» no lee)
 		Place = if TOUCH then function(): string?
-			return if CommandMenu.bigInteract() then "Ataque" else nil
+			return if CommandMenu.bigInteract() then "Ataque" else "Interactuar" -- (su botón propio, no el Atacar)
 		end else nil,
 		Visible = if TOUCH then function(): boolean
 			return ContextDetector.getFocus() ~= nil

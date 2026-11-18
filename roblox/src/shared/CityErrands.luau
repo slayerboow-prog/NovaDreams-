@@ -34,6 +34,7 @@ local CityErrands = {}
 local rgb = Color3.fromRGB
 
 CityErrands.Config = {
+	Enabled = false, -- (18-11-2026: apagados; no pegan con el mundo de ahora: Services/CityErrandService)
 	ScanEvery = 3, -- segundos entre repasos de quién aparece y quién se va
 	TickEvery = 0.5, -- segundos entre repasos de los encargos en marcha
 	SpawnRange = 170, -- solo aparece gente en los sitios a menos de esto de algún jugador

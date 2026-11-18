@@ -161,8 +161,12 @@ end
 -- golpes hace nada, o un enemigo de misión a tiro), Busy }. Con un arma sigue siendo «Disparar» (no se
 -- deja de disparar por pasar junto a alguien) y en una pelea sigue siendo «Atacar»: en esos casos el
 -- cartel va en el botón pequeño de contexto.
-function MenuLogic.bigButton(state: { [string]: any }): boolean
-	return state.Touch == true and state.Prompt == true and not state.Armed and not state.Fighting and not state.Busy
+-- (18-11-2026, el dueño: «al mover el personaje y la cámara siempre detecta que quiero sentarme en un banco o se
+-- pone a hablar con la gente») El Atacar grande ya NO se convierte en la acción del cartel: estaba justo debajo del
+-- pulgar de la cámara y del ataque, y al pasar por un banco o una persona el siguiente toque te sentaba o te ponía a
+-- hablar. Ahora el cartel tiene SU botón propio (hueco Interactuar, encima del racimo) y el Atacar siempre ataca.
+function MenuLogic.bigButton(_state: { [string]: any }): boolean
+	return false
 end
 
 MenuLogic.ArmDelay = 0.4 -- segundos que el botón tiene que llevar enseñando ese cartel

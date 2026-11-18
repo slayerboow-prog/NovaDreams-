@@ -5,64 +5,78 @@
 
 local Misiones = script.Parent.Misiones
 
+-- (18-11-2026, el dueño: «la historia es muy infantil; tiene que ser para chicos de 15 años para arriba») Las misiones
+-- de la vida de antes del cambio a guerrero espacial (colegio, instituto, universidad, adulto, las «misiones locas»,
+-- las rarezas, el metro, los aliados de la saga vieja) quedan RETIRADAS: siguen cargadas (las partidas viejas y las
+-- pruebas no se rompen), pero ya no se ofrecen ni empiezan solas (Services/LifeStoryService: canOffer).
+local function retire(entry: any): any
+	local list = if type(entry) == "table" and entry.Id then { entry } else entry
+	for _, quest in list do
+		if type(quest) == "table" then
+			quest.Retired = true
+		end
+	end
+	return entry
+end
+
 return {
 	require(Misiones.Prologo_Sueno), -- el prólogo jugable (apagado desde el 17-11-2026: Config.Prologue)
 	require(Misiones.Academia), -- la Academia de Guerreros: el tutorial y las habilidades (el juego empieza aquí)
 	require(Misiones.Guerrero), -- después del juramento: patrullas, el primer despegue, el primer planeta y el ascenso
 	require(Misiones.Reconquista), -- la Reconquista: recuperar la tierra perdida, zona a zona, fuera de la empalizada
-	require(Misiones.Cole01_PrimerDia),
-	require(Misiones.Cole02_Mochila),
-	require(Misiones.Cole03_Grupo),
-	require(Misiones.Cole04_Malotes),
-	require(Misiones.Cole05_Venganza),
-	require(Misiones.Cole06_Examen),
-	require(Misiones.Cole07_Excursion),
-	require(Misiones.Cole08_Torneo),
-	require(Misiones.Cole09_Misterio),
-	require(Misiones.Cole10_Festival),
-	require(Misiones.Cole11_Proyecto),
-	require(Misiones.Cole12_UltimoDia),
-	require(Misiones.Ins01_NuevoInstituto),
-	require(Misiones.Ins02_Clubes),
-	require(Misiones.Ins03_QueQuieresSer),
-	require(Misiones.Pan1_MalasCompanias),
-	require(Misiones.Pan2_LaNoche),
-	require(Misiones.Pan3_Cruce),
-	require(Misiones.Pan_Consecuencias),
-	require(Misiones.Ins04_PrimerEmpleo),
-	require(Misiones.Ins05_ElRumor),
-	require(Misiones.Ins06_LaGranDecision),
-	require(Misiones.Uni01_PrimerDia),
-	require(Misiones.Uni_Vida), -- la residencia y el ciclo de exámenes (misiones principales)
-	require(Misiones.Uni_Secundarias), -- fiestas, acampada, playa, zumo de mora, cita, lugares abandonados…
-	require(Misiones.Uni02_ElProyecto),
-	require(Misiones.Uni03_PrimerTrabajo),
-	require(Misiones.Uni04_Practicas),
-	require(Misiones.Uni05_PrimerPiso),
-	require(Misiones.Uni06_Graduacion),
-	require(Misiones.Adu01_PrimerContrato),
-	require(Misiones.Adu02_Atardecer),
-	require(Misiones.Adu03_Reencuentro),
-	require(Misiones.Adu_Consecuencias),
-	require(Misiones.Uni_Consecuencias),
-	require(Misiones.Ins_Consecuencias),
-	require(Misiones.Cole_Consecuencias),
+	retire(require(Misiones.Cole01_PrimerDia)),
+	retire(require(Misiones.Cole02_Mochila)),
+	retire(require(Misiones.Cole03_Grupo)),
+	retire(require(Misiones.Cole04_Malotes)),
+	retire(require(Misiones.Cole05_Venganza)),
+	retire(require(Misiones.Cole06_Examen)),
+	retire(require(Misiones.Cole07_Excursion)),
+	retire(require(Misiones.Cole08_Torneo)),
+	retire(require(Misiones.Cole09_Misterio)),
+	retire(require(Misiones.Cole10_Festival)),
+	retire(require(Misiones.Cole11_Proyecto)),
+	retire(require(Misiones.Cole12_UltimoDia)),
+	retire(require(Misiones.Ins01_NuevoInstituto)),
+	retire(require(Misiones.Ins02_Clubes)),
+	retire(require(Misiones.Ins03_QueQuieresSer)),
+	retire(require(Misiones.Pan1_MalasCompanias)),
+	retire(require(Misiones.Pan2_LaNoche)),
+	retire(require(Misiones.Pan3_Cruce)),
+	retire(require(Misiones.Pan_Consecuencias)),
+	retire(require(Misiones.Ins04_PrimerEmpleo)),
+	retire(require(Misiones.Ins05_ElRumor)),
+	retire(require(Misiones.Ins06_LaGranDecision)),
+	retire(require(Misiones.Uni01_PrimerDia)),
+	retire(require(Misiones.Uni_Vida)), -- la residencia y el ciclo de exámenes (misiones principales)
+	retire(require(Misiones.Uni_Secundarias)), -- fiestas, acampada, playa, zumo de mora, cita, lugares abandonados…
+	retire(require(Misiones.Uni02_ElProyecto)),
+	retire(require(Misiones.Uni03_PrimerTrabajo)),
+	retire(require(Misiones.Uni04_Practicas)),
+	retire(require(Misiones.Uni05_PrimerPiso)),
+	retire(require(Misiones.Uni06_Graduacion)),
+	retire(require(Misiones.Adu01_PrimerContrato)),
+	retire(require(Misiones.Adu02_Atardecer)),
+	retire(require(Misiones.Adu03_Reencuentro)),
+	retire(require(Misiones.Adu_Consecuencias)),
+	retire(require(Misiones.Uni_Consecuencias)),
+	retire(require(Misiones.Ins_Consecuencias)),
+	retire(require(Misiones.Cole_Consecuencias)),
 	-- Misiones locas (secundarias de cada etapa, con Cosme): docs/historia/12-misiones-locas.md
-	require(Misiones.Loco_Nino),
+	retire(require(Misiones.Loco_Nino)),
 	-- La Saga de la Grieta (historia principal canónica): docs/historia/13-saga-de-la-grieta.md
 	require(Misiones.Saga_Acto1),
 	require(Misiones.Saga_Acto2),
 	require(Misiones.Saga_Acto3),
 	require(Misiones.Saga_Acto4),
 	-- Rarezas de la Grieta (secundarias cortas que dan los «Restos de la Grieta»)
-	require(Misiones.Rarezas),
-	require(Misiones.Loco_Adolescente),
-	require(Misiones.Loco_Uni),
-	require(Misiones.Loco_Adulto),
+	retire(require(Misiones.Rarezas)),
+	retire(require(Misiones.Loco_Adolescente)),
+	retire(require(Misiones.Loco_Uni)),
+	retire(require(Misiones.Loco_Adulto)),
 	-- Misiones de aliados: cada aliado de la saga vuelve antes del final (saga 20)
-	require(Misiones.Aliados),
+	retire(require(Misiones.Aliados)),
 	-- Metro de Valmar: secundarias que se hacen viajando en metro
-	require(Misiones.Metro_Secundarias),
+	retire(require(Misiones.Metro_Secundarias)),
 	-- Invasión de la Grieta: lo que tu historia recuerda del evento global (docs/invasion.md)
 	require(Misiones.Invasion),
 	-- Saga 2 «Ragnarock» · Tefra: el episodio 1 «Ceniza en Bastión» y sus cadenas secundarias

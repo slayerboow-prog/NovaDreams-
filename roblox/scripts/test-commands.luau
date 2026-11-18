@@ -149,7 +149,7 @@ check(not MenuLogic.usable({ Exists = false, Enabled = true, Distance = 3, Max =
 ---------------------------------------------------------------------
 print("\n▶ Móvil: el botón grande contextual (Atacar -> Hablar, Comer, Coger…)")
 check(not MenuLogic.bigButton({ Touch = true, Prompt = false }), "Sin cartel cerca: el grande es «Atacar»")
-check(MenuLogic.bigButton({ Touch = true, Prompt = true }), "Con un cartel cerca: el grande hace su acción")
+check(not MenuLogic.bigButton({ Touch = true, Prompt = true }), "Con un cartel cerca el grande SIGUE siendo «Atacar» (el cartel va en su botón: no te sienta ni te pone a hablar al mover la cámara)")
 check(not MenuLogic.bigButton({ Touch = true, Prompt = true, Armed = true }), "Con un arma en la mano sigue «Disparar» (el cartel va al botón pequeño)")
 check(not MenuLogic.bigButton({ Touch = true, Prompt = true, Fighting = true }), "En plena pelea (o con un enemigo de misión a tiro) sigue «Atacar»")
 check(not MenuLogic.bigButton({ Touch = true, Prompt = true, Busy = true }), "En una conversación, no")

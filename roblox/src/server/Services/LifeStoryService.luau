@@ -145,6 +145,7 @@ type Runtime = {
 	Spots: { [string]: LocationService.Spot }, -- lugar elegido para cada paso "Reach" en curso
 	ScheduleSpots: { [string]: any }?, -- sitios con horario ya buscados (para saber si ya estás dentro)
 	PendingOffer: string?,
+	LastQuietOffer: number?,
 	OfferedAt: number,
 	Waiting: { QuestId: string, Reason: string, From: number?, To: number? }?,
 	LastPublished: string?,
@@ -3230,6 +3231,11 @@ local function canOffer(player: Player, data: Data, questId: string): boolean
 	if not rt or story.Active[questId] then
 		return false
 	end
+	-- (18-11-2026) Las misiones de la vida de antes, retiradas (MissionIndex: retire), no se ofrecen a nadie; solo
+	-- queda la primera de Cosme, que abre la Saga de la Grieta
+	if quest and quest.Retired and questId ~= "Loco_N1_Cosme" then
+		return false
+	end
 	-- (17-11-2026) Mientras eres cadete de la Academia (hasta guerrero de primera: Misiones/Guerrero) no salen
 	-- secundarias de la vida de antes ni de Cosme: la historia es la Academia
 	if story.Flags.CadeteAcademia and quest and quest.Kind == "Side" then
@@ -3311,9 +3317,19 @@ function LifeStoryService.errandBlock(player: Player): string?
 	return nil
 end
 
-local function offer(player: Player, questId: string)
+-- (18-11-2026, el dueño: «aparecen mensajes de otras misiones de repente, sin ton ni son») Una oferta que NO
+-- viene de hablar con quien te la pide (llegar a un sitio, algo que pasa en el mundo) ya no abre la tarjeta grande en
+-- mitad de la pantalla: sale un aviso pequeño arriba con «Ver» (Quiet), y como mucho uno cada QUIET_GAP segundos.
+local QUIET_GAP = 240
+local function offer(player: Player, questId: string, fromTalk: boolean?)
 	local rt = runtime[player]
 	local quest = Quests[questId]
+	if not fromTalk then
+		if rt.LastQuietOffer and os.clock() - rt.LastQuietOffer < QUIET_GAP then
+			return -- (otra más tarde: nada de avisos seguidos)
+		end
+		rt.LastQuietOffer = os.clock()
+	end
 	if RideState.inVehicle(player) then
 		return -- (conduciendo no sale ninguna tarjeta con botones: se ofrecerá cuando vayas a pie)
 	end
@@ -3335,6 +3351,7 @@ local function offer(player: Player, questId: string)
 		Label = card.Label,
 		Type = card.Kind,
 		Asker = card.Asker,
+		Quiet = not fromTalk,
 	})
 end
 
@@ -3564,7 +3581,7 @@ local function onStoryEvent(player: Player, name: string, payload: { [string]: a
 		local trigger = quest.Offer
 		if quest.Kind == "Side" and trigger and trigger.Event == name and matchesPayload(trigger.Match, payload) then
 			if canOffer(player, data, questId) then
-				offer(player, questId)
+				offer(player, questId, name == "Talk" or name == "TalkDone")
 				break
 			end
 		end

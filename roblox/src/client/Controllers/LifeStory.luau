@@ -822,6 +822,53 @@ end
 
 ---------------------------------------------------------------------
 
+-- (18-11-2026) Aviso pequeño de una misión disponible (arriba en el centro, lejos de los pulgares): su título y
+-- quién te la pide, con un botón «Ver» que abre la tarjeta; se va solo a los 12 s. Uno a la vez.
+local handlersRef: { [string]: (payload: { [string]: any }) -> () }? = nil
+local quietBanner: Frame? = nil
+local function showQuietOffer(payload: { [string]: any }, onOpen: () -> ())
+	if quietBanner and quietBanner.Parent then
+		quietBanner:Destroy()
+	end
+	local gui = player:WaitForChild("PlayerGui"):FindFirstChild("AvisoMision") :: ScreenGui?
+	if not gui then
+		gui = create("ScreenGui", { Name = "AvisoMision", ResetOnSpawn = false, DisplayOrder = 6, IgnoreGuiInset = false, Parent = player:WaitForChild("PlayerGui") }) :: any
+	end
+	local title = Strings.get(payload.TitleKey)
+	local who = if payload.Asker then Strings.get("STORY.CONTEXT.ASKS", { who = tostring(payload.Asker) }) else ""
+	local card = create("Frame", {
+		Name = "Aviso",
+		AnchorPoint = Vector2.new(0.5, 0),
+		Position = UDim2.new(0.5, 0, 0, -80),
+		Size = UDim2.fromOffset(340, 58),
+		BackgroundColor3 = Color3.fromRGB(14, 18, 34),
+		BackgroundTransparency = 0.08,
+		Parent = gui,
+	}, {
+		create("UICorner", { CornerRadius = UDim.new(0, 12) }),
+		create("UIStroke", { Color = Color3.fromRGB(230, 180, 70), Thickness = 2, Transparency = 0.15 }),
+		create("UIGradient", { Rotation = 90, Color = ColorSequence.new(Color3.fromRGB(40, 46, 80), Color3.fromRGB(12, 14, 28)) }),
+	})
+	create("TextLabel", { Name = "Icono", Position = UDim2.fromOffset(8, 9), Size = UDim2.fromOffset(40, 40), BackgroundTransparency = 1, Text = payload.Icon or "❗", TextScaled = true, Font = Theme.FontBold, TextColor3 = Color3.fromRGB(255, 210, 90), Parent = card })
+	create("TextLabel", { Name = "Titulo", Position = UDim2.fromOffset(54, 6), Size = UDim2.new(1, -140, 0, 24), BackgroundTransparency = 1, Text = "Misión disponible · " .. title, TextScaled = true, Font = Theme.FontBold, TextColor3 = Color3.fromRGB(255, 236, 190), TextXAlignment = Enum.TextXAlignment.Left, Parent = card })
+	create("TextLabel", { Name = "Quien", Position = UDim2.fromOffset(54, 30), Size = UDim2.new(1, -140, 0, 20), BackgroundTransparency = 1, Text = who, TextScaled = true, Font = Theme.Font, TextColor3 = Color3.fromRGB(170, 190, 230), TextXAlignment = Enum.TextXAlignment.Left, Parent = card })
+	local ver = create("TextButton", { Name = "Ver", AnchorPoint = Vector2.new(1, 0.5), Position = UDim2.new(1, -8, 0.5, 0), Size = UDim2.fromOffset(74, 40), BackgroundColor3 = Color3.fromRGB(200, 140, 30), Text = "Ver", TextSize = 18, Font = Theme.FontBold, TextColor3 = Color3.fromRGB(255, 255, 255), AutoButtonColor = true, Parent = card }, {
+		create("UICorner", { CornerRadius = UDim.new(0, 10) }),
+		create("UIGradient", { Rotation = 90, Color = ColorSequence.new(Color3.fromRGB(255, 200, 80), Color3.fromRGB(170, 100, 10)) }),
+	})
+	quietBanner = card
+	game:GetService("TweenService"):Create(card, TweenInfo.new(0.35, Enum.EasingStyle.Back, Enum.EasingDirection.Out), { Position = UDim2.new(0.5, 0, 0, 10) }):Play()
+	ver.Activated:Connect(function()
+		card:Destroy()
+		onOpen()
+	end)
+	task.delay(12, function()
+		if card.Parent then
+			card:Destroy()
+		end
+	end)
+end
+
 local handlers: { [string]: (payload: { [string]: any }) -> () } = {
 	State = function(payload)
 		renderCard(payload)
@@ -906,6 +953,18 @@ local handlers: { [string]: (payload: { [string]: any }) -> () } = {
 		choiceShown = key
 	end,
 	Offer = function(payload)
+		-- (18-11-2026) Oferta que no has pedido tú (no viene de hablar con nadie): solo un aviso pequeño arriba con
+		-- «Ver»; la tarjeta grande sale al tocarlo. Así no tapa la pantalla ni se contesta sin querer al mover la cámara.
+		if payload.Quiet and not payload._Open then
+			showQuietOffer(payload, function()
+				local again = table.clone(payload)
+				again._Open = true
+				if handlersRef then
+					handlersRef.Offer(again)
+				end
+			end)
+			return
+		end
 		-- Título con el tipo (⭐/🌀/❗/🔶), lo que te dicen y, debajo, quién te lo pide y por qué
 		local title = Strings.get(payload.TitleKey)
 		if payload.Icon then
@@ -966,6 +1025,7 @@ local handlers: { [string]: (payload: { [string]: any }) -> () } = {
 		StoryJournal.show(payload)
 	end,
 }
+handlersRef = handlers
 
 -- «Mi historia» (desde el Menú)
 function LifeStory.openJournal()

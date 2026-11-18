@@ -1146,6 +1146,12 @@ function CityErrandService.init()
 			CityErrandService.tick()
 		end
 	end)
+	-- (18-11-2026, el dueño: «la historia es muy infantil… aparecen mensajes de repente») Los encargos de la ciudad
+	-- (reponer yogures, bajar un balón…) no pegan con el mundo de ahora: APAGADOS (CityErrands.Config.Enabled). Ya no
+	-- sale gente con ❗ por la calle que te interrumpe al pasar.
+	if CFG.Enabled == false then
+		return
+	end
 	task.spawn(function()
 		task.wait(CityErrandService.StartDelay)
 		while true do
