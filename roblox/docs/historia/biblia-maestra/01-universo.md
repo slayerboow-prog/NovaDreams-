@@ -127,6 +127,32 @@ fondo de cada grieta (Siroco, Nivalis, Umbría): es el punto donde el Sello est�
 
 **Fuente de las reglas:** `reglas-universo.md` (redacción oficial y límites). **Las reglas no se adaptan a la escena.**
 
+### 3.6 Los Ensayos del Consorcio (✅ RC-080)
+
+**Ensayo** es el nombre de cada experimento de perforación del Consorcio. Su identificador es **ENS-año-MUNDO**: nunca se
+confunde con nombres de lugares. Son **siete**, uno por mundo, como dice el juego: «Siete grietas abiertas por el
+Consorcio» (`Coalicion_Marea`). La apertura de Valmar en 1.212 **no** es un Ensayo: es el **Proyecto Umbral**, la primera
+apertura completa (RC-023).
+
+| Identificador | Año | Dónde | Qué pasó | Fuente |
+|---|---|---|---|---|
+| **ENS-1174-VER** | 1.174 | Vértice, bajo la Torre (la Consola) | La primera perforación. Por ella llega la voz de Ithar a Halvek. Por ella cruza la expedición de 1.194. | Vol. I §4 |
+| **ENS-1176-TEF** | 1.176 | Tefra, sobre la Calle del Horno | «Un agujero en el cielo»: Cosme cae. El Consorcio la ancla bajo la forja; en 1.211 se ensancha en la Lanza y en 1.212 se abre del todo. | 📜 `Coalicion_Marea` |
+| **ENS-1184-UMB** | 1.184 | Umbría, dentro del árbol madre | El ancla dentro del tronco. El árbol empieza a ponerse gris y Garza protege la semilla «treinta años». | 📜 `Umb03` |
+| **ENS-1190-SIR** | 1.190 | Siroco, el pozo más hondo | «El Consorcio sacaba agua del otro lado» (📜 `Sir01`). Perforando descubre el acuífero (estudio de 1.194). Cuando se va, vende el pozo a Luz. | 📜 `Sir01` |
+| **ENS-1203-MIA** | 1.203 | Miasma, bajo el **Anclaje Seis** | Ver la relación abajo | 📜 («once años») |
+| **ENS-1207-NIV** | 1.207 | Nivalis | La perforación que alimentaba el sol vendido con la Cláusula 19. Cuando deja de ser rentable, el Consorcio lo apaga: siete años de noche. | 📜 («siete años de noche») |
+| **ENS-1208-TAL** | 1.208 | Tálasa, bajo la Estación Abisal | Perforan bajo la estación que estudiaba el Ancla y provocan la inundación: «Y la grieta debajo, que lo empezó todo» (📜 `Tal02`) | 📜 `Tal01`, `Tal02` |
+
+**La relación entre el Anclaje Seis y el Ensayo de Miasma:**
+- **El Anclaje Seis es una instalación:** la plataforma-ciudad colgada bajo la niebla, donde vivían 2.300 personas
+  (`Mia02`). Conserva su nombre.
+- **ENS-1203-MIA es el experimento** que el Consorcio hizo **debajo** de la plataforma. La perforación desestabilizó los
+  anclajes, el Seis empezó a caer y el padre de Mara cortó el cable.
+- **El Seis no es «el Ensayo 9» ni «la prueba 6».** Es el lugar que pagó el Ensayo.
+- **La pista se cambia:** el contrato «de hace 40 años» (1.174) y la lista de los siete códigos aparecen en el archivo del
+  Seis (Miasma IV).
+
 ### 3.5 Las señales (canon del juego)
 - **El pulso de once segundos.** Es el latido del Coro buscando una puerta. Empieza a oírse en todas las radios una
   semana después del Umbral (`Mar01_Senal`).
@@ -151,13 +177,13 @@ juego da una fecha, esta tabla la respeta.
 | 0-1.064 | Era aislada: cada mundo desarrolla su cultura, sus guerras y sus dioses | Biblia |
 | 1.064 | Se redescubre el viaje por los Hilos. Los ocho mundos se reencuentran. | Biblia |
 | 1.124 | Empieza la guerra de Tefra entre el **Dominio de Bastión** y su luna **Ovilla**, que dura noventa años. Los Desertores del Ovillo (la resistencia) son los que no quieren luchar en ella (RC-032). | Juego: «noventa años con el fin del mundo» |
-| 1.174 | La voz de Ithar llega a **Augusto Halvek**, en Vértice, por un Hilo dormido de la Consola. Nace el **Consorcio Umbral** y empiezan las perforaciones (las «anclas»). | Biblia |
-| 1.176 | Prueba del Consorcio en Tefra: se abre «un agujero en el cielo» sobre la Calle del Horno. **Cosme, con nueve años, cae dentro** y aparece en Valmar envejecido (R4). Su hermana Lía se queda en Tefra. | Juego (`Coalicion_Marea`) |
+| 1.174 | La voz de Ithar llega a **Augusto Halvek**, en Vértice, por un Hilo dormido de la Consola. Nace el **Consorcio Umbral** y empiezan las perforaciones (las «anclas»): la primera es **ENS-1174-VER**. | Biblia |
+| 1.176 | **ENS-1176-TEF** en Tefra: se abre «un agujero en el cielo» sobre la Calle del Horno. **Cosme, con nueve años, cae dentro** y aparece en Valmar envejecido (R4). Su hermana Lía se queda en Tefra. | Juego (`Coalicion_Marea`) |
 | 9-10-1.194 | **La expedición del Consorcio, de nueve personas**, cruza la perforación de la Torre de Vértice. Van **Kael** (26 años, seguridad del Consorcio), **Irene Ferran** (ingeniera) y siete más. Ithar perdona a Kael («vuelve y cuéntaselo»). Por orden, Kael cierra la compuerta con ocho compañeros al otro lado: siete mueren e Irene sobrevive a oscuras en los Hilos. Kael cree muertos a los ocho. | RC-046, RC-047, RC-048 |
 | 1.194 | Estudio del Consorcio en Siroco: un acuífero natural bajo el desierto. «No divulgar.» | Juego (`Sir01`) |
 | 1.196 | Irene sale por el Ancla de Tálasa, envejecida (R4, R5). El Consorcio la recoge, la silencia a cambio de la custodia de Noa y construye sobre ese punto la **Estación Abisal «Umbral»**. Kael nunca lo sabe. | RC-048 |
 | ~1.200 | En Tálasa, Coria sella la Cúpula Honda con mil personas dentro para salvar a diez mil | Biblia |
-| 1.203 | Cae el **Anclaje Seis** de Miasma («prueba 6»). El padre de Mara corta el cable. Andrés queda abajo. | Juego («once años») |
+| 1.203 | Cae el **Anclaje Seis** de Miasma por **ENS-1203-MIA**, el Ensayo hecho debajo. El padre de Mara corta el cable. Andrés queda abajo. | Juego («once años») |
 | 1.204 | Cholo muere en la Gran Vuelta de Siroco: Rafa forzó el motor en la última curva | Juego (`Siroco_Episodio`, retirado; secundario) |
 | **1.207** | **Cláusula 19.** El rey Osric de Nivalis firma el contrato solar que negoció su hermano Casimir. Meses después, el Consorcio apaga el sol cuando deja de ser rentable: siete años de noche. | Juego («siete años de noche») |
 | 1.208 | Ámbar, la heredera de Nivalis, «muere» en el Glaciar | Juego («hace seis años») |
@@ -276,24 +302,41 @@ Es la guía para las escenas de Sorel, Ilse, Nivalis y Oren.
 
 ---
 
-## 7. Las grandes revelaciones
+## 7. Las revelaciones (✅ RC-079)
 
-Cada giro reinterpreta el anterior. Las pistas se siembran en la campaña indicada, como mínimo dos campañas antes del
-giro. La columna «Ya en el juego» señala las pistas que ya existen en las misiones publicadas.
+### 7.1 Las nueve revelaciones principales
+Una por mundo y Oren como novena y última. Cada una cambia cómo se entiende todo lo anterior. Sus pistas se siembran
+como mínimo dos campañas antes. El identificador es **REV-n**, que no se confunde con las reglas R1-R12.
 
-| # | Campaña | Revelación | Pistas (dónde) | Ya en el juego |
+| Id | Campaña | Revelación | Pistas (dónde) | Ya en el juego |
 |---|---|---|---|---|
-| 1 | Valmar | La señal de las 3:12 es una voz humana (Halden), y **la Grieta la abrieron los nuestros** | La caja negra del piloto: «la abrieron los de vuestro lado»; el cuaderno de Ilse: «La abrimos nosotros» | Sí (`Gri01`-`Gri03`) |
-| 2 | Valmar | **El Heraldo de Valmar es Tomás**, el hermano de Brenn | Brenn: «mi hermano peleaba así»; la espada «B. y T.»; un Velado que no ataca a Brenn en el Acto II | Parcial |
-| 3 | Tefra | La Marea devuelve a los muertos, **vacíos** | Los hijos de Corvo no tienen sombra en las fotos recientes; Velados que repiten gestos de vivos | No |
-| 4 | Miasma | **El Consorcio firmó con «alguien del otro lado» hace 40 años** | El Seis cayó por la «prueba 6»: ¿dónde estaban las pruebas 1 a 5? (Cosme fue una) | No |
-| 5 | Siroco | **Existió un noveno mundo, Oren, y los ocho le cerraron la puerta** | Nueve estrellas en los murales, una tachada; la abuela de Cosme y «el Silencio que se comía las estrellas»; el símbolo del piloto | Parcial |
-| 6 | Nivalis | **Las criaturas de la oscuridad son mentes de Oren**, y las canciones prohibidas son su lamento | Tila oye cantar en otro idioma; las criaturas se retiran al oír a Madre Copo | No |
-| 7 | Umbría | **Ithar tiene una hija y la protege del Coro dentro de un Sello** | La semilla verde que el árbol protegió (`Umb03`); el árbol joven «Garza» crece con cada pulso | Parcial |
-| 8 | Tálasa | **Kael ya estuvo al otro lado y cerró la puerta a su equipo**. Lo revela Irene. | Kael nunca entra en ascensores; conoce el idioma de los murales; cierra todas las puertas que cruza; la boya «Umbral» | No |
-| 9 | Vértice | **El Coro olvida: Ithar no salva a nadie, alimenta a los suyos** | La voz de la madre de Luz Pozo no recuerda su nombre (Siroco); los Velados más antiguos no reaccionan a nada | No |
+| **REV-1** | Valmar | La señal de las 3:12 es una voz humana (Halden), y **la Grieta la abrieron los nuestros** | La caja negra del piloto; el cuaderno de Ilse: «La abrimos nosotros» | Sí (`Gri01`-`Gri03`) |
+| **REV-2** | Tefra | La Marea devuelve a los muertos, **vacíos** | Los hijos de Corvo sin sombra en las fotos recientes; Velados que repiten gestos de vivos | No |
+| **REV-3** | Miasma | **El Consorcio firmó con «alguien del otro lado» hace 40 años**, y sus siete Ensayos abrieron los mundos | La placa ENS-1176-TEF en la Lanza (Tefra V); el archivo del Seis | No |
+| **REV-4** | Siroco | **Existió un noveno mundo, Oren, y los ocho le cerraron la puerta** | Nueve estrellas en los murales, una tachada; «el Silencio que se comía las estrellas»; el símbolo del piloto | Parcial |
+| **REV-5** | Nivalis | **Las criaturas de la oscuridad son mentes de Oren**, y las canciones prohibidas son su lamento | Tila oye cantar en otro idioma; las criaturas se retiran al oír a Madre Copo | No |
+| **REV-6** | Umbría | **Ithar tiene una hija y la ha escondido en la Semilla**, donde el Coro no llega (R11) | La semilla verde (`Umb03`); el árbol joven «Garza» crece con cada pulso | Parcial |
+| **REV-7** | Tálasa | **Kael ya estuvo al otro lado y cerró la puerta a su equipo**. Lo revela Irene. | Kael nunca entra en ascensores; conoce el idioma de los murales; cierra todas las puertas que cruza; la boya «Umbral» | No |
+| **REV-8** | Vértice | **El Coro olvida: Ithar no salva a nadie, alimenta a los suyos** | La voz de la madre de Luz no recuerda su nombre (Siroco); los Velados más antiguos no reaccionan a nada | No |
+| **REV-9** | Oren | **La verdad completa de Ithar:** los 40 días de retraso, Lys sosteniendo la puerta y su compasión, que también es hambre | Los recuerdos de Lys (Umbría V); «Un día más, Lys»; las apariciones de Ithar | No |
 
----
+### 7.2 Giros secundarios
+Son importantes, pero no cambian cómo se entiende el universo. Afectan a un personaje o a un mundo. Identificador:
+**G-MUNDO-n**.
+
+| Id | Campaña | Giro |
+|---|---|---|
+| G-VAL-1 | Valmar | **El Heraldo de Valmar es Tomás**, el hermano de Brenn (pistas: «mi hermano peleaba así»; la espada «B. y T.»; el Velado que no ataca a Brenn) |
+| G-VAL-2 | Valmar IV | La muralla coincide con las raíces del Árbol Ancestral: el Sello salvó la ciudad |
+| G-VAL-3 | Valmar V | La firma de Greta en el libro de actas |
+| G-TEF-1 | Tefra | Lía es una Velada |
+| G-MIA-1 | Miasma III | Andrés es el Heraldo; la Calma |
+| G-SIR-1 | Siroco III | Luz acepta al Coro |
+| G-NIV-1 | Nivalis I-III | Ámbar está viva; «Yo firmé» (Osric) |
+| G-TAL-1 | Tálasa II | La Cúpula Honda de Coria |
+| G-TAL-2 | Tálasa II-III | Irene está viva (Kael lo descubre) |
+| G-TAL-3 | Tálasa IV | Ilse abre el Nudo |
+| G-VER-1 | Vértice IV | Halvek escapa |
 
 ## 8. Misterios
 

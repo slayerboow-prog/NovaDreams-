@@ -33,7 +33,7 @@ oscuridad.
 | Cultura | Casas Nobles en lucha por el cristal; el **gremio de faroleros**, que fundó Casimir; las **canciones prohibidas** de Madre Copo (el lamento de Oren, en otro idioma); la vela por los que no vuelven; la Estatua Rota de la Reina Liv. **El Gran Corte:** Nivalis votó en contra y lo guarda en canciones. |
 | Vestimenta | Nobles con capas de lana bordada y armiño de lanudo, coronas finas de plata; faroleros con abrigo de lana, guantes y farol al cinto (Tila); guardia del Regente con armadura azul y estandartes; la resistencia con ropa de minero. |
 | Tecnología y transporte | Trineos, faroles con manivela, el sol artificial (anillo-orbe), ascensores de mina; la Corona del Sol (los mandos del sol, en el palacio) |
-| Fauna y flora | Lanudos (rebaños de lana), musgo de nieve, el Bosque de Escarcha; **las criaturas de la oscuridad:** mentes de Oren, sombras alargadas que cantan (giro 6); **Velados de Nivalis:** los «tocados», con escarcha gris en la piel. |
+| Fauna y flora | Lanudos (rebaños de lana), musgo de nieve, el Bosque de Escarcha; **las criaturas de la oscuridad:** mentes de Oren, sombras alargadas que cantan (revelación 5); **Velados de Nivalis:** los «tocados», con escarcha gris en la piel. |
 | Luz y clima | Noche eterna, luz de luna azul, aurora verde y rosa, círculos ámbar de los faroles, ventiscas dos veces al día. **Sol encendido** (Acto I): luz amarilla de reserva. **Sello encendido** (Acto V): luz azul-blanca. |
 | Música y sonido | Coro femenino lejano y celesta; viento; el chasquido del farol al encenderse; las criaturas cantando en el idioma de Oren. |
 

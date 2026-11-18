@@ -108,11 +108,11 @@ En cada campaña:
 |---|---|
 | **I · Tierra quemada** | **Existe:** `Tef01`-`Tef03`. La Calle del Horno; Dalia; la tregua (`TefTregua`); el sabotaje firmado «A. Varn»; el pozo de magma; la lista con «Lía, esperando a Cosme»; Corvo une el Dominio a la Coalición (`TefCorvo`). **Nueva:** la escena del Sello apagado. |
 | **II · La resistencia del Ovillo** (≈4) | La resistencia odia a Valmar: «Valmar compraba armas al Dominio». Infiltración en una **cadena de montaje de Velados**, donde la forja fabrica cuerpos. Doctora Fermina. Corvo sobre la paz: «No saber qué hacer con las manos». **Mazmorra 1:** la Fundición Negra. |
-| **III · Los hijos de Corvo** (≈4) | Darío y Marco vuelven grises y sin sombra (giro 3). Hablan a la vez (aparición 2 de Ithar). Corvo cambia de bando. Tobi Renn duda. **Ilse se guarda un fragmento del ancla** (peldaño 2). |
+| **III · Los hijos de Corvo** (≈4) | Darío y Marco vuelven grises y sin sombra (revelación 2). Hablan a la vez (aparición 2 de Ithar). Corvo cambia de bando. Tobi Renn duda. **Ilse se guarda un fragmento del ancla** (peldaño 2). |
 | **IV · El asedio de Bastión** (≈5) | Gran batalla en las murallas de la ciudad-cúpula. Lía entre los Velados de la guardia: decide Cosme. La escena sin chiste de Cosme. **Mazmorra 2:** los túneles de la Forja. |
-| **V · La Lanza** (≈4) | **Mazmorra-jefe** en la Lanza y **jefe Corvo** (Vol. II §2.2). Se enciende el Sello: la luz naranja de Tefra se vuelve azul. Un registro del Consorcio: «Anclaje Seis, prueba 6». |
+| **V · La Lanza** (≈4) | **Mazmorra-jefe** en la Lanza y **jefe Corvo** (Vol. II §2.2). Se enciende el Sello: la luz naranja de Tefra se vuelve azul. Una placa del Consorcio en la Lanza: «ENS-1176-TEF» (pista de la revelación 3). |
 
-**Gancho:** si fue la prueba 6, ¿dónde estuvieron las otras cinco? (Cosme fue una).
+**Gancho:** en la Lanza, una placa del Consorcio con un código: **ENS-1176-TEF**. Cosme: «Entonces yo fui un experimento.» ¿Cuántos códigos más hay? (Se responde en el archivo del Seis, Miasma IV.)
 
 ### 2.3 MIASMA — «La Calma» (9 h)
 
@@ -124,7 +124,7 @@ En cada campaña:
 | **I · Respirar a medias** | **Existe:** `Mia01`-`Mia03`. Las ciudades colgadas; la góndola; el Seis; Andrés: «Eres igual que tu padre»; la tumba de Solis; el Fondo; `MiaSeis`. **Nueva:** la escena del Sello apagado. |
 | **II · Arriba y abajo** (≈4) | Mara reencuentra a Andrés después de once años y Leo no le recuerda. La gente de arriba empieza a sonreír demasiado. Sorel da su máscara a un niño. Pía y el racionamiento. **Ilse sobre la Calma:** «No suena tan mal» (peldaño 3). **Mazmorra 1:** las ruinas inclinadas del Seis. |
 | **III · La Calma** (≈3) | Andrés es el Heraldo: la Calma baja sobre las ciudades. Leo se va con su padre. Se busca un antídoto. **La votación del Seis** (`MiaVoto`, eje de consentimiento, distinto de `MiaSeis` y de `MiaCalma`: matriz de decisiones §4). |
-| **IV · Cazas remendados** (≈4) | Asedio aéreo con los cazas de Mara. Rescate de la ciudad sedada. **Mazmorra 2:** el archivo del Seis, donde aparece **el contrato de hace 40 años** con «alguien del otro lado» (giro 4). |
+| **IV · Cazas remendados** (≈4) | Asedio aéreo con los cazas de Mara. Rescate de la ciudad sedada. **Mazmorra 2:** el archivo del Seis, donde aparece **el contrato de hace 40 años** con «alguien del otro lado» y la lista de los siete Ensayos (revelación 3). |
 | **V · El Fondo** (≈3) | **Jefe Andrés** (Vol. II §2.3). Decisión: quitar la Calma de golpe o poco a poco. Se enciende el Sello y la niebla se vuelve blanca y respirable por zonas. |
 
 **Gancho:** el contrato cita «el Archivo de Siroco» como fuente de «las coordenadas de la puerta».
@@ -140,7 +140,7 @@ En cada campaña:
 | **II · El vacío** (≈4) | Tras la lluvia, nadie manda. **Marisa** mueve el Cártel de las Cisternas y toma el agua: «Si el agua no es de nadie, la cuidaré yo». Con `LuzTrato`, la Coalición no llega a proteger a Luz; con `LuzExpuesta`, Luz ya no es nadie. El Coro le ofrece la voz de su madre. Reputación con dos bandos (`SirBando`). Nina en los Boxes. **Mazmorra 1:** las Cisternas viejas. |
 | **III · La caída de Luz** (≈3) | Luz acepta al Coro y sus Velados de arena quitan el acuífero al Cártel. Marisa, derrotada, ofrece una alianza con su propio plan (`SirAlianza`). La Tía Cifra vende al grupo. Tavo «Aguador» traiciona a Rafa. |
 | **IV · La última carrera** (≈3) | Vuelve la tormenta de fuego. El precio de Marisa: la Gran Vuelta a través de la tormenta (`SirCarrera`): corre Rafa (escolta; puede morir), corre el jugador (con Nina de mecánica) o ruptura (el Cártel ataca en el asalto). **Mazmorra 2.** |
-| **V · La Biblioteca de Arena** (≈4) | **Mazmorra-jefe:** la Biblioteca. **Jefa Luz Pozo** (Vol. II §2.4): la voz de su madre no recuerda su nombre, que es la pista del giro 9. **Gran revelación:** los murales tienen nueve estrellas, una tachada, y está el Gran Corte (giro 5). El nombre de Ithar (aparición 3). **Ilse arranca una página** (peldaño 4). La recuperación de Luz (`SirLuzVuelve` / `SirLuzVelada`) y, después, el destino de Marisa (`SirMarisa`). |
+| **V · La Biblioteca de Arena** (≈4) | **Mazmorra-jefe:** la Biblioteca. **Jefa Luz Pozo** (Vol. II §2.4): la voz de su madre no recuerda su nombre, que es la pista de la revelación 8. **Gran revelación:** los murales tienen nueve estrellas, una tachada, y está el Gran Corte (revelación 4). El nombre de Ithar (aparición 3). **Ilse arranca una página** (peldaño 4). La recuperación de Luz (`SirLuzVuelve` / `SirLuzVelada`) y, después, el destino de Marisa (`SirMarisa`). |
 
 **Gancho:** los murales señalan el Faro de Nivalis como el único mundo que votó en contra.
 
@@ -154,7 +154,7 @@ En cada campaña:
 | **I · La noche larga** | **Existe:** `Niv01`-`Niv03`. Los faroles; Tila y su hermano; la Cláusula 19; Ámbar; el camino de luz (`NivTila`); encender el sol; Osric llora en el balcón. **Nueva:** Casimir aparece en el balcón y ve a Ámbar viva: «Estás viva.» |
 | **II · La corte de hielo** (≈4) | El sol vuelve a apagarse: «Yo apago lámparas». Intrigas de las Casas. Tila espía en el palacio. Casimir propone a Ámbar la corona bajo su regencia. Madre Copo y las canciones prohibidas. **Ilse entra sola en la zona oscura** (peldaño 5). **Mazmorra 1:** las Minas de cristal. |
 | **III · El banquete** (≈4) | Una Casa traiciona a la resistencia en un banquete organizado por Casimir. **Osric rompe siete años de silencio:** «Yo firmé.» Sale a la luz la verdad del Glaciar. |
-| **IV · El palacio de hielo** (≈4) | Asedio del palacio. Los sótanos de los tocados y Nilo: decisión sobre los tocados. Las criaturas cantan en otro idioma (giro 6). Halden, si está, lo traduce. **Mazmorra 2:** los sótanos. |
+| **IV · El palacio de hielo** (≈4) | Asedio del palacio. Los sótanos de los tocados y Nilo: decisión sobre los tocados. Las criaturas cantan en otro idioma (revelación 5). Halden, si está, lo traduce. **Mazmorra 2:** los sótanos. |
 | **V · El Faro** (≈4) | **Jefe Casimir** (Vol. II §2.5). Se enciende el corazón del sol: es luz de Sello, azul y blanca. Tila entra en la oscuridad por Nilo; **Sorel toca el Coro para sacarla** (fijo). Decide Ámbar sobre Casimir. Esa noche, **primer sueño con Ithar** (aparición 4). |
 
 **Gancho:** Sorel, con la mano gris, no puede dormir. Desde Umbría llega una señal: un árbol joven ha crecido
@@ -168,10 +168,10 @@ demasiado deprisa.
 | Acto | Qué pasa |
 |---|---|
 | **I · El bosque gris** | **Existe:** `Umb01`-`Umb03`. Varn de profeta (`UmbVarn`); Nía oye a su abuela en la raíz; el corazón del árbol; Garza y la semilla; «cinco de siete». **Nueva:** la escena del Sello apagado. El árbol madre sigue gris, pero la semilla plantada brota. |
-| **II · Raíz Honda** (≈3) | El árbol joven «Garza» crece con cada pulso (pista del giro 7). Nía y Dron 7. Liquen y la poda. Sorel no se ríe con un chiste de Cosme. **Mazmorra 1:** el Vivero. |
+| **II · Raíz Honda** (≈3) | El árbol joven «Garza» crece con cada pulso (pista de la revelación 6). Nía y Dron 7. Liquen y la poda. Sorel no se ríe con un chiste de Cosme. **Mazmorra 1:** el Vivero. |
 | **III · Madre Savia** (≈3) | La abuela Hiedra llama desde la raíz. Savia se convierte y entrega el Vivero a los Hijos de la Ceniza. |
 | **IV · La quema** (≈3) | Quema controlada contra el contagio. Decisión: qué parte del bosque se sacrifica. **Mazmorra 2:** las raíces profundas. |
-| **V · El árbol madre** (≈3) | **Jefa Savia** (Vol. II §2.6). Nía devuelve a su madre. **Se encuentra a Lys** en la Semilla (giro 7) y, a través de ella, el pasado de Ithar (aparición 5). Ilse pregunta a Lys por los muertos (peldaño 6). Se enciende el Sello: el bosque recupera el verde por franjas. |
+| **V · El árbol madre** (≈3) | **Jefa Savia** (Vol. II §2.6). Nía devuelve a su madre. **Se encuentra a Lys** en la Semilla (revelación 6) y, a través de ella, el pasado de Ithar (aparición 5). Ilse pregunta a Lys por los muertos (peldaño 6). Se enciende el Sello: el bosque recupera el verde por franjas. |
 
 **Gancho:** Lys pide al jugador que vaya a Tálasa: «Allí acaba todo lo que se pierde. También lo que buscáis.»
 
@@ -184,7 +184,7 @@ demasiado deprisa.
 |---|---|
 | **I · Lo que hay bajo el agua** | **Existe:** `Tal01`-`Tal03`. La boya; Noa; la Estación Abisal; las 140 personas; la cápsula (`TalCapsula`); la fosa; Coria une Tálasa a la Coalición. **Nueva:** la escena del Sello apagado. |
 | **II · El Consejo de Mareas** (≈4) | Las ciudades flotantes. Bruma saca a la luz la Cúpula Honda y Coria es repudiada. **Mazmorra 1:** la Cúpula Honda sumergida. |
-| **III · La verdad de Kael** (≈4) | Irene despierta del todo (si se la sacó en cápsula, despierta ahora). Pide ver a Kael. Kael descubre que Irene vive. ILEN reproduce el mensaje de Ilen y **Kael rompe su voto: sale de Valmar por primera vez desde que volvió de Tefra.** Irene pide las cartas y Kael no se las da. Irene: «Yo estaba al otro lado de esa compuerta. Ella la cerró» (giro 8). Kael y Coria: «Usted y yo hicimos lo mismo.» Silencio. Irene perdona a Kael o no. |
+| **III · La verdad de Kael** (≈4) | Irene despierta del todo (si se la sacó en cápsula, despierta ahora). Pide ver a Kael. Kael descubre que Irene vive. ILEN reproduce el mensaje de Ilen y **Kael rompe su voto: sale de Valmar por primera vez desde que volvió de Tefra.** Irene pide las cartas y Kael no se las da. Irene: «Yo estaba al otro lado de esa compuerta. Ella la cerró» (revelación 7). Kael y Coria: «Usted y yo hicimos lo mismo.» Silencio. Irene perdona a Kael o no. |
 | **IV · El Nudo** (≈4) | Ilse ve a Noa con su madre. El pulso le habla con la voz de Adrián: «Mamá, abre.» **Ilse abre el Nudo** (peldaño 7). Inundación y persecución por la estación. **Mazmorra 2:** los pozos de la fosa. |
 | **V · La compuerta** (≈4) | **Jefa Coria** (Vol. II §2.7). **Kael muere sujetando la compuerta** (hecho fijo). Aparición 6 de Ithar. Brenn toma el mando. Se enciende el Nudo y la fosa se vuelve azul. |
 
@@ -200,8 +200,8 @@ demasiado deprisa.
 | **I · Gracias por su compra** | **Existe:** `Ver01`-`Ver02`. MegaVerso; la Gran Memoria; Abril y Gil; el **Plan Puerta**; la torre; Varn (`VerVarn`); «siete de siete». **Nueva:** la escena del Sello apagado. ÁGORA: «Han calculado mal.» La señal de ILEN de que la Marea ha encontrado la puerta de Valmar pasa al final del Acto V. |
 | **II · La ciudad perfecta** (≈4) | ÁGORA lo gobierna todo. La gente no protesta porque nunca le falta nada. Gil y el origen de ÁGORA. La lista del Arca. **Mazmorra 1:** el subsuelo de servicio. |
 | **III · ILEN** (≈4) | ÁGORA intenta absorber a ILEN. Sorel pierde parches de su chaqueta. Llega la redención o la caída de Ilse (peldaño 8). |
-| **IV · El asalto a la Torre** (≈4) | La Coalición entera asalta MegaVerso. Halvek huye en el Arca. **Mazmorra 2:** las plantas 60 a 120. |
-| **V · La Consola** (≈4) | **Jefa ÁGORA** (Vol. II §2.8). **Cara a cara con Ithar** en su cuerpo de ceniza (aparición 7): «El Coro olvida. Lo sé» (giro 9). La Consola abre el Hilo hacia Oren. Después, **la petición de que vuelva ÁGORA** (`VerPeticion`): ILEN solo puede gestionar sistemas técnicos, nunca sustituir la voluntad ciudadana. ILEN: «La Marea ha encontrado la puerta que quedaba. Viene de Valmar.» |
+| **IV · El asalto a la Torre** (≈4) | La Coalición entera asalta MegaVerso. **Combate en el hangar del Arca con límite de tiempo:** Halvek lucha para escapar y siempre huye; marcar su nave (`HalvekMarcado`) es opcional y no cambia el resultado (RC-078). **Mazmorra 2:** las plantas 60 a 120. |
+| **V · La Consola** (≈4) | **Jefa ÁGORA** (Vol. II §2.8). **Cara a cara con Ithar** en su cuerpo de ceniza (aparición 7): «El Coro olvida. Lo sé» (revelación 8). La Consola abre el Hilo hacia Oren. Después, **la petición de que vuelva ÁGORA** (`VerPeticion`): ILEN solo puede gestionar sistemas técnicos, nunca sustituir la voluntad ciudadana. ILEN: «La Marea ha encontrado la puerta que quedaba. Viene de Valmar.» |
 
 ### 2.9 LA PUERTA — Oren (5 h)
 

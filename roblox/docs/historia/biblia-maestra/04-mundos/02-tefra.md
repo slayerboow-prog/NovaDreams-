@@ -173,7 +173,7 @@ bombardeo y bombardeo, gente que sigue haciendo pan.
   > «Nilda, maestra. Estudió el Silencio.»
 
   Es una pista: Nilda estudió los cuentos del Silencio y midió el agujero de 1.176 (secreto «Los cálculos de Nilda»,
-  reinterpretado como prueba del Consorcio, pista del giro 4).
+  reinterpretado como el Ensayo ENS-1176-TEF, pista de la revelación 3).
 
 ### E7 · Las salas tejedoras bajo la Caldera 🆕
 - Ciudades de la Forja tragadas por la lava: salas de basalto con bandas de cobre, yunques de piedra y murales de los

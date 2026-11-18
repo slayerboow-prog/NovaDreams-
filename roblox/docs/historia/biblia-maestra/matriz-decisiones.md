@@ -184,7 +184,7 @@ daño en pantalla.
 | `VerVarn` | I | `VarnJuzgado` / `VarnMultitud` | 📜 | Destino de Varn |
 | `VerArca` | II | Rechazar las plazas de Octavia / aceptarlas y darlas al Rastro | ✅ | Quién vive arriba en el epílogo |
 | `VerIlse` | III | Buscarla / dejarla ir | ✅ (Vol. III) | Redención o caída: candidata a Pastora |
-| `HalvekMarcado` | IV | Marcar la nave de Halvek | Pendiente (H5) | Gancho del Consorcio |
+| `HalvekMarcado` | IV | Marcar la nave de Halvek (opcional) | ✅ (RC-078) | Gancho del Consorcio para una expansión. **No cambia el resultado:** Halvek huye siempre. |
 | `VerAgora` | V | Apagarla / aislarla / que ILEN aprenda | ✅ | Ciudad después |
 | `VerPeticion` | Tras ÁGORA | Referéndum / ignorar la petición / delegar en ILEN **solo lo técnico** (si aprendió) | ✅ | **ILEN nunca sustituye la voluntad ciudadana:** gestiona tráfico, agua y mantenimiento. «Les ayudo a elegir. No elijo.» |
 

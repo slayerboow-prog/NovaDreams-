@@ -41,7 +41,7 @@ Ithar.
 1. **El árbol madre y la cámara de la Semilla** (Sello). Tronco de 120 studs con savia dorada (existe en el diseño
    antiguo); por dentro, el corazón quemado en `Umb03` y, más abajo, la **cámara de la Semilla**, con una semilla del
    tamaño de una casa que late y donde aparece Lys (S9). Es la mazmorra-jefe de Savia.
-2. **El árbol joven «Garza».** Plantado en la plaza en `Umb03`; crece con cada pulso (pista del giro 7).
+2. **El árbol joven «Garza».** Plantado en la plaza en `Umb03`; crece con cada pulso (pista de la revelación 6).
 3. **El Tronco Mayor** (`Umbria_Ayuntamiento`).
 4. **La vaina de Nía** (`Umbria_VainaNia`).
 5. **El Vivero.** Semilleros en terrazas de raíz. Mazmorra 1 y entrega a los Hijos de la Ceniza.

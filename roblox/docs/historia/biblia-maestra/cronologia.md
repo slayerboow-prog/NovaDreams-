@@ -24,14 +24,16 @@
 | 1.168 | Nacen **Kael** (Valmar) e **Irene Ferran** | Registro ✅ |
 | 1.169 | Nace **Lía**, hermana de Cosme | H3 ✅ |
 | 1.172 | Nace Luz Pozo (Siroco) | ✅ (42 en 1.214) |
-| 1.174 | La voz de Ithar llega a Augusto Halvek. Nace el Consorcio Umbral. Primera perforación (Vértice; se llamaría «Ensayo 1» si se aprueba H7). | Vol. I ✅ |
-| 1.176 | **Prueba del Consorcio** (sería el «Ensayo 2», pendiente H7): agujero en el cielo de la Calle del Horno. Cosme (9) cae y aparece en Valmar ese mismo año con un cuerpo de 33 (R4). Lía (7) se queda. | 📜 `Coalicion_Marea` |
+| 1.174 | La voz de Ithar llega a Augusto Halvek. Nace el Consorcio Umbral. **ENS-1174-VER**, la primera perforación (Vértice). | Vol. I ✅ |
+| 1.176 | **ENS-1176-TEF:** agujero en el cielo de la Calle del Horno. Cosme (9) cae y aparece en Valmar ese mismo día con un cuerpo de 33 (R4: 24 años en 10 segundos). Lía (7) se queda. | 📜 `Coalicion_Marea` |
 | 1.184 | Luz (12) pierde a su madre, Ana Pozo, por la sed | 📜 `Sir02` («treinta años sin mojarme») |
+| 1.184 | **ENS-1184-UMB:** el ancla dentro del árbol madre de Umbría; Garza empieza a proteger la semilla | 📜 `Umb03` («treinta años») / ✅ |
 | 1.188 | Nace **Noa Ferran** | Registro ✅ |
 | 1.189 | Nace **Nela**, hija de Lía y de Ulises | H3 ✅ |
+| 1.190 | **ENS-1190-SIR:** el pozo hondo de Siroco | 📜 `Sir01` / ✅ |
 | 1.190 | Kael, con 22 años, entra en la seguridad del Consorcio en Vértice y conoce a Irene | Vol. II ✅ |
 | 1.191 | Kael es la madrina de Noa (3) | H4 ✅ |
-| **9-10-1.194** | **La expedición de nueve** cruza la perforación de la Torre de Vértice: Kael, Irene y siete más. Ithar perdona a Kael («vuelve y cuéntaselo»). **Por orden, Kael cierra la compuerta** con ocho compañeros al otro lado. | ✅ (D1, D4) |
+| **9-10-1.194** | **La expedición de nueve** cruza la perforación de la Torre de Vértice: Kael, Irene y siete más. Ithar perdona a Kael («vuelve y cuéntaselo»). **Por orden, Kael cierra la compuerta** con ocho compañeros al otro lado. Por el desfase del borde del tramo, sale en la noche del 10-10 con unos 12 días de desgaste (R4). | ✅ (D1, D4) |
 | 1.194 | **Al otro lado** (✅ §5.1): siete golpean la compuerta con las lámparas encendidas; la Marea va hacia la luz y se los lleva. Irene apaga su lámpara y se deja llevar a oscuras por una corriente de los Hilos. | ✅ |
 | 1.194-1.195 | El Consorcio dice a Kael que **los ocho murieron** y le hace firmar silencio. Deja el Consorcio y entra en la Guardia de Valmar. No vuelve a ver a Noa (6), que vive con su abuela en Vértice. | ✅ (D3) |
 | 1.194 | Estudio del Consorcio en Siroco: el acuífero. «No divulgar.» | 📜 `Sir01` |
@@ -41,11 +43,11 @@
 | 1.196-1.198 | El Consorcio la silencia a cambio de la custodia de Noa (8) y un sueldo, y construye la **Estación Abisal «Umbral»** sobre el punto de salida. Irene trabaja en ella. Sabe que Kael vive y nunca le escribe. | ✅ |
 | ~1.200 | Coria sella la Cúpula Honda en Tálasa | Vol. I ✅ |
 | 1.201 | Ulises, padre de Nela, muere en el frente de Ovilla | H3 ✅ |
-| 1.203 | **Prueba del Consorcio** (sería el «Ensayo 9», pendiente H7): cae el Anclaje Seis de Miasma. Andrés queda abajo. | 📜 («once años») |
+| 1.203 | **ENS-1203-MIA**, debajo del Anclaje Seis: cae la plataforma de Miasma. Andrés queda abajo. | 📜 («once años») |
 | 1.204 | Cholo muere en la Gran Vuelta. Rafa forzó el motor. Luz (32) no se lo perdona: él siguió corriendo. Se separan. | 📜 (Cast) / ✅ |
-| 1.207 | Cláusula 19 en Nivalis. Meses después, siete años de noche. | 📜 |
+| 1.207 | Cláusula 19 en Nivalis y **ENS-1207-NIV**. Meses después, siete años de noche. | 📜 |
 | 1.208 | Ámbar «muere» en el Glaciar | 📜 («hace seis años») |
-| 1.208 | **La Estación Abisal se inunda.** 140 personas a bordo. Irene cede su cápsula a un chico de 15 años; alguien se la devuelve. Doce cápsulas de criosueño de emergencia (§5.3). | 📜 `Tal01`, `Tal02` |
+| 1.208 | **ENS-1208-TAL:** la perforación bajo la estación. **La Estación Abisal se inunda.** 140 personas a bordo. Irene cede su cápsula a un chico de 15 años; alguien se la devuelve. Doce cápsulas de criosueño de emergencia (§5.3). | 📜 `Tal01`, `Tal02` |
 | 1.208 | Noa (20) baja «cien veces» a la fosa. Kael la ve en las noticias. | 📜 / ✅ |
 | **Noviembre de 1.211** | **Tefra** (✅ logística §5.2; el nombre «Renata» ✅). Escuadra de doce: Kael y once. Ocho mueren en la Lanza. Kael desobedece la retirada y salva a dos, Oriol y Renata. **Ilen** muere sosteniendo la plataforma. La nave despega con los dos heridos; Kael se queda. | ✅ (el nombre «Renata» ✅) |
 | 1.211-1.212 | Kael, atrapada en Tefra, vive con los Desertores del Ovillo. El Consejo de Valmar niega el rescate («no hay naves disponibles»). | ✅ |
@@ -88,9 +90,9 @@ diario de la estación.
 3. **Irene es la ingeniera de las corrientes.** Los datos del Consorcio decían que lo que se pierde en los Hilos acaba
    en el Ancla (R5). Apaga la lámpara y la baliza del traje y se deja arrastrar a oscuras. Intenta que los demás la
    sigan y no lo consigue.
-4. **Dentro de los Hilos el tiempo no corre igual:** para ella son **once días** (los cuenta con sus raciones); fuera
-   pasan **dos años**. El tramo cortado le cuesta unos 1,6 años de cuerpo por día (R4): sale con **28 años de calendario
-   y 44 de cuerpo**. Cálculo completo y comparación con Kael en `reglas-universo.md` §3 bis.
+4. **Dentro de los Hilos el tiempo no corre igual:** para ella son **once días, 264 horas** (los cuenta con sus raciones);
+   fuera pasan **dos años** (F = 66,5). El interior del tramo cortado tiene una intensidad de 0,068 años de cuerpo por
+   hora (R4): pierde 18 años y sale con **28 años de calendario y 44 de cuerpo**. Cálculo completo y comparación con Kael en `reglas-universo.md` §3 bis.
 5. **1.196:** sale inconsciente en la fosa de Tálasa. Las boyas del Consorcio vigilaban el Ancla precisamente porque sus
    datos lo predecían. La recoge un barco médico del Consorcio.
 6. **El trato:** meses de cuarentena. Después, silencio a cambio de la custodia de Noa, de un sueldo y de un puesto

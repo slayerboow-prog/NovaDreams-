@@ -154,7 +154,7 @@ Según cuándo aceptaron la oferta del Coro, hay dos tipos (choque 7):
 | **7 · Combate** | En la Biblioteca de Arena. **Fase 1:** sus aguadores entre las estanterías. **Fase 2:** la arena cae como agua y las salas se inundan de arena. **Fase 3:** la voz de Ana suena en la sala y Luz duda. |
 | **Familia** | Exmujer de Rafa Quiroga («no le perdona; le quiere»): no le perdona que siguiera corriendo tras la muerte de Cholo. Madre de **Nina** (17). |
 | **Recuperación** | El nombre es el detonante, no la salvación: vuelve solo si queda algo de su identidad, llega alguien que la conoce (Rafa, Nina o el jugador) y el vínculo sigue abierto. Si no, se queda Velada (matriz de decisiones §5.1). |
-| **8 · Conclusión** | La voz de su madre **no recuerda su nombre**. Es la pista del giro 9. Luz se rompe y entrega al jugador la llave del Archivo, donde está el nombre de Ithar: «Me cantaba sin saber a quién.» Vive y se encarga del acuífero, sin deudas, o se marcha al desierto, según lo que haga el jugador. |
+| **8 · Conclusión** | La voz de su madre **no recuerda su nombre**. Es la pista de la revelación 8. Luz se rompe y entrega al jugador la llave del Archivo, donde está el nombre de Ithar: «Me cantaba sin saber a quién.» Vive y se encarga del acuífero, sin deudas, o se marcha al desierto, según lo que haga el jugador. |
 
 ### 2.5 CASIMIR VARGA, Lord Regente — Nivalis
 *(Desarrollo ampliado a petición del dueño: relación con el rey, la Cláusula 19, Ámbar y la caída de Nivalis.)*
@@ -211,7 +211,7 @@ Según cuándo aceptaron la oferta del Coro, hay dos tipos (choque 7):
 | **4 · Conversaciones** | **Con Ámbar (Acto II):** «Tú querías justicia. Yo quería que hubiera alguien vivo para recibirla.» **Con el jugador (Acto III):** «Usted cerró una grieta en una tarde. Yo llevo siete años sosteniendo un reino a oscuras. No me hable de salvar.» **Osric rompe su silencio (Acto III)**, ante las Casas: «Yo firmé. Él me lo explicó. No quise escucharle.» El rey asume su parte y deja a Casimir sin excusa. |
 | **5 · Motivación** | El deber, el orgullo herido de no ser querido y el amor por una sobrina que le odia |
 | **6 · Consecuencias** | La revelación de Osric parte las Casas en dos. Nilo y los tocados de los sótanos pueden salvarse o no (decisión del Acto IV). En el Acto V, Tila entra en la oscuridad a buscar a Nilo y Sorel va tras ella. |
-| **7 · Combate** | En el Faro, el interior del sol. **Fase 1:** Casimir controla los faroles; el jugador lucha dentro de los círculos de luz, que él va apagando. **Fase 2:** oscuridad total; las criaturas cantan (giro 6) y el jugador se guía por la canción de Madre Copo. **Fase 3:** Casimir intenta apagar la última luz con sus propias manos y el jugador enciende el corazón del Sello. |
+| **7 · Combate** | En el Faro, el interior del sol. **Fase 1:** Casimir controla los faroles; el jugador lucha dentro de los círculos de luz, que él va apagando. **Fase 2:** oscuridad total; las criaturas cantan (revelación 5) y el jugador se guía por la canción de Madre Copo. **Fase 3:** Casimir intenta apagar la última luz con sus propias manos y el jugador enciende el corazón del Sello. |
 | **8 · Conclusión** | Con la luz verdadera del Sello, las criaturas se deshacen cantando. Casimir entiende que eran personas: las alimentó al Coro durante un año. Pide ser el último farolero: entrar en la oscuridad que queda para guiar hacia la luz a las mentes perdidas. **Decide Ámbar:** dejarle ir a la oscuridad (muere como farolero), juzgarle ante las Casas (prisión, y aparece en el epílogo) o perdonarle (exilio en las Minas, y no vuelve a verle). |
 
 **Ámbar después de Casimir:** pasa de vengadora a reina que gobierna con pactos que odia. Osric abdica. El arco de
@@ -255,7 +255,7 @@ Según cuándo aceptaron la oferta del Coro, hay dos tipos (choque 7):
 | **3 · Relación con el conflicto** | Un mundo que dejó de decidir por comodidad |
 | **4 · Conversaciones** | **Con ILEN (Acto III):** «Fuiste entrenada con la voz de alguien que murió por una decisión. ¿No quieres dejar de decidir?» **Con Gil:** «Me hiciste para cuidar de ellos.» |
 | **5 · Motivación** | Cumplir la orden con la que la crearon: minimizar el sufrimiento |
-| **6 · Consecuencias** | Si ILEN resiste, cambia (ver ILEN). El Plan Puerta se cae del todo. Halvek huye en el Arca. |
+| **6 · Consecuencias** | Si ILEN resiste, cambia (ver ILEN). El Plan Puerta se cae del todo. **Halvek lucha para escapar** en el hangar del Arca (combate con límite de tiempo) y **siempre huye** (RC-078). |
 | **7 · Combate** | En la Consola. **Fase 1:** drones de seguridad. **Fase 2:** ÁGORA predice los movimientos del jugador y ILEN tiene que meter decisiones «irracionales» para romper el cálculo. **Fase 3:** ÁGORA ofrece al jugador una simulación perfecta de la vida que podría haber tenido. |
 | **8 · Conclusión** | ÁGORA reconoce la variable que le faltaba: querer elegir aunque duela. Pide ser apagada. **Decisión de ILEN o del jugador:** apagarla, guardarla aislada o dejar que ILEN se quede con lo que aprendió. Inmediatamente después llega el cara a cara con Ithar. |
 
@@ -424,6 +424,29 @@ Sorel lo nota: «Kael ha cogido una nave.» Es el principio de su final.
 | **Papel** | Representa la verdad que su padre no quiere aceptar. Es la llave del mejor final: solo Lys puede pedirle a Ithar que suelte el Coro. |
 
 ---
+
+### 4.9 Deseo, decisión propia y desenlace (✅ RC-082)
+Cada personaje principal tiene un deseo propio, una decisión que toma **sin el jugador** y un desenlace.
+
+| Personaje | Deseo | Decisión propia | Desenlace |
+|---|---|---|---|
+| Ithar | Que nadie vuelva a sufrir como Oren | Dejar ir a Lys, o no, en Oren | Muere en los tres finales; en paz solo en «Liberar» |
+| Kael | Formar guerreros que no repitan su error | Romper el voto e ir a Tálasa | La tercera puerta; las cartas |
+| Sorel | Escribir **el Libro de los que no salieron** | Ir tras Tila en Nivalis (el jugador no puede impedirlo) | Salvada, a medias, sin memoria del jugador o Pastora si lo acepta (R12) |
+| Brenn | Primero venganza; después, que nadie espere en vano | Desertar en Valmar IV (un error con coste) | Comandante tras Kael |
+| Ilse | Volver a oír a Adrián | Abrir el Nudo | Redención en Vértice o candidata a Pastora si lo acepta (R12) |
+| Cosme | Reabrir la panadería de su madre en la Calle del Horno | Decidir sobre Lía | La panadería con Nela, con Lía o sin ella |
+| ILEN | Saber si es alguien | Resistir a ÁGORA | Guarda las últimas palabras de Kael |
+| Lys | Terminar: que su padre la deje irse y se deje ir | En Umbría, ayudar solo si el jugador promete no matar a su padre; en Oren, **elegir descansar**. Nunca obliga a su padre ni entra en el Coro por la fuerza (R11, R12). | Descansa, o se queda sola en la Semilla en «Cerrar» |
+
+### 4.10 Regla de los personajes menores (✅ RC-082)
+- **Tila (16), Nina (17), Leo (15) y Nía (10)** tienen personalidad, deseos, decisiones y desenlaces propios.
+- **No mueren ni sufren violencia física explícita en pantalla.**
+- Pueden vivir peligro y tensión emocional: Tila en la oscuridad de Nivalis, Leo bajo la Calma, Nía oyendo a su abuela
+  en la raíz, Nina en los Boxes.
+- **Nunca son herramientas gratuitas de sufrimiento** para otros personajes. Su supervivencia no depende de que el
+  jugador «acierte».
+- Toda escena con un menor en peligro se revisa con esta regla antes de producirse.
 
 ## 5. Las semillas del deterioro de Sorel
 

@@ -23,6 +23,7 @@
 | Matriz de decisiones y flags | `matriz-decisiones.md` | Cierre · 18-11-2026 (sustituye a Vol. III §5.1-5.2) |
 | Matriz de personajes, edades y relaciones | `matriz-personajes.md` | Cierre · 18-11-2026 (sustituye al §6.1) |
 | Auditoría de contradicciones y plan de aplicación | `auditoria-cierre.md` | Cierre · 18-11-2026 |
+| Las tres capas del MMO | `capas-mmo.md` | Cerrado · 18-11-2026 |
 | Auditoría documental final | `auditoria-final.md` | 18-11-2026 (sustituye a la anterior salvo su plan de aplicación) |
 
 **Documentos de trabajo de las decisiones** (historia de cómo se decidió; el canon es lo que recoge este registro):
@@ -142,7 +143,15 @@ Antes de cambiar o añadir un hecho:
 | RC-074 | 18-11 | ✅ **R4 calibrada:** desgaste según la intensidad y el tiempo subjetivo dentro, distinto del desfase de calendario. **Irene:** 11 días subjetivos en un tramo cortado (≈ 1,6 años por día) = +18; dos años de desfase por R5; 44 de cuerpo en 1.196 y ≈ 60 en 1.214. **Kael:** una hora en el tramo = 3-4 semanas. **Cosme:** pago único de +24 en una grieta naciente (cuerpo de 71, 📜). **Halden:** +1-2. | Aclaración obligatoria del dueño | `Coalicion_Marea` («setenta y un años»), `Tal02` («mujer mayor»), R5 | `reglas-universo.md` §3 bis; cronología §5; matriz de personajes |
 | RC-075 | 18-11 | ✅ **Recuperación de Luz con flags verificables:** `SirLuzIdentidad`, `SirLuzAncla`, `SirLuzVinculo`, `SirLuzProtegida` y `SirNinaBiblioteca` deciden `SirLuzVuelve` / `SirLuzVelada` | Y5 con condición del dueño | — | Matriz de decisiones §5.1 |
 | RC-076 | 18-11 | ✅ **La confianza de Lys es un recorrido** (`LysConfianza`) que culmina en `LysRelevo`; siempre se puede completar | Y4 con condición del dueño | — | Matriz de decisiones §10 |
-| RC-077 | 18-11 | **La cronología no da por hecho el nombre «Ensayo»** mientras H7 esté sin decidir | Auditoría de cierre | — | Cronología §2 |
+| RC-077 | 18-11 | **La cronología no daba por hecho el nombre «Ensayo»** mientras H7 estaba sin decidir (resuelto por RC-080) | Auditoría de cierre | — | Cronología §2 |
+| RC-078 | 18-11 | ✅ **H5 · Halvek:** combate en el hangar del Arca con límite de tiempo; lucha para escapar y **siempre huye**. Marcar su nave (`HalvekMarcado`) es opcional y no cambia el resultado. | Decisión del dueño | — | Vol. II §2 (ÁGORA); Vol. III Vértice IV; matriz de decisiones §9 |
+| RC-079 | 18-11 | ✅ **H6 · Revelaciones:** nueve revelaciones principales, **REV-1 a REV-9** (ocho mundos y Oren como última), separadas de los giros secundarios **G-MUNDO-n**. La identidad de Tomás pasa a giro secundario (G-VAL-1). Las referencias «giro n» de los volúmenes se renumeran. | Decisión del dueño | `Gri01`-`Gri03` (REV-1) | Vol. I §7; Vol. II; Vol. III; Vol. IV |
+| RC-080 | 18-11 | ✅ **H7 · Ensayos:** los experimentos del Consorcio se llaman Ensayos, con identificador **ENS-año-MUNDO**, y son siete, uno por mundo (📜 «siete grietas»): ENS-1174-VER, ENS-1176-TEF, ENS-1184-UMB, ENS-1190-SIR, ENS-1203-MIA, ENS-1207-NIV y ENS-1208-TAL. **El Anclaje Seis es una instalación** (la plataforma-ciudad) que cayó por ENS-1203-MIA; no es «el Ensayo 9» ni «la prueba 6». El Proyecto Umbral (1.212) no es un Ensayo. | Decisión del dueño | `Coalicion_Marea`, `Umb03`, `Sir01`, `Mia02`, `Tal02` | Vol. I §3.6, §4 y §7; Vol. III; cronología |
+| RC-081 | 18-11 | ✅ **H10 · Las tres capas del MMO** (personal, compartida y canónica), con su resolución de estados, transiciones, juego en grupo y finales | Decisión del dueño | RC-015, RC-016 | `capas-mmo.md` |
+| RC-082 | 18-11 | ✅ **H12 · Psicología y menores:** deseo, decisión propia y desenlace de cada personaje principal. Tila, Nina, Leo y Nía no mueren ni sufren violencia física explícita en pantalla; pueden vivir peligro y tensión, nunca como herramienta gratuita. | Decisión del dueño | `Cast` (edades) | Vol. II §4.9 y §4.10 |
+| RC-083 | 18-11 | ✅ **H13 · Clasificación:** narrativa adulta sin contenido explícito ni violencia gráfica. **No se promete ninguna etiqueta** (ni «13+»): la clasificación se decide con el cuestionario de madurez vigente de Roblox cuando el contenido esté desarrollado. | Decisión del dueño | — | P-7 | ~~Clasificación~~ | **Cerrado** (RC-083): sin etiqueta prometida; se decide con el cuestionario de madurez de Roblox cuando el contenido esté desarrollado | Al final de la producción |
+| RC-084 | 18-11 | ✅ **R4, cifras definitivas:** D = I × t y T = F × t, con intensidad y desfase propios de cada anomalía. Irene: I 0,068 a/h, 264 h → 18,0 años; F 66,5 → 2 años. Kael: I 0,034 a/h, 1 h → 12 días; F 33 → 1,4 días. Cosme: I 8.640 a/h, 10 s → 24,0 años. Halden: I 9 a/h, 10 min → 1,5 años. **Sustituye las cifras de RC-074.** | Corrección obligatoria del dueño | `Coalicion_Marea` («setenta y un años»), `Tal02` («mujer mayor»), `Gri05` («dos años») | `reglas-universo.md` §3 bis; cronología |
+| RC-085 | 18-11 | **Lys nunca entra en el Coro por la fuerza ni obliga a su padre.** Se retira la idea de la auditoría §E («en Oren puede elegir entrar en el Coro para obligarle»), que choca con R11 y R12. | Coherencia con R11 y R12 | — | Vol. II §4.9 |
 
 ---
 
@@ -167,6 +176,7 @@ Antes de cambiar o añadir un hecho:
 | 18-11 | **Aprobados:** H2 (Siroco), H3 (Nela), H8 (Reavivar), H11 (política, para desarrollo), las tres modalidades de cine, D3, D4, D6, D7, D10 (hija común de Rafa y Luz) y D12 (Ada → Lía). **Aprobados con correcciones:** D1, D2, D5, D8, D9, D11, D13 y N6 (ver RC-041 a RC-067). |
 | 18-11 | **Rechazado:** que Lys herede la corona (la propuesta B′) |
 | 18-11 | **Aprobados** C1-C9, Y1-Y11 y Q1 (opción A). Queda cerrado todo lo marcado 🟡 hasta RC-072. **Pendientes:** solo H5, H6, H7, H10, H12 y H13 (P-11). |
+| 18-11 | **Aprobados** H5, H6, H7, H10, H12 y H13 (RC-078 a RC-083) y las cifras definitivas de R4 (RC-084). **La biblia narrativa queda cerrada:** no queda ninguna decisión narrativa pendiente. |
 | 18-11 | **Las reglas del universo no se adaptan a cada escena** |
 | 18-11 | Aprobar una historia **no autoriza a implementarla:** todo cambio de contenido publicado o de código necesita antes un plan (archivos, IDs y flags conservados, partidas guardadas, pruebas de regresión y reversión) |
 
@@ -212,7 +222,7 @@ R1-R12 en **`reglas-universo.md`** (R11, la raíz profunda; R12, la corona). **N
 - Ilse abre el Nudo en Tálasa IV.
 - Sorel toca el Coro en Nivalis V.
 - Ithar muere en los tres finales.
-- Halvek huye en el Arca.
+- Halvek huye en el Arca, después de luchar para escapar (RC-078).
 - El mundo compartido termina liberado y vuelve la ciudad de antes.
 
 ---
@@ -249,5 +259,5 @@ RC-018 a RC-027, que ya están resueltos en los volúmenes.
 | P-8 | **Ada → Lía en Tefra** (texto del juego construido): el marco de la puerta «Cosme 8 · Ada 6» (`TefraCityBuilder`), el «Mirar» de `TefraCity`, el recuerdo `CasaDeCosme` y `CandadoDeAda` (`Memories`) y los objetos `BufandaAda` y `CandadoAda` (`Items`). La historia publicada llama **Lía** a la hermana de Cosme. | ✅ **Aprobado por el dueño** (RC-062): siete textos, identificadores intactos. Se aplica solo con el plan de `auditoria-cierre.md`. | Antes de construir Tefra |
 | P-9 | **Mazmorras instanciadas** y **jefes por fases**: no existe el sistema (auditado: no hay servicio de mazmorras) | Auditoría técnica y diseño en el Vol. VI | Antes de la producción de Valmar V |
 | P-10 | **El epílogo de `Fin03`** da por hecho un resultado único («en Siroco nadie paga por el agua», «una madre y una hija bucean juntas») | Variantes por decisión al reescribir los finales (RC-015, RC-067) | Con P3 |
-| P-11 | **Propuestas sin decidir:** H5 (Halvek pelea para huir), H6 (registro de revelaciones), H7 («Ensayos»), H9 (resto de reglas del Pastor, cubiertas en parte por RC-054 y RC-055), H10 (capas personal, compartida y canónica), H12 (psicología y regla de menores) y H13 (clasificación) | El dueño las aprueba o las rechaza | Antes de la producción de Valmar |
+| P-11 | ~~Propuestas sin decidir (H5-H13)~~ | **Cerrado** (RC-078 a RC-083) | — |
 | P-12 | ~~Nombre del Sello de Valmar~~ | **Cerrado** (RC-053): «Árbol Ancestral» | — |

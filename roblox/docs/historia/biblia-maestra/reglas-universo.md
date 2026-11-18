@@ -98,57 +98,63 @@ nueva.
 **El nuevo Pastor y los olvidados (final «Ocupar»):** el Pastor **autoriza voluntariamente** que las conciencias
 completamente borradas descansen (§4 de los finales, Vol. III). Lys no puede quitarle el control del Coro (R11, límite 5).
 
-## 3 bis. R4 calibrada: cuánto envejece cada caso (✅ RC-074)
+## 3 bis. R4 calibrada: la misma regla, con intensidades distintas (✅ RC-084)
 
-**Cómo funciona el desgaste.** Dentro de una anomalía, el cuerpo envejece según dos cosas:
-1. **La intensidad de la anomalía.**
-2. **El tiempo que la persona pasa dentro**, contado en su propio tiempo subjetivo.
+**Las dos fórmulas.** Cada anomalía tiene **su propia intensidad**, que puede variar de un tramo a otro. Los valores de
+abajo son la referencia de cada caso, no constantes universales.
 
-Además, la anomalía puede **desfasar el calendario**: fuera pasa más tiempo que dentro. Son dos efectos distintos:
-- **desgaste:** años de cuerpo perdidos;
-- **desfase:** tiempo de calendario perdido.
+> **Desgaste:** D = I × t
+> - D = años de cuerpo perdidos (años).
+> - I = intensidad de desgaste de esa anomalía (años de cuerpo por hora subjetiva, a/h).
+> - t = tiempo que la persona pasa dentro, contado por ella (horas subjetivas, h).
+>
+> **Desfase:** T = F × t
+> - T = tiempo de calendario que pasa fuera (horas de calendario, h).
+> - F = factor de desfase de esa anomalía (horas de calendario por hora subjetiva, sin unidades).
 
-| Anomalía | Intensidad | Desgaste aproximado |
+Desgaste y desfase son **propiedades independientes**:
+- **las grietas** son pasos cortos y violentos: mucho desgaste y casi ningún desfase;
+- **los tramos de Hilo cortados** son corrientes muertas y largas: poco desgaste por hora y un desfase enorme.
+
+| Anomalía | I (a/h) | F |
 |---|---|---|
-| Ruta estable por los Hilos | Ninguna | 0 |
-| Pasillo estabilizado del Consorcio dentro de una perforación | Protegido (equivale a una protección parcial) | Despreciable |
-| **Tramo de Hilo cortado o expuesto** (todos los que llevan a Oren desde el Gran Corte) | Alta y sostenida | **≈ 1,6 años de cuerpo por cada día subjetivo** |
-| **Grieta naciente sin control** (una prueba del Consorcio al abrirse) | Máxima y de golpe | Un pago único muy alto al atravesarla entera |
-| Grieta recién abierta (el Umbral de Valmar en 1.212) | Alta | Un pago corto al cruzarla en minutos |
+| Ruta estable por los Hilos | 0 | 1 |
+| Pasillo estabilizado del Consorcio dentro de una perforación | ≈ 0 | ≈ 1 |
+| Borde del tramo cortado, junto a la compuerta de 1.194 (le llega parte del campo del pasillo) | 0,034 | 33 |
+| Interior del tramo cortado de Vértice hacia Oren (la deriva hasta el Ancla) | 0,068 | 66,5 |
+| Grieta del Umbral de Valmar recién abierta (1.212) | 9 | ≈ 1 |
+| Grieta naciente sin control (la prueba de Tefra, 1.176) | 8.640 | ≈ 1 |
 
-| Caso | Exposición | Desgaste | Desfase | Resultado | Fuente |
+**Los cuatro casos, calculados:**
+
+| Caso | Anomalía | t | D = I × t | T = F × t | Comprobación con el juego |
 |---|---|---|---|---|---|
-| **Kael, 9-10-1.194** | Avanzó por el pasillo estabilizado del Consorcio (sin coste) y solo cruzó la compuerta hacia el tramo cortado para el encuentro con Ithar: **≈ 1 hora subjetiva** | 1/24 de día × 1,6 años ≈ **3-4 semanas** | Ninguno: vuelve el mismo día | En 1.214: 46 de calendario y **46 de cuerpo** | Cronología |
-| **Irene, 1.194-1.196** | **11 días subjetivos** a la deriva en el tramo cortado: los contó con sus raciones | 11 × 1,6 ≈ **+18 años** | **Dos años de calendario** (R5, abajo) | Sale con 28 de calendario y **44 de cuerpo** | Cronología §5.1 |
-| **Cosme, 1.176** | Cayó de punta a punta por una grieta naciente (la prueba de Tefra): segundos de caída | Pago único: **+24 años** | Ninguno: aparece en Valmar ese mismo año | Un niño de 9 años en un cuerpo de 33: por eso le tomaron por loco. Hoy: 47 de calendario y **71 de cuerpo**. | 📜 «Setenta y un años, cuarenta de ellos explicándole a la gente que no estoy loco» (`Coalicion_Marea`) |
-| **Halden, 1.212** | Cruzó en minutos la Grieta de Valmar recién abierta para reparar una sonda y vivió dos años en el lado B, que es un mundo y no la anomalía | **+1-2 años** | Ninguno | ~40 de calendario; cuerpo algo mayor | 📜 `Gri01`, `Gri06` |
+| **Irene, 1.194-1.196** | Interior del tramo cortado (I = 0,068 a/h; F = 66,5) | 11 días = **264 h** | 0,068 × 264 = **18,0 años** | 66,5 × 264 = 17.556 h ≈ **731 días ≈ 2 años** (del 9-10-1.194 al 9-10-1.196) | Cuerpo de 26 + 18 = **44** al salir, con 28 de calendario. En 1.214: **≈ 60** (abajo). «Una mujer mayor» (`Tal02`) ✅ |
+| **Kael, 1.194** | Borde del tramo (I = 0,034 a/h; F = 33). Antes y después, el pasillo estabilizado (sin coste). | **1 h** | 0,034 × 1 = 0,034 años ≈ **12 días** | 33 × 1 = 33 h ≈ **1,4 días**: sale en la noche del 10-10-1.194 | En 1.214: 46 de calendario y ≈ 46 de cuerpo. Ningún texto publicado habla de su aspecto ✅ |
+| **Cosme, 1.176** | Grieta naciente (I = 8.640 a/h; F ≈ 1) | 10 s = **0,00278 h** | 8.640 × 0,00278 = **24,0 años** | ≈ 10 s: aparece en Valmar **ese mismo día** | Cuerpo de 9 + 24 = 33 en 1.176; 33 + 38 = **71** en 1.214. «**Setenta y un años**, cuarenta de ellos explicándole a la gente que no estoy loco» (`Coalicion_Marea`): 38 años, dicho en redondo ✅. «Con un zapato» de niño: un niño en un cuerpo de adulto ✅ |
+| **Halden, 1.212-1.214** | Grieta recién abierta (I = 9 a/h; F ≈ 1) | Ida en 1.212 (5 min) + vuelta en `Gri06` si cruza (5 min) = **0,167 h** | 9 × 0,167 = **1,5 años** (0,75 si no vuelve a cruzar) | ≈ 10 min | Los dos años del lado B son tiempo normal en un mundo, no dentro de la anomalía: «lleva dos años» (`Gri05`) coincide con el calendario ✅ |
 
-**Por qué Kael pagó tan poco e Irene tanto:** es el mismo tramo y el mismo ritmo de desgaste. La diferencia es la
-exposición:
-- Kael pasó **una hora** dentro, y el resto del viaje fue por el pasillo protegido del Consorcio.
-- Irene se quedó **once días** a la deriva y sin ninguna protección. Es unas **260 veces más** exposición.
+**Por qué Kael pagó tan poco e Irene tanto:**
+- **Intensidad:** la mitad en el borde que en el interior, porque al borde le llega parte del campo del pasillo.
+- **Exposición:** Kael pasó 1 hora dentro e Irene 264. La exposición de Irene es 264 veces mayor.
+- **Total:** 18 / 0,034 ≈ 530 veces más desgaste.
 
-**El papel de R5:**
-- **Los tramos cortados no tienen salida.** Por eso los siete que se quedaron junto a la compuerta no tenían a dónde ir,
-  y la Marea se los llevó.
-- **Lo que se pierde en los Hilos acaba en el Ancla** (R5): las corrientes arrastran hacia la fosa de Tálasa, donde
-  Tálasa ejecutó el Gran Corte. Irene, ingeniera de corrientes, lo sabía por los datos del Consorcio. Apagó la luz para
-  que la Marea no la siguiera y se dejó llevar.
-- **R5 le da la salida y marca la duración.** El arrastre hasta el Ancla dura once días por dentro y dos años por fuera.
-  Sin R5, Irene habría vagado hasta deshacerse.
+**El papel de R5 en el caso de Irene:**
+- Los tramos cortados no tienen salida. Los siete que se quedaron junto a la compuerta no tenían a dónde ir, y la
+  Marea, atraída por sus lámparas, se los llevó.
+- **R5 da la única salida:** la corriente arrastra lo perdido hasta el Ancla de Tálasa. Irene lo sabía por los datos del
+  Consorcio, apagó la luz y se dejó llevar.
+- **R5 fija la duración:** el arrastre hasta el Ancla dura 264 h por dentro, y con F = 66,5 eso son dos años por fuera.
 - **R5 explica que el Consorcio la esperara:** vigilaba el Ancla con boyas precisamente porque sus datos lo predecían.
 
 **La edad de Irene, año a año:**
 
-| Fecha | Calendario | Cuerpo | Por qué |
+| Fecha | Calendario (años) | Cuerpo (años) | Cálculo |
 |---|---|---|---|
-| 9-10-1.194 | 26 | 26 | Entra en la perforación |
-| 1.196 (sale por el Ancla) | 28 | **44** | +18 por R4 (11 días en el tramo cortado) |
-| 1.208 (se inunda la estación) | 40 | 56 | Doce años normales |
-| Noviembre de 1.214 (despierta) | 46 | **≈ 60** | Seis años de criosueño al 75 %: +4,5 |
-
-**Resultado:** Kael e Irene nacieron el mismo año. En Tálasa III, Kael aparenta 46 e Irene unos 60: «una mujer mayor»
-(`Tal02`). Noa, con 26 años, tiene una madre que parece su abuela.
+| 9-10-1.194 | 26 | 26 | — |
+| 9-10-1.196 | 28 | 44 | 26 + 18,0 (R4) + 0,03 (los 11 días vividos) |
+| 1.208 (inundación) | 40 | 56 | + 12 años normales |
+| Noviembre de 1.214 | 46 | ≈ 60,5 | + 6 años de criosueño × 0,75 = 4,5 |
 
 ## 4. Notas técnicas que no son reglas del universo
 - **El criosueño de emergencia** de la Estación Abisal ralentiza el envejecimiento a tres cuartas partes (✅,
