@@ -172,9 +172,29 @@ function BeastService.buildWilds(S: any, folder: Instance): Instance?
 			BeastKit.islet(root, cfAt(l.X, l.Z, l.Y), radius, (S.WaterY or 0) - 30)
 		end
 	end
+	-- (18-11-2026) Una marca invisible en cada guarida (etiqueta StoryLair, con su Region y su planeta): las misiones
+	-- ponen ahí objetos con los que hacer cosas en terreno hostil (shared/LifeStory/Locations: Guarida…)
+	local function storyMark(lair: { [string]: any }, cf: CFrame)
+		local mark = Instance.new("Part")
+		mark.Name = "MarcaHistoria"
+		mark.Anchored = true
+		mark.CanCollide = false
+		mark.CanQuery = false
+		mark.CanTouch = false
+		mark.Transparency = 1
+		mark.Size = Vector3.new(2, 2, 2)
+		mark.CFrame = cf * CFrame.new(0, 2, 26)
+		mark:SetAttribute("Region", lair.Region)
+		mark:SetAttribute("Planet", S.Id)
+		mark:SetAttribute("Boss", lair.Boss == true)
+		mark:AddTag("StoryLair")
+		mark.Parent = root
+	end
 	for _, lair in places.Lairs do
 		islet(lair, 34)
-		BeastKit.lair(root, lair, cfAt(lair.X, lair.Z, if lair.Islet then lair.Y else nil))
+		local cf = cfAt(lair.X, lair.Z, if lair.Islet then lair.Y else nil)
+		BeastKit.lair(root, lair, cf)
+		pcall(storyMark, lair, cf)
 	end
 	if places.Boss then
 		islet(places.Boss, 60)

@@ -242,6 +242,9 @@ local People: { [string]: Person } = {
 	},
 	Brenn = { Name = "Brenn", Voice = "Nino", Teen = true, Skin = rgb(225, 180, 140), Shirt = rgb(120, 30, 30), Pants = rgb(30, 30, 35), Hair = rgb(25, 20, 18), Bio = "Cadete de último curso. Su hermano murió en el Sur la noche de la Caída. Duro con los nuevos porque no quiere enterrar a ninguno." },
 	Sorel = { Name = "Sorel", Voice = "Nino", Teen = true, Skin = rgb(140, 95, 70), Shirt = rgb(40, 110, 160), Pants = rgb(40, 40, 50), Hair = rgb(15, 12, 10), LongHair = true, Bio = "Entra en la Academia el mismo día que tú. Vivía en el Sur antes de la Caída. Quiere recuperar lo que perdió." },
+	-- (18-11-2026) la Academia: Dara, la cadete que se pierde en el Oeste; Vossa, la armera
+	Dara = { Name = "Dara", Voice = "Nino", Teen = true, Skin = rgb(205, 160, 120), Shirt = rgb(60, 70, 90), Pants = rgb(30, 30, 36), Hair = rgb(120, 60, 30), LongHair = true, Bio = "Cadete de tu promoción. Rápida, orgullosa, se separa del grupo en la Caza del Oeste durante la cuarta semana." },
+	Vossa = { Name = "Vossa, la armera", Voice = "Profe", Skin = rgb(160, 110, 80), Shirt = rgb(70, 60, 50), Pants = rgb(40, 35, 30), Hair = rgb(90, 90, 95), LongSleeves = true, Bio = "Lleva la armería de la Academia. Antes de la Caída arreglaba ascensores. Apunta en un libro quién sale de la muralla y quién vuelve." },
 	Delegada = { Name = "Delegada de 4.º", Voice = "Nino", Teen = true, Skin = rgb(185, 135, 100), Shirt = rgb(230, 170, 60), Pants = rgb(30, 30, 30), Hair = rgb(30, 20, 15), LongHair = true, Bio = "Organizada, amable, siempre con una carpeta." },
 
 	Dario = { Name = "Darío", Voice = "Nino", Kid = true, Skin = rgb(230, 190, 150), Shirt = rgb(20, 120, 60), Pants = rgb(30, 30, 40), Hair = rgb(30, 25, 20), Bio = "De segundo, el gracioso del equipo de fútbol. No es malo: no piensa antes de hacer las cosas." },

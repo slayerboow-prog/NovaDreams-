@@ -153,6 +153,15 @@ Locations.Places = {
 	CasaDespertar = { NameKey = "Tu cuarto", Tag = "StorySpot", Attribute = { SpotId = "Despertar" }, Zone = "FamilyHome", Fallback = "HomeDormitorio" },
 	CasaSalida = { NameKey = "La puerta de casa", Tag = "StorySpot", Attribute = { SpotId = "SalirCasa" }, Zone = "FamilyHome", Fallback = "CasaFamiliar" },
 	CercaDeTi = { NameKey = "Aquí", Special = "NearPlayer" },
+	-- (18-11-2026) Las guaridas de las bestias (marca StoryLair de Services/BeastService): la más cercana de cada zona.
+	-- Las misiones de la Academia y la Reconquista ponen ahí lo que hay que hacer en terreno hostil.
+	GuaridaOeste = { NameKey = "Guarida de la Caza del Oeste", Tag = "StoryLair", Attribute = { Region = "Farm_Oeste" }, Radius = 22, Fallback = "Pista" },
+	GuaridaSur = { NameKey = "Guarida de la Caza del Sur", Tag = "StoryLair", Attribute = { Region = "Farm_Sur" }, Radius = 22, Fallback = "Pista" },
+	GuaridaEste = { NameKey = "Guarida de la Caza del Este", Tag = "StoryLair", Attribute = { Region = "Farm_Este" }, Radius = 22, Fallback = "Pista" },
+	GuaridaCampus = { NameKey = "Guarida del Campus", Tag = "StoryLair", Attribute = { Region = "Farm_Universitario" }, Radius = 22, Fallback = "Pista" },
+	GuaridaPantano = { NameKey = "Pantano Maldito", Tag = "StoryLair", Attribute = { Region = "PantanoMaldito" }, Radius = 22, Fallback = "GuaridaEste" },
+	GuaridaBosque = { NameKey = "Bosque Etéreo", Tag = "StoryLair", Attribute = { Region = "BosqueEtereo" }, Radius = 22, Fallback = "GuaridaOeste" },
+	GuaridaCercana = { NameKey = "La guarida más cercana", Tag = "StoryLair", Radius = 22, Fallback = "Pista" },
 
 	-- La residencia de estudiantes del campus (primer año de universidad)
 	Residencia = { NameKey = "Residencia de estudiantes", Tag = "StorySpot", Attribute = { SpotId = "Residencia" }, Zone = "Campus Valmar", Radius = 14, Fallback = "ResidenciaCampus" },
