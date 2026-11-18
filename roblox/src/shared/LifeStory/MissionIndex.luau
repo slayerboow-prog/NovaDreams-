@@ -27,6 +27,7 @@ return {
 	require(Misiones.Reconquista), -- la Reconquista: recuperar la tierra perdida, zona a zona, fuera de la empalizada
 	require(Misiones.Asentamiento_Encargos), -- encargos del asentamiento: secundarias de la Valmar de después de la Caída
 	require(Misiones.Grieta_Umbral), -- la Grieta: Proyecto Umbral (la historia principal después de la Reconquista)
+	require(Misiones.Coalicion_Marea), -- Acto II «La Coalición»: la Marea Gris (Valmar) y Tefra (docs/historia/historia-principal-15h.md)
 	retire(require(Misiones.Cole01_PrimerDia)),
 	retire(require(Misiones.Cole02_Mochila)),
 	retire(require(Misiones.Cole03_Grupo)),

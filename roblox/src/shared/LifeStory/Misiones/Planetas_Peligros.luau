@@ -18,7 +18,7 @@
 local V = Vector3.new
 
 local function after(planet: string, id: string): { [string]: any }
-	return { Stage = { Min = "Adulto" }, Planet = planet, Completed = { id } }
+	return { Stage = { Min = "AdultoJoven" }, Planet = planet, Completed = { id } }
 end
 
 local function at(npc: string, place: string, x: number, z: number, mode: string?): { [string]: any }

@@ -12,7 +12,7 @@
 local V = Vector3.new
 
 local function req(extra: { [string]: any }): { [string]: any }
-	local r: { [string]: any } = { Stage = { Min = "Adulto" }, Planet = "Tefra" }
+	local r: { [string]: any } = { Stage = { Min = "AdultoJoven" }, Planet = "Tefra" }
 	for key, value in extra do
 		r[key] = value
 	end

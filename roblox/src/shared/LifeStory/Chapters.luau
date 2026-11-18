@@ -67,6 +67,35 @@ local Chapters: { [string]: Chapter } = {
 		Music = "VidaAdulta",
 	},
 
+	-- (18-11-2026) ACTO II · LA COALICIÓN (Misiones/Coalicion_*; biblia: docs/historia/historia-principal-15h.md):
+	-- la Marea Gris amenaza los siete mundos con grietas del Consorcio; hay que cerrarlas una a una y unir los mundos.
+	Coalicion_Marea = {
+		Id = "Coalicion_Marea",
+		Order = 45,
+		Stage = { Min = "AdultoJoven" },
+		Requires = { Flags = { "UmbralResuelto" } },
+		Enabled = true,
+		TitleKey = "La Coalición · La Marea Gris",
+		IntroKey = "Todas las radios de Valmar captan el mismo sonido, cada once segundos. Viene de siete sitios a la vez.",
+		OutroKey = "Siete mundos, siete grietas. La Coalición despega hacia el primero.",
+		Main = { "Mar01_Senal", "Mar02_Coalicion" },
+		Next = "Coalicion_Tefra",
+		Music = "VidaAdulta",
+	},
+	Coalicion_Tefra = {
+		Id = "Coalicion_Tefra",
+		Order = 46,
+		Stage = { Min = "AdultoJoven" },
+		Requires = { Flags = { "Coalicion" } },
+		Enabled = true,
+		TitleKey = "La Coalición · Tefra",
+		IntroKey = "Un mundo volcánico en guerra desde hace noventa años. Cosme vuelve a casa.",
+		OutroKey = "La grieta de Tefra está cerrada. Por primera vez en noventa años, no cae ni una bomba.",
+		Main = { "Tef01_Llegada", "Tef02_Tregua", "Tef03_Pozo" },
+		Next = "Adulto_TuVida",
+		Music = "VidaAdulta",
+	},
+
 	-- (18-11-2026) LA GRIETA: PROYECTO UMBRAL (Misiones/Grieta_Umbral): la historia principal después de la primera
 	-- bandera. Sustituye a la Saga de la Grieta de antes. Una voz en la Grieta, una cápsula de otro mundo, el archivo del
 	-- Consejo, la venganza de Brenn, el otro lado y la decisión final.
@@ -80,7 +109,7 @@ local Chapters: { [string]: Chapter } = {
 		IntroKey = "A las 3:12 de cada noche, una voz humana habla desde dentro de la Grieta. Alguien en Valmar sabe por qué.",
 		OutroKey = "Has decidido el destino de la Grieta. Lo que había al otro lado ya sabe que existimos.",
 		Main = { "Gri01_Senal", "Gri02_Capsula", "Gri03_Umbral", "Gri04_Brenn", "Gri05_OtroLado", "Gri06_Decision" },
-		Next = "Adulto_TuVida",
+		Next = "Coalicion_Marea",
 		Music = "VidaAdulta",
 	},
 

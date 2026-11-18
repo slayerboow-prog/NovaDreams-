@@ -17,7 +17,7 @@ local V = Vector3.new
 local TIPO = "Saga 2 · Umbría · «El Enjambre»"
 
 local function after(id: string?, extra: { [string]: any }?): { [string]: any }
-	local req: { [string]: any } = { Stage = { Min = "Adulto" }, Planet = "Umbria" }
+	local req: { [string]: any } = { Stage = { Min = "AdultoJoven" }, Planet = "Umbria" }
 	if id then
 		req.Completed = { id }
 	end
