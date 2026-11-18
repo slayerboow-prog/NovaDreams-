@@ -4,6 +4,11 @@
 > choques y la estructura definitiva de la Biblia Maestra».
 >
 > Este documento sustituye a la §2 de `auditoria-biblia-v1.md`.
+>
+> **Estado (18-11-2026): aprobado con correcciones.** El canon vigente está en `biblia-maestra/00-registro-continuidad.md`.
+> Correcciones respecto a este texto: el voto de Kael (RC-004), la definición de «último bastión» (RC-007), Nivalis con
+> Osric y Casimir (RC-012), los finales y la muerte fija de Kael (RC-016), **el hermano de Brenn se llama Tomás**
+> (RC-018) y **el Heraldo de Siroco es Luz Pozo**, no Marisa (RC-019).
 
 **Correcciones a la auditoría anterior.** Para preparar este documento he vuelto a leer las misiones que ya están en
 el juego, frase por frase. Eso obliga a corregirla en dos puntos:
