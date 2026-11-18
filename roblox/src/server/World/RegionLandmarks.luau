@@ -147,7 +147,8 @@ BUILD.Arbol = function(m, base, r)
 	m:SetAttribute("SantuarioBosque", true)
 	m:SetAttribute("Guardian", points.Guardian)
 	m:AddTag("SantuarioBosque")
-	return 330
+	-- (el cartel, a media altura del árbol, debajo de la copa: se ve desde la escalinata, como en la imagen del dueño)
+	return 150
 end
 
 BUILD.Cueva = function(m, base, r)

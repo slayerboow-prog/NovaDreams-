@@ -98,7 +98,8 @@ local function dash(sk: { [string]: any })
 end
 
 local function refresh()
-	local show = onPlanet() and not Theme.isTouch() -- (en el móvil van en el arco del Atacar: TouchLayout)
+	-- (en el móvil van en el arco del Atacar: TouchLayout; en las escenas se esconde como el resto del HUD)
+	local show = onPlanet() and not Theme.isTouch() and player:GetAttribute("InCinematic") ~= true
 	gui.Enabled = show
 	if not show then
 		return
@@ -128,19 +129,24 @@ function HunterSkillsUI.init()
 	local size = if touch then 46 else 44
 	-- (dos filas de tres, justo encima del joystick: debajo de la ficha del jugador, sin taparla; comprobado en
 	-- Studio con la pantalla del móvil, 15-11-2026)
-	local perRow = 3
+	-- (en el ordenador, 18-11-2026: una BARRA de seis casillas abajo en el centro, encima de la barra rápida, como
+	-- en la imagen del dueño; las pociones van a su izquierda: UI/MmoHud)
+	if not touch then
+		size = 52
+	end
+	local perRow = if touch then 3 else #HunterSkills.List
 	local rows = math.ceil(#HunterSkills.List / perRow)
-	local column = create("Frame", { Name = "Skills", AnchorPoint = Vector2.new(0, 1), Position = UDim2.new(0, 10, 1, if touch then -112 else -150), Size = UDim2.fromOffset(perRow * (size + 6), rows * (size + 6)), BackgroundTransparency = 1, Parent = gui })
+	local column = create("Frame", { Name = "Skills", AnchorPoint = if touch then Vector2.new(0, 1) else Vector2.new(0.5, 1), Position = if touch then UDim2.new(0, 10, 1, -112) else UDim2.new(0.5, 0, 1, -112), Size = UDim2.fromOffset(perRow * (size + 6), rows * (size + 6)), BackgroundTransparency = 1, Parent = gui })
 	create("UIGridLayout", { CellSize = UDim2.fromOffset(size, size), CellPadding = UDim2.fromOffset(6, 6), FillDirection = Enum.FillDirection.Horizontal, FillDirectionMaxCells = perRow, SortOrder = Enum.SortOrder.LayoutOrder, Parent = column })
 	for i, sk in HunterSkills.List do
 		local btn = create("TextButton", { Name = sk.Id, Size = UDim2.fromOffset(size, size), BackgroundColor3 = rgb(50, 110, 190), BackgroundTransparency = 0.15, Text = sk.Icon, TextSize = if touch then 24 else 22, TextColor3 = rgb(255, 255, 255), AutoButtonColor = true, LayoutOrder = i, ClipsDescendants = true, Parent = column })
-		create("UICorner", { CornerRadius = UDim.new(1, 0), Parent = btn })
-		create("UIStroke", { Color = rgb(150, 200, 255), Thickness = 1.5, Transparency = 0.3, Parent = btn })
+		create("UICorner", { CornerRadius = if touch then UDim.new(1, 0) else UDim.new(0, 10), Parent = btn })
+		create("UIStroke", { Color = if touch then rgb(150, 200, 255) else rgb(120, 170, 240), Thickness = if touch then 1.5 else 2, Transparency = 0.3, Parent = btn })
 		local cover = create("Frame", { Name = "Espera", AnchorPoint = Vector2.new(0, 1), Position = UDim2.fromScale(0, 1), Size = UDim2.fromScale(1, 1), BackgroundColor3 = rgb(0, 0, 0), BackgroundTransparency = 0.45, BorderSizePixel = 0, Visible = false, Parent = btn })
 		local count = create("TextLabel", { Name = "Cuenta", Size = UDim2.fromScale(1, 1), BackgroundTransparency = 1, Text = "", TextSize = 20, Font = Enum.Font.GothamBold, TextColor3 = rgb(255, 255, 255), Visible = false, ZIndex = 3, Parent = btn })
 		local lock = create("TextLabel", { Name = "Nivel", AnchorPoint = Vector2.new(0.5, 1), Position = UDim2.new(0.5, 0, 1, -2), Size = UDim2.new(1, 0, 0, 14), BackgroundTransparency = 1, Text = "nv. " .. sk.Level, TextSize = 11, Font = Enum.Font.GothamBold, TextColor3 = rgb(255, 210, 120), Visible = false, ZIndex = 3, Parent = btn })
 		if not touch then
-			create("TextLabel", { Name = "Tecla", Position = UDim2.fromOffset(2, 0), Size = UDim2.fromOffset(14, 14), BackgroundTransparency = 1, Text = sk.Key, TextSize = 11, Font = Enum.Font.GothamBold, TextColor3 = rgb(220, 235, 255), ZIndex = 3, Parent = btn })
+			create("TextLabel", { Name = "Tecla", Position = UDim2.fromOffset(4, 2), Size = UDim2.fromOffset(16, 16), BackgroundTransparency = 1, Text = sk.Key, TextSize = 14, Font = Enum.Font.GothamBlack, TextColor3 = rgb(255, 255, 255), TextStrokeTransparency = 0.3, ZIndex = 3, Parent = btn })
 		end
 		buttons[sk.Id] = { Button = btn, Cover = cover, Count = count, Lock = lock }
 		btn.Activated:Connect(function()

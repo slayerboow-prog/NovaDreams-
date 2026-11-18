@@ -143,7 +143,8 @@ function MmoHud.build(parent: Instance, actions: { [string]: () -> () }): Frame
 
 	-- los botones de POCIONES (abajo en el centro, encima de la barra rápida): vida (HP) y espíritu (MP), con cuántas
 	-- llevas; al tocar se bebe la mejor que tengas (Services/CraftingService.quickPotion)
-	local potions = create("Frame", { Name = "Pociones", AnchorPoint = Vector2.new(0.5, 1), Position = UDim2.new(0.5, 0, 1, -112), Size = UDim2.fromOffset(196, 84), BackgroundTransparency = 1, Parent = root }, {
+	-- (en el ordenador, a la izquierda de la barra de habilidades: Controllers/HunterSkillsUI)
+	local potions = create("Frame", { Name = "Pociones", AnchorPoint = Vector2.new(0.5, 1), Position = if Theme.isTouch() then UDim2.new(0.5, 0, 1, -112) else UDim2.new(0.5, -290, 1, -112), Size = UDim2.fromOffset(196, 84), BackgroundTransparency = 1, Parent = root }, {
 		create("UIListLayout", { FillDirection = Enum.FillDirection.Horizontal, HorizontalAlignment = Enum.HorizontalAlignment.Center, Padding = UDim.new(0, 16), SortOrder = Enum.SortOrder.LayoutOrder }),
 	})
 	local counts: { [string]: TextLabel } = {}
