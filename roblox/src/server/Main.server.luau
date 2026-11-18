@@ -148,6 +148,10 @@ task.spawn(function()
 		Images.resolve(require(Shared.RiftTextureIds))
 		-- La imagen de la isla del mapa grande (scripts/upload-map.sh): igual
 		Images.resolve(require(Shared.MapTextureIds))
+		-- Las texturas del Árbol Ancestral (scripts/upload-arbol.sh): igual
+		pcall(function()
+			Images.resolve((require(Shared.ArbolAssetIds) :: any).Texturas)
+		end)
 		-- El espacio, los planetas y la nave (scripts/upload-espacio.sh): igual, y luego cielos y materiales
 		-- (SIEMPRE después de resolve, aunque no haya convertido ninguno: los cielos se crean antes, al
 		-- arrancar PlanetService, y aquí se les ponen las caras ya en imagen)
@@ -349,6 +353,7 @@ local order = {
 	"GearService", -- el equipo puesto se ve en el personaje (en los planetas) y marca el estilo de golpe
 	"HunterSkillService", -- las habilidades de cazador contra las bestias (shared/HunterSkills)
 	"HuntContractService", -- los contratos de caza de los tablones (Academia y campamentos: shared/HuntContracts)
+	"SanctuaryService", -- el Santuario del Bosque: el guardián Eldran, las runas, el núcleo del árbol y su misión
 	"CraftingService", -- el Taller: fabricar armas, armaduras, pociones y herramientas (shared/Crafting)
 	"PlanetPerilService", -- los peligros del terreno de cada planeta (arenas movedizas, hielo fino, rayos, ráfagas…: shared/Cosmos/TerrainPerils)
 	"PlanetJobService", -- marco común de los planetas: sus oficios hechos con datos (tablones «Trabajar» de cada barrio)

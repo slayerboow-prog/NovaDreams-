@@ -77,7 +77,10 @@ do
 	if okG then
 		for _, e in RG.all() do
 			if e.Place.Kind == "Santuario" then
-				table.insert(OuterLands.Sanctuaries, { X = e.X, Z = e.Z, Region = e.Region, Name = e.Place.Name })
+				table.insert(OuterLands.Sanctuaries, { X = e.X, Z = e.Z, Region = e.Region, Name = e.Place.Name, Flat = 80, Edge = 200 })
+			elseif e.Place.Kind == "Arbol" then
+				-- (el santuario del árbol gigante: llano y grande, pero no es zona segura)
+				table.insert(OuterLands.Sanctuaries, { X = e.X, Z = e.Z, Region = e.Region, Name = e.Place.Name, Flat = 330, Edge = 470, NotSafe = true })
 			end
 		end
 	end
@@ -316,8 +319,8 @@ function OuterLands.height(x: number, z: number): number?
 	for _, s in OuterLands.Sanctuaries do
 		if s.Y then
 			local ds = math.sqrt((x - s.X) ^ 2 + (z - s.Z) ^ 2)
-			if ds < 200 then
-				local k = 1 - smooth(80, 200, ds)
+			if ds < s.Edge then
+				local k = 1 - smooth(s.Flat, s.Edge, ds)
 				h = h + (s.Y - h) * k
 			end
 		end
@@ -357,7 +360,9 @@ function OuterLands.campDistance(x: number, z: number): number
 		best = math.min(best, math.sqrt((x - b.CampX) ^ 2 + (z - b.CampZ) ^ 2))
 	end
 	for _, s in OuterLands.Sanctuaries do
-		best = math.min(best, math.sqrt((x - s.X) ^ 2 + (z - s.Z) ^ 2))
+		if not s.NotSafe then
+			best = math.min(best, math.sqrt((x - s.X) ^ 2 + (z - s.Z) ^ 2))
+		end
 	end
 	return best
 end

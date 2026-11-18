@@ -198,6 +198,7 @@ HelpUI.onGo(function()
 end)
 task.spawn(MapUI.init) -- minimapa y mapa grande (tecla M)
 task.spawn(require(script.Parent.Controllers.WorldMapUI).init) -- el mapa definitivo de Valmar (el dibujo del dueño)
+task.spawn(require(script.Parent.Controllers.SanctuaryAmbience).init) -- el ambiente del Santuario del Bosque (tono, brillo y latido)
 task.spawn(InventoryUI.init) -- mochila estilo Minecraft (barra rápida 1-9, tecla E)
 task.spawn(DialogueUI.init) -- conversaciones de las misiones (con respuestas y cámara)
 task.spawn(DebugHud.init) -- panel de depuración del dueño (F8); a los demás jugadores no les llega nada

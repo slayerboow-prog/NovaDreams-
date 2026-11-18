@@ -745,6 +745,18 @@ local function errandStep(errand: { [string]: any }): string
 	return step
 end
 
+-- La misión del Santuario del Bosque (Services/SanctuaryService: atributo SantuarioQuest)
+local function sanctuaryState(): { [string]: any }?
+	local raw = player:GetAttribute("SantuarioQuest")
+	if type(raw) ~= "string" then
+		return nil
+	end
+	local ok, st = pcall(function()
+		return HttpService:JSONDecode(raw)
+	end)
+	return if ok and type(st) == "table" then st else nil
+end
+
 -- Los contratos de caza que llevas (Services/HuntContractService: atributo HuntContracts)
 local function huntState(): { { [string]: any } }
 	local raw = player:GetAttribute("HuntContracts")
@@ -993,6 +1005,13 @@ local function renderQuestList(list: Frame, state: { [string]: any })
 		objectiveRow(box, nextOrder(), ("Te lo ha pedido %s · %s y %d XP"):format(errand.Giver or "alguien", Format.money(errand.Money or 0), errand.Xp or 0), false)
 		local drop = Theme.button({ Size = UDim2.fromOffset(170, 32), Text = "Dejar el encargo", TextSize = 14, BackgroundColor3 = rgb(140, 40, 50), LayoutOrder = nextOrder(), Parent = box })
 		drop.Activated:Connect(abandonErrand)
+	end
+	-- La misión del Santuario del Bosque
+	local sanct = sanctuaryState()
+	if sanct then
+		local box = section(list, nextOrder(), "Santuario del Bosque", rgb(110, 210, 255))
+		Theme.title({ Size = UDim2.new(1, 0, 0, 26), Text = "🌳 " .. tostring(sanct.Title), TextSize = 18, LayoutOrder = nextOrder(), Parent = box })
+		objectiveRow(box, nextOrder(), ("%s (%s)"):format(tostring(sanct.Step), tostring(sanct.Count)), false, true)
 	end
 	-- Los contratos de caza (tablones de la Academia y de los campamentos)
 	local hunts = huntState()
@@ -1359,6 +1378,11 @@ local function buildMission(parent: Instance)
 	end)
 	player:GetAttributeChangedSignal("CityErrand"):Connect(function()
 		paintMission()
+		if questList and questWindow and questWindow.Parent then
+			renderQuestList(questList, storyState)
+		end
+	end)
+	player:GetAttributeChangedSignal("SantuarioQuest"):Connect(function()
 		if questList and questWindow and questWindow.Parent then
 			renderQuestList(questList, storyState)
 		end

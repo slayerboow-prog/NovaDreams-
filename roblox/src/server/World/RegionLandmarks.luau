@@ -138,9 +138,16 @@ end
 
 -- (el árbol gigante de fantasía: World/Kit/AncientTree)
 BUILD.Arbol = function(m, base, r)
+	-- (18-11-2026) el Santuario del Bosque entero: la terraza con su arquitectura (World/Kit/ForestSanctuary) y,
+	-- encima, el Árbol Ancestral de mallas (World/Kit/AncientTree). El guardián y la misión: Services/SanctuaryService
+	local Sanctuary = require(script.Parent.Kit.ForestSanctuary) :: any
 	local AncientTree = require(script.Parent.Kit.AncientTree) :: any
-	AncientTree.build(m, base, math.floor(r() * 100000), 1)
-	return 210
+	local _, points = Sanctuary.build(m, base, math.floor(r() * 100000))
+	AncientTree.build(m, base * CFrame.new(0, Sanctuary.Elevation, 0), math.floor(r() * 100000), 1)
+	m:SetAttribute("SantuarioBosque", true)
+	m:SetAttribute("Guardian", points.Guardian)
+	m:AddTag("SantuarioBosque")
+	return 330
 end
 
 BUILD.Cueva = function(m, base, r)

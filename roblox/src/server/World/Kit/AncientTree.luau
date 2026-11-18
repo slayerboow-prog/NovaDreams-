@@ -69,7 +69,154 @@ local function glowPart(m: Instance, props: { [string]: any }): BasePart
 	return Builder.part(props)
 end
 
+---------------------------------------------------------------------
+-- (18-11-2026) EL ÁRBOL DE MALLAS: modelado en Blender (scripts/arbol/arbol_blender.py), con sus texturas
+-- (scripts/arbol/texturas.py) y subido con scripts/upload-arbol.sh (shared/ArbolAssetIds). Tronco con cuatro troncos
+-- entrelazados, raíces que serpentean por el suelo, ramas, cuatro masas de copa y las vetas de energía. Si las
+-- mallas no están (o no cargan), se hace el de piezas de abajo.
+---------------------------------------------------------------------
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+
+local function meshPart(id: string): MeshPart?
+	local n = tonumber(string.match(id, "%d+"))
+	if not n then
+		return nil
+	end
+	local ok, inst = pcall(function()
+		return (require(script.Parent.Parent.AssetLoader) :: any).download(n)
+	end)
+	if not ok or not inst then
+		return nil
+	end
+	local mp = if inst:IsA("MeshPart") then inst else inst:FindFirstChildWhichIsA("MeshPart", true)
+	return if mp then mp:Clone() else nil
+end
+
+function AncientTree.buildMesh(parent: Instance, base: CFrame, scale: number?): Model?
+	local okI, ids = pcall(function()
+		return require(ReplicatedStorage.Shared.ArbolAssetIds) :: any
+	end)
+	local okM, plan = pcall(function()
+		return require(ReplicatedStorage.Shared.ArbolMalla) :: any
+	end)
+	if not okI or not okM or type(ids.Piezas) ~= "table" or next(ids.Piezas) == nil then
+		return nil
+	end
+	local Images = require(ReplicatedStorage.Shared.Images) :: any
+	local k = scale or 1
+	local m = Builder.model("ArbolAncestral", parent)
+	local got = 0
+	for _, piece in plan.Pieces do
+		local id = ids.Piezas[piece.Name]
+		local mp = if type(id) == "string" then meshPart(id) else nil
+		if mp then
+			mp.Name = piece.Name
+			mp.Anchored = true
+			mp.Size = piece.Size * k
+			mp.CFrame = base * CF(piece.Center * k)
+			pcall(function()
+				(mp :: any).RenderFidelity = Enum.RenderFidelity.Automatic
+			end)
+			if piece.Material == "Neon" then
+				mp.Material = M.Neon
+				mp.Color = rgb(40, 170, 230)
+				mp.Transparency = 0.25
+				mp.CanCollide = false
+				mp.CastShadow = false
+			else
+				mp.Material = if piece.Material == "Grass" then M.LeafyGrass else M.Wood
+				mp.Color = if piece.Set == "hojas" then rgb(255, 255, 255) else rgb(255, 255, 255)
+				mp.CanCollide = piece.Set ~= "hojas"
+				local tex = piece.Set and ids.Texturas and ids.Texturas[piece.Set .. "_color"]
+				if tex then
+					local color = Images.of(tex)
+					local okSA = pcall(function()
+						local sa = Instance.new("SurfaceAppearance")
+						sa.ColorMap = color
+						local nrm = ids.Texturas[piece.Set .. "_normal"]
+						if nrm then
+							sa.NormalMap = Images.of(nrm)
+						end
+						sa.Parent = mp
+					end)
+					if not okSA then
+						for _, d in mp:GetChildren() do
+							if d:IsA("SurfaceAppearance") then
+								d:Destroy()
+							end
+						end
+						pcall(function()
+							mp.TextureID = color
+						end)
+					end
+				end
+			end
+			mp.Parent = m
+			got += 1
+		end
+	end
+	if got < 3 then
+		m:Destroy()
+		return nil
+	end
+	-- lo mágico de alrededor: el núcleo de luz en el tronco, cristales entre las raíces, luz y luciérnagas
+	local function at(x: number, y: number, z: number): Vector3
+		return (base * CF(x * k, y * k, z * k)).Position
+	end
+	local core = glowPart(m, { Name = "Nucleo", Shape = Enum.PartType.Ball, Size = V3(9, 9, 9) * k, CFrame = CF(at(0, 26, -30)), Color = GLOW, Transparency = 0.15 })
+	core:SetAttribute("NucleoArbol", true)
+	local cl = Instance.new("PointLight")
+	cl.Color = GLOW
+	cl.Range = 60
+	cl.Brightness = 3
+	cl.Shadows = false
+	cl.Parent = core
+	local r = rng(99)
+	for i = 0, 9 do
+		local a = i / 10 * math.pi * 2 + 0.2
+		local c = glowPart(m, { Name = "Cristal", Size = V3(3, 9 + r() * 7, 3) * k, CFrame = CF(at(math.cos(a) * 62, 4, math.sin(a) * 62)) * CFrame.Angles(math.rad(10), a, math.rad(8)), Color = GLOW })
+		if i % 3 == 0 then
+			local l = Instance.new("PointLight")
+			l.Color = GLOW
+			l.Range = 26
+			l.Brightness = 1.6
+			l.Shadows = false
+			l.Parent = c
+		end
+	end
+	local cloud = Builder.part({ Name = "Copa", Size = V3(260, 90, 260) * k, CFrame = CF(at(0, 230, 0)), Transparency = 1, CanCollide = false, CanQuery = false, CanTouch = false, Parent = m })
+	local fe = Instance.new("ParticleEmitter")
+	fe.Texture = "rbxasset://textures/particles/sparkles_main.dds"
+	fe.Color = ColorSequence.new(rgb(200, 255, 180), GLOW)
+	fe.LightEmission = 1
+	fe.Size = NumberSequence.new({ NumberSequenceKeypoint.new(0, 0), NumberSequenceKeypoint.new(0.5, 1.8), NumberSequenceKeypoint.new(1, 0) })
+	fe.Lifetime = NumberRange.new(3, 6)
+	fe.Speed = NumberRange.new(0.5, 2)
+	fe.SpreadAngle = Vector2.new(180, 180)
+	fe.Rate = 22
+	fe.Parent = cloud
+	local motes = Builder.part({ Name = "Motas", Size = V3(150, 40, 150) * k, CFrame = CF(at(0, 30, 0)), Transparency = 1, CanCollide = false, CanQuery = false, CanTouch = false, Parent = m })
+	local me = fe:Clone()
+	me.Rate = 14
+	me.Color = ColorSequence.new(GLOW)
+	me.Parent = motes
+	-- (las vetas laten despacio: el cliente las anima con el atributo Latido)
+	local venas = m:FindFirstChild("Venas")
+	if venas then
+		venas:SetAttribute("Latido", true)
+	end
+	pcall(function()
+		(m :: any).ModelStreamingMode = Enum.ModelStreamingMode.Atomic
+	end)
+	return m
+end
+
 function AncientTree.build(parent: Instance, base: CFrame, seed: number?, scale: number?): Model
+	-- (el de mallas, si está; si no, el de piezas)
+	local okMesh, meshTree = pcall(AncientTree.buildMesh, parent, base, scale)
+	if okMesh and meshTree then
+		return meshTree
+	end
 	local k = scale or 1
 	local r = rng(seed or 4242)
 	local m = Builder.model("ArbolAncestral", parent)

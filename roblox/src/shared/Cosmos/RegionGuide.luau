@@ -34,8 +34,10 @@ RegionGuide.List = {
 		Tip = "Explora la zona para descubrir lugares secretos y mazmorras.",
 		Art = { Id = "region_bosque", W = 1024, H = 643 },
 		Places = {
-			{ Id = "Santuario", Name = "Santuario del Bosque", Kind = "Santuario", Off = 0, T = 0.57, Art = { 515, 250 } },
-			{ Id = "Arbol", Name = "Árbol Ancestral", Boss = true, Kind = "Arbol", Level = 25, Off = 0, T = 0.755, Art = { 520, 110 } },
+			-- (18-11-2026) el SANTUARIO DEL BOSQUE es el del Árbol Ancestral (nv. 25+, con su guardián, su misión y el jefe:
+			-- World/Kit/ForestSanctuary); la zona segura con Taller es el Refugio, a la entrada de la región
+			{ Id = "Refugio", Name = "Refugio del Bosque", Kind = "Santuario", Off = -4, T = 0.16 },
+			{ Id = "Arbol", Name = "Santuario del Bosque", Boss = true, Kind = "Arbol", Level = 25, Off = 0, T = 0.57, Art = { 515, 250 } },
 			{ Id = "Cueva", Name = "Cueva Susurrante", Kind = "Cueva", Level = 12, Off = -12, T = 0.735, Art = { 200, 125 } },
 			{ Id = "Cascada", Name = "Cascada Mística", Kind = "Cascada", Level = 18, Off = 10, T = 0.82, Art = { 775, 60 } },
 			{ Id = "Campamento", Name = "Campamento Salvaje", Kind = "Campamento", Level = 15, Off = -15.5, T = 0.54, Art = { 110, 270 } },
