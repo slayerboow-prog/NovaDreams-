@@ -28,6 +28,7 @@ return {
 	require(Misiones.Asentamiento_Encargos), -- encargos del asentamiento: secundarias de la Valmar de después de la Caída
 	require(Misiones.Grieta_Umbral), -- la Grieta: Proyecto Umbral (la historia principal después de la Reconquista)
 	require(Misiones.Coalicion_Marea), -- Acto II «La Coalición»: la Marea Gris (Valmar) y Tefra (docs/historia/historia-principal-15h.md)
+	require(Misiones.Coalicion_Mundos1), -- Acto II: Miasma, Siroco y Nivalis
 	retire(require(Misiones.Cole01_PrimerDia)),
 	retire(require(Misiones.Cole02_Mochila)),
 	retire(require(Misiones.Cole03_Grupo)),
