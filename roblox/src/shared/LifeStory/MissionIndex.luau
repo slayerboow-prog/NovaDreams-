@@ -25,6 +25,7 @@ return {
 	require(Misiones.Academia), -- la Academia de Guerreros: el tutorial y las habilidades (el juego empieza aquí)
 	require(Misiones.Guerrero), -- después del juramento: patrullas, el primer despegue, el primer planeta y el ascenso
 	require(Misiones.Reconquista), -- la Reconquista: recuperar la tierra perdida, zona a zona, fuera de la empalizada
+	require(Misiones.Asentamiento_Encargos), -- encargos del asentamiento: secundarias de la Valmar de después de la Caída
 	require(Misiones.Grieta_Umbral), -- la Grieta: Proyecto Umbral (la historia principal después de la Reconquista)
 	retire(require(Misiones.Cole01_PrimerDia)),
 	retire(require(Misiones.Cole02_Mochila)),
