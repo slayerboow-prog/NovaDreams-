@@ -161,6 +161,9 @@ Locations.Places = {
 	GuaridaCampus = { NameKey = "Guarida del Campus", Tag = "StoryLair", Attribute = { Region = "Farm_Universitario" }, Radius = 22, Fallback = "Pista" },
 	GuaridaPantano = { NameKey = "Pantano Maldito", Tag = "StoryLair", Attribute = { Region = "PantanoMaldito" }, Radius = 22, Fallback = "GuaridaEste" },
 	GuaridaBosque = { NameKey = "Bosque Etéreo", Tag = "StoryLair", Attribute = { Region = "BosqueEtereo" }, Radius = 22, Fallback = "GuaridaOeste" },
+	-- (18-11-2026) «La Grieta: Proyecto Umbral» (Misiones/Grieta_Umbral)
+	TallerMaren = { NameKey = "El taller de Maren", Tag = "StorySpot", Attribute = { SpotId = "GarajeCosme" }, School = false, Radius = 10, Fallback = "PlazaCentro" },
+	SalaConsejo = { NameKey = "El edificio del Consejo", Model = "Plaza", Zone = "Valmar Centro", Offset = Vector3.new(0, 0, -18), Radius = 14, Fallback = "Pista" },
 	GuaridaCercana = { NameKey = "La guarida más cercana", Tag = "StoryLair", Radius = 22, Fallback = "Pista" },
 
 	-- La residencia de estudiantes del campus (primer año de universidad)

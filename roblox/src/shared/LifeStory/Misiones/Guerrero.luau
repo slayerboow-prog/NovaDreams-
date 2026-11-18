@@ -217,7 +217,7 @@ return {
 		Duration = { 4, 6 },
 		Type = "Guerrero · Rango",
 		Moment = "Te nombraron guerrero de primera",
-		Rewards = { Money = 2500, Flags = { "GuerreroDePrimera" }, Unflags = { "CadeteAcademia" } }, -- (ya no eres cadete: Cosme y la Saga de la Grieta te buscan)
+		Rewards = { Money = 2500, Flags = { "GuerreroDePrimera" }, Unflags = { "CadeteAcademia" } }, -- (ya no eres cadete: sigue la Reconquista)
 		Steps = {
 			{ Type = "Reach", Place = "Pista", Text = "Vuelve a la Academia", Actors = PISTA },
 			{ Type = "Scene", Dialogue = "Ascenso", Actors = PISTA },
@@ -228,7 +228,7 @@ return {
 				{ S = "Kael", T = "Desde hoy eres guerrero de primera. Puedes aceptar misiones en cualquier planeta y en la Grieta. También puedes morir en cualquiera de ellos." },
 				{ S = "Brenn", T = "Mi hermano quería este rango. Llévalo bien." },
 				{ S = "Sorel", T = "Ya me han quitado la venda. La próxima vez, subo contigo." },
-				{ S = "Kael", T = "Hay un tipo en un garaje del centro, Cosme. Lleva meses midiendo cosas en el cielo que nadie más ve. Ve a hablar con él." },
+				{ S = "Kael", T = "Pero antes de mirar al cielo, hay que recuperar el suelo. El Consejo ha aprobado algo que llevo dos años pidiendo: la Reconquista." },
 				{ S = "Narrador", T = "Soñabas con ser guerrero espacial. Ahora sabes lo que cuesta. Y aun así, sigues aquí." },
 			}, Effects = { Rel = { Kael = 6, Sorel = 4, Brenn = 3 } } },
 		},

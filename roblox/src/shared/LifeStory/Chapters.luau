@@ -67,6 +67,23 @@ local Chapters: { [string]: Chapter } = {
 		Music = "VidaAdulta",
 	},
 
+	-- (18-11-2026) LA GRIETA: PROYECTO UMBRAL (Misiones/Grieta_Umbral): la historia principal después de la primera
+	-- bandera. Sustituye a la Saga de la Grieta de antes. Una voz en la Grieta, una cápsula de otro mundo, el archivo del
+	-- Consejo, la venganza de Brenn, el otro lado y la decisión final.
+	Grieta_Umbral = {
+		Id = "Grieta_Umbral",
+		Order = 44,
+		Stage = { Min = "AdultoJoven" },
+		Requires = { Flags = { "Reconquista1" } },
+		Enabled = true,
+		TitleKey = "La Grieta: Proyecto Umbral",
+		IntroKey = "A las 3:12 de cada noche, una voz humana habla desde dentro de la Grieta. Alguien en Valmar sabe por qué.",
+		OutroKey = "Has decidido el destino de la Grieta. Lo que había al otro lado ya sabe que existimos.",
+		Main = { "Gri01_Senal", "Gri02_Capsula", "Gri03_Umbral", "Gri04_Brenn", "Gri05_OtroLado", "Gri06_Decision" },
+		Next = "Adulto_TuVida",
+		Music = "VidaAdulta",
+	},
+
 	-- (17-11-2026) LA RECONQUISTA (Misiones/Reconquista): el asentamiento sale a recuperar el planeta, zona a zona,
 	-- en terreno hostil (cada misión cuenta las bestias solo de su zona)
 	Reconquista_Valmar = {
@@ -79,7 +96,7 @@ local Chapters: { [string]: Chapter } = {
 		IntroKey = "Dos años detrás de una empalizada. Hoy el asentamiento sale a recuperar lo que la Caída se llevó: zona a zona, bestia a bestia.",
 		OutroKey = "La primera bandera ondea en el norte. Quedan siete regiones. Y el cielo.",
 		Main = { "Rec01_Baliza", "Rec02_Agua", "Rec03_Pantano", "Rec04_Campus", "Rec05_Bandera" },
-		Next = "Adulto_TuVida",
+		Next = "Grieta_Umbral",
 		Music = "VidaAdulta",
 	},
 

@@ -8,7 +8,8 @@ local Misiones = script.Parent.Misiones
 -- (18-11-2026, el dueño: «la historia es muy infantil; tiene que ser para chicos de 15 años para arriba») Las misiones
 -- de la vida de antes del cambio a guerrero espacial (colegio, instituto, universidad, adulto, las «misiones locas»,
 -- las rarezas, el metro, los aliados de la saga vieja) quedan RETIRADAS: siguen cargadas (las partidas viejas y las
--- pruebas no se rompen), pero ya no se ofrecen ni empiezan solas (Services/LifeStoryService: canOffer).
+-- pruebas no se rompen), pero ya no se ofrecen ni empiezan solas (Services/LifeStoryService: canOffer). También
+-- la Saga de la Grieta de antes (con humor absurdo): la sustituye «La Grieta: Proyecto Umbral» (Misiones/Grieta_Umbral).
 local function retire(entry: any): any
 	local list = if type(entry) == "table" and entry.Id then { entry } else entry
 	for _, quest in list do
@@ -24,6 +25,7 @@ return {
 	require(Misiones.Academia), -- la Academia de Guerreros: el tutorial y las habilidades (el juego empieza aquí)
 	require(Misiones.Guerrero), -- después del juramento: patrullas, el primer despegue, el primer planeta y el ascenso
 	require(Misiones.Reconquista), -- la Reconquista: recuperar la tierra perdida, zona a zona, fuera de la empalizada
+	require(Misiones.Grieta_Umbral), -- la Grieta: Proyecto Umbral (la historia principal después de la Reconquista)
 	retire(require(Misiones.Cole01_PrimerDia)),
 	retire(require(Misiones.Cole02_Mochila)),
 	retire(require(Misiones.Cole03_Grupo)),
@@ -64,10 +66,10 @@ return {
 	-- Misiones locas (secundarias de cada etapa, con Cosme): docs/historia/12-misiones-locas.md
 	retire(require(Misiones.Loco_Nino)),
 	-- La Saga de la Grieta (historia principal canónica): docs/historia/13-saga-de-la-grieta.md
-	require(Misiones.Saga_Acto1),
-	require(Misiones.Saga_Acto2),
-	require(Misiones.Saga_Acto3),
-	require(Misiones.Saga_Acto4),
+	retire(require(Misiones.Saga_Acto1)),
+	retire(require(Misiones.Saga_Acto2)),
+	retire(require(Misiones.Saga_Acto3)),
+	retire(require(Misiones.Saga_Acto4)),
 	-- Rarezas de la Grieta (secundarias cortas que dan los «Restos de la Grieta»)
 	retire(require(Misiones.Rarezas)),
 	retire(require(Misiones.Loco_Adolescente)),
@@ -99,7 +101,7 @@ return {
 	-- o del clima (arenas movedizas, hielo fino, rayos, ramas, paneles: shared/Cosmos/TerrainPerils)
 	require(Misiones.Planetas_Peligros),
 	-- Saga 2 · el prólogo del espacio «La costura negra» (Varkun, el Deshilador: docs/universo/diseno-espacio.md)
-	require(Misiones.Saga2_Prologo),
+	retire(require(Misiones.Saga2_Prologo)),
 	require(Misiones.Deriva_ActoI),
 	-- El mar de los Hondarios · «La canción de lo hondo»: Prólogo y Acto I (fase 1; docs/mar/civilizacion-marina.md)
 	require(Misiones.Mar_Acto1),

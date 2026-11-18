@@ -3231,9 +3231,9 @@ local function canOffer(player: Player, data: Data, questId: string): boolean
 	if not rt or story.Active[questId] then
 		return false
 	end
-	-- (18-11-2026) Las misiones de la vida de antes, retiradas (MissionIndex: retire), no se ofrecen a nadie; solo
-	-- queda la primera de Cosme, que abre la Saga de la Grieta
-	if quest and quest.Retired and questId ~= "Loco_N1_Cosme" then
+	-- (18-11-2026) Las misiones de la vida de antes y la Saga vieja, retiradas (MissionIndex: retire), no se ofrecen
+	-- a nadie (la historia sigue con «La Grieta: Proyecto Umbral», Misiones/Grieta_Umbral)
+	if quest and quest.Retired then
 		return false
 	end
 	-- (17-11-2026) Mientras eres cadete de la Academia (hasta guerrero de primera: Misiones/Guerrero) no salen
@@ -3415,7 +3415,7 @@ local function updateCanonMarks(player: Player, data: Data)
 	local marks = {}
 	rt.CanonSpots = rt.CanonSpots or {}
 	for questId, quest in Quests do
-		if quest.Canon and quest.Offer and quest.Offer.Place and not story.Active[questId] and not story.Completed[questId] then
+		if quest.Canon and not quest.Retired and quest.Offer and quest.Offer.Place and not story.Active[questId] and not story.Completed[questId] then
 			local req = quest.Requires
 			local hours = req and req.Hours
 			if hours then
