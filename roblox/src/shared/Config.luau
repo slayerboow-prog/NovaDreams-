@@ -121,6 +121,10 @@ Config.SkyRift = {
 -- Valmar después de la Caída (19-11-2026, el dueño): lo que la ciudad normal tenía y ya no pinta
 Config.PostWar = {
 	WreckParkedCars = true, -- los coches aparcados son chatarra quemada: sin cristales ni luces, y no se conducen
+	Climate = true, -- cielo de ceniza: nublado, niebla y lluvia (nunca despejado), hierba seca, sin pájaros ni flores (shared/Seasons)
+	AshFall = true, -- ceniza fina cayendo y colores apagados en Valmar (Controllers/AshFall)
+	RemoveLeisure = true, -- fuera columpios, toboganes, pistas y canastas de los parques y los colegios (World/PostWar)
+	BrokenWindows = 0.3, -- parte de los cristales de la ciudad rotos (0 = ninguno)
 }
 
 Config.Disabled = {

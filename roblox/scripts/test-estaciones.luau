@@ -134,6 +134,12 @@ local function load(path: string): any
 end
 
 local Config = load(ROOT .. "/shared/Config")
+-- (19-11-2026) Valmar después de la Caída cambia el clima (Config.PostWar.Climate). Estas pruebas miran el
+-- sistema de estaciones de base: se apaga para cargarlo y la posguerra se prueba al final.
+local postWarClimate = Config.PostWar and Config.PostWar.Climate
+if Config.PostWar then
+	Config.PostWar.Climate = false
+end
 local Seasons = load(ROOT .. "/shared/Seasons")
 local Storm = load(ROOT .. "/shared/Storm")
 local Wetness = load(ROOT .. "/shared/Wetness")
@@ -558,6 +564,28 @@ check(fs.isFile("scripts/audio/clima.py"), "hechos por código (scripts/audio/cl
 check(weatherClient:find('SoundFx.group("Ambience")', 1, true) ~= nil, "todo en el control 🌳 Ambiente")
 local doc = if fs.isFile("docs/clima/estaciones.md") then src("docs/clima/estaciones.md") else ""
 check(doc:find("/estacion", 1, true) ~= nil and doc:find("/clima", 1, true) ~= nil and doc:find("captura", 1, true) ~= nil, "docs/clima/estaciones.md: cómo forzar cada estación y tiempo y qué capturas hacer")
+
+print("▶ Valmar después de la Caída (Config.PostWar.Climate)")
+do
+	check(postWarClimate == true, "el clima de posguerra está encendido en el juego")
+	Config.PostWar.Climate = true
+	cache[ROOT .. "/shared/Seasons"] = nil
+	local Post = load(ROOT .. "/shared/Seasons")
+	local clear, total = 0, 0
+	for day = 1, 120 do
+		for hour = 0, 23, 3 do
+			total += 1
+			local w = Post.weatherAt(day, hour)
+			if w == "Despejado" then
+				clear += 1
+			end
+		end
+	end
+	check(clear == 0, ("posguerra: nunca despejado (%d de %d)"):format(clear, total))
+	check(Post.Info.Primavera.Blossom == 0 and Post.Info.Verano.Beach == 0 and Post.Info.Primavera.Butterflies == 0, "posguerra: sin flores, playa ni mariposas")
+	local g = Post.Info.Verano.Grass
+	check(g.R > g.G * 0.85, "posguerra: la hierba es seca y amarillenta, no verde")
+end
 
 print()
 if failures == 0 then

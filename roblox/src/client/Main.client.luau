@@ -217,6 +217,7 @@ if enabled("OcioClient") then task.spawn(require(script.Parent.Controllers.OcioC
 task.spawn(SceneClient.init) -- cada uno ve solo los personajes de su historia
 task.spawn(CanonMarkers.init) -- la saga: ❗ dorados en el mapa y pilares de luz hasta que haces cada misión canónica
 task.spawn(require(script.Parent.Controllers.HappeningClient).init) -- escenas de la historia: planos, efectos, actores, diálogo en el mundo
+task.spawn(require(script.Parent.Controllers.AshFall).init) -- Valmar después de la Caída: ceniza cayendo y colores apagados (Config.PostWar)
 task.spawn(require(script.Parent.Controllers.StageSetsClient).init) -- decorados por fase: lo que tu historia dejó en el mundo (cráteres…)
 task.spawn(require(script.Parent.Controllers.CosmeHouseClient).init) -- casa de Cosme: anillos, robots, portales, documentos y telescopio
 task.spawn(CityErrands.init) -- encargos de la ciudad: cada uno ve solo los objetos y la gente de su encargo

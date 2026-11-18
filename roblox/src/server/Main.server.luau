@@ -207,6 +207,12 @@ Boot.step("Ambient", function()
 	require(World.Ambient).publish(require(World.TownBuilder).roads(), segments)
 end)
 
+-- 4a) Valmar después de la Caída (Config.PostWar): sin parques infantiles ni canastas, cristales rotos y
+--     escombros y barricadas en las calles (World/PostWar)
+Boot.step("PostWar", function()
+	require(World.PostWar).apply(segments)
+end)
+
 -- 4b) Vegetación con modelos 3D de verdad (packs oficiales de Roblox, World/MeshLibrary): carga los
 --     packs una vez y cambia en tandas los árboles, arbustos y flores procedurales, primero los de
 --     cerca de las calles. Si la carga falla, se queda todo como está.

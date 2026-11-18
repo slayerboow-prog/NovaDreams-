@@ -83,6 +83,27 @@ Seasons.Info = {
 	},
 }
 
+-- Valmar después de la Caída (19-11-2026, el dueño: «no se ve post-apocalíptica»): Config.PostWar.Climate
+-- cambia el tiempo de todas las estaciones por cielos de ceniza (casi siempre nublado, niebla y lluvia;
+-- nunca despejado), la hierba seca y amarillenta y las copas apagadas. Sin flores, pájaros ni mariposas.
+do
+	local pw = type(Config.PostWar) == "table" and Config.PostWar or nil
+	if pw and pw.Climate then
+		for name, info in Seasons.Info do
+			local snow = if name == "Invierno" then 4 else nil
+			info.Weather = { Despejado = 0, Intervalos = 4, Nublado = 46, Lluvia = 22, Tormenta = 6, Niebla = 22, Nieve = snow }
+			info.Grass = info.Grass:Lerp(rgb(132, 120, 76), 0.75)
+			info.Leaves = info.Leaves:Lerp(rgb(92, 92, 66), 0.65)
+			info.LeafMix = math.max(info.LeafMix or 0, 0.6)
+			info.Blossom = 0
+			info.Particles = nil
+			info.Birds = 0.25
+			info.Butterflies = 0
+			info.Beach = 0
+		end
+	end
+end
+
 -- Cómo cambia el cielo con cada tiempo (DayLight lo mezcla con la luz de la hora: shared/DayGrade.weather)
 --   Cover: nubes (0..1; nil = las de la hora). Brightness: luz del sol. Density: bruma.
 --   Dark (0..1, v126): lo oscuras y bajas que son las nubes (cubierto gris 0,15; lluvia 0,45;

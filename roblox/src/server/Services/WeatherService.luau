@@ -183,7 +183,9 @@ function WeatherService.step()
 	end
 	workspace:SetAttribute("SeasonNext", other)
 	workspace:SetAttribute("SeasonBlend", round(blend, 2))
-	workspace:SetAttribute("Festive", if forced.Season then forced.Season == "Invierno" else Seasons.festive(day))
+	-- (Valmar después de la Caída: sin luces de Navidad en la plaza)
+	local postWar = type(Config.PostWar) == "table" and Config.PostWar.Climate == true
+	workspace:SetAttribute("Festive", if postWar then false elseif forced.Season then forced.Season == "Invierno" else Seasons.festive(day))
 	if workspace:GetAttribute("Weather") ~= weather then
 		workspace:SetAttribute("Weather", weather)
 		for _, player in Players:GetPlayers() do
