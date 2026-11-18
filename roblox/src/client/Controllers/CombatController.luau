@@ -1584,7 +1584,7 @@ function CombatController.init()
 	local function canLock(): boolean
 		return canPunch() and (not TouchLayout.isTouch() or CombatController.inCombat() or CombatController.isLocked())
 	end
-	TouchLayout.register({ Id = "Ataque", Icon = "espada", Label = "Atacar", Slot = "Ataque", Priority = 3, Key = "Clic / X", Pad = "RB", Visible = canPunch, Callback = CombatController.attack })
+	TouchLayout.register({ Id = "Ataque", Icon = "espada", Image = "hab_ataque", Label = "Atacar", Slot = "Ataque", Priority = 3, Key = "Clic / X", Pad = "RB", Visible = canPunch, Callback = CombatController.attack })
 	-- Móvil: con un cartel cerca el botón grande pasa a ser esa acción («Hablar», «Comer»…: el botón
 	-- Interactuar de Commands/CommandMenu se pone encima). En plena pelea NO: sigue siendo «Atacar»
 	TouchLayout.setFightCheck(CombatController.fighting)

@@ -14,6 +14,7 @@ local UserInputService = game:GetService("UserInputService")
 local HunterSkills = require(ReplicatedStorage.Shared.HunterSkills)
 local Theme = require(script.Parent.Parent.UI.Theme)
 local TouchLayout = require(script.Parent.Parent.UI.TouchLayout)
+local HudArt = require(script.Parent.Parent.UI.HudArt)
 
 local HunterSkillsUI = {}
 
@@ -117,8 +118,13 @@ local function refresh()
 			b.Count.Text = tostring(math.ceil(left))
 			b.Cover.Size = UDim2.fromScale(1, math.clamp(left / (total[sk.Id] or sk.Cooldown), 0, 1))
 		end
-		b.Button.BackgroundColor3 = if not unlocked then rgb(40, 42, 50) elseif left > 0 then rgb(34, 44, 66) else rgb(50, 110, 190)
-		b.Button.TextTransparency = if unlocked then 0 else 0.6
+		local art = b.Button:FindFirstChild("Arte") :: ImageLabel?
+		if art then
+			art.ImageColor3 = if not unlocked then rgb(90, 90, 100) elseif left > 0 then rgb(150, 150, 170) else rgb(255, 255, 255)
+		else
+			b.Button.BackgroundColor3 = if not unlocked then rgb(40, 42, 50) elseif left > 0 then rgb(34, 44, 66) else rgb(50, 110, 190)
+			b.Button.TextTransparency = if unlocked then 0 else 0.6
+		end
 	end
 end
 
@@ -142,11 +148,27 @@ function HunterSkillsUI.init()
 		local btn = create("TextButton", { Name = sk.Id, Size = UDim2.fromOffset(size, size), BackgroundColor3 = rgb(50, 110, 190), BackgroundTransparency = 0.15, Text = sk.Icon, TextSize = if touch then 24 else 22, TextColor3 = rgb(255, 255, 255), AutoButtonColor = true, LayoutOrder = i, ClipsDescendants = true, Parent = column })
 		create("UICorner", { CornerRadius = if touch then UDim.new(1, 0) else UDim.new(0, 10), Parent = btn })
 		create("UIStroke", { Color = if touch then rgb(150, 200, 255) else rgb(120, 170, 240), Thickness = if touch then 1.5 else 2, Transparency = 0.3, Parent = btn })
+		-- (18-11-2026) el icono PINTADO (scripts/hud/gen_skills.py) con su marco dorado; si aún no está subido, el emoji
+		if sk.Art and HudArt.has(sk.Art) then
+			btn.Text = ""
+			btn.BackgroundTransparency = 1
+			local art = HudArt.image(btn, sk.Art, { Name = "Arte", ZIndex = 1 })
+			if art then
+				create("UICorner", { CornerRadius = if touch then UDim.new(1, 0) else UDim.new(0, 10), Parent = art })
+			end
+			HudArt.image(btn, if touch then "marco_hab_redondo" else "marco_hab", { Name = "Marco", ZIndex = 4 })
+			local st = btn:FindFirstChildOfClass("UIStroke")
+			if st then
+				st.Enabled = false
+			end
+		end
 		local cover = create("Frame", { Name = "Espera", AnchorPoint = Vector2.new(0, 1), Position = UDim2.fromScale(0, 1), Size = UDim2.fromScale(1, 1), BackgroundColor3 = rgb(0, 0, 0), BackgroundTransparency = 0.45, BorderSizePixel = 0, Visible = false, Parent = btn })
-		local count = create("TextLabel", { Name = "Cuenta", Size = UDim2.fromScale(1, 1), BackgroundTransparency = 1, Text = "", TextSize = 20, Font = Enum.Font.GothamBold, TextColor3 = rgb(255, 255, 255), Visible = false, ZIndex = 3, Parent = btn })
-		local lock = create("TextLabel", { Name = "Nivel", AnchorPoint = Vector2.new(0.5, 1), Position = UDim2.new(0.5, 0, 1, -2), Size = UDim2.new(1, 0, 0, 14), BackgroundTransparency = 1, Text = "nv. " .. sk.Level, TextSize = 11, Font = Enum.Font.GothamBold, TextColor3 = rgb(255, 210, 120), Visible = false, ZIndex = 3, Parent = btn })
+		create("UICorner", { CornerRadius = if touch then UDim.new(1, 0) else UDim.new(0, 10), Parent = cover })
+		cover.ZIndex = 2
+		local count = create("TextLabel", { Name = "Cuenta", Size = UDim2.fromScale(1, 1), BackgroundTransparency = 1, Text = "", TextSize = 22, Font = Enum.Font.GothamBlack, TextColor3 = rgb(255, 255, 255), TextStrokeTransparency = 0.2, Visible = false, ZIndex = 5, Parent = btn })
+		local lock = create("TextLabel", { Name = "Nivel", AnchorPoint = Vector2.new(0.5, 1), Position = UDim2.new(0.5, 0, 1, -2), Size = UDim2.new(1, 0, 0, 14), BackgroundTransparency = 1, Text = "nv. " .. sk.Level, TextSize = 11, Font = Enum.Font.GothamBold, TextColor3 = rgb(255, 210, 120), TextStrokeTransparency = 0.2, Visible = false, ZIndex = 5, Parent = btn })
 		if not touch then
-			create("TextLabel", { Name = "Tecla", Position = UDim2.fromOffset(4, 2), Size = UDim2.fromOffset(16, 16), BackgroundTransparency = 1, Text = sk.Key, TextSize = 14, Font = Enum.Font.GothamBlack, TextColor3 = rgb(255, 255, 255), TextStrokeTransparency = 0.3, ZIndex = 3, Parent = btn })
+			create("TextLabel", { Name = "Tecla", Position = UDim2.fromOffset(4, 2), Size = UDim2.fromOffset(16, 16), BackgroundTransparency = 1, Text = sk.Key, TextSize = 14, Font = Enum.Font.GothamBlack, TextColor3 = rgb(255, 255, 255), TextStrokeTransparency = 0.3, ZIndex = 5, Parent = btn })
 		end
 		buttons[sk.Id] = { Button = btn, Cover = cover, Count = count, Lock = lock }
 		btn.Activated:Connect(function()
@@ -168,6 +190,7 @@ function HunterSkillsUI.init()
 		TouchLayout.register({
 			Id = "Hab_" .. sk.Id,
 			Icon = sk.Icon,
+			Image = sk.Art,
 			Label = SHORT[sk.Id] or sk.Name, -- (cada uno el suyo: dos botones con el mismo texto no salen)
 			Slot = "Hab" .. i,
 			Priority = 2,

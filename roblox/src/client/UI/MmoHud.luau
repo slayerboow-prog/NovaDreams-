@@ -156,7 +156,30 @@ function MmoHud.build(parent: Instance, actions: { [string]: () -> () }): Frame
 			create("TextLabel", { Name = "Icono", AnchorPoint = Vector2.new(0.5, 0.5), Position = UDim2.fromScale(0.5, 0.45), Size = UDim2.fromScale(0.62, 0.62), BackgroundTransparency = 1, Text = def[2], TextScaled = true, Font = Theme.FontBold }),
 			create("TextLabel", { Name = "Tipo", Position = UDim2.fromOffset(6, 2), Size = UDim2.fromOffset(40, 22), BackgroundTransparency = 1, Text = def[1], Font = Theme.FontBold, TextSize = 18, TextColor3 = rgb(255, 255, 255), TextStrokeTransparency = 0.3, TextXAlignment = Enum.TextXAlignment.Left }),
 		})
-		counts[def[1]] = create("TextLabel", { Name = "Cuantas", AnchorPoint = Vector2.new(1, 1), Position = UDim2.new(1, -6, 1, -2), Size = UDim2.fromOffset(60, 24), BackgroundTransparency = 1, Text = "0", Font = Theme.FontBold, TextSize = 22, TextColor3 = rgb(255, 255, 255), TextStrokeTransparency = 0.2, TextXAlignment = Enum.TextXAlignment.Right, Parent = b })
+		-- (18-11-2026) el frasco PINTADO (scripts/hud/gen_skills.py) con marco dorado, si ya está subido
+		local okArt, HudArt = pcall(function()
+			return require(script.Parent.HudArt) :: any
+		end)
+		local artName = "pocion_" .. def[1]:lower()
+		if okArt and HudArt.has(artName) then
+			b.BackgroundTransparency = 1
+			for _, ch in b:GetChildren() do
+				if ch:IsA("UIStroke") or ch:IsA("UIGradient") or ch.Name == "Icono" then
+					ch:Destroy()
+				end
+			end
+			local art = HudArt.image(b, artName, { Name = "Arte", ZIndex = 1 })
+			if art then
+				create("UICorner", { CornerRadius = UDim.new(0, 16), Parent = art })
+			end
+			HudArt.image(b, "marco_hab", { Name = "Marco", ZIndex = 2 })
+			local tipo = b:FindFirstChild("Tipo") :: TextLabel?
+			if tipo then
+				tipo.ZIndex = 3
+				tipo.Position = UDim2.fromOffset(10, 6)
+			end
+		end
+		counts[def[1]] = create("TextLabel", { Name = "Cuantas", ZIndex = 3, AnchorPoint = Vector2.new(1, 1), Position = UDim2.new(1, -6, 1, -2), Size = UDim2.fromOffset(60, 24), BackgroundTransparency = 1, Text = "0", Font = Theme.FontBold, TextSize = 22, TextColor3 = rgb(255, 255, 255), TextStrokeTransparency = 0.2, TextXAlignment = Enum.TextXAlignment.Right, Parent = b })
 		local kind = def[1]
 		b.Activated:Connect(function()
 			local remotes = game:GetService("ReplicatedStorage"):FindFirstChild("Remotes")

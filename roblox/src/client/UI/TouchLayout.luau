@@ -79,6 +79,7 @@ local TouchLayout = {}
 export type Spec = {
 	Id: string,
 	Icon: string,
+	Image: string?,
 	Label: string,
 	Slot: string?,
 	Priority: number?,
@@ -381,6 +382,23 @@ local function buildView(spec: Spec): View
 			create("UIAspectRatioConstraint", { AspectRatio = 1, Parent = icon })
 		end
 	end
+	-- (18-11-2026) Image = un icono PINTADO de UI/HudArt (habilidades, Atacar): ocupa todo el botón, con el aro dorado
+	-- encima y el texto en una cinta oscura abajo; si aún no está subido, se queda el icono de siempre
+	if spec.Image and not boxy then
+		pcall(function()
+			local HudArt = require(script.Parent.HudArt)
+			if HudArt.has(spec.Image) then
+				local art = HudArt.image(button, spec.Image, { Name = "Pintado", ZIndex = 1 })
+				if art then
+					create("UICorner", { CornerRadius = UDim.new(1, 0), Parent = art })
+					HudArt.image(button, "marco_hab_redondo", { Name = "MarcoPintado", ZIndex = 2 })
+					icon.Visible = false
+					fill.Visible = false
+					stroke.Enabled = false
+				end
+			end
+		end)
+	end
 	-- (botones de volar: icono dibujado y aro con brillo del color del botón, si hay sprites)
 	if spec.Art and not boxy then
 		pcall(function()
@@ -452,6 +470,15 @@ local function buildView(spec: Spec): View
 		})
 		create("UICorner", { CornerRadius = UDim.new(1, 0), Parent = pad })
 		create("UIStroke", { Color = H.Glow, Thickness = 1, Transparency = 0.3, Parent = pad })
+	end
+	if button:FindFirstChild("Pintado") then
+		-- (encima del icono pintado: el texto con sombra, el numerito y la barrita)
+		label.ZIndex = 3
+		label.TextStrokeTransparency = 0.1
+		label.Position = UDim2.fromScale(0.5, 0.7)
+		badge.ZIndex = 3
+		meter.ZIndex = 3
+		meterFill.ZIndex = 3
 	end
 	Theme.pressable(button)
 	wirePress(button, spec)
