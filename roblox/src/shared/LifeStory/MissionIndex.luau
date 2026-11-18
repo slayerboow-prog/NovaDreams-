@@ -29,6 +29,7 @@ return {
 	require(Misiones.Grieta_Umbral), -- la Grieta: Proyecto Umbral (la historia principal después de la Reconquista)
 	require(Misiones.Coalicion_Marea), -- Acto II «La Coalición»: la Marea Gris (Valmar) y Tefra (docs/historia/historia-principal-15h.md)
 	require(Misiones.Coalicion_Mundos1), -- Acto II: Miasma, Siroco y Nivalis
+	require(Misiones.Coalicion_Mundos2), -- Acto II: Umbría, Tálasa y Vértice; Acto III «La última noche»
 	retire(require(Misiones.Cole01_PrimerDia)),
 	retire(require(Misiones.Cole02_Mochila)),
 	retire(require(Misiones.Cole03_Grupo)),
