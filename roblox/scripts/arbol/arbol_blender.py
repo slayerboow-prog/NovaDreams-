@@ -221,8 +221,11 @@ def snake(p0, d, L, r0, n, seed, rise=10.0, sink=-9.0):
     return pts, radii
 
 
-for i in range(14):
-    a = i / 14 * math.tau + random.uniform(-0.1, 0.1)
+for i in range(16):
+    a = i / 16 * math.tau + random.uniform(-0.1, 0.1)
+    # (el camino de la entrada, hacia la ciudad = −Z, queda libre: por ahí se llega al altar del núcleo y al guardián)
+    if abs(((a - 1.5 * math.pi) + math.pi) % math.tau - math.pi) < math.radians(28):
+        continue
     d = V(math.cos(a), 0, math.sin(a))
     L = random.uniform(120, 175)
     p0 = d * 34 + V(0, 16, 0)
@@ -309,7 +312,7 @@ for k, sp in enumerate(strand_paths):
             pts.append(sp[i] + outward * rr * 0.86 + tang * side * rr * 0.45)
             radii.append(0.55 if i % 9 else 0.85)
         venas.tube(pts, radii, 6, urep=1.0)
-for i in range(0, 14, 2):
+for i in range(0, len(roots_center), 2):
     rp = roots_center[i]
     pts = [p + V(0, 14 * (1 - 0.86 * (j / 19)) + 1.6, 0) for j, p in enumerate(rp[:15])]
     venas.tube(pts, [0.5] * len(pts), 6, urep=1.0)
