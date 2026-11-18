@@ -2,6 +2,7 @@
 
 > 18-11-2026. Se hace después de actualizar el Registro, los volúmenes I-III y los documentos nuevos (`cronologia.md`,
 > `reglas-universo.md`, `matriz-decisiones.md`, `matriz-personajes.md`).
+> **Superado por `auditoria-final.md`**, donde B1-B3 están resueltos por el dueño y el resto de dudas se ha actualizado.
 > **No se ha tocado el juego:** ni misiones publicadas, ni código, ni `Cast.luau`.
 
 ## 1. Qué se ha actualizado
@@ -48,7 +49,7 @@
 | Búsqueda de restos en el canon («dejó a nueve», «Candela», «Teo», «Pastora eterna», Lys con la corona, «única superviviente», «árbol-Sello Garza») | ✅ Ninguno fuera de las entradas históricas del Registro |
 | Todos los «hace X años» publicados frente al calendario | ✅ 10 de 10 cuadran (cronología §6) |
 | Edades frente a las fechas de nacimiento (Kael, Irene, Noa, Cosme, Lía, Nela, Luz, Rafa, Nina) | ✅ |
-| Nombres nuevos frente al reparto, el código y los documentos (Greta Albar, Oriol, Mirta, Irsa Orvane, Bertil Selm, Edda Ivel, Octavia Prill, Ciro Mallo) | ✅ Libres |
+| Nombres nuevos frente al reparto, el código y los documentos (Greta Albar, Oriol, Renata, Celia Orvane, Bertil Selm, Edda Ivel, Octavia Prill, Ciro Mallo) | ✅ Libres |
 | Uso de R11 en los volúmenes: ¿alguna escena pide a Lys tocar, luchar, viajar o sacar a alguien a la fuerza? | ✅ Ninguna |
 | R12: ¿algún final o escena hace Pastor a alguien sin entrega y aceptación? | ✅ Ninguno |
 | ¿Alguna decisión bloquea contenido, progresión o «Liberar»? | ✅ Ninguna (matriz de decisiones §0) |
@@ -57,7 +58,7 @@
 ## 5. Lo que necesita el visto bueno del dueño (🟡)
 
 1. **La supervivencia de Irene** (cronología §5.1).
-2. **Tefra 1.211:** Oriol y Mirta, el piloto, el destino de los ocho, el carguero de los Desertores y el rescate negado
+2. **Tefra 1.211:** Oriol y Renata, el piloto, el destino de los ocho, el carguero de los Desertores y el rescate negado
    (cronología §5.2).
 3. **El criosueño a tres cuartas partes:** el chico tiene 21 años de calendario y un cuerpo de 19-20 (cronología §5.3).
 4. **R12:** cómo encaja cada candidato con R7 (reglas §3).
@@ -132,7 +133,7 @@
 |---|---|---|
 | P2 | Las llamadas de radio pasan del final del Acto I al del Acto V (`Niv03`, `Tal03`, `Ver02`) | Se presentará con la producción de cada planeta |
 | P6/P7 | Fichas antiguas y nombres repetidos de `Cast.luau` (P-1, P-2) | Se presentarán con la producción de Valmar |
-| P-12 | Solo si el dueño elige «Árbol Antiguo»: 8 textos | Plan propio |
+| P-12 | Cerrado: el nombre oficial es «Árbol Ancestral»; no hay nada que cambiar | — |
 
 ## 7. Siguiente paso
 1. El dueño revisa los puntos 🟡 (§5) y las dudas B1-B5.

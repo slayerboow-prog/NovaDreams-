@@ -12,7 +12,7 @@
 | **R1** | La luz azul de un Sello frena a la Marea. Un Sello apagado o perforado deja de frenarla. | Combate, defensa de Valmar | ✅ |
 | **R2** | La Marea solo entra en un mundo por una puerta abierta: un Hilo abierto o una grieta. | El Gran Corte; el Consorcio | ✅ |
 | **R3** | La Marea se lleva a una persona en tres fases: primero apaga las emociones, luego los recuerdos y al final la convierte en Velado. Su mente pasa al Coro. | Sorel, los Velados, Garza | ✅ |
-| **R4** | Cruzar una grieta, o los Hilos, sin la protección de un Sello cuesta años de vida. Cuanto más tiempo dentro, más años. | Cosme, Irene, Halden | ✅ |
+| **R4** | **Atravesar una anomalía temporal sin la protección de un Sello cuesta años de vida:** una grieta, una perforación o un tramo de los Hilos expuesto, inestable o cortado. Cuanto más tiempo dentro, más años. **Las rutas estables por los Hilos** (el viaje normal entre mundos desde 1.064) **no envejecen**, salvo una excepción documentada en el Registro. | Cosme (grieta), Halden (grieta), Irene (Hilos cortados tras la compuerta); Kael en 1.194 estuvo dentro muy poco: coste mínimo | ✅ (RC-068) |
 | **R5** | Lo que se pierde en los Hilos acaba en el Ancla, la fosa de Tálasa. | Irene (1.196), restos de la fosa | ✅ |
 | **R6** | El Coro guarda las mentes, pero con los siglos las borra. Una mente del Coro termina siendo una voz sin nombre. | El giro de Vértice; los «olvidados» | ✅ |
 | **R7** | El Coro oye a quien ha tocado un Sello herido. | El jugador desde el Umbral | ✅ |
@@ -64,10 +64,10 @@ no la deja descansar.
 | Los demás árboles-Sello, si los hay | Árbol-Sello | Sí |
 | Cualquier otro árbol | Ninguno | **No** |
 
-**Nombre del Sello de Valmar:** el juego lo llama **«Árbol Ancestral»** en sus 8 apariciones (`Kit/AncientTree`,
-`SanctuaryService`). No hay ni una aparición de «Árbol Antiguo» en el juego: ese nombre era de la biblia v1 (RC-031).
-**Propuesta:** el nombre oficial es «Árbol Ancestral», para no cambiar texto publicado. Pendiente de confirmación del
-dueño (su revisión pedía «Árbol Antiguo»).
+**Si los Hilos se sellan para siempre (final «Cerrar»)** 🟡 (RC-070): el Árbol Primero muere y la raíz profunda se rompe. Lys queda limitada a su propio árbol: la Semilla, el árbol joven «Garza» y el árbol madre de Umbría. Por eso Nía puede oírla y nadie más.
+
+**Nombre del Sello de Valmar:** **«Árbol Ancestral»** (✅ RC-053), el de las 8 apariciones del juego (`Kit/AncientTree`,
+`SanctuaryService`). Es su único nombre.
 
 ## 3. R12 · La corona ✅ (idea) / 🟡 (detalle)
 
@@ -85,7 +85,7 @@ la suelta.
 | Candidato | Por qué el Coro le oye | Condición para ser candidato | Aceptación consciente | Cómo reina |
 |---|---|---|---|---|
 | **El jugador** | Tocó el Sello herido en el Umbral (R7) | Siempre | **Tiene que elegirlo** en una decisión explícita. Nunca es automático. | **Desde fuera.** Conserva su cuerpo, su personaje y su continuidad en el MMO (innegociable). Le queda una cicatriz (vetas grises en la mano) y oye a los que recuerdan junto a las raíces. |
-| **Ilse** | Está **dentro del Coro**: en la «caída» de Vértice cruzó la Consola con Ithar (R8, peldaño 8). Oír la voz de Adrián no basta. | Solo si cayó en Vértice | Lo acepta ella, en escena, con sus propias palabras | **Desde dentro**, eterna |
+| **Ilse** | Está **dentro del Coro**: en la «caída» de Vértice cruza la Consola con Ithar (R8) y se entrega al Coro (R3, por voluntad propia). Oír la voz de Adrián no basta. | Solo si cayó en Vértice | Lo acepta ella, en escena, con sus propias palabras | **Desde dentro**, eterna |
 | **Sorel** | El Coro tiene ya parte de su mente (R3, tercera fase) | Solo si su deterioro no tiene vuelta, es decir, si no se cumplen las condiciones de su salvación (Vol. III) | **Tiene que aceptarlo en un momento de lucidez.** Si se niega, no es candidata. Su deterioro nunca la hace Pastora por sí solo. | **Desde dentro**, eterna |
 
 **Por qué Ithar no podía reinar desde fuera:** su cuerpo se perdió al entrar en la Marea hace 1.214 años, y el de

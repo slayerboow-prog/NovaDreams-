@@ -324,7 +324,7 @@ Según cuándo aceptaron la oferta del Coro, hay dos tipos (choque 7):
 | Puerta | Cuándo | Qué hizo | Quién lo sabe |
 |---|---|---|---|
 | Primera | 1.194, expedición de Vértice | **Cerró** la compuerta con su equipo al otro lado, entre ellos Irene Ferran. Obedeció. | Nadie |
-| Segunda | 1.211, Tefra | **Desobedeció** la orden de retirada para no repetirlo. Salvó a 2 de 11 (Oriol y Mirta), que murieron un año después en la Caída. Ilen murió sosteniendo la plataforma. En 1.214 es la única viva de los doce. | Todos: es su herida «oficial» |
+| Segunda | 1.211, Tefra | **Desobedeció** la orden de retirada para no repetirlo. Salvó a 2 de 11 (Oriol y Renata), que murieron un año después en la Caída. Ilen murió sosteniendo la plataforma. En 1.214 es la única viva de los doce. | Todos: es su herida «oficial» |
 | Tercera | Tálasa, Acto V | **Sostiene** la compuerta abierta para que pasen los demás, y muere | La que el jugador ve |
 
 **Romper el voto.** En Tálasa, Acto III, Irene despierta y pide verla. Kael descubre que Irene está viva. Duda en el puerto hasta que ILEN reproduce el mensaje de Ilen («si algún día alguien te necesita tanto como yo te necesité hoy, ve») y sale de Valmar **por primera vez desde que volvió de Tefra**.
@@ -467,7 +467,7 @@ Nudo es el último peldaño, no un giro inventado.
 | 5 | Nivalis | Se ofrece a entrar sola en la zona oscura. Vuelve tranquila. Miente sobre dónde ha estado; Halden, si está, lo nota. | Habla con el Coro a solas |
 | 6 | Umbría | Pregunta a Lys si los muertos están en el Coro. Lys: «Están. Pero no son.» Ilse se queda solo con la primera mitad. | Elige creer |
 | 7 | Tálasa, Actos III-IV | Ve a Noa abrazar a su madre recuperada (Irene). Se rompe. Esa noche, el pulso le habla con la voz de Adrián: «Mamá, abre.» **Abre el Nudo.** | La traición |
-| 8 | Vértice | **Redención** (si el jugador la buscó y Halden o Kael la perdonaron): desactiva el Plan Puerta desde dentro y pierde las manos en la Consola. **Caída** (si no): cruza la Consola con Ithar (R8) y entra en el Coro. En Oren es candidata a «Ocupar su lugar», y solo si lo acepta (R12). | Consecuencia |
+| 8 | Vértice | **Redención** (si el jugador la buscó y Halden o Kael la perdonaron): desactiva el Plan Puerta desde dentro y pierde las manos en la Consola. **Caída** (si no): cruza la Consola con Ithar (R8) y se entrega al Coro (R3). En Oren es candidata a «Ocupar su lugar», y solo si lo acepta (R12). | Consecuencia |
 
 **El hijo:** **Adrián Maren**, 19 años. Era voluntario en el hospital de campaña del Sur y murió la noche de la Caída,
 mientras su madre estaba en el observatorio abriendo la Grieta. La voz que oye Ilse es la de Adrián tal como el Coro la

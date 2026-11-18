@@ -49,7 +49,7 @@
 
 | Prueba | Dónde se consigue |
 |---|---|
-| 1 · El acta de la orden de las 23:40, con la firma de Greta como testigo | Mazmorra 1, las cloacas del Consejo (Valmar IV) |
+| 1 · **El libro de actas** de la sesión de emergencia de la noche de la Caída, que lleva la propia Greta: recoge que nadie objetó la orden y que ella la certificó. **No es la orden**: la copia publicada en el archivo (`Gri03`, «Firmado: A. Varn») solo lleva la firma de Varn. | Mazmorra 1, las cloacas del Consejo, bajo el generador (Valmar IV) |
 | 2 · La denegación del rescate de Kael en 1.211 | El archivo del Consejo, contrastado con el libro de Vossa |
 | 3 · El testimonio de Ortal | Solo con `OrtalVerdad` (📜) |
 | 4 · El precedente de `UmbralPublico` | Solo si se publicó la verdad del Umbral (📜) |
@@ -135,7 +135,7 @@
 |---|---|---|---|---|
 | `NivTila` | I | `TilaFarol` / `SorelFarol` | 📜 | Vínculo de Sorel con Tila |
 | `NivTocados` | II y IV | Sacarlos / dejarlos para salvar el asalto | ✅ (Vol. III) | Nilo vive o no; punto C |
-| `NivBanquete` | III | Desenmascarar a Irsa Orvane / dejarla creer que ha ganado | 🟡 | Orvane se va con Casimir, o su traición se usa más tarde |
+| `NivBanquete` | III | Desenmascarar a Celia Orvane / dejarla creer que ha ganado | 🟡 | Orvane se va con Casimir, o su traición se usa más tarde |
 | `NivCasa` | IV | Orvane / Selm / Ivel | ✅ (idea) | **Recursos y dificultades** del reinado de Ámbar |
 | `NivCasimir` | V | Último farolero / juicio / exilio (decide Ámbar; el jugador opina) | ✅ (Vol. III) | — |
 | `NivOsric` | III-V | Apoyarle tras la confesión / dejarle caer | 🟡 | Abdica siempre. Con apoyo, se queda como consejero; sin él, se encierra en su torre. |

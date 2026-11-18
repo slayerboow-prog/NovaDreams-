@@ -24,10 +24,10 @@
 | **Irene Ferran** | 1.168 | 46 (cuerpo mayor, por R4 y el criosueño) | Viva | Amiga íntima y compañera de Kael; ingeniera; la expedición; volvió por el Ancla en 1.196; Estación Abisal; **sabía que Kael vivía y nunca le escribió** | ✅ |
 | **Noa Ferran** | 1.188 | 26 | Viva | Hija de Irene; **ahijada de Kael**; buceadora | 📜 / ✅ |
 | **Ilen** | ? | † 1.211 | Muerta | **Persona.** Segunda al mando y piloto de Kael; muere sosteniendo la plataforma | 📜 / ✅ |
-| **Oriol** | ? | † 1.212 | Muerto | Navegante de la escuadra; salvado por Kael; pilota la nave de vuelta; muere en el hospital del Sur | 🟡 |
-| **Mirta** | ? | † 1.212 | Muerta | Sanitaria; salvada por Kael; muere en el hospital del Sur | 🟡 |
+| **Oriol** | ? | † 1.212 | Muerto | Navegante de la escuadra; salvado por Kael; pilota la nave de vuelta; muere en el hospital del Sur | ✅ |
+| **Renata** | ? | † 1.212 | Muerta | Sanitaria; salvada por Kael; muere en el hospital del Sur | ✅ papel / 🟡 nombre (antes «Mirta», RC-071) |
 | Los siete de 1.194 | — | † 1.194 | En el Coro | Dos aparecen como Velados en Oren | ✅ |
-| Los ocho de la Lanza | — | † 1.211 | Muertos | Escolta de la escuadra de Tefra | 🟡 |
+| Los ocho de la Lanza | — | † 1.211 | Muertos | Escolta de la escuadra de Tefra | ✅ |
 | El chico del criosueño | 1.193 | 21 (cuerpo de 19-20) | Vivo | Irene le cedió su cápsula | 📜 / 🟡 (regla) |
 
 ## 3. Heraldos y antagonistas
@@ -53,25 +53,29 @@
 ### 4.1 Valmar
 | Persona | Edad | Papel | Fuente |
 |---|---|---|---|
-| Adrián Maren | † con 19 (1.212) | Hijo de Ilse; voluntario del hospital del Sur, donde estaban Oriol y Mirta | 📜 / ✅ |
+| Adrián Maren | † con 19 (1.212) | Hijo de Ilse; voluntario del hospital del Sur, donde estaban Oriol y Renata | 📜 / ✅ |
 | Vossa | adulta | Armera; antes de la Caída arreglaba ascensores; su libro de salidas | 📜 |
 | Ortal, Lena | adultos | Vecinos del Sur | 📜 |
 | **Greta Albar** | ~58 🟡 | Consejera; presidenta tras Varn (ver abajo) | ✅ nombre / 🟡 historia |
 | Dara | cadete | Cadete de la Academia | 📜 |
 
 **Greta Albar** 🟡:
-- **Quién era antes de la Caída:** secretaria de actas y consejera de Abastecimiento. Un cargo menor y gris. Por
-  protocolo, **certifica con su firma toda orden del Consejo**.
+- **Quién era antes de la Caída:** secretaria de actas y consejera de Abastecimiento. Un cargo menor y gris. Lleva el
+  libro de actas del Consejo.
 - **Su responsabilidad real:**
-  - no decidió la orden de las 23:40, pero la certificó sin objetar;
-  - en 1.211 tramitó la denegación del rescate de Kael («no hay naves disponibles»).
-- **Por qué no ha destacado hasta ahora:** nadie mira a la secretaria. Durante los tres días del refugio, en la Caída,
-  organizó los víveres y salvó a mucha gente. Ese mérito real es su escudo.
+  - en la sesión de emergencia de la noche de la Caída no objetó la orden de Varn y certificó el acta. La orden que el
+    jugador lee en el archivo (`Gri03`) solo lleva la firma de Varn: **la de Greta está en el libro de actas**, que ella
+    misma escondió;
+  - en 1.211 tramitó la denegación del rescate de Kael («no hay naves disponibles»);
+  - **estaba en la lista de los doscientos del refugio blindado** (`Gri03`) y entró en él.
+- **Por qué no ha destacado hasta ahora:** nadie mira a la secretaria. Desde el refugio blindado organizó el
+  racionamiento y mandó víveres al refugio del campus durante los tres días. Es un mérito real, pero nacido del
+  privilegio, y es su escudo.
 - **Por qué sigue en el poder tras Varn:** es la única que conoce los archivos y el racionamiento. El Consejo la elige
   por continuidad.
-- **Por qué la Academia no sabe lo de su firma:** las actas originales están en el archivo del Consejo, bajo el
-  generador (la mazmorra 1 de Valmar IV), y la Academia nunca tuvo acceso. Kael sabe que se le negó el rescate, pero
-  nunca vio quién lo firmó.
+- **Por qué la Academia no sabe lo de su firma:** «nadie de la Academia ha entrado nunca» en el archivo (`Gri03`). Cuando
+  el jugador entra, solo encuentra la orden firmada por Varn. El libro de actas está en las cloacas, bajo el generador.
+  Kael sabe que se le negó el rescate, pero nunca vio quién lo tramitó.
 
 ### 4.2 Tefra
 | Persona | Nace | Edad | Papel | Fuente |
@@ -80,7 +84,7 @@
 | **Nela** | 1.189 | 25 | Hija de Lía; trabaja en la Fundición Norte; no perdona a Cosme | ✅ |
 | Ulises | † 1.201 | — | Padre de Nela; soldado del Dominio | ✅ |
 | Nilda | — | — | Abuela de Cosme y Lía, bisabuela de Nela | 📜 RC-033 |
-| Dalia Renn, Tobi Renn | adultos | Desertores del Ovillo y Milicia de Ovilla. Los Desertores sacan a Kael de Tefra en 1.212 (🟡) | 📜 |
+| Dalia Renn, Tobi Renn | adultos | Desertores del Ovillo y Milicia de Ovilla. Los Desertores sacan a Kael de Tefra en 1.212 (✅) | 📜 |
 | Ernesto | mayor | Panadero del Ovillo; conoció a Cosme y a Lía | 📜 |
 
 ### 4.3 Miasma
@@ -107,6 +111,7 @@ padre. Construye algo en secreto»):
 - **Lo que no es:** una herramienta para hacer sufrir a sus padres.
   - Su supervivencia no depende de ninguna decisión sobre Rafa.
   - Si va a la Biblioteca a buscar a su madre, es **su** decisión.
+- **Su secundaria (✅ RC-069):** su primera carrera, corta, local y segura en los Boxes. **Nunca la Gran Vuelta.**
 - **Papel en el juego:** mecánica de los deslizadores en el Acto IV, sobre todo si corre el jugador. «Lo que construye
   en secreto» puede ser el deslizador de la Gran Vuelta.
 
@@ -116,7 +121,7 @@ padre. Construye algo en secreto»):
 | Osric Varga | 61 | Rey; firmó la Cláusula 19; abdica | 📜 |
 | Ámbar Varga | 23 | Heredera; elige qué reina quiere ser | 📜 / 🟡 |
 | Tila | 16 (menor) | Farolera; hermano Nilo | 📜 |
-| **Irsa Orvane** | ~50 🟡 | Cabeza de la Casa Orvane (minas de cristal); traiciona en el banquete | 🟡 |
+| **Celia Orvane** | ~50 🟡 | Cabeza de la Casa Orvane (minas de cristal); traiciona en el banquete | 🟡 |
 | **Bertil Selm** | ~65 🟡 | Cabeza del gremio Selm (vidrio de faroles) | 🟡 |
 | **Edda Ivel** | ~40 🟡 | Cabeza de la Casa Ivel (menor, minera); esconde a los tocados | 🟡 |
 
