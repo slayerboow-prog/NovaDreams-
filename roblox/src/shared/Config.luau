@@ -118,6 +118,11 @@ Config.SkyRift = {
 -- tráfico y los peatones de ciudad normal, el autobús urbano y el pase de temporada (BattlePass/Config).
 -- Para volver a encender uno: quitarlo de la lista.
 ---------------------------------------------------------------------
+-- Valmar después de la Caída (19-11-2026, el dueño): lo que la ciudad normal tenía y ya no pinta
+Config.PostWar = {
+	WreckParkedCars = true, -- los coches aparcados son chatarra quemada: sin cristales ni luces, y no se conducen
+}
+
 Config.Disabled = {
 	-- servidor
 	FootballService = true, RacketService = true, VolleyService = true, RaceService = true, BasketService = true,

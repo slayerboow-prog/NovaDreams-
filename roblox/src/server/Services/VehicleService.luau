@@ -33,6 +33,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local GameClock = require(ReplicatedStorage.Shared.GameClock) -- (la hora del juego: GameClock.hour())
 local Gameplay = require(ReplicatedStorage.Shared.Gameplay)
+local Config = require(ReplicatedStorage.Shared.Config)
 local Ground = require(ReplicatedStorage.Shared.Ground)
 local RideSpot = require(ReplicatedStorage.Shared.RideSpot)
 local VehicleControls = require(ReplicatedStorage.Shared.VehicleControls)
@@ -1348,6 +1349,38 @@ end
 local homes: { [Model]: { CFrame: CFrame, Since: number } } = {}
 
 -- Coche aparcado de la ciudad (decorativo) -> se puede conducir
+-- (Config.PostWar.WreckParkedCars) Coche aparcado convertido en chatarra de la Caída: cristales rotos
+-- (fuera), luces apagadas, chapa quemada y oxidada. No se puede conducir.
+local BURNT = Color3.fromRGB(40, 35, 32)
+local function wreckParkedCar(model: Instance)
+	if not model:IsA("Model") or model:GetAttribute("Wreck") then
+		return
+	end
+	model:SetAttribute("Wreck", true)
+	local seed = (#model:GetFullName() * 31) % 7
+	for _, part in model:GetDescendants() do
+		if part:IsA("BasePart") then
+			local name = string.lower(part.Name)
+			if part.Material == Enum.Material.Glass or name:find("glass") or name:find("window") or name:find("windshield") or name:find("cristal") or name:find("luneta") then
+				part:Destroy()
+			elseif name:find("light") or name:find("faro") or name:find("piloto") or name:find("lamp") then
+				part.Color = Color3.fromRGB(20, 20, 20)
+				part.Material = Enum.Material.SmoothPlastic
+			elseif not (name:find("wheel") or name:find("tire") or name:find("tyre") or name:find("rueda")) then
+				part.Color = part.Color:Lerp(BURNT, 0.7 + seed * 0.03)
+				if part.Material ~= Enum.Material.Fabric then
+					part.Material = Enum.Material.CorrodedMetal
+				end
+				if part:IsA("MeshPart") then
+					part.TextureID = ""
+				end
+			end
+		elseif part:IsA("Light") or part:IsA("ProximityPrompt") then
+			part:Destroy()
+		end
+	end
+end
+
 local function setupParkedCar(model: Instance)
 	if not model:IsA("Model") or model.Name ~= "ParkedCar" or model:GetAttribute("Drivable") then
 		return
@@ -1913,7 +1946,11 @@ function VehicleService.init()
 		if town then
 			for _, model in town:GetDescendants() do
 				if model.Name == "ParkedCar" then
-					setupParkedCar(model)
+					if Config.PostWar and Config.PostWar.WreckParkedCars then
+						wreckParkedCar(model)
+					else
+						setupParkedCar(model)
+					end
 				end
 			end
 		end

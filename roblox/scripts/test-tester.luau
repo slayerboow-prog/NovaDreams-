@@ -383,6 +383,9 @@ print("▶ Quién es tester")
 check(TesterService.isTester(owner), "el creador del juego es tester")
 check(not TesterService.isTester(other), "otro jugador no lo es")
 check(owner:GetAttribute("Tester") == true and other:GetAttribute("Tester") == nil, "solo el tester tiene el atributo Tester")
+-- (19-11-2026, el dueño: «Sin requisitos» viene APAGADO y se enciende a mano en el panel)
+check(not TesterService.bypass(owner), "«Sin requisitos» viene apagado (el dueño ve el juego normal)")
+profiles[owner].Tester = { Money = false, Bypass = true, RealMoney = 0, BypassReset = 1 }
 check(TesterService.bypass(owner) and not TesterService.bypass(other), "solo el tester se salta los requisitos")
 Config.Testers = { 4242 }
 check(TesterService.isTester(other), "un UserId de Config.Testers también es tester")
@@ -533,6 +536,7 @@ check(TesterService.bypass(owner) and autoLicences, "al encender «Sin requisito
 do
 	-- Al entrar al juego con «Sin requisitos»: carnets puestos
 	local newcomer = newPlayer("Dueño2", CREATOR, "Nino")
+	profiles[newcomer].Tester = { Money = false, Bypass = true, RealMoney = 0, BypassReset = 1 } -- (lo encendió en el panel)
 	for _, fn in loaded do
 		fn(newcomer, profiles[newcomer])
 	end

@@ -202,7 +202,12 @@ local function settingsOf(player: Player): { [string]: any }?
 		s.Money = false
 	end
 	if type(s.Bypass) ~= "boolean" then
-		s.Bypass = true -- (al entrar en el modo pruebas, sin requisitos: para eso es)
+		s.Bypass = false -- (19-11-2026, el dueño: apagado; se enciende a mano en el panel)
+	end
+	-- (una sola vez: a quien ya lo tenía guardado encendido se le apaga, para que vea el juego normal)
+	if s.BypassReset ~= 1 then
+		s.BypassReset = 1
+		s.Bypass = false
 	end
 	if type(s.RealMoney) ~= "number" or s.RealMoney ~= s.RealMoney or s.RealMoney < 0 then
 		s.RealMoney = 0
