@@ -341,8 +341,137 @@ decide si mira.
 | 7.11 | Expresión facial con `FaceControls` (cejas y párpados) a partir de `Mood` y `A` | `ActorLife` |
 | 7.12 | Respiración en reposo para actores de escena | `ActorLife` |
 | 7.13 | Entrada sin corte (de la cámara de juego al primer plano) | `HappeningClient` y `CineCamera` |
+| 7.14 | Paseos con conversación sin quitar el control (§14.7) | `HappeningClient` y `Mode Follow` |
+| 7.15 | Cámara de combate legible (§14.5) | Auditoría de `CombatService` y de la cámara de juego |
 
 Se suman a las 7.1-7.8 del Vol. V.
 
 **Orden recomendado:** 7.9, 7.13 y 7.7 (las transiciones invisibles, prioridad 6 del dueño), luego 7.11 y 7.12 (la
 expresividad, prioridad 2), y después 7.10.
+
+
+---
+
+## 14. Anexo · Segunda tanda de referencias del dueño (18-11-2026)
+
+Dieciséis imágenes más: escala cósmica, héroe ante una ciudad en llamas, paisaje alienígena, compañeros que caminan,
+primeros planos de miedo y de dolor, una anatomía de escena en siete fases, sacrificios, presentación de antagonistas
+y coreografía de combate. Igual que con la primera tanda, **se toma la técnica, nunca la escena ni el aspecto**.
+
+### 14.1 Lo que enseña cada referencia nueva
+
+| Ref. | Qué se ve | Principio | Aplicación en HEROES OF HISTORY |
+|---|---|---|---|
+| **R7 · Escala cósmica** | Un planeta enorme, con incendios visibles en su cara oscura; la silueta de una máquina colosal en primer término; un sol azul en el borde | **La amenaza se mide contra un mundo entero.** Una silueta oscura en primer término y la luz detrás. | La llegada de la Marea a la Grieta de Valmar («La puerta», parte 1): el planeta visto desde la órbita, con la ceniza como mancha gris que avanza y la flota diminuta. La Marea **nunca** se muestra entera: solo su borde y su efecto. |
+| **R8 · Héroe ante la ciudad en llamas** | Personaje de espaldas, a la derecha, con su arma; una fortaleza enorme en llamas y humo al fondo; contrapicado leve | **El héroe pequeño ante lo que tiene que cambiar.** El plano termina siendo el objetivo de la misión. | El asedio de Bastión (Tefra IV) y el asalto a Vértice. Es un **plano de enganche** (R6): el jugador recibe el control mirando la ciudad que debe tomar. |
+| **R9 · Paisaje alienígena** | Árboles retorcidos sobre roca, lunas enormes en el cielo y rayos de sol | **Que el cielo diga «no estás en casa».** Las lunas y la luz extraña bastan para cambiar de mundo. | El cielo de cada planeta (Vol. IV): Ovilla en el de Tefra, las tres lunas de Tálasa, la aurora de Nivalis. **El primer plano de cada planeta incluye su cielo.** |
+| **R10 · Seguir a alguien por un paso** | Cámara de juego detrás del jugador; un compañero corre delante por un desfiladero hacia la luz; brasas en el suelo | **El compañero guía con el cuerpo, no con una flecha.** | Los acompañantes (`Mode Follow`) van **delante** en los pasos estrechos y se paran a esperar. Por ejemplo, Brenn guía por el Sur muerto. |
+| **R11 · Caminar y hablar** | Dos personajes de espaldas, uno grande en primer término y otro a su lado con un animal; bosque nevado | **Las conversaciones importantes pueden ocurrir caminando.** La relación se ve en la distancia entre los dos. | **Paseos con conversación:** el jugador camina y el compañero habla a su lado, sin quitar el control. Por ejemplo, Kael y el jugador volviendo a la muralla; Cosme y el jugador en la Calle del Horno. La distancia entre ellos cambia según la relación: más cerca cuanto mejor se llevan. |
+| **R12 · Miedo de cerca** | Primerísimo primer plano de una cara sucia, ojos muy abiertos, boca entreabierta; luz fría lateral y fondo negro | **El terror se ve en los ojos.** El encuadre corta la frente y la barbilla para que solo queden los ojos y la boca. | Sorel al tocar el Coro (S8, T1); Tila en la oscuridad (dentro de la regla de menores: miedo sí, daño no). `PPP` con `Fov` 22-25 y luz lateral fría. |
+| **R13 · Duelo contenido** | Primer plano de un hombre mayor, mirada baja y perdida, boca cerrada | **El duelo es quietud.** No hay lágrimas ni gesto: solo una mirada que no está en la escena. | Corvo; Cosme sin chiste; Brenn después de Tomás. |
+| **R14 · Conversación cara a cara** | Dos personajes muy juntos, de perfil, luz cálida lateral en uno y sombra en el otro | **La distancia física es tensión.** Cuanto más cerca, más íntimo o más amenazante. | Ámbar y Casimir; Kael y Coria. Plano `DosPlanos` de perfil con los dos a menos de 2 studs. |
+| **R15 · Reacción que escucha** | Primer plano de perfil, una mujer escucha con los ojos húmedos; luz cálida de ventana | **«El personaje escucha»:** un silencio de dos segundos dice más que una frase. | Noa al oír lo de su madre; Irene antes de decir «Ella la cerró». |
+| **R16 · Contrapicado del antagonista** | Figura de luz fría y azulada desde abajo; y un gigante entre espadas clavadas en un campo de batalla | **El poder se filma desde abajo y lejos; la tristeza, desde cerca.** | Ver §14.3: Ithar es la excepción. |
+
+### 14.2 Anatomía de una escena en siete fases (estándar)
+
+Una escena C **puede** usar las siete fases. Una conversación breve usa solo las que necesita: es una herramienta, no
+una plantilla obligatoria.
+
+| Fase | Qué es | Duración | En el motor |
+|---|---|---|---|
+| 1 · Establecimiento | Dónde estamos, qué pasa y qué sentir | 3-7 s | `General`, `Órbita` o `Travelling` con `Ambience` |
+| 2 · Entrada de personajes | Los personajes **entran, se paran, observan o hacen algo**. Nunca aparecen colocados por arte de magia para hablar. | 2-5 s | `Actors.Enter { Walk = true }` o una acción (`Acting`, una postura) |
+| 3 · Desarrollo | Planos medios, primeros planos y contraplano; **las miradas coinciden con la posición real** de los personajes | Lo que pida el diálogo | `Medio`, `Hombro:X>Y` / `Hombro:Y>X` y `Look` (el raccord ya lo cuida el motor) |
+| 4 · Reacción | El que escucha; un silencio de dos segundos | 2-4 s | `Reaccion:Y` con `Pause { After = 2 }` y un `Beat` |
+| 5 · Impacto | La revelación, la muerte, la traición, la explosión o la decisión. **Aquí se concentra el esfuerzo.** | Variable | El plano de autor, `Silence` o música, `Fx` y `Shake` |
+| 6 · Transición narrativa | Los personajes se van, cambia el entorno o hay una transición visual hacia lo siguiente | 2-4 s | `Actors.Exit`, `Dip` o `Fade`, `Light` |
+| 7 · Devolución del control | La cámara recupera la posición de juego; **el personaje conserva su orientación y su movimiento** | 0,5-1 s | Plano de enganche (§8, capacidad 7.9) |
+
+### 14.3 Presentación de antagonistas: cada uno, distinto
+
+**Reglas comunes:**
+- presentación con personalidad;
+- contrapicado **controlado** (nunca grotesco);
+- **silencio antes del enfrentamiento**;
+- escala visual;
+- movimientos de cámara que transmiten poder.
+
+**Pero cada uno, con su propia firma:**
+
+| Antagonista | Cómo se presenta | Cámara | Luz y sonido |
+|---|---|---|---|
+| **Ithar** | **No es un jefe convencional: tristeza, autoridad y amenaza.** Nunca se le filma desde muy abajo. Su poder es que no necesita imponerse. | `Tilt` de los pies a la cara, que termina **a la altura de los ojos** (de igual a igual) | Luz fría tenue, azul de Sello en media cara, ceniza suspendida; coro sin palabras y una nota que no resuelve |
+| Tomás | Un muchacho entre la niebla que inclina la cabeza como un niño | A la altura de los ojos de Brenn: es su hermano, no un monstruo | Gris; un acorde roto del tema de Brenn |
+| Corvo | Quieto en lo alto de la Lanza, con sus hijos detrás, iguales | Contrapicado leve y lejano | Naranja de lava contra el gris de los hijos; martillos que callan |
+| Andrés | Sin máscara en la niebla, sonriendo con calma | Frontal, demasiado cerca: incomoda | Lila suave; música dulce que da miedo |
+| Heraldo de Siroco (§C-2) | Entre las estanterías de vidrio, con la arena cayendo como agua | Travelling lateral | Blanco cegador y el silencio de la Biblioteca |
+| Casimir | De espaldas, apagando un farol con los dedos | Plano medio y después contrapicado al girarse | Ámbar que se apaga; viento |
+| Madre Savia | Sentada entre raíces, rezando, gris hasta las rodillas | Picado suave (es vulnerable) | Verde que se vuelve gris; maderas que crujen |
+| Coria | Firme en la compuerta, con el agua subiendo | Frontal y simétrico | Azul de fosa; graves |
+| ÁGORA | Sin cuerpo: mil pantallas con la misma cara | `Pan` por las pantallas | Neón perfecto; voz amable |
+
+### 14.4 Sacrificios y muertes: reglas
+
+- **No todos los momentos necesitan explosiones.**
+- Una despedida puede tener silencios.
+- **La cámara tiene que saber cuándo alejarse:** dolly reverso o plano general, para dejar a los personajes solos.
+- **Una reacción puede importar más que la muerte.** Se filma a quien se queda.
+- El montaje respeta el tiempo emocional: no se corta por prisa.
+- **Sin sangre ni heridas visibles** (17+ sin gore, normas de Roblox). La violencia se cuenta fuera de plano, con
+  sonido, luz y reacciones.
+- **Para la muerte de Kael (S11):** se aplican R5, R13 y R15. El plano clave es la reacción de Brenn, y la cámara se
+  aleja mientras Kael sostiene la compuerta.
+
+### 14.5 Coreografía y cámara de combate (jugabilidad)
+
+**La cámara no puede:**
+- perder a los personajes;
+- atravesar enemigos;
+- sacudir la imagen todo el rato;
+- ocultar los ataques;
+- girar de forma que el jugador pierda la orientación.
+
+**Reglas para la cámara de combate:**
+1. **El enemigo que ataca siempre se ve:** encuadre automático suave hacia el atacante si sale de la pantalla, sin
+   quitar el control.
+2. **El temblor solo marca los golpes grandes**, en 0,2-0,4 s, y nunca es continuo.
+3. **La cámara no atraviesa enemigos ni muros:** la misma lógica de `CineCamera.clamp`, aplicada al combate.
+4. **Los golpes finales y los cambios de fase de un jefe** pueden tener un plano corto de 1-2 s, que vuelve solo a la
+   cámara de juego (un mini enganche).
+5. **Las presentaciones de jefe** siguen el §14.3 y terminan en un enganche con el jefe delante.
+
+Antes de cambiar nada, se audita la cámara de combate actual (`CombatService` y los controladores de arma y de
+cámara).
+
+### 14.6 Microexpresiones
+
+Una emoción no siempre necesita un diálogo. Un personaje puede:
+
+| Microgesto | Cómo se hace en Roblox | Estado |
+|---|---|---|
+| Bajar la mirada | `Look = "Suelo"` / `Beat = Suelo` | ✅ |
+| Evitar mirar a alguien | `Look = "Away"` / `Beat = Apartar` | ✅ |
+| Quedarse inmóvil | Sin animación, más un `Pause` largo | ✅ |
+| Apretar la mandíbula | `FaceControls` (mandíbula y labios apretados) en las cabezas que lo tienen | 🆕 (7.11) |
+| Tragar saliva | Movimiento breve de barbilla y cuello (`FaceControls`) más un sonido muy bajo | 🆕 (7.11) |
+| Intentar sonreír y no conseguirlo | Sonrisa a medias que se deshace (`FaceControls`: comisuras), en 1 s | 🆕 (7.11) |
+
+Son especialmente importantes para **Ithar, Kael, Brenn e Ilse**.
+
+**Prioridad dentro de la 7.11:**
+1. apretar la mandíbula;
+2. la sonrisa fallida;
+3. tragar saliva.
+
+Si una cabeza no tiene `FaceControls`, el gesto se sustituye por mirada, postura y una pausa.
+
+### 14.7 Paseos con conversación (capacidad 7.14 🆕)
+
+Es una conversación que no quita el control.
+- El compañero camina al lado del jugador o un paso por delante, como ya hace `Mode Follow`.
+- Las frases salen como subtítulo, sin bandas de cine.
+- Si el jugador se para, el compañero se para, y la conversación espera o se adapta.
+- Si el jugador se aleja, la conversación se pausa y se reanuda al volver.
+- Es el formato por defecto para los diálogos de transición entre zonas: **más película y menos pantallas de diálogo.**
+- **Sistema:** `HappeningClient` (escena ligera con `Lines`) y `Mode Follow`. Se audita antes de ampliarlo.
