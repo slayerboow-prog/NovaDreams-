@@ -1,8 +1,7 @@
 # HEROES OF HISTORY — Matriz de decisiones y flags
 
 > Documento de referencia. Versión de cierre del 18-11-2026. Sustituye a las tablas §5.1 y §5.2 del Vol. III.
-> 📜 existe en el juego publicado (la clave y los flags no se renombran nunca) · ✅ aprobado · 🟡 propuesta pendiente de
-> visto bueno.
+> 📜 existe en el juego publicado (la clave y los flags no se renombran nunca) · ✅ aprobado · 🟡 pendiente (hoy no queda ninguno en este documento).
 > Las claves nuevas son **propuestas de nombre**: no existen en el código hasta su implementación.
 
 ## 0. Reglas de la matriz
@@ -19,7 +18,7 @@
 | Punto | Qué es | Flags |
 |---|---|---|
 | A | Cierre técnico del Acto I. **En Valmar, el cierre de `Gri06`**, no el Árbol (corrección de H8). | 📜 `<Planeta>CierreLimpio` / `CierreSucio`; en Valmar, `GrietaCerrada` + `GriFinal` |
-| B | Ritual del Acto V (minijuego) | 🟡 `<Planeta>RitualLimpio` |
+| B | Ritual del Acto V (minijuego) | ✅ `<Planeta>RitualLimpio` |
 | C | La «puerta abierta»: una decisión moral por planeta (en las secciones) | Según el planeta |
 | Estado | Pleno (3) / Encendido (2) / Encendido estabilizado (tras «Reavivar») / Herido (0-1) | ✅ `<Planeta>Sello` = Pleno / Encendido / Estabilizado / Herido |
 
@@ -39,13 +38,13 @@
 | `GriVerdad` | Umbral | `UmbralPublico` / `UmbralKael` / `UmbralPresion` | 📜 | Si es `UmbralPublico`, el asentamiento exige el juicio del Consejo |
 | `GriBrenn` | Umbral | `BrennDetenido` / `BrennConvencido` / `BrennLibre` | 📜 | Tono de la deserción de Brenn |
 | `GriFinal` | Umbral | `GrietaCerrada` / `GrietaAbierta` / `GrietaHalden` | 📜 | Todo Valmar IV; punto A |
-| `ValGreta` | II | Apoyar a la Academia en el Consejo / callar | 🟡 | Tono de Greta durante la campaña |
-| `ValPruebas` | II-V | Contador de 0 a 4 pruebas | 🟡 | Ver el juicio |
-| **`ValPuertaSur`** | **IV, el asedio** | **Abrir / Cerrar** (decisión única y central) | ✅ (idea) / 🟡 (detalle) | **Abrir:** los refugiados entran detrás de los Velados que dejaron pasar los Hijos de la Ceniza; mueren defensores con nombre; **gana legitimidad la Academia** y pierde el Consejo. **Cerrar:** la muralla aguanta, Ortal mira desde arriba, **el Consejo gana legitimidad** y el Sur no vuelve a fiarse. **Punto C del Sello de Valmar:** abrir. |
+| `ValGreta` | II | Apoyar a la Academia en el Consejo / callar | ✅ | Tono de Greta durante la campaña |
+| `ValPruebas` | II-V | Contador de 0 a 4 pruebas | ✅ | Ver el juicio |
+| **`ValPuertaSur`** | **IV, el asedio** | **Abrir / Cerrar** (decisión única y central) | ✅ (idea) / ✅ (detalle) | **Abrir:** los refugiados entran detrás de los Velados que dejaron pasar los Hijos de la Ceniza; mueren defensores con nombre; **gana legitimidad la Academia** y pierde el Consejo. **Cerrar:** la muralla aguanta, Ortal mira desde arriba, **el Consejo gana legitimidad** y el Sur no vuelve a fiarse. **Punto C del Sello de Valmar:** abrir. |
 | `ValTomas` | V | Brenn termina con él / el jugador / la luz del Árbol | ✅ (Vol. III) | Arco de Brenn |
-| `ValJuicio` | V | Juicio público / reforma pactada | 🟡 | **Depende de las pruebas** (§2.1) |
+| `ValJuicio` | V | Juicio público / reforma pactada | ✅ | **Depende de las pruebas** (§2.1) |
 
-### 2.1 El juicio del Consejo, según las pruebas 🟡
+### 2.1 El juicio del Consejo, según las pruebas ✅
 
 | Prueba | Dónde se consigue |
 |---|---|
@@ -75,10 +74,10 @@
 | Clave | Acto | Eje | Qué se decide | Opciones → Flags | Estado |
 |---|---|---|---|---|---|
 | `MiaSeis` | I | **Logística:** quién sube primero | Cómo se evacua el Seis | `SeisSube` (todos, poco a poco) / `SeisPrioridad` (primero enfermos y críos) | 📜 |
-| `MiaVoto` | III | **Consentimiento:** ¿se respeta lo que vota una comunidad? | El Seis vota si acepta el antídoto | Respetar el voto / imponer el antídoto | 🟡 |
+| `MiaVoto` | III | **Consentimiento:** ¿se respeta lo que vota una comunidad? | El Seis vota si acepta el antídoto | Respetar el voto / imponer el antídoto | ✅ |
 | `MiaCalma` | V | **Método:** cómo se quita la Calma al resto del planeta | Velocidad frente a coste | De golpe / poco a poco | ✅ (Vol. III) |
 
-**Cómo se encadenan** 🟡:
+**Cómo se encadenan** ✅:
 1. **`MiaSeis` decide quién vota.**
    - Con `SeisPrioridad`, los críos y los enfermos ya están arriba: votan los adultos que llevan once años en la niebla, y
      gana quedarse con claridad.
@@ -105,24 +104,28 @@
 | `SirAlianza` | III | Aceptar / rechazar a Marisa | ✅ | Ruta del Acto IV: galerías con sigilo o asalto frontal |
 | `SirCarrera` | IV | Corre Rafa / corre el jugador / ruptura | ✅ | Ver abajo |
 | `SirRafaVivo` | IV | Resultado (si corre Rafa, depende de la escolta) | ✅ | Rafa herido o muerto |
-| `SirNina` | II-V | Relación del jugador con Nina | 🟡 | Si Nina decide ir a la Biblioteca (su decisión) |
-| `SirLuzAncla` | V | Resultado (§5.1) | 🟡 | Luz vuelve o se queda Velada |
+| `SirNina` | II-V | Relación del jugador con Nina (incluida su carrera segura, RC-069) | ✅ | Abre `SirNinaBiblioteca` si llega al umbral |
+| `SirLuzIdentidad`, `SirLuzVinculo`, `SirLuzAncla`, `SirLuzProtegida`, `SirNinaBiblioteca` | II-V | Condiciones (§5.1) | ✅ | Deciden `SirLuzVuelve` / `SirLuzVelada` |
 | `SirMarisa` | V | Juicio / perdón por el acuífero / dejar el Cártel | ✅ | **Juicio:** consejo de aldeas. **Perdón:** Cisternas devueltas. **Cártel:** agua con guardias, deudas y mercenarios en Oren, y **pierde el punto C**. |
 
-### 5.1 Recuperar a Luz: el nombre detona, no salva 🟡
+### 5.1 Recuperar a Luz: el nombre detona, no salva (✅ RC-043, RC-075)
 
-**El nombre es el detonante emocional, no una contraseña.** Luz vuelve (R9) solo si se cumplen **las tres condiciones**:
+**Las tres condiciones, convertidas en flags que se pueden comprobar:**
 
-| Condición | Cómo se cumple |
-|---|---|
-| **1 · Queda algo de su identidad** | El jugador encuentra en el Archivo de la Biblioteca el registro de racionamiento de Ana Pozo, con el nombre de su hija escrito por ella. Es exploración del Acto V. |
-| **2 · Llega alguien que la conoce** | **Rafa**, si vive y está presente; o **Nina**, si ella decide ir (su decisión, según su relación con el jugador, nunca según lo que pasó con Rafa; es menor, así que está en la escena sin combatir ni sufrir daño); o **el jugador**, si tiene un vínculo alto con Luz |
-| **3 · Las decisiones del jugador dejaron el vínculo abierto** | Relación con Luz por encima del umbral. Suben esa relación `LuzTrato`, el intento de protegerla en el Acto II y la escena de la lluvia. |
+| Condición | Flag | Se activa cuando… | Momento |
+|---|---|---|---|
+| 1 · Queda algo de su identidad | `SirLuzIdentidad` | El jugador encuentra en el Archivo el registro de racionamiento de Ana Pozo, con el nombre de su hija escrito por ella | Siroco V, exploración antes del combate |
+| 2 · Llega alguien que la conoce | `SirLuzAncla` = Rafa / Nina / Jugador | **Rafa:** `SirRafaVivo` y presente en la Biblioteca. **Nina:** `SirNinaBiblioteca` (ella decide ir si su relación con el jugador llega al umbral; no depende de Rafa). **El jugador:** si se cumple la condición 3. | Siroco IV-V |
+| 3 · El vínculo sigue abierto | `SirLuzVinculo` | La relación con Luz llega al umbral (por calibrar con P-3). Suman `LuzTrato` (📜), `SirLuzProtegida` (intentar protegerla en el Acto II) y haber visto la escena de la lluvia. | Siroco I-IV |
 
-**Si falta cualquiera de las tres**, Luz entrega la llave del Archivo y **se queda Velada**. Puede despertar en
-«Liberar» por R9 (tiene cuerpo), si el jugador la recuerda en «La puerta».
+**Regla de resolución:** `SirLuzVuelve` = `SirLuzIdentidad` **y** un ancla (Rafa, Nina o el jugador) **y**
+`SirLuzVinculo`. El ancla «jugador» exige además `SirLuzVinculo`.
+- **Si se cumple:** el nombre detona el recuerdo y Luz vuelve (R9), rota.
+- **Si no:** entrega la llave del Archivo y se queda Velada (`SirLuzVelada`). Puede despertar en «Liberar» o en «Ocupar»
+  (R9), si el jugador la recuerda en «La puerta».
 
-**Nina no depende de Rafa:** su supervivencia no depende de ninguna decisión sobre su padre. Es menor (17): nunca sufre daño en pantalla.
+**Nina no depende de Rafa:** su supervivencia no depende de ninguna decisión sobre su padre. Es menor (17): nunca sufre
+daño en pantalla.
 
 ### 5.2 Punto C y no bloqueo
 - **Punto C del Sello de Siroco:** las válvulas, más no dejar que se quede el Cártel.
@@ -135,13 +138,13 @@
 |---|---|---|---|---|
 | `NivTila` | I | `TilaFarol` / `SorelFarol` | 📜 | Vínculo de Sorel con Tila |
 | `NivTocados` | II y IV | Sacarlos / dejarlos para salvar el asalto | ✅ (Vol. III) | Nilo vive o no; punto C |
-| `NivBanquete` | III | Desenmascarar a Celia Orvane / dejarla creer que ha ganado | 🟡 | Orvane se va con Casimir, o su traición se usa más tarde |
+| `NivBanquete` | III | Desenmascarar a Celia Orvane / dejarla creer que ha ganado | ✅ | Orvane se va con Casimir, o su traición se usa más tarde |
 | `NivCasa` | IV | Orvane / Selm / Ivel | ✅ (idea) | **Recursos y dificultades** del reinado de Ámbar |
 | `NivCasimir` | V | Último farolero / juicio / exilio (decide Ámbar; el jugador opina) | ✅ (Vol. III) | — |
-| `NivOsric` | III-V | Apoyarle tras la confesión / dejarle caer | 🟡 | Abdica siempre. Con apoyo, se queda como consejero; sin él, se encierra en su torre. |
-| `NivAmbar` | V | **La decide Ámbar**, no el jugador | 🟡 | Ver abajo |
+| `NivOsric` | III-V | Apoyarle tras la confesión / dejarle caer | ✅ | Abdica siempre. Con apoyo, se queda como consejero; sin él, se encierra en su torre. |
+| `NivAmbar` | V | **La decide Ámbar**, no el jugador | ✅ | Ver abajo |
 
-**El reinado de Ámbar** 🟡: lo condicionan cuatro factores, y **elige ella** qué reina quiere ser.
+**El reinado de Ámbar** ✅: lo condicionan cuatro factores, y **elige ella** qué reina quiere ser.
 
 | Factor | Qué aporta |
 |---|---|
@@ -179,19 +182,20 @@
 | Clave | Acto | Opciones → Flags | Estado | Consecuencias |
 |---|---|---|---|---|
 | `VerVarn` | I | `VarnJuzgado` / `VarnMultitud` | 📜 | Destino de Varn |
-| `VerArca` | II | Rechazar las plazas de Octavia / aceptarlas y darlas al Rastro | 🟡 | Quién vive arriba en el epílogo |
+| `VerArca` | II | Rechazar las plazas de Octavia / aceptarlas y darlas al Rastro | ✅ | Quién vive arriba en el epílogo |
 | `VerIlse` | III | Buscarla / dejarla ir | ✅ (Vol. III) | Redención o caída: candidata a Pastora |
 | `HalvekMarcado` | IV | Marcar la nave de Halvek | Pendiente (H5) | Gancho del Consorcio |
 | `VerAgora` | V | Apagarla / aislarla / que ILEN aprenda | ✅ | Ciudad después |
-| `VerPeticion` | Tras ÁGORA | Referéndum / ignorar la petición / delegar en ILEN **solo lo técnico** (si aprendió) | 🟡 | **ILEN nunca sustituye la voluntad ciudadana:** gestiona tráfico, agua y mantenimiento. «Les ayudo a elegir. No elijo.» |
+| `VerPeticion` | Tras ÁGORA | Referéndum / ignorar la petición / delegar en ILEN **solo lo técnico** (si aprendió) | ✅ | **ILEN nunca sustituye la voluntad ciudadana:** gestiona tráfico, agua y mantenimiento. «Les ayudo a elegir. No elijo.» |
 
 ## 10. La puerta (Oren)
 
 | Clave | Opciones | Estado | Notas |
 |---|---|---|---|
-| `LysConfianza` | Se gana en Umbría V. **Se puede recuperar en Oren con una acción significativa**, nunca con una frase: el jugador **sostiene la luz del Árbol Primero** mientras Lys habla con su padre (cinemática dinámica, repetible hasta lograrlo), el mismo gesto que hizo Lys hace 1.214 años. | ✅ (idea) / 🟡 (acción) | Garantiza que «Liberar» nunca quede bloqueado |
+| `LysConfianza` | **Un recorrido de confianza** (✅ RC-076), un contador que se gana en: el pacto de Umbría V (`UmbLysPacto`); respetar sus límites (no pedirle que luche ni que saque a nadie del Coro); seguir su indicación de ir a Tálasa; y la conversación final. **Culmina con `LysRelevo`:** el jugador sostiene la luz del Árbol Primero mientras Lys habla con su padre (cinemática dinámica), el gesto que ella hizo hace 1.214 años. Con poca confianza, el relevo es más largo y difícil, **pero siempre se puede completar**. | ✅ | Garantiza que «Liberar» nunca quede bloqueado |
 | `FinalElegido` | Cerrar / Liberar / Ocupar | ✅ | Requisitos en el Vol. III §6 |
-| `PastorElegido` | Jugador / Ilse / Sorel | ✅ / 🟡 | Solo candidatos válidos según R12 y siempre con su aceptación |
+| `OcupadoCoro` | (sin elección: consecuencia de «Ocupar», RC-073) Vuelven las mentes con cuerpo e identidad (R9); siguen a cargo del Pastor las que recuerdan sin cuerpo; los olvidados descansan con Lys; no entran mentes nuevas | ✅ | Diferencia con «Liberar»: allí el Coro termina; aquí se conserva una parte |
+| `PastorElegido` | Jugador / Ilse / Sorel | ✅ / ✅ | Solo candidatos válidos según R12 y siempre con su aceptación |
 
 ## 11. Migración de flags publicados (para P3, no se aplica todavía)
 

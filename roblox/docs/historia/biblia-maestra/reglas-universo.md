@@ -1,7 +1,7 @@
 # HEROES OF HISTORY — Reglas del universo (R1-R12)
 
 > Documento de referencia. Versión de cierre del 18-11-2026.
-> ✅ aprobado · 🟡 corrección propuesta, pendiente de visto bueno.
+> ✅ aprobado · 🟡 pendiente (hoy no queda ninguno en este documento).
 > **Principio que protege todo el documento:** las reglas no se adaptan a la escena. Si una escena necesita romper una
 > regla, se cambia la escena, nunca la regla. Una regla solo cambia con una entrada del Registro aprobada por el dueño.
 
@@ -20,7 +20,7 @@
 | **R9** | Lo que tiene cuerpo puede volver del Coro mientras le quede un recuerdo propio. Lo que ya no tiene cuerpo solo puede descansar. | «Liberar»; Lía, Luz, Sorel | ✅ |
 | **R10** | La raíz de los árboles-Sello es frontera entre la Semilla y el Coro: junto a ella se oye a los perdidos. | Nía y su abuela; las voces del árbol madre | ✅ |
 | **R11** | **La raíz profunda** (§2) | Lys | ✅ |
-| **R12** | **La corona** (§3) | El Pastor y el final «Ocupar» | ✅ idea / 🟡 detalle de candidatos |
+| **R12** | **La corona** (§3) | El Pastor y el final «Ocupar» | ✅ idea / ✅ detalle de candidatos |
 
 ## 2. R11 · La raíz profunda ✅
 
@@ -64,12 +64,12 @@ no la deja descansar.
 | Los demás árboles-Sello, si los hay | Árbol-Sello | Sí |
 | Cualquier otro árbol | Ninguno | **No** |
 
-**Si los Hilos se sellan para siempre (final «Cerrar»)** 🟡 (RC-070): el Árbol Primero muere y la raíz profunda se rompe. Lys queda limitada a su propio árbol: la Semilla, el árbol joven «Garza» y el árbol madre de Umbría. Por eso Nía puede oírla y nadie más.
+**Si los Hilos se sellan para siempre (final «Cerrar»)** ✅ (RC-070): el Árbol Primero muere y la raíz profunda se rompe. Lys queda limitada a su propio árbol: la Semilla, el árbol joven «Garza» y el árbol madre de Umbría. Por eso Nía puede oírla y nadie más.
 
 **Nombre del Sello de Valmar:** **«Árbol Ancestral»** (✅ RC-053), el de las 8 apariciones del juego (`Kit/AncientTree`,
 `SanctuaryService`). Es su único nombre.
 
-## 3. R12 · La corona ✅ (idea) / 🟡 (detalle)
+## 3. R12 · La corona ✅ (idea) / ✅ (detalle)
 
 **Enunciado:**
 > La corona es la voluntad que dirige al Coro. Solo pasa de quien la lleva a otro por **entrega voluntaria**, y solo si
@@ -80,7 +80,7 @@ no la deja descansar.
 cuerpo se deshace. Lo mismo pasa en los tres finales: en «Cerrar» la corona se rompe con el Coro y en «Liberar» Ithar
 la suelta.
 
-**Candidatos y cómo encaja cada uno con R7** 🟡:
+**Candidatos y cómo encaja cada uno con R7** ✅:
 
 | Candidato | Por qué el Coro le oye | Condición para ser candidato | Aceptación consciente | Cómo reina |
 |---|---|---|---|---|
@@ -91,11 +91,67 @@ la suelta.
 **Por qué Ithar no podía reinar desde fuera:** su cuerpo se perdió al entrar en la Marea hace 1.214 años, y el de
 ceniza era del Coro.
 
+**Qué conserva el nuevo Pastor (final «Ocupar», RC-073):** deja volver a las mentes que tienen cuerpo e identidad propia
+(R9); conserva bajo su responsabilidad a las que recuerdan pero no tienen cuerpo; no alimenta el Coro con ninguna mente
+nueva.
+
 **El nuevo Pastor y los olvidados (final «Ocupar»):** el Pastor **autoriza voluntariamente** que las conciencias
 completamente borradas descansen (§4 de los finales, Vol. III). Lys no puede quitarle el control del Coro (R11, límite 5).
 
+## 3 bis. R4 calibrada: cuánto envejece cada caso (✅ RC-074)
+
+**Cómo funciona el desgaste.** Dentro de una anomalía, el cuerpo envejece según dos cosas:
+1. **La intensidad de la anomalía.**
+2. **El tiempo que la persona pasa dentro**, contado en su propio tiempo subjetivo.
+
+Además, la anomalía puede **desfasar el calendario**: fuera pasa más tiempo que dentro. Son dos efectos distintos:
+- **desgaste:** años de cuerpo perdidos;
+- **desfase:** tiempo de calendario perdido.
+
+| Anomalía | Intensidad | Desgaste aproximado |
+|---|---|---|
+| Ruta estable por los Hilos | Ninguna | 0 |
+| Pasillo estabilizado del Consorcio dentro de una perforación | Protegido (equivale a una protección parcial) | Despreciable |
+| **Tramo de Hilo cortado o expuesto** (todos los que llevan a Oren desde el Gran Corte) | Alta y sostenida | **≈ 1,6 años de cuerpo por cada día subjetivo** |
+| **Grieta naciente sin control** (una prueba del Consorcio al abrirse) | Máxima y de golpe | Un pago único muy alto al atravesarla entera |
+| Grieta recién abierta (el Umbral de Valmar en 1.212) | Alta | Un pago corto al cruzarla en minutos |
+
+| Caso | Exposición | Desgaste | Desfase | Resultado | Fuente |
+|---|---|---|---|---|---|
+| **Kael, 9-10-1.194** | Avanzó por el pasillo estabilizado del Consorcio (sin coste) y solo cruzó la compuerta hacia el tramo cortado para el encuentro con Ithar: **≈ 1 hora subjetiva** | 1/24 de día × 1,6 años ≈ **3-4 semanas** | Ninguno: vuelve el mismo día | En 1.214: 46 de calendario y **46 de cuerpo** | Cronología |
+| **Irene, 1.194-1.196** | **11 días subjetivos** a la deriva en el tramo cortado: los contó con sus raciones | 11 × 1,6 ≈ **+18 años** | **Dos años de calendario** (R5, abajo) | Sale con 28 de calendario y **44 de cuerpo** | Cronología §5.1 |
+| **Cosme, 1.176** | Cayó de punta a punta por una grieta naciente (la prueba de Tefra): segundos de caída | Pago único: **+24 años** | Ninguno: aparece en Valmar ese mismo año | Un niño de 9 años en un cuerpo de 33: por eso le tomaron por loco. Hoy: 47 de calendario y **71 de cuerpo**. | 📜 «Setenta y un años, cuarenta de ellos explicándole a la gente que no estoy loco» (`Coalicion_Marea`) |
+| **Halden, 1.212** | Cruzó en minutos la Grieta de Valmar recién abierta para reparar una sonda y vivió dos años en el lado B, que es un mundo y no la anomalía | **+1-2 años** | Ninguno | ~40 de calendario; cuerpo algo mayor | 📜 `Gri01`, `Gri06` |
+
+**Por qué Kael pagó tan poco e Irene tanto:** es el mismo tramo y el mismo ritmo de desgaste. La diferencia es la
+exposición:
+- Kael pasó **una hora** dentro, y el resto del viaje fue por el pasillo protegido del Consorcio.
+- Irene se quedó **once días** a la deriva y sin ninguna protección. Es unas **260 veces más** exposición.
+
+**El papel de R5:**
+- **Los tramos cortados no tienen salida.** Por eso los siete que se quedaron junto a la compuerta no tenían a dónde ir,
+  y la Marea se los llevó.
+- **Lo que se pierde en los Hilos acaba en el Ancla** (R5): las corrientes arrastran hacia la fosa de Tálasa, donde
+  Tálasa ejecutó el Gran Corte. Irene, ingeniera de corrientes, lo sabía por los datos del Consorcio. Apagó la luz para
+  que la Marea no la siguiera y se dejó llevar.
+- **R5 le da la salida y marca la duración.** El arrastre hasta el Ancla dura once días por dentro y dos años por fuera.
+  Sin R5, Irene habría vagado hasta deshacerse.
+- **R5 explica que el Consorcio la esperara:** vigilaba el Ancla con boyas precisamente porque sus datos lo predecían.
+
+**La edad de Irene, año a año:**
+
+| Fecha | Calendario | Cuerpo | Por qué |
+|---|---|---|---|
+| 9-10-1.194 | 26 | 26 | Entra en la perforación |
+| 1.196 (sale por el Ancla) | 28 | **44** | +18 por R4 (11 días en el tramo cortado) |
+| 1.208 (se inunda la estación) | 40 | 56 | Doce años normales |
+| Noviembre de 1.214 (despierta) | 46 | **≈ 60** | Seis años de criosueño al 75 %: +4,5 |
+
+**Resultado:** Kael e Irene nacieron el mismo año. En Tálasa III, Kael aparenta 46 e Irene unos 60: «una mujer mayor»
+(`Tal02`). Noa, con 26 años, tiene una madre que parece su abuela.
+
 ## 4. Notas técnicas que no son reglas del universo
-- **El criosueño de emergencia** de la Estación Abisal ralentiza el envejecimiento a tres cuartas partes (🟡,
+- **El criosueño de emergencia** de la Estación Abisal ralentiza el envejecimiento a tres cuartas partes (✅,
   Cronología §5.3).
 - **«Reavivar el Sello»** es una mecánica (H8 ✅), no una regla. Estabiliza un Sello Herido sin borrar decisiones,
   puntos ni consecuencias.

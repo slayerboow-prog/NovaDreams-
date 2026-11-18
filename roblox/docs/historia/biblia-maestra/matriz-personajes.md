@@ -2,7 +2,7 @@
 
 > Documento de referencia. Versión de cierre del 18-11-2026. Sustituye a la tabla §6.1 del Registro, que ahora remite
 > aquí.
-> Edades en 1.214, el año presente. ✅ aprobado · 🟡 pendiente de visto bueno · 📜 dato del juego publicado.
+> Edades en 1.214, el año presente. ✅ aprobado · 🟡 pendiente (hoy no queda ninguno en este documento) · 📜 dato del juego publicado.
 > Todo nombre nuevo se ha buscado en `Cast.luau`, en las misiones y en los documentos.
 
 ## 1. Protagonistas y grupo
@@ -12,7 +12,7 @@
 | **Kael** | 1.168 | 46 | † Tálasa V (fijo) | Expedición de 1.194; Tefra en 1.211 (la única viva de la escuadra de doce); la Academia en 1.213; las veinte cartas; **cree muerta a Irene** hasta Tálasa III | 📜 / ✅ |
 | **Sorel** | 1.195 | 19 | Viva (salvación según Vol. III §6) | Del Sur; su padre murió en el refugio del campus; toca el Coro en Nivalis V; candidata a Pastora solo si consiente (R12) | 📜 / ✅ |
 | **Brenn** | 1.194 | 20 | Vivo | Hermano de Tomás; la llamada de las 23:52; hereda la Academia | 📜 |
-| **Cosme** | 1.167 | 47 (cuerpo de 70) | Vivo | Cayó en 1.176; hermano de Lía; tío de Nela | 📜 RC-001 |
+| **Cosme** | 1.167 | 47 (cuerpo de 71, 📜 «setenta y un años») | Vivo | Cayó en 1.176 y apareció en Valmar ese año con un cuerpo de 33 (R4); hermano de Lía; tío de Nela | 📜 RC-001 |
 | **Ilse Maren** | 1.162 | 52 | Traiciona (fijo); redención o caída | Dirigió el Umbral; madre de Adrián; candidata a Pastora solo si cayó (R12) | 📜 / ✅ |
 | **Halden** | ~1.174 | ~40 | Viva o perdida (`GriFinal`) | Voz de las 3:12 | 📜 |
 | **ILEN** | — | IA | — | **IA** de la nave, entrenada con la caja negra de Ilen. **No es Ilen.** | 📜 |
@@ -21,14 +21,14 @@
 
 | Persona | Nace | Edad | Estado | Relación | Fuente |
 |---|---|---|---|---|---|
-| **Irene Ferran** | 1.168 | 46 (cuerpo mayor, por R4 y el criosueño) | Viva | Amiga íntima y compañera de Kael; ingeniera; la expedición; volvió por el Ancla en 1.196; Estación Abisal; **sabía que Kael vivía y nunca le escribió** | ✅ |
+| **Irene Ferran** | 1.168 | 46 (cuerpo de ≈ 60: R4 y el criosueño) | Viva | Amiga íntima y compañera de Kael; ingeniera; la expedición; volvió por el Ancla en 1.196; Estación Abisal; **sabía que Kael vivía y nunca le escribió** | ✅ |
 | **Noa Ferran** | 1.188 | 26 | Viva | Hija de Irene; **ahijada de Kael**; buceadora | 📜 / ✅ |
 | **Ilen** | ? | † 1.211 | Muerta | **Persona.** Segunda al mando y piloto de Kael; muere sosteniendo la plataforma | 📜 / ✅ |
 | **Oriol** | ? | † 1.212 | Muerto | Navegante de la escuadra; salvado por Kael; pilota la nave de vuelta; muere en el hospital del Sur | ✅ |
-| **Renata** | ? | † 1.212 | Muerta | Sanitaria; salvada por Kael; muere en el hospital del Sur | ✅ papel / 🟡 nombre (antes «Mirta», RC-071) |
+| **Renata** | ? | † 1.212 | Muerta | Sanitaria; salvada por Kael; muere en el hospital del Sur | ✅ papel / ✅ nombre (antes «Mirta», RC-071) |
 | Los siete de 1.194 | — | † 1.194 | En el Coro | Dos aparecen como Velados en Oren | ✅ |
 | Los ocho de la Lanza | — | † 1.211 | Muertos | Escolta de la escuadra de Tefra | ✅ |
-| El chico del criosueño | 1.193 | 21 (cuerpo de 19-20) | Vivo | Irene le cedió su cápsula | 📜 / 🟡 (regla) |
+| El chico del criosueño | 1.193 | 21 (cuerpo de 19-20) | Vivo | Irene le cedió su cápsula | 📜 / ✅ (regla) |
 
 ## 3. Heraldos y antagonistas
 
@@ -56,10 +56,10 @@
 | Adrián Maren | † con 19 (1.212) | Hijo de Ilse; voluntario del hospital del Sur, donde estaban Oriol y Renata | 📜 / ✅ |
 | Vossa | adulta | Armera; antes de la Caída arreglaba ascensores; su libro de salidas | 📜 |
 | Ortal, Lena | adultos | Vecinos del Sur | 📜 |
-| **Greta Albar** | ~58 🟡 | Consejera; presidenta tras Varn (ver abajo) | ✅ nombre / 🟡 historia |
+| **Greta Albar** | ~58 ✅ | Consejera; presidenta tras Varn (ver abajo) | ✅ nombre / ✅ historia |
 | Dara | cadete | Cadete de la Academia | 📜 |
 
-**Greta Albar** 🟡:
+**Greta Albar** ✅:
 - **Quién era antes de la Caída:** secretaria de actas y consejera de Abastecimiento. Un cargo menor y gris. Lleva el
   libro de actas del Consejo.
 - **Su responsabilidad real:**
@@ -119,11 +119,11 @@ padre. Construye algo en secreto»):
 | Persona | Edad | Papel | Fuente |
 |---|---|---|---|
 | Osric Varga | 61 | Rey; firmó la Cláusula 19; abdica | 📜 |
-| Ámbar Varga | 23 | Heredera; elige qué reina quiere ser | 📜 / 🟡 |
+| Ámbar Varga | 23 | Heredera; elige qué reina quiere ser | 📜 / ✅ |
 | Tila | 16 (menor) | Farolera; hermano Nilo | 📜 |
-| **Celia Orvane** | ~50 🟡 | Cabeza de la Casa Orvane (minas de cristal); traiciona en el banquete | 🟡 |
-| **Bertil Selm** | ~65 🟡 | Cabeza del gremio Selm (vidrio de faroles) | 🟡 |
-| **Edda Ivel** | ~40 🟡 | Cabeza de la Casa Ivel (menor, minera); esconde a los tocados | 🟡 |
+| **Celia Orvane** | ~50 ✅ | Cabeza de la Casa Orvane (minas de cristal); traiciona en el banquete | ✅ |
+| **Bertil Selm** | ~65 ✅ | Cabeza del gremio Selm (vidrio de faroles) | ✅ |
+| **Edda Ivel** | ~40 ✅ | Cabeza de la Casa Ivel (menor, minera); esconde a los tocados | ✅ |
 
 ### 4.6 Umbría
 | Persona | Edad | Papel | Fuente |
@@ -137,8 +137,8 @@ padre. Construye algo en secreto»):
 |---|---|---|---|
 | Abril Cruz | ~35 | Conservadora; gobierna tras ÁGORA | 📜 |
 | Gil | ~30 | El Rastro | ✅ |
-| **Octavia Prill** | ~55 🟡 | Directora de MegaVerso y de la lista del Arca | 🟡 (pendiente de comprobación final) |
-| **Ciro Mallo** | ~45 🟡 | Portavoz de la petición de ÁGORA | 🟡 (pendiente de comprobación final) |
+| **Octavia Prill** | ~55 ✅ | Directora de MegaVerso y de la lista del Arca | ✅ (comprobado: libre) |
+| **Ciro Mallo** | ~45 ✅ | Portavoz de la petición de ÁGORA | ✅ (comprobado: libre) |
 
 ## 5. Mapa de relaciones nuevas
 

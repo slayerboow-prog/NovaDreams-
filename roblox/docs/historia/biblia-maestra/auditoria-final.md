@@ -201,3 +201,49 @@ Coalición y finales) y toda mención a su pasado.
 - Commit **local** en la rama `claude/roblox-game-d98vy8` (ver el mensaje final de la sesión para el identificador).
 - **No se ha subido** a ninguna rama remota **ni se ha publicado** el juego.
 - El juego, las misiones, los diálogos publicados y el código **no se han tocado**.
+
+---
+
+## 7. Cierre: decisiones incorporadas (18-11-2026, segunda vuelta)
+
+> Los apartados §3.1 y §3.2 de arriba **quedan resueltos**: el dueño aprobó Y1-Y11 y eligió la opción A en Q1.
+
+| Decisión | Dónde queda | RC |
+|---|---|---|
+| C1-C9 | Ya incorporadas | RC-053, RC-068 a RC-072 |
+| Y1-Y11 | Todos los 🟡 pasan a ✅ en el Registro, la cronología, las reglas y las matrices | RC-042 a RC-072 |
+| Q1, opción A | Vol. III §6.2, Vol. V (secuencia de «Ocupar»), reglas §3 y matriz de decisiones (`OcupadoCoro`) | RC-073 |
+| **R4 calibrada** (Irene, Kael, Cosme, Halden) | Reglas §3 bis, cronología §5.1 y §5.3, matriz de personajes, Vol. II (Cosme) | RC-074 |
+| Y5: las condiciones de Luz como flags verificables | Matriz de decisiones §5.1 | RC-075 |
+| Y4: la confianza de Lys como recorrido | Matriz de decisiones §10 | RC-076 |
+| La cronología ya no da por hecho «Ensayo» (H7 pendiente) | Cronología §2 | RC-077 |
+
+**Comprobaciones de esta vuelta:**
+- **Flags e identificadores:**
+  - las 45 claves y flags nuevos de la matriz no existen en el código (0 coincidencias);
+  - las 24 decisiones publicadas y sus flags se conservan sin cambios;
+  - ninguna clave se define dos veces (`NivCasa`, `NivCasimir` y `NivOsric` reaparecen solo como factores en la tabla del
+    reinado de Ámbar).
+- **Aprobado y pendiente, separados:**
+  - en el Registro, la cronología, las reglas y las matrices ya no queda ningún 🟡 (solo en las leyendas);
+  - lo pendiente se limita a H5, H6, H7, H10, H12 y H13 (P-11).
+- **R4 y las edades publicadas:**
+  - Cosme: «setenta y un años» ✅;
+  - Irene: «una mujer mayor» ✅;
+  - el chico del criosueño: «de unos veinte años» ✅;
+  - Kael: sin rastro de envejecimiento ✅.
+
+## 8. Las seis propuestas que quedan por decidir
+
+| Propuesta | Qué decisión concreta necesita | Si se aprueba | Si se rechaza |
+|---|---|---|---|
+| **H5 · Halvek pelea para huir** | ¿Al final de Vértice IV hay un combate en el hangar del Arca, con temporizador, del que Halvek escapa siempre, y el jugador puede marcar su nave (`HalvekMarcado`)? | Clímax para el Acto IV; Halvek queda como antagonista humano memorable y gancho del Consorcio para una expansión. Se mantiene el hecho fijo «Halvek huye en el Arca». Cambian Vol. II §2.9 y Vol. III Vértice IV. Nada publicado. | Halvek huye sin combate, como dice hoy el Vol. III. El Acto IV pierde su enfrentamiento humano. |
+| **H6 · Registro oficial de revelaciones** | ¿Se adopta la numeración de nueve revelaciones (una por mundo más Oren) en lugar de los «giros» numerados actuales? | Desaparece la doble numeración entre la biblia v1 y el Vol. I. La identidad de Tomás pasa a revelación de Valmar. Hay que renumerar unas 11 referencias en los volúmenes. Nada publicado. | Se mantienen los «giros», pero hay que elegir **una** de las dos numeraciones: la contradicción no desaparece sola. |
+| **H7 · Los «Ensayos» del Consorcio** | ¿Los experimentos se llaman «Ensayos» con numeración propia (1: Vértice 1.174; 2: Tefra 1.176; 3-8: las anclas; 9: el Anclaje Seis 1.203)? | Se resuelve el choque «Anclaje Seis» frente a «prueba 6». Cambian el Vol. I §4 y §7, el gancho de Tefra en el Vol. III («si fue la prueba 6…») y la cronología. Nada publicado: «prueba» solo está en la Biblia. | Se queda «prueba 6», con el riesgo de confundirla con el Anclaje Seis. Hay que reescribir el gancho de Tefra para que no lo parezca. |
+| **H10 · Historia personal, mundo compartido y canon** | ¿Se adopta el modelo de tres capas? **Personal:** tus decisiones y quién vive en tu historia. **Compartida:** las zonas sociales, con un estado neutral. **Canónica:** los mundos liberados tras el final. Regla: nada personal cambia lo que ve otro jugador. | Es la base técnica del MMO: finales, liberaciones y muertes sin contradicciones entre jugadores del mismo servidor. **Obliga a auditar** `WorldState`, `StageSets` y `HappeningService` antes de programar Valmar. Desarrolla RC-016, que ya está aprobada en lo narrativo. | Sin un modelo técnico definido, cada misión de Valmar tendría que resolver por su cuenta qué ve cada jugador: riesgo alto de contradicciones en el servidor. |
+| **H12 · Psicología de los personajes y regla de menores** | ¿Cada protagonista tiene deseo, decisión y desenlace propios? (Sorel y su libro, Cosme y la panadería, Kael y las cartas, Brenn y sus errores, el pacto de Lys, los datos de Ithar.) ¿Se fija la regla de que **Tila (16), Nina (17), Leo (15) y Nía (10)** no mueren ni sufren daño en pantalla, tienen iniciativa y nunca se usan para dar lástima fácil? | Ya la aplico de forma provisional (Nina). Queda fija en el Vol. II y obliga a revisar escenas con riesgo: Tila en la oscuridad (Nivalis V) y Leo con la Calma (Miasma III). | Las edades y los límites de las escenas con menores quedan sin norma escrita: cada escena se decidiría caso por caso. |
+| **H13 · Clasificación de Roblox** | ¿Se adopta el criterio de temas adultos (política, duelo, culpa, fanatismo) **sin contenido explícito** (ni gore, ni sangre, ni lenguaje fuerte), y se decide la etiqueta final al terminar, comprobando las normas del Creator Hub? | Se cierra P-7 (el diseño antiguo decía «13+ Moderado»). La escritura de Valmar sigue una norma clara. El cuestionario de Roblox se rellena con lo que de verdad haya en el juego. | La etiqueta queda indefinida, y las escenas de Valmar podrían tener que suavizarse o rehacerse después. |
+
+**Recomendación:**
+- aprobar H10 y H12 antes de empezar Valmar, porque condicionan cómo se escribe y se programa cada misión;
+- H5, H6, H7 y H13 se pueden decidir cuando se quiera, porque no tocan Valmar.

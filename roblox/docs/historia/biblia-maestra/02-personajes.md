@@ -382,7 +382,7 @@ Sorel lo nota: «Kael ha cogido una nave.» Es el principio de su final.
 ### 4.5 COSME — el navegante
 | | |
 |---|---|
-| **Edad y aspecto** | **47 años en el calendario y un cuerpo de 70** (R4). Pelo blanco, gafas de soldador, bastón; siempre masticando algo. |
+| **Edad y aspecto** | **47 años en el calendario y un cuerpo de 71** (R4; él dice «setenta y un años»). Pelo blanco, gafas de soldador, bastón; siempre masticando algo. |
 | **Voz** | Humor negro y refranes que se inventa. Escribe instrucciones absurdas en «su mapa» («Llevar MUCHA agua», «No firmar nada»). Nunca se ríe de los muertos. |
 | **Gesto** | Cuenta los mundos con los dedos: «Tres de siete. He contado con los dedos.» Desde Umbría: «Ya no cuento con alegría. Solo cuento.» |
 | **Tema musical** | Un acordeón tefrano desafinado |
