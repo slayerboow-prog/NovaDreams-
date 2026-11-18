@@ -205,6 +205,87 @@ local function runCallback(spec: Spec)
 end
 
 -- El botón se pulsa (para FreshPress) y, al soltar, su acción
+-- (18-11-2026, el dueño: «botones profesionales, que parezca un juego de verdad muy currado») Los botones redondos
+-- son MEDALLONES PINTADOS (scripts/hud/gen_skills.py, subidos con scripts/upload-hud.sh): el icono pintado de su
+-- acción si lo hay (Image = … o, por su icono, PAINTED) y si no, el medallón «btn_base» con su icono de siempre
+-- encima; con un aro dorado con gemas. Sin las imágenes subidas, el botón de siempre (nada se rompe).
+local PAINTED = {
+	correr = "btn_correr",
+	saltar = "btn_saltar",
+	escudo = "btn_defensa",
+	esquivar = "btn_esquivar",
+	agacharse = "btn_agacharse",
+	telefono = "btn_telefono",
+	mochila = "btn_inventario",
+	hablar = "btn_hablar",
+	interactuar = "btn_interactuar",
+	espada = "hab_ataque",
+}
+
+local function paintedArt(spec: Spec, icon: string?): string
+	return spec.Image or PAINTED[icon or spec.Icon] or "btn_base"
+end
+
+local function lift(holder: Instance, z: number)
+	if holder:IsA("GuiObject") then
+		holder.ZIndex = z
+	end
+	for _, d in holder:GetDescendants() do
+		if d:IsA("GuiObject") then
+			d.ZIndex = z
+		end
+	end
+end
+
+-- Pone el medallón pintado en `disc` (el círculo del botón). Devuelve true si lo puso.
+local function paintDisc(disc: GuiObject, spec: Spec, icon: Frame, fill: Frame, stroke: UIStroke?): boolean
+	local ok, done = pcall(function()
+		local HudArt = require(script.Parent.HudArt)
+		local name = paintedArt(spec)
+		if not HudArt.has(name) or not HudArt.has("marco_hab_redondo") then
+			return false
+		end
+		local art = HudArt.image(disc, name, { Name = "Pintado", ZIndex = 1 })
+		if not art then
+			return false
+		end
+		create("UICorner", { CornerRadius = UDim.new(1, 0), Parent = art })
+		HudArt.image(disc, "marco_hab_redondo", { Name = "MarcoPintado", ZIndex = 3 })
+		fill.Visible = false
+		if stroke then
+			stroke.Enabled = false
+		end
+		if name == "btn_base" then
+			lift(icon, 2) -- (el icono de siempre, encima del medallón)
+		else
+			icon.Visible = false
+		end
+		return true
+	end)
+	return ok and done == true
+end
+
+-- Al cambiar el icono de un botón pintado (Interactuar -> «Ascensor», la burbuja Acciones…): otro medallón
+local function repaint(view: View, spec: Spec, icon: string?)
+	local holder = view.Button:FindFirstChild("Disc") or view.Button
+	local art = holder:FindFirstChild("Pintado") :: ImageLabel?
+	if not art then
+		return
+	end
+	pcall(function()
+		local HudArt = require(script.Parent.HudArt)
+		local name = paintedArt(spec, icon)
+		if not HudArt.has(name) then
+			name = "btn_base"
+		end
+		art.Image = HudArt.id(name) or art.Image
+		view.Icon.Visible = name == "btn_base"
+		if name == "btn_base" then
+			lift(view.Icon, 2)
+		end
+	end)
+end
+
 local function wirePress(button: GuiButton, spec: Spec)
 	button.InputBegan:Connect(function(input)
 		local kind = input.UserInputType
@@ -315,6 +396,9 @@ local function buildSideView(spec: Spec): View
 		Parent = disc,
 	})
 	create("UICorner", { CornerRadius = UDim.new(1, 0), Parent = badge })
+	if paintDisc(disc, spec, icon, fill, stroke) then
+		label.TextStrokeTransparency = 0.15
+	end
 	local meter = create("Frame", { Name = "Meter", Visible = false, BackgroundTransparency = 1, Parent = disc })
 	local meterFill = create("Frame", { Name = "MeterFill", BackgroundTransparency = 1, Parent = meter })
 	Theme.pressable(button)
@@ -382,22 +466,9 @@ local function buildView(spec: Spec): View
 			create("UIAspectRatioConstraint", { AspectRatio = 1, Parent = icon })
 		end
 	end
-	-- (18-11-2026) Image = un icono PINTADO de UI/HudArt (habilidades, Atacar): ocupa todo el botón, con el aro dorado
-	-- encima y el texto en una cinta oscura abajo; si aún no está subido, se queda el icono de siempre
-	if spec.Image and not boxy then
-		pcall(function()
-			local HudArt = require(script.Parent.HudArt)
-			if HudArt.has(spec.Image) then
-				local art = HudArt.image(button, spec.Image, { Name = "Pintado", ZIndex = 1 })
-				if art then
-					create("UICorner", { CornerRadius = UDim.new(1, 0), Parent = art })
-					HudArt.image(button, "marco_hab_redondo", { Name = "MarcoPintado", ZIndex = 2 })
-					icon.Visible = false
-					fill.Visible = false
-					stroke.Enabled = false
-				end
-			end
-		end)
+	-- (18-11-2026) el medallón pintado (no en pedales y flechas, ni en los botones de volar con su propio arte)
+	if not boxy and not spec.Chevron and not spec.Art then
+		paintDisc(button, spec, icon, fill, stroke)
 	end
 	-- (botones de volar: icono dibujado y aro con brillo del color del botón, si hay sprites)
 	if spec.Art and not boxy then
@@ -531,6 +602,17 @@ local function paintActive(view: View, state: any)
 	end
 	view.Active = key
 	local tint = view.Tint
+	-- (medallón pintado: encendido = brilla más; esperando = se apaga un poco)
+	local holder = view.Button:FindFirstChild("Disc") or view.Button
+	local art = holder:FindFirstChild("Pintado") :: ImageLabel?
+	if art then
+		TweenService:Create(art, Theme.Fast, { ImageColor3 = if on then Color3.fromRGB(255, 255, 210) elseif waiting then Color3.fromRGB(120, 115, 110) else Color3.new(1, 1, 1) }):Play()
+		local ring = holder:FindFirstChild("MarcoPintado") :: ImageLabel?
+		if ring then
+			TweenService:Create(ring, Theme.Fast, { ImageColor3 = if on then Color3.fromRGB(150, 255, 255) else Color3.new(1, 1, 1) }):Play()
+		end
+		return
+	end
 	TweenService:Create(view.Fill, Theme.Fast, {
 		BackgroundColor3 = if on then (if tint then tint:Lerp(Color3.new(1, 1, 1), 0.35) else H.Select) elseif waiting then WAIT else tint or H.Navy,
 		BackgroundTransparency = if on or waiting then 0.05 elseif tint then 0.2 else 0.45,
@@ -768,6 +850,7 @@ function placeButton(id: string, slot: string?, slots: { [string]: any })
 		views[id] = view
 		if icons[id] and not spec.Chevron then
 			Icons.set(view.Icon, icons[id])
+			repaint(view, spec, icons[id])
 		end
 	end
 	if view then
@@ -851,6 +934,7 @@ function TouchLayout.setIcon(id: string, icon: string?)
 	local spec = specs[id]
 	if view and spec and not spec.Chevron then
 		Icons.set(view.Icon, icon or spec.Icon)
+		repaint(view, spec, icon or spec.Icon)
 	end
 end
 

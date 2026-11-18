@@ -137,9 +137,53 @@ def finish(base, name):
     print("  ", name)
 
 
+def grain(seed, alpha=26):
+    random.seed(seed)
+    small = Image.new("L", (S // 4, S // 4))
+    small.putdata([random.randint(0, 255) for _ in range((S // 4) ** 2)])
+    n = small.resize((S, S), Image.BICUBIC).filter(ImageFilter.GaussianBlur(1.5))
+    light = Image.new("RGBA", (S, S), (255, 255, 255, 0))
+    light.putalpha(n.point(lambda v: max(0, v - 150) * alpha // 60))
+    dark = Image.new("RGBA", (S, S), (0, 0, 0, 0))
+    dark.putalpha(n.point(lambda v: max(0, 105 - v) * alpha // 60))
+    return light, dark
+
+
+def rune_ring(color, alpha=70, seed=0):
+    """Anillo grabado con runas y rombos (detalle del fondo)."""
+    random.seed(seed + 99)
+    layer = Image.new("RGBA", (S, S), (0, 0, 0, 0))
+    d = ImageDraw.Draw(layer)
+    col = color + (alpha,)
+    for r, w in ((430, 6), (395, 3), (300, 3)):
+        d.ellipse((C - r, C - r, C + r, C + r), outline=col, width=w)
+    for i in range(36):
+        a = i / 36 * math.tau
+        if i % 3 == 0:
+            cx, cy = C + math.cos(a) * 413, C + math.sin(a) * 413
+            for _ in range(random.choice((2, 3))):
+                b = a + random.choice((0, math.pi / 2, math.pi / 4, -math.pi / 4))
+                ln = random.uniform(8, 13)
+                d.line((cx - math.cos(b) * ln, cy - math.sin(b) * ln, cx + math.cos(b) * ln, cy + math.sin(b) * ln), fill=col, width=4)
+        else:
+            d.line((C + math.cos(a) * 398, C + math.sin(a) * 398, C + math.cos(a) * 408, C + math.sin(a) * 408), fill=col, width=3)
+    for i in range(8):
+        a = i / 8 * math.tau
+        cx, cy = C + math.cos(a) * 300, C + math.sin(a) * 300
+        d.polygon([(cx, cy - 14), (cx + 9, cy), (cx, cy + 14), (cx - 9, cy)], fill=col)
+    out = Image.new("RGBA", (S, S), (0, 0, 0, 0))
+    out.alpha_composite(layer.filter(ImageFilter.GaussianBlur(6)))
+    out.alpha_composite(layer)
+    return out
+
+
 def background(inner, outer, ray_color, seed):
     base = radial(inner, outer).convert("RGBA")
     base.alpha_composite(rays(ray_color, seed=seed))
+    light, dark = grain(seed)
+    base.alpha_composite(dark)
+    base.alpha_composite(light)
+    base.alpha_composite(rune_ring(ray_color, seed=seed))
     return base
 
 
@@ -368,6 +412,32 @@ def frame(name, round_):
     ll = Image.new("RGBA", (S, S), (255, 255, 230, 0))
     ll.putalpha(light.point(lambda v: int(v * 0.9)))
     img.alpha_composite(ll)
+    # grabado: muescas a lo largo del marco, y gemas azules engastadas
+    eng = ImageDraw.Draw(img)
+    if round_:
+        for i in range(48):
+            a = i / 48 * math.tau
+            eng.line((C + math.cos(a) * (S / 2 - 52), C + math.sin(a) * (S / 2 - 52), C + math.cos(a) * (S / 2 - 30), C + math.sin(a) * (S / 2 - 30)), fill=(120, 70, 10, 150), width=4)
+        gems = [(C + math.cos(a) * (S / 2 - 39), C + math.sin(a) * (S / 2 - 39)) for a in (-math.pi / 2, 0, math.pi / 2, math.pi)]
+    else:
+        for i in range(1, 12):
+            t = 66 + i * (S - 132) / 12
+            for (x0, y0, x1, y1) in ((t, 24, t, 50), (t, S - 50, t, S - 24), (24, t, 50, t), (S - 50, t, S - 24, t)):
+                eng.line((x0, y0, x1, y1), fill=(120, 70, 10, 140), width=4)
+        gems = [(70, 70), (S - 70, 70), (70, S - 70), (S - 70, S - 70)]
+    for gx, gy in gems:
+        gl = Image.new("L", (S, S), 0)
+        ImageDraw.Draw(gl).ellipse((gx - 40, gy - 40, gx + 40, gy + 40), fill=255)
+        glow = Image.new("RGBA", (S, S), (90, 200, 255, 0))
+        glow.putalpha(gl.filter(ImageFilter.GaussianBlur(14)).point(lambda v: int(v * 0.8)))
+        img.alpha_composite(glow)
+        gm = Image.new("RGBA", (S, S), (0, 0, 0, 0))
+        dd = ImageDraw.Draw(gm)
+        dd.ellipse((gx - 30, gy - 30, gx + 30, gy + 30), fill=(70, 40, 6, 255))
+        dd.ellipse((gx - 23, gy - 23, gx + 23, gy + 23), fill=(40, 140, 230, 255))
+        dd.ellipse((gx - 16, gy - 18, gx + 8, gy + 2), fill=(170, 230, 255, 255))
+        dd.ellipse((gx - 10, gy - 14, gx - 2, gy - 6), fill=(255, 255, 255, 255))
+        img.alpha_composite(gm)
     # línea fina interior oscura (separa el marco del icono)
     inner_line = ImageChops.subtract(m_in.filter(ImageFilter.MaxFilter(13)), m_in)
     il = Image.new("RGBA", (S, S), (40, 22, 4, 0))
@@ -375,6 +445,159 @@ def frame(name, round_):
     img.alpha_composite(il)
     img.resize((FINAL, FINAL), Image.LANCZOS).save(os.path.join(OUT, name + ".png"))
     print("  ", name)
+
+
+def sym_correr():
+    base = background((120, 230, 160), (6, 40, 26), (190, 255, 210), 31)
+    # bota alada
+    boot = [(C - 150, C - 300), (C + 30, C - 300), (C + 40, C + 60), (C + 300, C + 150), (C + 320, C + 250), (C - 170, C + 250), (C - 175, C + 60)]
+    sole = [(C - 190, C + 250), (C + 330, C + 250), (C + 320, C + 300), (C - 190, C + 300)]
+    cuff = [(C - 175, C - 330), (C + 50, C - 330), (C + 50, C - 260), (C - 175, C - 260)]
+    emboss(base, poly_mask([boot, sole, cuff]), (230, 255, 240), (40, 170, 110), (90, 255, 160))
+    wing = Image.new("L", (S, S), 0)
+    d = ImageDraw.Draw(wing)
+    # plumas en abanico que salen del talón hacia atrás y arriba
+    hx, hy = C - 150, C - 120
+    for k in range(5):
+        a = math.radians(200 + k * 14)
+        ln = 330 - k * 35
+        w = 46 - k * 4
+        tip = (hx + math.cos(a) * ln, hy + math.sin(a) * ln)
+        nx, ny = -math.sin(a) * w, math.cos(a) * w
+        mid = (hx + math.cos(a) * ln * 0.55, hy + math.sin(a) * ln * 0.55)
+        d.polygon([(hx, hy), (mid[0] + nx, mid[1] + ny), tip, (mid[0] - nx * 0.4, mid[1] - ny * 0.4)], fill=255)
+    emboss(base, wing, (255, 255, 255), (180, 220, 240), (200, 255, 230), glow_r=24)
+    for i, y in enumerate((C + 40, C + 130, C + 210)):
+        line = poly_mask([[(C - 470 + i * 40, y - 12), (C - 230, y - 12), (C - 230, y + 12), (C - 470 + i * 40, y + 12)]])
+        emboss(base, line, (230, 255, 240), (120, 230, 170), (120, 255, 180), glow_r=14, glow_a=0.6)
+    sparkles(base, (200, 255, 220), seed=32)
+    finish(base, "btn_correr")
+
+
+def chevrons(up, n, y0, gap):
+    polys = []
+    for k in range(n):
+        y = y0 + k * gap
+        sg = -1 if up else 1
+        polys.append([(C - 260, y), (C, y + sg * 230), (C + 260, y), (C + 260, y - sg * 110), (C, y + sg * 120), (C - 260, y - sg * 110)])
+    return polys
+
+
+def sym_saltar():
+    base = background((110, 190, 255), (8, 22, 66), (190, 230, 255), 33)
+    ring = Image.new("L", (S, S), 0)
+    ImageDraw.Draw(ring).ellipse((C - 300, C + 260, C + 300, C + 380), outline=255, width=26)
+    emboss(base, ring, (220, 240, 255), (90, 160, 255), (100, 180, 255), glow_r=20)
+    emboss(base, poly_mask(chevrons(True, 2, C + 110, -230)), (255, 255, 255), (80, 170, 255), (100, 200, 255))
+    sparkles(base, (210, 235, 255), seed=34)
+    finish(base, "btn_saltar")
+
+
+def sym_agacharse():
+    base = background((150, 140, 200), (16, 12, 44), (210, 200, 255), 35)
+    emboss(base, poly_mask(chevrons(False, 2, C - 260, 210)), (255, 255, 255), (140, 120, 230), (170, 150, 255))
+    bar = poly_mask([[(C - 300, C + 300), (C + 300, C + 300), (C + 300, C + 340), (C - 300, C + 340)]])
+    emboss(base, bar, (230, 220, 255), (140, 120, 230), (170, 150, 255), glow_r=16)
+    sparkles(base, (220, 210, 255), seed=36)
+    finish(base, "btn_agacharse")
+
+
+def sym_defensa():
+    base = background((110, 170, 255), (8, 18, 60), (200, 225, 255), 37)
+    emboss(base, poly_mask([shield_pts(C, C, 300, 620)]), (235, 240, 255), (130, 150, 190), (130, 190, 255))
+    inner = poly_mask([shield_pts(C, C + 10, 220, 450)])
+    emboss(base, inner, (90, 150, 255), (16, 40, 120), (100, 160, 255), outline=(20, 30, 60), glow_r=10, glow_a=0.3)
+    cross = poly_mask([[(C - 30, C - 200), (C + 30, C - 200), (C + 30, C + 230), (C - 30, C + 230)], [(C - 150, C - 50), (C + 150, C - 50), (C + 150, C + 10), (C - 150, C + 10)]])
+    emboss(base, cross, (255, 245, 200), (220, 160, 40), (255, 210, 100), glow_r=18)
+    sparkles(base, (210, 230, 255), seed=38)
+    finish(base, "btn_defensa")
+
+
+def sym_esquivar():
+    base = background((120, 240, 230), (4, 40, 50), (190, 255, 250), 39)
+    arc = Image.new("L", (S, S), 0)
+    d = ImageDraw.Draw(arc)
+    d.arc((C - 330, C - 260, C + 330, C + 400), 190, 350, fill=255, width=90)
+    d.polygon([(C + 250, C - 160), (C + 430, C + 40), (C + 180, C + 70)], fill=255)
+    emboss(base, arc, (240, 255, 255), (40, 200, 200), (80, 255, 240))
+    ghost = Image.new("L", (S, S), 0)
+    ImageDraw.Draw(ghost).arc((C - 330, C - 120, C + 330, C + 540), 200, 300, fill=150, width=40)
+    emboss(base, ghost, (180, 255, 250), (60, 180, 190), (80, 220, 220), glow_r=20, glow_a=0.5)
+    sparkles(base, (200, 255, 250), seed=40)
+    finish(base, "btn_esquivar")
+
+
+def sym_telefono():
+    base = background((120, 160, 255), (10, 14, 50), (200, 210, 255), 41)
+    body = Image.new("L", (S, S), 0)
+    ImageDraw.Draw(body).rounded_rectangle((C - 200, C - 360, C + 200, C + 360), radius=70, fill=255)
+    emboss(base, body, (90, 100, 130), (20, 22, 34), (120, 160, 255), outline=(10, 10, 20))
+    screen = Image.new("L", (S, S), 0)
+    ImageDraw.Draw(screen).rounded_rectangle((C - 160, C - 290, C + 160, C + 270), radius=34, fill=255)
+    emboss(base, screen, (130, 200, 255), (40, 70, 200), (90, 150, 255), outline=(10, 10, 20), glow_r=14, glow_a=0.5)
+    apps = Image.new("L", (S, S), 0)
+    d = ImageDraw.Draw(apps)
+    for r_ in range(3):
+        for c_ in range(3):
+            x, y = C - 105 + c_ * 105, C - 200 + r_ * 115
+            d.rounded_rectangle((x - 36, y - 36, x + 36, y + 36), radius=14, fill=255)
+    emboss(base, apps, (255, 255, 255), (190, 220, 255), (200, 230, 255), outline=(20, 30, 90), glow_r=8, glow_a=0.4)
+    emboss(base, poly_mask([], ellipses=[(C - 26, C + 296, C + 26, C + 342)]), (200, 200, 220), (90, 90, 110), (0, 0, 0), glow_r=2, glow_a=0)
+    finish(base, "btn_telefono")
+
+
+def sym_inventario():
+    base = background((230, 170, 90), (50, 22, 6), (255, 220, 160), 43)
+    body = Image.new("L", (S, S), 0)
+    d = ImageDraw.Draw(body)
+    d.rounded_rectangle((C - 270, C - 190, C + 270, C + 360), radius=90, fill=255)
+    d.arc((C - 130, C - 380, C + 130, C - 120), 180, 360, fill=255, width=46)
+    emboss(base, body, (230, 160, 90), (120, 60, 20), (255, 180, 90))
+    flap = Image.new("L", (S, S), 0)
+    ImageDraw.Draw(flap).rounded_rectangle((C - 270, C - 190, C + 270, C + 40), radius=90, fill=255)
+    emboss(base, flap, (200, 130, 70), (100, 50, 16), (0, 0, 0), glow_r=4, glow_a=0)
+    pocket = Image.new("L", (S, S), 0)
+    ImageDraw.Draw(pocket).rounded_rectangle((C - 170, C + 120, C + 170, C + 320), radius=40, fill=255)
+    emboss(base, pocket, (210, 140, 80), (110, 56, 18), (0, 0, 0), glow_r=4, glow_a=0)
+    buckle = Image.new("L", (S, S), 0)
+    ImageDraw.Draw(buckle).rounded_rectangle((C - 50, C - 10, C + 50, C + 90), radius=14, fill=255)
+    emboss(base, buckle, (255, 245, 180), (220, 160, 40), (255, 220, 120), glow_r=16)
+    sparkles(base, (255, 230, 170), seed=44)
+    finish(base, "btn_inventario")
+
+
+def sym_hablar():
+    base = background((130, 210, 255), (8, 30, 64), (200, 240, 255), 45)
+    bub = Image.new("L", (S, S), 0)
+    d = ImageDraw.Draw(bub)
+    d.ellipse((C - 360, C - 280, C + 360, C + 220), fill=255)
+    d.polygon([(C - 220, C + 120), (C - 300, C + 360), (C - 40, C + 190)], fill=255)
+    for k in (-1, 0, 1):
+        d.ellipse((C + k * 180 - 50, C - 80, C + k * 180 + 50, C + 20), fill=0)
+    emboss(base, bub, (255, 255, 255), (150, 200, 240), (140, 210, 255))
+    sparkles(base, (210, 240, 255), seed=46)
+    finish(base, "btn_hablar")
+
+
+def sym_interactuar():
+    base = background((255, 210, 110), (50, 30, 6), (255, 235, 170), 47)
+    star = []
+    for i in range(8):
+        a = i / 8 * math.tau - math.pi / 2
+        r = 380 if i % 2 == 0 else 110
+        star.append((C + math.cos(a) * r, C + math.sin(a) * r))
+    emboss(base, poly_mask([star]), (255, 255, 230), (255, 180, 40), (255, 210, 90))
+    ring = Image.new("L", (S, S), 0)
+    ImageDraw.Draw(ring).ellipse((C - 200, C - 200, C + 200, C + 200), outline=255, width=22)
+    emboss(base, ring, (255, 250, 220), (230, 170, 50), (255, 220, 120), glow_r=18, glow_a=0.6)
+    sparkles(base, (255, 240, 190), seed=48, n=26)
+    finish(base, "btn_interactuar")
+
+
+def sym_base():
+    """Medallón vacío para los botones sin icono pintado: su icono de siempre va encima."""
+    base = background((60, 100, 190), (6, 10, 34), (150, 190, 255), 49)
+    finish(base, "btn_base")
 
 
 if __name__ == "__main__":
@@ -388,5 +611,7 @@ if __name__ == "__main__":
     sym_ataque()
     potion("pocion_hp", (255, 160, 160), (200, 20, 40), (150, 30, 40), (40, 4, 10), (255, 60, 80))
     potion("pocion_mp", (170, 220, 255), (30, 90, 230), (40, 80, 170), (6, 14, 50), (80, 160, 255))
+    for f in (sym_correr, sym_saltar, sym_agacharse, sym_defensa, sym_esquivar, sym_telefono, sym_inventario, sym_hablar, sym_interactuar, sym_base):
+        f()
     frame("marco_hab", False)
     frame("marco_hab_redondo", True)
