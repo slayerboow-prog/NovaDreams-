@@ -203,42 +203,140 @@ for k in range(STRANDS):
     tronco.tube(pts, radii, 24, urep=2.0, rough=0.18, ridges=10, twist=0.02, seed=7.3 + k, cap=True)
     strand_paths.append(pts)
 
-# RAÍCES: muchas, largas y bajas, que serpentean por el suelo del patio (cada una con raíces hijas), como en la
-# referencia del dueño; van en su propia pieza
+# RAÍCES REALISTAS (18-11-2026, el dueño: «haz las raíces más realistas»): junto al tronco salen como CONTRAFUERTES
+# (tablones altos y delgados que suben por el tronco); al alejarse se APLANAN (más anchas que altas, con la panza
+# plana contra el suelo); tienen nudos y bultos, se retuercen, se hunden en la tierra y vuelven a asomar en arco;
+# se abren en raíces hijas y raicillas que acaban metiéndose en el suelo. Van en su propia pieza.
 raices = Mesh()
-roots_center = []
+roots_top = []
+_rand_antes = random.getstate()
 
 
-def snake(p0, d, L, r0, n, seed, rise=10.0, sink=-9.0):
-    side = V(0, 1, 0).cross(d).normalized()
-    pts, radii = [], []
-    for j in range(n):
-        t = j / (n - 1)
-        wig = math.sin(t * 5.0 + seed) * 0.12 * L * t + noise.noise(V(seed, t * 3, 0)) * 0.06 * L
-        hgt = rise * math.sin(min(t * 1.6, 1.0) * math.pi * 0.9) * (1 - t) + sink * t ** 2.2
-        pts.append(p0 + d * (L * t) + side * wig + V(0, hgt, 0))
-        radii.append(r0 * (1 - 0.86 * t) + 0.9)
-    return pts, radii
+def root_tube(mesh, pts, prof, segs, seed, knots=0.22, urep=2.0):
+    """Tubo de sección ELÍPTICA (ancho w en horizontal, alto h en vertical, panza aplastada) con nudos."""
+    n = len(pts)
+    up = V(0, 1, 0)
+    base = len(mesh.verts)
+    length = 0.0
+    avg = sum(w + h for w, h in prof) / (2 * n)
+    for i in range(n):
+        if i > 0:
+            length += (pts[i] - pts[i - 1]).length
+        a = pts[max(i - 1, 0)]
+        b = pts[min(i + 1, n - 1)]
+        t = (b - a).normalized()
+        # (la sección se mide siempre en horizontal y en vertical: aunque la raíz baje en picado, no se vuelve
+        # una losa de canto)
+        th_ = V(t.x, 0, t.z)
+        side = up.cross(th_.normalized()) if th_.length > 1e-4 else V(1, 0, 0)
+        upv = up
+        w, h = prof[i]
+        # nudo: un bulto que engorda la raíz a trozos
+        kn = 1.0 + knots * max(0.0, noise.noise(V(length * 0.045, seed, 0.3))) * 1.6
+        for s in range(segs + 1):
+            th = s / segs * math.tau
+            cs, sn = math.cos(th), math.sin(th)
+            hh = h if sn >= 0 else h * 0.42
+            q = V(cs * 1.4, length * 0.05, sn * 1.4) + V(seed, seed * 0.6, 1.0)
+            k = kn * (1.0 + 0.12 * noise.noise(q) + 0.05 * math.sin(th * 7 + length * 0.08))
+            mesh.verts.append(pts[i] + side * (cs * w * k) + upv * (sn * hh * k))
+            mesh.uvs.append((s / segs * urep, length / (math.tau * avg) * urep))
+    wv = segs + 1
+    for i in range(n - 1):
+        for s in range(segs):
+            a = base + i * wv + s
+            mesh.faces.append((a, a + 1, a + wv + 1))
+            mesh.faces.append((a, a + wv + 1, a + wv))
+    ci = len(mesh.verts)
+    mesh.verts.append(pts[-1])
+    mesh.uvs.append((0.5, 0.5))
+    last = base + (n - 1) * wv
+    for s in range(segs):
+        mesh.faces.append((last + s, last + s + 1, ci))
+
+
+def smooth(x):
+    x = min(max(x, 0.0), 1.0)
+    return x * x * (3 - 2 * x)
+
+
+def rootlet(p0, d, L, r, seed):
+    """Raicilla fina que se mete en el suelo."""
+    pts, prof = [], []
+    for j in range(6):
+        t = j / 5
+        sd = V(0, 1, 0).cross(d).normalized()
+        pts.append(p0 + d * (L * t) + sd * (math.sin(t * 4 + seed) * L * 0.12) + V(0, -t ** 1.6 * (r * 3 + 3), 0))
+        rr = r * (1 - 0.75 * t) + 0.25
+        prof.append((rr * 1.2, rr * 0.8))
+    root_tube(raices, pts, prof, 5, seed, knots=0.1, urep=1.0)
 
 
 for i in range(16):
     a = i / 16 * math.tau + random.uniform(-0.1, 0.1)
     # (el camino de la entrada, hacia la ciudad = −Z, queda libre: por ahí se llega al altar del núcleo y al guardián)
-    if abs(((a - 1.5 * math.pi) + math.pi) % math.tau - math.pi) < math.radians(28):
+    if abs(((a - 1.5 * math.pi) + math.pi) % math.tau - math.pi) < math.radians(30):
         continue
     d = V(math.cos(a), 0, math.sin(a))
-    L = random.uniform(120, 175)
-    p0 = d * 34 + V(0, 16, 0)
-    pts, radii = snake(p0, d, L, random.uniform(13, 18), 20, i * 1.37, rise=random.uniform(6, 13))
-    raices.tube(pts, radii, 14, urep=2.0, rough=0.2, ridges=7, twist=0.02, seed=3.1 + i, cap=True)
-    roots_center.append(pts)
-    # una o dos raíces hijas que salen de la mitad
+    sd = V(0, 1, 0).cross(d).normalized()
+    L = random.uniform(115, 170)
+    r0 = random.uniform(12, 16)
+    ph = random.uniform(0, math.tau)
+    n = 22
+    pts, prof = [], []
+    for j in range(n):
+        u = j / (n - 1)
+        t = u ** 1.35  # anillos más juntos cerca del tronco (allí cambia la forma)
+        f = math.exp(-t / 0.2)  # 1 = contrafuerte, 0 = raíz plana
+        taper = 1 - 0.82 * t
+        w = r0 * taper * (0.55 * f + 1.3 * (1 - f))
+        h = r0 * taper * (2.3 * f ** 1.5 + 0.55 * (1 - f))
+        # se hunde y vuelve a asomar (en arco), y al final se mete en la tierra
+        amp = r0 * 0.38 * taper * smooth(t * 3)
+        und = amp * math.sin(t * math.pi * 3.2 + ph)
+        sink = -smooth((t - 0.82) / 0.18) * (h * 1.5 + 2)
+        yc = 0.42 * h - 1.5 + und * (1 - f) + sink
+        wig = math.sin(t * 4.5 + ph) * 0.1 * L * t + noise.noise(V(i * 1.7, t * 3, 0)) * 0.07 * L * t
+        p = d * (12 + L * t) + sd * wig + V(0, yc, 0)
+        pts.append(p)
+        prof.append((w, h))
+    root_tube(raices, pts, prof, 14, 3.1 + i, knots=0.25)
+    roots_top.append([p + V(0, h * 1.02 + 0.5, 0) for p, (w, h) in zip(pts[:14], prof[:14])])
+    # raíces hijas (planas) que se abren a los lados y raicillas al final
+    for c in range(random.choice((2, 2, 3))):
+        j = random.randint(7, 14)
+        turn = random.choice((-1, 1)) * random.uniform(0.5, 1.0)
+        cd = (d * math.cos(turn) + sd * math.sin(turn)).normalized()
+        csd = V(0, 1, 0).cross(cd).normalized()
+        cw, ch = prof[j]
+        cL = L * random.uniform(0.3, 0.45)
+        cph = random.uniform(0, math.tau)
+        cpts, cprof = [], []
+        start = pts[j] - V(0, 0.42 * ch - 0.42 * ch * 0.55, 0)
+        for k in range(12):
+            t = k / 11
+            taper = 1 - 0.8 * t
+            ww, hh = cw * 0.55 * taper + 0.4, ch * 0.55 * taper + 0.3
+            und = hh * 0.6 * math.sin(t * math.pi * 2.4 + cph) * smooth(t * 3)
+            sink = -smooth((t - 0.7) / 0.3) * (hh * 1.8 + 2)
+            cpts.append(start + cd * (cL * t) + csd * (math.sin(t * 3 + cph) * cL * 0.12) + V(0, und * 0.5 + sink, 0))
+            cprof.append((ww, hh))
+        root_tube(raices, cpts, cprof, 8, 9.0 + i * 3 + c, knots=0.2, urep=1.5)
+        rootlet(cpts[7], (cd + csd * random.uniform(-0.8, 0.8)).normalized(), cL * 0.35, cprof[7][1] * 0.35, i + c * 5.0)
+    for c in range(2):
+        j = random.randint(14, 19)
+        cd = (d + sd * random.uniform(-0.9, 0.9)).normalized()
+        rootlet(pts[j], cd, L * 0.22, prof[j][1] * 0.4, i * 2.3 + c)
+
+# (las ramas y la copa siguen IGUAL que antes: se deja el azar como lo dejaban las raíces viejas)
+random.setstate(_rand_antes)
+for i in range(16):
+    a = i / 16 * math.tau + random.uniform(-0.1, 0.1)
+    if abs(((a - 1.5 * math.pi) + math.pi) % math.tau - math.pi) < math.radians(28):
+        continue
+    random.uniform(120, 175), random.uniform(13, 18), random.uniform(6, 13)
     for c in range(random.choice((1, 2))):
-        j = random.randint(6, 11)
-        turn = random.choice((-1, 1)) * random.uniform(0.5, 0.9)
-        cd = (d * math.cos(turn) + V(0, 1, 0).cross(d) * math.sin(turn)).normalized()
-        cpts, crad = snake(pts[j], cd, L * random.uniform(0.35, 0.5), radii[j] * 0.65, 10, i * 3.1 + c, rise=3, sink=-6)
-        raices.tube(cpts, crad, 8, urep=1.5, rough=0.2, seed=9.0 + i + c, cap=True)
+        random.randint(6, 11), random.choice((-1, 1)) * random.uniform(0.5, 0.9), random.uniform(0.35, 0.5)
 
 # ramas (tres niveles)
 ramas = Mesh()
@@ -312,10 +410,8 @@ for k, sp in enumerate(strand_paths):
             pts.append(sp[i] + outward * rr * 0.86 + tang * side * rr * 0.45)
             radii.append(0.55 if i % 9 else 0.85)
         venas.tube(pts, radii, 6, urep=1.0)
-for i in range(0, len(roots_center), 2):
-    rp = roots_center[i]
-    pts = [p + V(0, 14 * (1 - 0.86 * (j / 19)) + 1.6, 0) for j, p in enumerate(rp[:15])]
-    venas.tube(pts, [0.5] * len(pts), 6, urep=1.0)
+for i in range(0, len(roots_top), 2):
+    venas.tube(roots_top[i], [0.5] * len(roots_top[i]), 6, urep=1.0)
 
 # ------------------------------------------------------------------ exportar
 for o in list(bpy.data.objects):

@@ -12,10 +12,10 @@ return {
 		Copa2 = "rbxassetid://72337789176283",
 		Copa3 = "rbxassetid://111027343070358",
 		Copa4 = "rbxassetid://135169510987780",
-		Raices = "rbxassetid://82611533440992",
+		Raices = "rbxassetid://86682572207198",
 		Ramas = "rbxassetid://113192715856346",
 		Tronco = "rbxassetid://101255338273709",
-		Venas = "rbxassetid://82522834522132",
+		Venas = "rbxassetid://87178187944664",
 	},
 	Texturas = {
 		corteza_color = "rbxassetid://110070404971817",

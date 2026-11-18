@@ -113,7 +113,8 @@ function AncientTree.buildMesh(parent: Instance, base: CFrame, scale: number?): 
 			mp.Name = piece.Name
 			mp.Anchored = true
 			mp.Size = piece.Size * k
-			mp.CFrame = base * CF(piece.Center * k)
+			-- (Roblox importa el FBX girado media vuelta: se endereza para que cada pieza caiga en su sitio)
+			mp.CFrame = base * CF(piece.Center * k) * CFrame.Angles(0, math.pi, 0)
 			pcall(function()
 				(mp :: any).RenderFidelity = Enum.RenderFidelity.Automatic
 			end)
