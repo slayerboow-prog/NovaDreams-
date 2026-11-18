@@ -7,6 +7,7 @@ local World = script.Parent.World
 -- Cada paso del arranque va por Boot.step: en su hilo, con pcall y con tiempo máximo. Un paso que falla
 -- o se queda esperando ya no deja sin arrancar a los de detrás (el reloj, las partidas, la historia…).
 local Boot = require(script.Parent.Boot)
+local Config = require(game:GetService("ReplicatedStorage").Shared.Config)
 workspace:SetAttribute("ServerReady", false)
 
 -- 1) Terreno primero, para que nadie caiga al vacío mientras se prepara la ciudad
@@ -393,6 +394,9 @@ local order = {
 
 -- (cada servicio en su hilo y con tiempo máximo: si uno se queda esperando, los de detrás arrancan igual)
 for _, name in order do
+	if Config.Disabled and Config.Disabled[name] then
+		continue -- (apagado en Config.Disabled)
+	end
 	Boot.step(name, function()
 		require(Services[name]).init()
 	end)

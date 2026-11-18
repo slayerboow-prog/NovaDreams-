@@ -1961,6 +1961,11 @@ function SkyRift.finishLive()
 end
 
 function SkyRift.init()
+	-- (19-11-2026, el dueño: Grieta apagada) no se dibuja ni se escucha nada de ella
+	if type(Config.SkyRift) == "table" and Config.SkyRift.Enabled == false then
+		SkyRift.setSuppressed(true, "Config")
+		return
+	end
 	tierName = Perf.tierName()
 	Perf.onTier(function(name)
 		if name ~= tierName then

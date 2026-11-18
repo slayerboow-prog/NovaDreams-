@@ -39,6 +39,10 @@
 
 ## 2. Jerarquía de fuentes (quién manda si dos cosas chocan)
 
+> **Norma del dueño (RC-089): la biblia narrativa es la fuente de verdad.** El desarrollo se adapta a ella; no se
+> reescribe para encajar las limitaciones de una misión. Solo se cambia por un error demostrable, una contradicción
+> real o una decisión nueva que el dueño introduzca expresamente.
+
 1. **El texto de las misiones publicadas** (`src/shared/LifeStory/Misiones/`): lo que el jugador ya ha visto. Solo se
    cambia con una entrada en el registro y la aprobación del dueño.
 2. **Las decisiones expresas del dueño** (§5).
@@ -152,6 +156,10 @@ Antes de cambiar o añadir un hecho:
 | RC-083 | 18-11 | ✅ **H13 · Clasificación:** narrativa adulta sin contenido explícito ni violencia gráfica. **No se promete ninguna etiqueta** (ni «13+»): la clasificación se decide con el cuestionario de madurez vigente de Roblox cuando el contenido esté desarrollado. | Decisión del dueño | — | P-7 | ~~Clasificación~~ | **Cerrado** (RC-083): sin etiqueta prometida; se decide con el cuestionario de madurez de Roblox cuando el contenido esté desarrollado | Al final de la producción |
 | RC-084 | 18-11 | ✅ **R4, cifras definitivas:** D = I × t y T = F × t, con intensidad y desfase propios de cada anomalía. Irene: I 0,068 a/h, 264 h → 18,0 años; F 66,5 → 2 años. Kael: I 0,034 a/h, 1 h → 12 días; F 33 → 1,4 días. Cosme: I 8.640 a/h, 10 s → 24,0 años. Halden: I 9 a/h, 10 min → 1,5 años. **Sustituye las cifras de RC-074.** | Corrección obligatoria del dueño | `Coalicion_Marea` («setenta y un años»), `Tal02` («mujer mayor»), `Gri05` («dos años») | `reglas-universo.md` §3 bis; cronología |
 | RC-085 | 18-11 | **Lys nunca entra en el Coro por la fuerza ni obliga a su padre.** Se retira la idea de la auditoría §E («en Oren puede elegir entrar en el Coro para obligarle»), que choca con R11 y R12. | Coherencia con R11 y R12 | — | Vol. II §4.9 |
+| RC-086 | 18-11 | ✅ **R4, definiciones inequívocas:** desgaste (envejecimiento causado por la anomalía), desfase (diferencia entre lo vivido dentro y lo transcurrido fuera mientras se está dentro) y tiempo transcurrido desde el suceso (vida normal después de salir). Los dos años de Halden son tiempo transcurrido, no desfase. Intensidad de Irene exacta: 0,0682 a/h. | Precisión del dueño | — | `reglas-universo.md` §3 bis |
+| RC-087 | 18-11 | ✅ **Regla de implementación de las capas:** un final personal «Cerrar» u «Ocupar» convive con el mundo compartido en la continuidad canónica de «Liberar» | Precisión del dueño | — | `capas-mmo.md` §1 |
+| RC-088 | 18-11 | ✅ **Requisitos técnicos T1** (memoria individual en zona compartida) **y T2** (transiciones canónicas coherentes), obligatorios antes de construir los planetas | Decisión del dueño | — | `capas-mmo.md` §6 |
+| RC-089 | 18-11 | ✅ **La biblia narrativa es la fuente de verdad.** Solo se cambia por error demostrable, contradicción real o decisión expresa del dueño. | Norma del dueño | — | Registro §2 |
 
 ---
 

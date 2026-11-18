@@ -218,8 +218,10 @@ function TesterService.bypass(player: Player): boolean
 	end
 	local data = DataService.get(player)
 	local s = data and data.Tester
-	-- (sin ajustes guardados todavía: encendido, como el valor por defecto)
-	return not (type(s) == "table" and s.Bypass == false)
+	-- (19-11-2026, el dueño: al empezar una vida nueva tenía carnets, vehículos y objetos que no pintan)
+	-- Sin ajustes guardados: APAGADO. El dueño ve el juego como un jugador normal y lo enciende a mano en
+	-- el panel «Modo pruebas» cuando lo necesite.
+	return type(s) == "table" and s.Bypass == true
 end
 
 local function toast(player: Player, kind: string, text: string)

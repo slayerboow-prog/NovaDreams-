@@ -16,6 +16,11 @@ end)
 local Hud = require(script.Parent.UI.Hud)
 -- Laboratorio de cine (archivo ligero para revisar escenas en un PC modesto): se salta lo pesado
 local Laboratorio = require(ReplicatedStorage.Shared.Laboratorio)
+-- Sistemas apagados (Config.Disabled): no se arrancan
+local DisabledSystems = require(ReplicatedStorage.Shared.Config).Disabled or {}
+local function enabled(name: string): boolean
+	return DisabledSystems[name] ~= true
+end
 local Dialog = require(script.Parent.UI.Dialog)
 local Store = require(script.Parent.UI.Store)
 local SpeechBubbles = require(script.Parent.UI.SpeechBubbles)
@@ -203,12 +208,12 @@ task.spawn(InventoryUI.init) -- mochila estilo Minecraft (barra rápida 1-9, tec
 task.spawn(DialogueUI.init) -- conversaciones de las misiones (con respuestas y cámara)
 task.spawn(DebugHud.init) -- panel de depuración del dueño (F8); a los demás jugadores no les llega nada
 task.spawn(MiniGameUI.init) -- pase, canastas, partido de fútbol
-task.spawn(require(script.Parent.Controllers.FootballClient).init) -- fútbol de verdad: balón, chutar/pasar/entrar, porteros y partidos en los campos
-task.spawn(require(script.Parent.Controllers.RacketClient).init) -- tenis y pádel de verdad: «Raqueta» en las pistas
-task.spawn(require(script.Parent.Controllers.VolleyClient).init) -- vóley playa de verdad: «Golpear» y el círculo donde cae el balón
-task.spawn(require(script.Parent.Controllers.RaceClient).init) -- atletismo de verdad: Izq/Der alternando, salida y relevos
-task.spawn(require(script.Parent.Controllers.BasketClient).init) -- baloncesto de verdad: botar, tirar (medidor), pasar, robar y partidos en las canastas
-task.spawn(require(script.Parent.Controllers.OcioClient).init) -- zonas verdes de ocio: karting (cuenta atrás y tiempos), trucos del skatepark, fiesta del sábado
+if enabled("FootballClient") then task.spawn(require(script.Parent.Controllers.FootballClient).init) end -- fútbol de verdad: balón, chutar/pasar/entrar, porteros y partidos en los campos
+if enabled("RacketClient") then task.spawn(require(script.Parent.Controllers.RacketClient).init) end -- tenis y pádel de verdad: «Raqueta» en las pistas
+if enabled("VolleyClient") then task.spawn(require(script.Parent.Controllers.VolleyClient).init) end -- vóley playa de verdad: «Golpear» y el círculo donde cae el balón
+if enabled("RaceClient") then task.spawn(require(script.Parent.Controllers.RaceClient).init) end -- atletismo de verdad: Izq/Der alternando, salida y relevos
+if enabled("BasketClient") then task.spawn(require(script.Parent.Controllers.BasketClient).init) end -- baloncesto de verdad: botar, tirar (medidor), pasar, robar y partidos en las canastas
+if enabled("OcioClient") then task.spawn(require(script.Parent.Controllers.OcioClient).init) end -- zonas verdes de ocio: karting (cuenta atrás y tiempos), trucos del skatepark, fiesta del sábado
 task.spawn(SceneClient.init) -- cada uno ve solo los personajes de su historia
 task.spawn(CanonMarkers.init) -- la saga: ❗ dorados en el mapa y pilares de luz hasta que haces cada misión canónica
 task.spawn(require(script.Parent.Controllers.HappeningClient).init) -- escenas de la historia: planos, efectos, actores, diálogo en el mundo
@@ -232,7 +237,7 @@ task.spawn(require(script.Parent.Controllers.Cucarachas).init) -- las cucarachas
 task.spawn(require(script.Parent.Controllers.Platillos).init) -- las naves aterrizan (polvo, luz, rampa) y zumban
 task.spawn(WetWorld.init) -- con lluvia: suelo que brilla, charcos, gente y cosas mojadas; con nieve, todo blanco
 task.spawn(StoneThrow.init) -- coger piedras del suelo y lanzarlas (tecla B o botón 🥌)
-task.spawn(Laboratorio.unless("Ambient", Ambient.init)) -- tráfico y peatones
+if enabled("Ambient") then task.spawn(Laboratorio.unless("Ambient", Ambient.init)) end -- tráfico y peatones
 task.spawn(Weather.init) -- estaciones y tiempo: lluvia, tormenta, nieve, hojas de otoño
 task.spawn(function() pcall(require(script.Parent.Controllers.ScreenRain).init) end) -- gotas de lluvia en la pantalla cuando te mojas
 task.spawn(function() pcall(require(script.Parent.Controllers.Relampagos).init) end) -- rayos de tormenta (los decide el servidor), fogonazo y trueno con el retraso de la distancia
@@ -245,7 +250,7 @@ task.spawn(Nudge.init) -- los NPC se apartan (con traspiés) si chocas con ellos
 task.spawn(Vehicles.init) -- bicis, monopatines, motos y coches
 task.spawn(Hangar.init) -- app Hangar: comprar barcos y aviones y desplegarlos desde el teléfono
 task.spawn(AutoTarget.init) -- combate de MMO: objetivo, correr hacia él y encadenar golpes; vida y espíritu
-task.spawn(Arcade.init) -- recreativos
+if enabled("Arcade") then task.spawn(Arcade.init) end -- recreativos
 task.spawn(DrivingSchool.init) -- autoescuela
 task.spawn(Restaurant.init) -- trabajo de camarero y barman
 task.spawn(Character.init) -- ficha del personaje (botón Personaje) y correr con Shift
@@ -256,8 +261,8 @@ task.spawn(SoundFx.init) -- efectos de sonido: saltos, golpes, agua, botones, mo
 safeInit("GameSfx", function() -- efectos de respuesta: dinero, XP, nivel, misiones, mochila, grillos y olas
 	require(script.Parent.Controllers.GameSfx).init()
 end)
-task.spawn(BusUI.init) -- pasajeros del autobús: línea, próxima parada y "Bajar en la próxima"
-task.spawn(Laboratorio.unless("BusBoards", BusBoards.init)) -- paneles ámbar de las paradas: cuánto falta para cada autobús
+if enabled("BusUI") then task.spawn(BusUI.init) end -- pasajeros del autobús: línea, próxima parada y "Bajar en la próxima"
+if enabled("BusBoards") then task.spawn(Laboratorio.unless("BusBoards", BusBoards.init)) end -- paneles ámbar de las paradas: cuánto falta para cada autobús
 task.spawn(SupermarketUI.init) -- supermercados: carrito, ticket, cajero y charcutería
 task.spawn(CafeUI.init) -- cafeterías: la carta y el panel del barista
 task.spawn(PostUI.init) -- Correos: el panel de la ruta del repartidor

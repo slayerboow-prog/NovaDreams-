@@ -359,6 +359,12 @@ local CONTROLLER = "src/client/Controllers/SkyRift"
 local GameConfig = L.load("src/shared/Config")
 local demoWas = GameConfig.SkyRift.DemoCycle
 GameConfig.SkyRift.DemoCycle = false
+-- (la Grieta está apagada en el juego desde el 19-11-2026; estas pruebas la encienden para probar su código)
+local enabledWas = GameConfig.SkyRift.Enabled
+GameConfig.SkyRift.Enabled = true
+GameConfig.SkyRift.LiveTransitions = true
+GameConfig.SkyRift.StationSirens = true
+GameConfig.SkyRift.Toast = true
 local function fresh(ids: { [string]: string }?)
 	L.mock("src/shared/RiftTextureIds", ids or {})
 	L.reset(CONTROLLER)
@@ -717,7 +723,7 @@ check(upload:find("RiftTextureIds.luau") and upload:find('"assetType":"Decal"') 
 ---------------------------------------------------------------------
 print("Ciclo de demostración (Config.SkyRift.DemoCycle): las 7 etapas en un día de juego")
 ---------------------------------------------------------------------
-check(demoWas == true, "Config.SkyRift.DemoCycle está encendido (temporal, pruebas del dueño)")
+check(demoWas == false and enabledWas == false, "la Grieta y su ciclo de demostración están apagados en el juego (19-11-2026, el dueño)")
 check(GameConfig.DayLengthMinutes == 20, "el día sigue durando 20 minutos reales")
 local schedule = Rift.demoSchedule()
 local stagesSeen, seq, hours = {}, {}, 0

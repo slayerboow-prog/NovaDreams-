@@ -389,6 +389,8 @@ Bestiary.Shard = { Id = "Esquirla", Name = "Esquirla de la Grieta", Icon = "💎
 	Waves = { 0.75, 0.5, 0.25 }, WaveSize = { 3, 4, 5 }, Colors = { Body = rgb(150, 90, 255), Belly = rgb(80, 40, 160), Glow = rgb(190, 140, 255) } }
 Bestiary.ShardsPerZone = { 2, 3, 3, 3 }
 Bestiary.ShardRespawn = 300 -- segundos
+-- (19-11-2026, el dueño: fuera las hordas que salen de la Grieta) false = las esquirlas no aparecen
+Bestiary.ShardsEnabled = false
 
 -- Lo que da una esquirla rota (más cuanto más lejos esté su zona)
 function Bestiary.shardLoot(tier: number?, planet: string?, roll: () -> number): { [string]: number }

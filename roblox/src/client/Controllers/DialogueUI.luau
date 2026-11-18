@@ -188,6 +188,132 @@ local function smoothstep(x: number): number
 	return x * x * (3 - 2 * x)
 end
 
+-- (19-11-2026, el dueño: la cámara de las conversaciones se metía dentro del pelo o la cabeza de alguien)
+-- Lo que está pegado a la cámara (pelo, sombreros, la cabeza de quien queda de espaldas) se esconde SOLO
+-- en tu pantalla mientras dura el plano, como hace la cámara normal con tu personaje al acercarse.
+local NEAR_FADE_RADIUS = 2.6 -- (radio de búsqueda)
+local NEAR_FADE_GAP = 1.6 -- se esconde lo que queda a menos de esto de la cámara (borde aproximado de la pieza)
+local nearFaded: { [BasePart]: boolean } = {}
+local nearParams = OverlapParams.new()
+nearParams.FilterType = Enum.RaycastFilterType.Exclude
+local function isCharacterPart(part: BasePart): boolean
+	local model = part:FindFirstAncestorOfClass("Model")
+	while model do
+		if model:FindFirstChildOfClass("Humanoid") then
+			return true
+		end
+		model = model:FindFirstAncestorOfClass("Model")
+	end
+	return false
+end
+local function characterOf(part: Instance): Model?
+	local model = part:FindFirstAncestorOfClass("Model")
+	while model do
+		if model:FindFirstChildOfClass("Humanoid") then
+			return model
+		end
+		model = model:FindFirstAncestorOfClass("Model")
+	end
+	return nil
+end
+local function updateNearFade(cf: CFrame, focus: Vector3?)
+	local now: { [BasePart]: boolean } = {}
+	-- Quien se pone ENTRE la cámara y quien habla (su cuerpo tapaba el plano): se esconde entero
+	if focus then
+		local ignore: { Instance } = {}
+		local params = RaycastParams.new()
+		params.FilterType = Enum.RaycastFilterType.Exclude
+		for _ = 1, 4 do
+			params.FilterDescendantsInstances = ignore
+			local delta = focus - cf.Position
+			if delta.Magnitude < 0.5 then
+				break
+			end
+			local hit = workspace:Raycast(cf.Position, delta.Unit * math.max(0, delta.Magnitude - 1.2), params)
+			if not hit then
+				break
+			end
+			local model = characterOf(hit.Instance)
+			if model then
+				local head = model:FindFirstChild("Head") :: BasePart?
+				-- (no se esconde a quien está en el centro del plano: es a quien miramos)
+				if not (head and (head.Position - focus).Magnitude < 1.5) then
+					for _, part in model:GetDescendants() do
+						if part:IsA("BasePart") then
+							now[part] = true
+							part.LocalTransparencyModifier = 1
+						end
+					end
+				end
+				table.insert(ignore, model)
+			else
+				break -- (una pared: la cámara ya la esquiva por su cuenta)
+			end
+		end
+	end
+	local ok, parts = pcall(function()
+		return workspace:GetPartBoundsInRadius(cf.Position, NEAR_FADE_RADIUS, nearParams)
+	end)
+	if ok then
+		for _, part in parts do
+			if part:IsA("BasePart") and isCharacterPart(part) and (part.Position - cf.Position).Magnitude - part.Size.Magnitude * 0.5 < NEAR_FADE_GAP then
+				now[part] = true
+				part.LocalTransparencyModifier = 1
+			end
+		end
+	end
+	-- (las piezas que no se pueden consultar —CanQuery apagado en algunos accesorios y actores— se miran a
+	-- mano: tu personaje y el de quien habla)
+	for _, model in { player.Character, lastActor } do
+		if typeof(model) == "Instance" and model:IsA("Model") then
+			for _, part in model:GetDescendants() do
+				if part:IsA("BasePart") and not now[part] then
+					if (part.Position - cf.Position).Magnitude - part.Size.Magnitude * 0.5 < NEAR_FADE_GAP then
+						now[part] = true
+						part.LocalTransparencyModifier = 1
+					end
+				end
+			end
+		end
+	end
+	for part in nearFaded do
+		if not now[part] and part.Parent then
+			part.LocalTransparencyModifier = 0
+		end
+	end
+	nearFaded = now
+end
+-- (la cámara de Roblox repone la transparencia de tu personaje en cada fotograma: se vuelve a aplicar
+-- justo después de ella)
+local nearFadeBound = false
+local function bindNearFade()
+	if nearFadeBound then
+		return
+	end
+	nearFadeBound = true
+	RunService:BindToRenderStep("DialogoOcultarCerca", Enum.RenderPriority.Camera.Value + 2, function()
+		for part in nearFaded do
+			if part.Parent then
+				part.LocalTransparencyModifier = 1
+			end
+		end
+	end)
+end
+local function clearNearFade()
+	if nearFadeBound then
+		nearFadeBound = false
+		pcall(function()
+			RunService:UnbindFromRenderStep("DialogoOcultarCerca")
+		end)
+	end
+	for part in nearFaded do
+		if part.Parent then
+			part.LocalTransparencyModifier = 0
+		end
+	end
+	nearFaded = {}
+end
+
 local function startCameraLoop()
 	if cameraConnection then
 		return
@@ -217,6 +343,8 @@ local function startCameraLoop()
 		local placed = base * CFrame.new(0, 0, -push) * sway
 		local okClear, cleared = pcall(CameraShots.clearOff, placed, CineCamera.wallProbe())
 		camera.CFrame = if okClear then cleared else placed
+		updateNearFade(camera.CFrame, current.Focus)
+		bindNearFade()
 		-- (el campo de visión del plano: antes se quedaba el del juego, 70, y el plano de hombro de 45
 		-- salía lejos y con tu cabeza en medio)
 		if current.Fov then
@@ -233,6 +361,7 @@ local function stopCameraLoop()
 		cameraConnection = nil
 	end
 	shot = nil
+	clearNearFade()
 	pausedByScene = false
 	shotCount = 0
 	lastActor = nil

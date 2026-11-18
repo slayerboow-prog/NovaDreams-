@@ -76,7 +76,7 @@ D = I × t (años de cuerpo = a/h × horas subjetivas) y T = F × t (horas de ca
 | Ninguna decisión personal cambia el mundo de otros | ✅ (`capas-mmo.md` §1 y §3) |
 | Estado neutral definido para planetas, personajes de destino variable, PNJ y cielos | ✅ §2 |
 | Transiciones y juego en grupo definidos | ✅ §3 y §4 |
-| «Cerrar», «Liberar» y «Ocupar» respetan las capas | ✅ §5 y §6. El final personal se vive entero y después se entra en el mundo canónico («Liberar»). |
+| «Cerrar», «Liberar» y «Ocupar» respetan las capas | ✅ §5 y §7. El final personal se vive entero y después se entra en el mundo canónico («Liberar»). |
 | El jugador Pastor sigue jugando | ✅ R12 |
 
 ### 3.5 Identificadores, flags y nombres

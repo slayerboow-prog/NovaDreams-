@@ -157,8 +157,10 @@ local function addHeadlight(model: Model)
 	end
 end
 
--- De regalo desde el principio (se sacan en cualquier sitio desde "Vehículos"; los bebés no pueden)
-local STARTER = { "Bici", "Patinete" }
+-- De regalo desde el principio (se sacan en cualquier sitio desde "Vehículos"; los bebés no pueden).
+-- (19-11-2026, el dueño: una vida nueva en la Valmar de después de la Caída no empieza con bici ni
+-- patinete) Vacío: los vehículos se consiguen jugando.
+local STARTER: { string } = {}
 
 -- Los vehículos que te dio el pase (VehicleSkin con GrantsBase, como la Moto premium) siguen siendo
 -- tuyos después de «Vida nueva»: se recuperan de Cosmetics.Owned (shared/BattlePass/Catalog)

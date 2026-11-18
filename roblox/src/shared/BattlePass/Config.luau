@@ -15,7 +15,7 @@ local BattlePassConfig = {}
 -- escucha nada ni se da XP, no se entregan recompensas, no hay ganchos en vehículos/ropa/vivienda y
 -- la interfaz no aparece (solo quedan los valores por defecto en los datos guardados, que no hacen
 -- nada). Se enciende cuando esté lista la interfaz.
-BattlePassConfig.Enabled = true
+BattlePassConfig.Enabled = false -- (19-11-2026, el dueño: apagado de momento)
 
 BattlePassConfig.ProductType = "GamePass"
 BattlePassConfig.PriceConfiguredExternally = true

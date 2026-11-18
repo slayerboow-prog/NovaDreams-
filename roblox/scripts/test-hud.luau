@@ -1489,9 +1489,11 @@ for _, size in { { 640, 360 }, { 667, 375 }, { 844, 390 }, { 932, 430 }, { 1334,
 		-- (combate de MMO: el Atacar grande en la esquina con el arco de habilidades a su izquierda y arriba;
 		-- Saltar a su derecha, Correr y Esquivar encima; Defensa y Agacharse arriba a la izquierda del arco)
 		local middle = c.Saltar.X > c.Ataque.X and math.abs(c.Saltar.Y - c.Ataque.Y) < c.Ataque.R and c.Correr.Y < c.Saltar.Y and math.abs(c.Correr.X - c.Saltar.X) < 20 + tol
-		local bottom = c.Defender.X < c.Ataque.X and c.Agacharse.X < c.Defender.X and c.Defender.Y < c.Ataque.Y - c.Ataque.R
+		-- (19-11-2026, el dueño: Agacharse junto al pulgar) Agacharse en la columna de la derecha, encima de
+		-- Correr; Defensa arriba a la izquierda del arco; Esquivar arriba, entre Contexto e Interactuar
+		local bottom = c.Defender.X < c.Ataque.X and c.Defender.Y < c.Ataque.Y - c.Ataque.R and c.Agacharse.Y < c.Correr.Y and math.abs(c.Agacharse.X - c.Correr.X) < 20 + tol
 		local order = c.Esquivar.Y < c.Correr.Y
-		local centered = math.abs(c.Esquivar.X - c.Correr.X) < 20
+		local centered = c.Esquivar.Y < c.Agacharse.Y
 		local biggest = true
 		for id in want do
 			if id ~= "Ataque" and c[id].R >= c.Ataque.R then
@@ -1499,8 +1501,8 @@ for _, size in { { 640, 360 }, { 667, 375 }, { 844, 390 }, { 932, 430 }, { 1334,
 			end
 		end
 		check(middle, "Saltar a la derecha del Atacar y Correr encima de Saltar")
-		check(bottom, "Defensa y Agacharse arriba a la izquierda, por encima del arco de habilidades")
-		check(order and centered, "Esquivar encima de Correr")
+		check(bottom, "Agacharse encima de Correr (columna derecha) y Defensa arriba a la izquierda del arco")
+		check(order and centered, "Esquivar arriba, por encima de Agacharse")
 		check(not (buttons.Interactuar and buttons.Interactuar.Visible), "Ya no hay botón «Interactuar» aparte en el racimo (sin nada cerca, no sale)")
 		check(biggest, "El Atacar es el más grande")
 		check(not buttons.Gestos and not buttons.Fijar, "Ni Gestos ni Fijar en el racimo (Gestos y Foto son apps del ValPhone)")

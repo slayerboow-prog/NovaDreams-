@@ -525,7 +525,7 @@ do
 		was = open
 	end
 	check(edges == 2, ("ciclo de demostración: la invasión empieza %d veces por día de juego (de día y de noche)"):format(edges))
-	check(Config.SkyRift.DemoCycle == true, "el ciclo de demostración está encendido (el dueño la ve sin jugar la saga)")
+	check(Config.SkyRift.DemoCycle == false and Config.SkyRift.Enabled == false, "la Grieta está apagada: la invasión no se lanza sola (19-11-2026, el dueño)")
 	check(Rules.serverPhase(SkyRift, false, 12, 0, { "Rasguno", "Rota", "Cosida" }) == "Rota" and Rules.serverPhase(SkyRift, false, 12, 0, { "Cosida" }) == "Cosida", "sin el ciclo: manda la grieta más abierta de los jugadores")
 	check(Rules.shouldStart(false, true, false, 100, nil) and not Rules.shouldStart(true, true, false, 100, nil), "empieza solo en el flanco (al abrirse)")
 	check(not Rules.shouldStart(false, true, true, 100, nil), "nunca dos a la vez")

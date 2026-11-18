@@ -33,6 +33,7 @@ local UserInputService = game:GetService("UserInputService")
 local Combat = require(ReplicatedStorage.Shared.Combat)
 local MissionCombat = require(ReplicatedStorage.Shared.MissionCombat)
 local Powers = require(ReplicatedStorage.Shared.Powers)
+local HunterSkills = require(ReplicatedStorage.Shared.HunterSkills) -- (la prueba: el primer uso de cada poder es gratis)
 local Stages = require(ReplicatedStorage.Shared.LifeStory.Stages)
 local Theme = require(script.Parent.Parent.UI.Theme)
 local TouchLayout = require(script.Parent.Parent.UI.TouchLayout)
@@ -634,7 +635,8 @@ function CombatController.nextPower()
 end
 
 function CombatController.ultimate()
-	if not powerSet().Definitiva or energy() < Powers.Ultimate.Cost or not canAct() then
+	local free = not HunterSkills.trialUsed(player:GetAttribute("PoderPrueba"), Powers.Ultimate.Id)
+	if not powerSet().Definitiva or (not free and energy() < Powers.Ultimate.Cost) or not canAct() then
 		return
 	end
 	lastFight = os.clock()
@@ -1661,7 +1663,7 @@ function CombatController.init()
 			return fighting() and powerSet().Definitiva == true
 		end,
 		Active = function()
-			return energy() >= Powers.Ultimate.Cost
+			return energy() >= Powers.Ultimate.Cost or not HunterSkills.trialUsed(player:GetAttribute("PoderPrueba"), Powers.Ultimate.Id)
 		end,
 		Callback = CombatController.ultimate,
 	})
@@ -1675,7 +1677,7 @@ function CombatController.init()
 			if powerHeld then
 				return true
 			end
-			return if p and energy() >= p.Cost then false else "wait"
+			return if p and (energy() >= p.Cost or not HunterSkills.trialUsed(player:GetAttribute("PoderPrueba"), p.Id)) then false else "wait"
 		end,
 		Hold = function(down: boolean)
 			CombatController.power(down)

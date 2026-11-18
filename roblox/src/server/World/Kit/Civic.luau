@@ -181,6 +181,73 @@ Civic.CanteenSmall = { W = 38, D = 56 } -- (el del instituto, al lado del edific
 -- la historia: «El misterio del colegio» pasa dentro) y 20 × 10 en la corta del Campus (si no, no cabe la pista)
 local SCHOOL_BACK = { Deep = 22, Shallow = 11 }
 
+-- Valmar después de la Caída (19-11-2026): «La Academia ocupa el viejo colegio del barrio. Las ventanas de
+-- la planta baja están tapiadas desde la Caída. En la puerta, un escudo nuevo: una estrella partida
+-- atravesada por una espada» (Misiones/Academia, Llegada). Tablones por fuera de cada cristal de la planta
+-- baja (el cristal se queda detrás) y el escudo encima de la puerta.
+local function boardUpSchool(building: Model, at: (number, number, number) -> CFrame, D: number)
+	local center = building:GetPivot().Position
+	local floorY = at(0, 0, 0).Position.Y
+	local wood = { rgb(122, 92, 64), rgb(104, 78, 54), rgb(138, 104, 72) }
+	local n = 0
+	for _, glass in building:GetDescendants() do
+		if glass:IsA("BasePart") and glass.Name == "Glass" and glass.Position.Y < floorY + SCHOOL_G then
+			local size = glass.Size
+			-- el eje fino del cristal es su normal; se sale hacia fuera del edificio
+			local cf = glass.CFrame
+			local axes = { { size.X, cf.RightVector, "X" }, { size.Y, cf.UpVector, "Y" }, { size.Z, cf.LookVector, "Z" } }
+			table.sort(axes, function(a, b)
+				return a[1] < b[1]
+			end)
+			local normal: Vector3 = axes[1][2]
+			if normal:Dot(glass.Position - center) < 0 then
+				normal = -normal
+			end
+			local up = Vector3.new(0, 1, 0)
+			local side = up:Cross(normal)
+			if side.Magnitude < 0.5 then
+				continue
+			end
+			side = side.Unit
+			local width = math.abs(size:Dot(Vector3.new(math.abs(cf.RightVector:Dot(side)), math.abs(cf.UpVector:Dot(side)), math.abs(cf.LookVector:Dot(side)))))
+			local height = math.abs(size:Dot(Vector3.new(math.abs(cf.RightVector.Y), math.abs(cf.UpVector.Y), math.abs(cf.LookVector.Y))))
+			if width < 1 or height < 1 then
+				continue
+			end
+			local planks = math.max(2, math.floor(height / 1.6))
+			for k = 1, planks do
+				local y = -height / 2 + (k - 0.5) * height / planks
+				local tilt = math.rad(((n * 7 + k * 13) % 9) - 4)
+				local origin = glass.Position + normal * 0.35 + up * y
+				local plank = CFrame.fromMatrix(origin, side, up, -normal) * CFrame.Angles(0, 0, tilt)
+				Builder.decor({ Name = "Tablon", Size = Vector3.new(width + 0.8, math.min(1.1, height / planks * 0.8), 0.25), CFrame = plank, Color = wood[1 + (n + k) % #wood], Material = Enum.Material.WoodPlanks, Parent = building })
+			end
+			n += 1
+		end
+	end
+	-- El escudo de la Academia: una estrella partida atravesada por una espada, encima de la puerta
+	local door = at(0, SCHOOL_G - 2.2, -D / 2 - 0.45)
+	local shield = Builder.decor({ Name = "EscudoAcademia", Size = Vector3.new(4.2, 4.2, 0.3), CFrame = door, Color = rgb(52, 58, 72), Material = Enum.Material.Metal, Parent = building })
+	local gui = Instance.new("SurfaceGui")
+	gui.Name = "Escudo"
+	gui.Face = Enum.NormalId.Front
+	gui.CanvasSize = Vector2.new(200, 200)
+	gui.LightInfluence = 1
+	gui.Parent = shield
+	for _, layer in { { "★", Color3.fromRGB(210, 178, 96), 150, 0 }, { "⚔", Color3.fromRGB(226, 230, 236), 120, 0 } } do
+		local label = Instance.new("TextLabel")
+		label.BackgroundTransparency = 1
+		label.Size = UDim2.fromScale(1, 1)
+		label.Text = layer[1]
+		label.TextColor3 = layer[2]
+		label.TextSize = layer[3]
+		label.Font = Enum.Font.GothamBlack
+		label.Parent = gui
+	end
+end
+
+Civic.boardUpSchool = boardUpSchool -- (para probarlo en el laboratorio)
+
 function Civic.school(parent: Instance, lot: Lot, townName: string)
 	local m = Builder.model("Colegio", parent)
 	local deep = lot.Depth >= 150
@@ -199,6 +266,7 @@ function Civic.school(parent: Instance, lot: Lot, townName: string)
 	})
 	local back = if deep then SCHOOL_BACK.Deep else SCHOOL_BACK.Shallow
 	Civic.schoolInterior(building, at, W, D, townName, back)
+	pcall(boardUpSchool, building, at, D)
 	local mark = { School = townName }
 	-- Mástil con bandera
 	Builder.part({ Name = "Flagpole", Size = Vector3.new(0.4, 20, 0.4), CFrame = lot.facing(-W / 2 + 6, 5, 10), Color = rgb(220, 220, 224), Material = Enum.Material.Metal, Parent = m })

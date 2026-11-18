@@ -152,23 +152,28 @@ function HunterSkillService.use(player: Player, id: any, now: number?): (boolean
 		return false, nil, 0
 	end
 	local onPlanet = type(player:GetAttribute("Planeta")) == "string"
-	if not HunterSkills.unlocked(sk, HunterSkillService.levelOf(player), HunterSkillService.knownOf(player)) and not allUnlocked(player) then
+	-- (la primera vez de cada habilidad en la sesión es de prueba: sin bloqueo, espera ni coste)
+	local free = not HunterSkills.trialUsed(player:GetAttribute("HabPrueba"), sk.Id)
+	if not free and not HunterSkills.unlocked(sk, HunterSkillService.levelOf(player), HunterSkillService.knownOf(player)) and not allUnlocked(player) then
 		return false, ("%s se aprende en la Academia de guerreros (o con nivel de cazador %d al graduarte)."):format(sk.Name, sk.Level), 0
 	end
 	local t = now or os.clock()
 	used[player] = used[player] or {}
 	local rank = HunterSkillService.rankOf(player, sk.Id)
 	local last = used[player][sk.Id]
-	if last and t - last < HunterSkills.cooldown(sk, rank) then
+	if not free and last and t - last < HunterSkills.cooldown(sk, rank) then
 		return false, nil, 0
 	end
 	-- Espíritu: cada habilidad gasta el suyo
-	local cost = sk.Mana or 0
+	local cost = if free then 0 else (sk.Mana or 0)
 	local mana = tonumber(player:GetAttribute("Espiritu")) or HunterSkills.manaMax(HunterSkillService.levelOf(player))
 	if cost > 0 and mana < cost then
 		return false, ("Te falta espíritu para %s (%d de %d)."):format(sk.Name, math.floor(mana), cost), 0
 	end
 	player:SetAttribute("Espiritu", mana - cost)
+	if free then
+		player:SetAttribute("HabPrueba", HunterSkills.trialMark(player:GetAttribute("HabPrueba"), sk.Id))
+	end
 	lastFight[player] = t
 	used[player][sk.Id] = t
 	local hits = 0

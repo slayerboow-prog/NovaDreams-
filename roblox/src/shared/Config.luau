@@ -97,17 +97,37 @@ Config.Seasons = {
 -- La Grieta del cielo (shared/SkyRift, Controllers/SkyRift)
 ---------------------------------------------------------------------
 Config.SkyRift = {
+	-- (19-11-2026, el dueño: «desactiva la grieta») false = la Grieta no se dibuja en el cielo, no hay
+	-- cambios de etapa, sirenas ni avisos, y la invasión no se lanza sola (InvasionService.riftOpen)
+	Enabled = false,
 	-- TEMPORAL (pruebas del dueño): true = el cielo recorre las 7 etapas a lo largo de cada día de
 	-- juego (shared/SkyRift.Demo), igual para todos. Para volver a la de la historia: false.
-	DemoCycle = true,
-	LiveTransitions = true, -- cada cambio de etapa se ve pasar en el cielo, en directo (~16 s)
-	Toast = true, -- aviso pequeño arriba «¡Mira al cielo!» (uno por transición)
+	DemoCycle = false,
+	LiveTransitions = false, -- cada cambio de etapa se ve pasar en el cielo, en directo (~16 s)
+	Toast = false, -- aviso pequeño arriba «¡Mira al cielo!» (uno por transición)
 	Shake = 0.06, -- temblor muy leve de la cámara en el destello, solo a pie (0 = ninguno)
 	SoundVolume = 1, -- multiplicador del rumor y del trueno de la transición (y de las sirenas)
 	-- Sirenas de las comisarías y los bomberos durante cada cambio de etapa (shared/SkyRift.Sirens,
 	-- Controllers/RiftSirens): 3D, solo cerca de los cuarteles y solo mientras dura el cambio. false = sin sirenas
-	StationSirens = true,
+	StationSirens = false,
 }
+
+---------------------------------------------------------------------
+-- Sistemas apagados (19-11-2026, el dueño): no arrancan ni en el servidor ni en el cliente.
+-- Deportes y juegos de ocio (tienen fallos y no pintan en la Valmar de después de la Caída), el
+-- tráfico y los peatones de ciudad normal, el autobús urbano y el pase de temporada (BattlePass/Config).
+-- Para volver a encender uno: quitarlo de la lista.
+---------------------------------------------------------------------
+Config.Disabled = {
+	-- servidor
+	FootballService = true, RacketService = true, VolleyService = true, RaceService = true, BasketService = true,
+	ZonasDeporteService = true, FeriaService = true, KartService = true, SkateService = true, ArcadeService = true,
+	BusService = true,
+	BattlePassSeasonService = true, BattlePassRewardService = true, BattlePassService = true, BattlePassXPService = true,
+	-- cliente
+	FootballClient = true, RacketClient = true, VolleyClient = true, RaceClient = true, BasketClient = true,
+	OcioClient = true, Arcade = true, BusUI = true, BusBoards = true, Ambient = true, BattlePassClient = true,
+} :: { [string]: boolean }
 
 ---------------------------------------------------------------------
 -- Historia de vida (LifeStoryService)
@@ -469,20 +489,28 @@ Config.Audio = {
 		-- sus otras copias (SoundIds, ReplicatedStorage > Musica) y después su Fallback: nunca silencio
 		-- mientras quede alguna pieza que cargue. Comprobar los audios de verdad:
 		-- bash scripts/cloud-test.sh -v audio
-		Nacimiento = { Id = 99685990275611, File = "nacimiento.ogg", Volume = 0.4, Looped = true, Fallback = "Intima" },
-		TemaValmar = { Id = 71915200549382, File = "tema_valmar.ogg", Volume = 0.45, Looped = true, Fallback = "Descubrimiento" },
+		Nacimiento = { Id = 107393150206320, -- «Monolith Breathing» (19-11-2026: música oscura de la Valmar de después de la Caída; antes 99685990275611)
+			File = "nacimiento.ogg", Volume = 0.4, Looped = true, Fallback = "Intima" },
+		TemaValmar = { Id = 134454860198839, -- «Fallen sky» (19-11-2026: música oscura de la Valmar de después de la Caída; antes 71915200549382)
+			File = "tema_valmar.ogg", Volume = 0.45, Looped = true, Fallback = "Descubrimiento" },
 		PasanLosAnos = { Id = 136669358482377, File = "pasan_los_anos.ogg", Volume = 0.5, Looped = false, Fallback = "Resolucion" },
-		VidaAdulta = { Id = 90317690788724, File = "vida_adulta.ogg", Volume = 0.4, Looped = true, Fallback = "Descubrimiento" },
+		VidaAdulta = { Id = 73376882361979, -- «The Last Safe Thought» (19-11-2026: música oscura de la Valmar de después de la Caída; antes 90317690788724)
+			File = "vida_adulta.ogg", Volume = 0.4, Looped = true, Fallback = "Descubrimiento" },
 		-- Música por intensidad (Intensity, abajo). Id: pista con licencia de la biblioteca de Roblox (APM
 		-- Music, pública para cualquier experiencia); si no carga, la nuestra (File en shared/SoundIds).
 		-- Con Id = 0: se busca File en shared/SoundIds
 		-- (scripts/upload-audio.sh --music) y en ReplicatedStorage > Musica. Si aún no está subida,
 		-- suena su Fallback (otra pieza de esta lista) o, sin Fallback, nada.
-		Descubrimiento = { Id = 1836329853, File = "descubrimiento.ogg", Volume = 0.43, Looped = true, Fallback = "TemaValmar" },
-		Intima = { Id = 9046644321, File = "intima.ogg", Volume = 0.89, Looped = true, Fallback = "Nacimiento" },
-		Tension = { Id = 1841589066, File = "tension.ogg", Volume = 0.7, Looped = true }, -- (ninguna de antes sirve: sin ella, solo ambiente)
-		Resolucion = { Id = 9047298617, File = "resolucion.ogg", Volume = 0.63, Looped = false, Fallback = "VidaAdulta" },
-		TemaFinal = { Id = 9047308022, File = "tema_final.ogg", Volume = 0.67, Looped = false, Fallback = "TemaValmar" },
+		Descubrimiento = { Id = 90910298850588, -- «Fall of the Kingdom» (19-11-2026: música oscura de la Valmar de después de la Caída; antes 1836329853)
+			File = "descubrimiento.ogg", Volume = 0.43, Looped = true, Fallback = "TemaValmar" },
+		Intima = { Id = 92241392294351, -- «Dissolving Identity» (19-11-2026: música oscura de la Valmar de después de la Caída; antes 9046644321)
+			File = "intima.ogg", Volume = 0.89, Looped = true, Fallback = "Nacimiento" },
+		Tension = { Id = 138622883735751, -- «Storm of the abyss» (19-11-2026: música oscura de la Valmar de después de la Caída; antes 1841589066)
+			File = "tension.ogg", Volume = 0.7, Looped = true }, -- (ninguna de antes sirve: sin ella, solo ambiente)
+		Resolucion = { Id = 126306358922185, -- «Last stand» (19-11-2026: música oscura de la Valmar de después de la Caída; antes 9047298617)
+			File = "resolucion.ogg", Volume = 0.63, Looped = false, Fallback = "VidaAdulta" },
+		TemaFinal = { Id = 128388331023943, -- «Crown of darkness» (19-11-2026: música oscura de la Valmar de después de la Caída; antes 9047308022)
+			File = "tema_final.ogg", Volume = 0.67, Looped = false, Fallback = "TemaValmar" },
 		-- Música por zona (shared/Cosmos/Soundscapes, docs/audio/zonas.md): nuestra (scripts/audio/zonas.py).
 		-- Se sube con scripts/upload-audio.sh --zonas; mientras no esté subida suena su Fallback (nunca una
 		-- de Valmar: la del espacio no puede ser la de tu etapa).

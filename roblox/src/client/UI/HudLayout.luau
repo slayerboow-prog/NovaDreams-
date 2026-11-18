@@ -101,24 +101,28 @@ HudLayout.Sizes = {
 -- arco a su alrededor (de la izquierda hasta arriba), los seis huecos de las HABILIDADES (Hab1..Hab6:
 -- Controllers/HunterSkillsUI). Saltar a la derecha del Atacar y Correr encima; Defensa, Agacharse y
 -- Esquivar siguen existiendo (los usan el fútbol, el baloncesto, el buceo y las armas) pero apartados.
+-- (19-11-2026, el dueño: «el botón de agacharse está mal situado y hay botones muy pequeños») Botones más
+-- grandes (habilidades de 32 a 37; Agacharse, Esquivar y la columna de contexto también) y Agacharse en la
+-- columna de la derecha, encima de Correr y Saltar, donde va el pulgar. Las habilidades, en un arco más
+-- abierto (radio 190) para que no se toquen; Defensa, Contexto, Esquivar e Interactuar, por encima.
 HudLayout.Cluster = {
 	Ataque = { 0, 0, 66 },
-	Hab1 = { -155, 0, 32 },
-	Hab2 = { -142, -63, 32 },
-	Hab3 = { -104, -115, 32 },
-	Hab4 = { -48, -147, 32 },
-	Hab5 = { 16, -154, 32 },
-	Hab6 = { 78, -134, 32 },
-	Saltar = { 142, 4, 42 },
-	Correr = { 146, -82, 36 },
-	Esquivar = { 150, -158, 32 },
-	Interactuar = { 112, -240, 46 },
-	Defender = { -110, -225, 38 },
-	Agacharse = { -140, -292, 28 },
-	Contexto = { -6, -244, 34 },
+	Hab1 = { -189, 20, 37 },
+	Hab2 = { -180, -62, 37 },
+	Hab3 = { -137, -132, 37 },
+	Hab4 = { -68, -177, 37 },
+	Hab5 = { 13, -190, 37 },
+	Hab6 = { 92, -166, 37 },
+	Saltar = { 150, 10, 44 },
+	Correr = { 150, -92, 38 },
+	Agacharse = { 160, -196, 36 },
+	Interactuar = { 140, -290, 46 },
+	Esquivar = { 55, -290, 34 },
+	Contexto = { -30, -282, 34 },
+	Defender = { -150, -262, 38 },
 }
 HudLayout.ExtraSlots = 5
-local EXTRA_X, EXTRA_R, EXTRA_STEP, EXTRA_FIRST = -238, 30, 66, 34
+local EXTRA_X, EXTRA_R, EXTRA_STEP, EXTRA_FIRST = -272, 33, 70, -64
 
 -- Lado izquierdo (móvil, a pie): el joystick y, debajo, Teléfono e Inventario (botón redondo con el
 -- texto al lado, docs/referencias/hud-movil-joystick.jpg). Con un arma de fuego, el segundo Disparar a
@@ -218,7 +222,7 @@ HudLayout.Compact = {
 	HelpCard = 480, -- ancho de «¿Qué hago ahora?» (arriba a la derecha, bajo el minimapa)
 }
 local CONTEXT_CAPTION = 24 -- el título «ACCIONES» encima de la tira
-local CLUSTER_RIGHT = 182 -- lo que sobresale el racimo a la derecha del centro del Ataque
+local CLUSTER_RIGHT = 196 -- lo que sobresale el racimo a la derecha del centro del Ataque
 local CLUSTER_BOTTOM = 64 -- y por debajo
 
 function HudLayout.scaleFor(viewport: Vector2): number

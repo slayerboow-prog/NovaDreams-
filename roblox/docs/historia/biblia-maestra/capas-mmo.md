@@ -15,6 +15,10 @@
 **Regla madre:** ninguna decisión personal modifica de forma unilateral lo que ven los demás. Lo personal solo se
 muestra en la capa personal.
 
+**Regla de implementación (RC-087):** un jugador puede haber elegido «Cerrar» u «Ocupar» en su historia personal
+mientras el mundo compartido sigue mostrando la continuidad canónica de «Liberar». Su historia personal no se borra,
+pero tampoco transforma el universo común de los demás.
+
 ## 2. El estado neutral de la capa compartida
 
 | Elemento | Estado neutral |
@@ -71,7 +75,15 @@ muestra en la capa personal.
 5. **Hechos fijos que todas las capas comparten** (RC-016): Kael muere en Tálasa; Tomás muere en Valmar; Ilse abre el
    Nudo; Ithar muere en los tres finales.
 
-## 6. Comprobación de los tres finales con las capas
+## 6. Requisitos técnicos obligatorios (RC-088)
+No son decisiones narrativas: son pruebas que el sistema tiene que superar **antes** de construir planetas encima.
+
+| # | Prueba | Qué hay que demostrar | Cuándo |
+|---|---|---|---|
+| T1 | **Memoria individual** | Los diálogos y las escenas reconocen las decisiones personales del jugador **también en una zona compartida con otros jugadores**, sin que los demás vean esa variante | En la misión piloto de Valmar, con dos clientes en Studio |
+| T2 | **Transiciones canónicas** | Decorados, personajes, misiones y ciudades cambian de forma coherente cuando el universo cambia de fase (de la campaña al canon «Liberar»), sin restos de la fase anterior | En la misión piloto y en una simulación del paso al canon |
+
+## 7. Comprobación de los tres finales con las capas
 
 | Comprobación | Resultado |
 |---|---|

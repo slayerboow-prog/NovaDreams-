@@ -3136,6 +3136,10 @@ InvasionService.alive = alive
 
 -- ¿Está abierta la grieta para todo el servidor? (Rules.serverPhase)
 function InvasionService.riftOpen(): boolean
+	-- (Grieta apagada: la invasión ya no se lanza sola; solo el botón del modo pruebas)
+	if type(Config.SkyRift) == "table" and Config.SkyRift.Enabled == false then
+		return false
+	end
 	local demo = type(Config.SkyRift) == "table" and Config.SkyRift.DemoCycle == true
 	local offset = workspace:GetAttribute("SkyRiftDemoOffset")
 	local phases = {}

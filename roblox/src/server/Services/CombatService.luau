@@ -35,6 +35,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Combat = require(ReplicatedStorage.Shared.Combat)
 local Powers = require(ReplicatedStorage.Shared.Powers)
+local HunterSkills = require(ReplicatedStorage.Shared.HunterSkills) -- (la prueba: trialUsed / trialMark)
 local Stages = require(ReplicatedStorage.Shared.LifeStory.Stages)
 local StoryEvents = require(script.Parent.Parent.LifeStory.StoryEvents)
 local ProgressionService = require(script.Parent.ProgressionService)
@@ -1026,7 +1027,9 @@ local function usePower(state: State, id: any, wish: any): boolean
 	if not canAct(state, now) then
 		return false
 	end
-	local ok = Powers.canUse(p, state.Powers, state.Energy, state.Cooldowns[p.Id], now)
+	-- (la primera vez de cada poder en la sesión es de prueba: sin energía ni espera)
+	local free = state.Player ~= nil and state.Powers[p.Id] == true and not HunterSkills.trialUsed(state.Player:GetAttribute("PoderPrueba"), p.Id)
+	local ok = free or Powers.canUse(p, state.Powers, state.Energy, state.Cooldowns[p.Id], now)
 	if not ok then
 		return false
 	end
@@ -1035,12 +1038,15 @@ local function usePower(state: State, id: any, wish: any): boolean
 	if not root then
 		return false
 	end
+	if free and state.Player then
+		state.Player:SetAttribute("PoderPrueba", HunterSkills.trialMark(state.Player:GetAttribute("PoderPrueba"), p.Id))
+	end
 	local charge = 0
 	if p.MaxCharge and state.PowerHoldId == p.Id and state.PowerHoldAt then
 		charge = math.clamp(now - state.PowerHoldAt, 0, p.MaxCharge)
 	end
 	state.PowerHoldId, state.PowerHoldAt = nil, nil
-	state.Energy -= p.Cost
+	state.Energy = if free then state.Energy else state.Energy - p.Cost
 	state.Cooldowns[p.Id] = now + p.Cooldown
 	state.BusyUntil = now + 0.35
 	state.LastMove, state.LastAt = nil, now
@@ -1127,13 +1133,17 @@ local function useUltimate(state: State, wish: any): boolean
 	if not canAct(state, now) then
 		return false
 	end
-	if not Powers.canUse(p, state.Powers, state.Energy, state.Cooldowns[p.Id], now) then
+	local free = state.Player ~= nil and state.Powers[p.Id] == true and not HunterSkills.trialUsed(state.Player:GetAttribute("PoderPrueba"), p.Id)
+	if not free and not Powers.canUse(p, state.Powers, state.Energy, state.Cooldowns[p.Id], now) then
 		return false
 	end
 	local model = modelOf(state) :: Model
 	local _, root = parts(model)
 	if not root then
 		return false
+	end
+	if free and state.Player then
+		state.Player:SetAttribute("PoderPrueba", HunterSkills.trialMark(state.Player:GetAttribute("PoderPrueba"), p.Id))
 	end
 	local windUp = p.WindUp or 1.2
 	state.Energy = 0

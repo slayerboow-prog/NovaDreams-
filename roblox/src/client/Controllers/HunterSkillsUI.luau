@@ -42,6 +42,14 @@ local function known(): { [string]: any }?
 	return HunterSkills.knownFromText(player:GetAttribute("HabilidadesSabidas"))
 end
 
+-- ¿Se puede usar? Desbloqueada, o todavía sin probar en esta sesión (la prueba: HunterSkills.trialUsed)
+local function free(sk: { [string]: any }): boolean
+	return not HunterSkills.trialUsed(player:GetAttribute("HabPrueba"), sk.Id)
+end
+local function usable(sk: { [string]: any }): boolean
+	return HunterSkills.unlocked(sk, level(), if level() >= 999 then nil else known()) or free(sk)
+end
+
 local function onPlanet(): boolean
 	return true -- (salen siempre: en Valmar pegan a enemigos de misión y alienígenas)
 end
@@ -54,7 +62,7 @@ local function use(sk: { [string]: any })
 	if not onPlanet() or busy() then
 		return
 	end
-	if not HunterSkills.unlocked(sk, level(), if level() >= 999 then nil else known()) or (readyAt[sk.Id] or 0) > os.clock() then
+	if not usable(sk) or (not free(sk) and (readyAt[sk.Id] or 0) > os.clock()) then
 		return
 	end
 	-- (hacia tu objetivo: te giras a él antes de soltarla)
@@ -109,7 +117,7 @@ local function refresh()
 	local now = os.clock()
 	for _, sk in HunterSkills.List do
 		local b = buttons[sk.Id]
-		local unlocked = HunterSkills.unlocked(sk, lvl, if lvl >= 999 then nil else known())
+		local unlocked = HunterSkills.unlocked(sk, lvl, if lvl >= 999 then nil else known()) or free(sk)
 		local left = math.max(0, (readyAt[sk.Id] or 0) - now)
 		b.Lock.Visible = not unlocked
 		b.Cover.Visible = unlocked and left > 0
@@ -172,7 +180,7 @@ function HunterSkillsUI.init()
 		end
 		buttons[sk.Id] = { Button = btn, Cover = cover, Count = count, Lock = lock }
 		btn.Activated:Connect(function()
-			if not HunterSkills.unlocked(sk, level(), if level() >= 999 then nil else known()) then
+			if not usable(sk) then
 				local okHud, Hud = pcall(function()
 					return require(script.Parent.Parent.UI.Hud) :: any
 				end)
@@ -198,7 +206,7 @@ function HunterSkillsUI.init()
 				return onPlanet() and not busy() and player:GetAttribute("Riding") == nil and player:GetAttribute("Piloting") == nil and player:GetAttribute("Swimming") ~= true
 			end,
 			Callback = function()
-				if not HunterSkills.unlocked(sk, level(), if level() >= 999 then nil else known()) then
+				if not usable(sk) then
 					local okHud, Hud = pcall(function()
 						return require(script.Parent.Parent.UI.Hud) :: any
 					end)
@@ -211,14 +219,14 @@ function HunterSkillsUI.init()
 			end,
 			Active = function()
 				local mana = tonumber(player:GetAttribute("Espiritu")) or 999
-				return if HunterSkills.unlocked(sk, level(), if level() >= 999 then nil else known()) and mana < (sk.Mana or 0) then "wait" else false
+				return if usable(sk) and not free(sk) and mana < (sk.Mana or 0) then "wait" else false
 			end,
 			Meter = function()
 				local left = math.max(0, (readyAt[sk.Id] or 0) - os.clock())
 				return if left > 0 then 1 - math.clamp(left / (total[sk.Id] or sk.Cooldown), 0, 1) else nil
 			end,
 			Badge = function()
-				if not HunterSkills.unlocked(sk, level(), if level() >= 999 then nil else known()) then
+				if not usable(sk) then
 					local k = known()
 					return if k and not k.Graduated then "🎓" else "nv." .. sk.Level -- (🎓: te la enseñan en la Academia)
 				end

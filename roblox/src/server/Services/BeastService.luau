@@ -547,7 +547,7 @@ local function manageShards(S: any)
 		if playersNear(pos, Bestiary.Active) then
 			if alive then
 				list[1].LastSeen = t
-			elseif (shardAt[shard.Id] or 0) <= t then
+			elseif Bestiary.ShardsEnabled ~= false and (shardAt[shard.Id] or 0) <= t then
 				spawnShard(S, shard)
 			end
 		elseif alive and not playersNear(pos, Bestiary.Despawn) and t - list[1].LastSeen > 40 then

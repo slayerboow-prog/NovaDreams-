@@ -139,4 +139,27 @@ function HunterSkills.inDash(sk: { [string]: any }, from: Vector3, dir: Vector3,
 	return side <= sk.Width / 2 + 2 and math.abs(p.Y - from.Y) < 16
 end
 
+-- PRUEBA (19-11-2026, el dueño: «que puedas hacer todas las habilidades al menos 1 vez sin tiempo de
+-- demora»): la PRIMERA vez de cada habilidad en cada sesión sale sin esperar, sin gastar y aunque aún no
+-- esté desbloqueada. Las ya probadas van en un atributo del jugador (texto «Id,Id,…»: HabPrueba para las
+-- habilidades, PoderPrueba para los poderes del combate). Después, las reglas de siempre.
+function HunterSkills.trialUsed(text: any, id: string): boolean
+	if type(text) ~= "string" or text == "" then
+		return false
+	end
+	for part in string.gmatch(text, "[^,]+") do
+		if part == id then
+			return true
+		end
+	end
+	return false
+end
+
+function HunterSkills.trialMark(text: any, id: string): string
+	if HunterSkills.trialUsed(text, id) then
+		return text :: string
+	end
+	return if type(text) == "string" and text ~= "" then text .. "," .. id else id
+end
+
 return HunterSkills

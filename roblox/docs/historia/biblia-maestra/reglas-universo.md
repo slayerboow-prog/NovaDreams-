@@ -112,6 +112,14 @@ abajo son la referencia de cada caso, no constantes universales.
 > - T = tiempo de calendario que pasa fuera (horas de calendario, h).
 > - F = factor de desfase de esa anomalía (horas de calendario por hora subjetiva, sin unidades).
 
+**Tres magnitudes que no se mezclan** (RC-086):
+
+| Magnitud | Qué es | Ejemplo |
+|---|---|---|
+| **Desgaste** | El envejecimiento biológico **causado por la anomalía** | Los 18 años de cuerpo que pierde Irene en el tramo |
+| **Desfase** | La diferencia entre el tiempo vivido dentro y el que pasa fuera **mientras se está dentro** | Los 2 años de calendario que pasan mientras Irene vive 11 días |
+| **Tiempo transcurrido desde el suceso** | Tiempo normal que pasa **después de salir**, y envejece al ritmo de siempre | Los dos años de Halden en el lado B: son vida normal en un mundo, no desfase de la grieta |
+
 Desgaste y desfase son **propiedades independientes**:
 - **las grietas** son pasos cortos y violentos: mucho desgaste y casi ningún desfase;
 - **los tramos de Hilo cortados** son corrientes muertas y largas: poco desgaste por hora y un desfase enorme.
@@ -121,7 +129,7 @@ Desgaste y desfase son **propiedades independientes**:
 | Ruta estable por los Hilos | 0 | 1 |
 | Pasillo estabilizado del Consorcio dentro de una perforación | ≈ 0 | ≈ 1 |
 | Borde del tramo cortado, junto a la compuerta de 1.194 (le llega parte del campo del pasillo) | 0,034 | 33 |
-| Interior del tramo cortado de Vértice hacia Oren (la deriva hasta el Ancla) | 0,068 | 66,5 |
+| Interior del tramo cortado de Vértice hacia Oren (la deriva hasta el Ancla) | 0,0682 (= 18 / 264; se redondea a 0,068) | 66,5 |
 | Grieta del Umbral de Valmar recién abierta (1.212) | 9 | ≈ 1 |
 | Grieta naciente sin control (la prueba de Tefra, 1.176) | 8.640 | ≈ 1 |
 
@@ -129,10 +137,10 @@ Desgaste y desfase son **propiedades independientes**:
 
 | Caso | Anomalía | t | D = I × t | T = F × t | Comprobación con el juego |
 |---|---|---|---|---|---|
-| **Irene, 1.194-1.196** | Interior del tramo cortado (I = 0,068 a/h; F = 66,5) | 11 días = **264 h** | 0,068 × 264 = **18,0 años** | 66,5 × 264 = 17.556 h ≈ **731 días ≈ 2 años** (del 9-10-1.194 al 9-10-1.196) | Cuerpo de 26 + 18 = **44** al salir, con 28 de calendario. En 1.214: **≈ 60** (abajo). «Una mujer mayor» (`Tal02`) ✅ |
-| **Kael, 1.194** | Borde del tramo (I = 0,034 a/h; F = 33). Antes y después, el pasillo estabilizado (sin coste). | **1 h** | 0,034 × 1 = 0,034 años ≈ **12 días** | 33 × 1 = 33 h ≈ **1,4 días**: sale en la noche del 10-10-1.194 | En 1.214: 46 de calendario y ≈ 46 de cuerpo. Ningún texto publicado habla de su aspecto ✅ |
+| **Irene, 1.194-1.196** | Interior del tramo cortado (I = 0,068 a/h; F = 66,5) | 11 días = **264 h** | 0,0682 × 264 = **18,0 años** (con 0,068 redondeado salen 17,95) | 66,5 × 264 = 17.556 h ≈ **731 días ≈ 2 años** (del 9-10-1.194 al 9-10-1.196) | Cuerpo de 26 + 18 = **44** al salir, con 28 de calendario. En 1.214: **≈ 60** (abajo). «Una mujer mayor» (`Tal02`) ✅ |
+| **Kael, 1.194** | Borde del tramo (I = 0,034 a/h; F = 33). Antes y después, el pasillo estabilizado (sin coste). | **1 h** | 0,034 × 1 = 0,034 años = 0,034 × 365 ≈ **12,4 días** | 33 × 1 = 33 h ≈ **1,4 días**: sale en la noche del 10-10-1.194 | En 1.214: 46 de calendario y ≈ 46 de cuerpo. Ningún texto publicado habla de su aspecto ✅ |
 | **Cosme, 1.176** | Grieta naciente (I = 8.640 a/h; F ≈ 1) | 10 s = **0,00278 h** | 8.640 × 0,00278 = **24,0 años** | ≈ 10 s: aparece en Valmar **ese mismo día** | Cuerpo de 9 + 24 = 33 en 1.176; 33 + 38 = **71** en 1.214. «**Setenta y un años**, cuarenta de ellos explicándole a la gente que no estoy loco» (`Coalicion_Marea`): 38 años, dicho en redondo ✅. «Con un zapato» de niño: un niño en un cuerpo de adulto ✅ |
-| **Halden, 1.212-1.214** | Grieta recién abierta (I = 9 a/h; F ≈ 1) | Ida en 1.212 (5 min) + vuelta en `Gri06` si cruza (5 min) = **0,167 h** | 9 × 0,167 = **1,5 años** (0,75 si no vuelve a cruzar) | ≈ 10 min | Los dos años del lado B son tiempo normal en un mundo, no dentro de la anomalía: «lleva dos años» (`Gri05`) coincide con el calendario ✅ |
+| **Halden, 1.212-1.214** | Grieta recién abierta (I = 9 a/h; F ≈ 1) | Ida en 1.212 (5 min) + vuelta en `Gri06` si cruza (5 min) = **0,167 h** | 9 × 0,167 = **1,5 años** (0,75 si no vuelve a cruzar) | ≈ 10 min | **Desfase ≈ 0.** Los dos años del lado B son **tiempo transcurrido desde el suceso**, vida normal en un mundo, y no dentro de la anomalía: «lleva dos años» (`Gri05`) coincide con el calendario ✅. Cuerpo en 1.214: ~40 + 1,5 de desgaste. |
 
 **Por qué Kael pagó tan poco e Irene tanto:**
 - **Intensidad:** la mitad en el borde que en el interior, porque al borde le llega parte del campo del pasillo.
