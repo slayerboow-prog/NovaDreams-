@@ -16,6 +16,7 @@
 | III · Las campañas | `03-campanas.md` | v1 · 18-11-2026 |
 | IV · Los mundos (un archivo por planeta) | `04-mundos/` | v1 · 18-11-2026: principios y traducción a Roblox; Valmar y Tefra **construibles, para aprobar**; los otros seis, concepto preliminar |
 | V · El cine | `05-cine.md` | v1 · 18-11-2026: auditoría del motor, gramática y las 15 grandes secuencias |
+| V-b · Estándar cinematográfico | `05b-estandar-cinematografico.md` | v1 · 18-11-2026: las seis referencias del dueño convertidas en reglas (lentes, luz, actuación, montaje, enganche a jugabilidad) |
 | VI · MMO, producción y calidad | `06-mmo-y-calidad.md` | Pendiente |
 
 **Documentos anteriores** (se conservan como historia, pero no son canon cuando contradicen este registro):
