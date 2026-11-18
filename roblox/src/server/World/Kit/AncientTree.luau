@@ -120,8 +120,8 @@ function AncientTree.buildMesh(parent: Instance, base: CFrame, scale: number?): 
 			end)
 			if piece.Material == "Neon" then
 				mp.Material = M.Neon
-				mp.Color = rgb(40, 170, 230)
-				mp.Transparency = 0.25
+				mp.Color = rgb(70, 205, 255)
+				mp.Transparency = 0.08
 				mp.CanCollide = false
 				mp.CastShadow = false
 			else
@@ -185,7 +185,18 @@ function AncientTree.buildMesh(parent: Instance, base: CFrame, scale: number?): 
 			l.Parent = c
 		end
 	end
-	local cloud = Builder.part({ Name = "Copa", Size = V3(260, 90, 260) * k, CFrame = CF(at(0, 230, 0)), Transparency = 1, CanCollide = false, CanQuery = false, CanTouch = false, Parent = m })
+	-- resplandor azul que sale del tronco y de las ramas maestras (como en la imagen del dueño)
+	for i, y in { 20, 55, 90, 125 } do
+		local a = i * 1.9
+		local g = Builder.part({ Name = "LuzTronco", Size = V3(2, 2, 2), CFrame = CF(at(math.cos(a) * 40, y, math.sin(a) * 40)), Transparency = 1, CanCollide = false, CanQuery = false, CanTouch = false, Parent = m })
+		local l = Instance.new("PointLight")
+		l.Color = GLOW
+		l.Range = 55
+		l.Brightness = 2.2
+		l.Shadows = false
+		l.Parent = g
+	end
+	local cloud = Builder.part({ Name = "Copa", Size = V3(340, 110, 340) * k, CFrame = CF(at(0, 255, 0)), Transparency = 1, CanCollide = false, CanQuery = false, CanTouch = false, Parent = m })
 	local fe = Instance.new("ParticleEmitter")
 	fe.Texture = "rbxasset://textures/particles/sparkles_main.dds"
 	fe.Color = ColorSequence.new(rgb(200, 255, 180), GLOW)

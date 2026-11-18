@@ -78,7 +78,7 @@ function SanctuaryAmbience.init()
 			for _, p in glowing do
 				if p.Parent then
 					-- (las vetas del árbol, más suaves que las runas)
-					p.Transparency = if p:GetAttribute("Latido") then 0.5 + 0.18 * wave else 0.25 + 0.2 * wave
+					p.Transparency = if p:GetAttribute("Latido") then 0.14 + 0.1 * wave else 0.25 + 0.2 * wave
 				end
 			end
 		end

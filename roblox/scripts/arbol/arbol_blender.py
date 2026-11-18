@@ -6,7 +6,7 @@ repitan sin costuras:
   * Tronco  tronco gigante e irregular (contrafuertes en la base, surcos de corteza retorcidos, protuberancias) y
             raíces enormes que salen en arco y se hunden en el suelo
   * Ramas   ramas gruesas que se abren y se entrelazan (tres niveles)
-  * Copa1..4 masas de follaje abultadas y orgánicas (no bolas lisas), más arriba que abajo
+  * Copa1..5 masas de follaje abultadas y orgánicas (no bolas lisas), más arriba que abajo
   * Venas   vetas de energía que suben retorciéndose por el tronco y las raíces (Neon en Roblox)
 Cada pieza ≤ 20.000 triángulos (límite de una MeshPart).
 
@@ -120,7 +120,7 @@ class Mesh:
             for s in range(segs + 1):
                 th = s / segs * math.tau
                 d = V(math.sin(ph) * math.cos(th), math.cos(ph), math.sin(ph) * math.sin(th))
-                k = 1.0 + lump * noise.noise(d * 1.6 + V(seed, seed * 1.3, seed * 0.4)) + 0.12 * noise.noise(d * 4.5 + V(seed, 0, 0))
+                k = 0.86 + lump * abs(noise.noise(d * 1.9 + V(seed, seed * 1.3, seed * 0.4))) * 1.5 + 0.16 * abs(noise.noise(d * 4.6 + V(seed, 0, 0)))
                 # (la parte de abajo, más plana: la copa se ve apoyada en las ramas)
                 yk = 0.65 if d.y < 0 else 1.0
                 self.verts.append(c + V(d.x * rx * k, d.y * ry * k * yk, d.z * rz * k))
@@ -169,39 +169,49 @@ def bezier(p0, p1, p2, p3, n):
 
 
 # ------------------------------------------------------------------ el árbol
-H = 165.0
+# (18-11-2026, el dueño manda la imagen del santuario: tronco GORDO y no muy alto, hecho de hebras que se retuercen
+# y que arriba se ABREN y se convierten en las ramas maestras; copa enorme y ancha de racimos abultados)
+H = 118.0
+NT = 40
 trunk_pts = []
 trunk_r = []
-for i in range(46):
-    t = i / 45
+for i in range(NT):
+    t = i / (NT - 1)
     y = t * H
-    sway = V(math.sin(t * 2.4 + 0.8) * 9 * t, 0, math.cos(t * 1.9 + 0.3) * 7 * t)
+    sway = V(math.sin(t * 2.2 + 0.8) * 6 * t, 0, math.cos(t * 1.7 + 0.3) * 5 * t)
     trunk_pts.append(V(0, y, 0) + sway)
-    trunk_r.append(40 - 22 * t ** 0.75)
+    trunk_r.append(46 - 15 * t ** 0.8)
 
 
 def trunk_flare(th, t):
     # contrafuertes en la base (seis lóbulos) que se pierden hacia arriba
     lobes = max(0.0, math.cos(th * 6 + 0.4)) ** 2.5
     base = math.exp(-t * 9)
-    return 1.0 + base * (0.55 + 0.7 * lobes)
+    return 1.0 + base * (0.5 + 0.6 * lobes)
+
+
+def _sm(x):
+    x = min(max(x, 0.0), 1.0)
+    return x * x * (3 - 2 * x)
 
 
 tronco = Mesh()
-# el alma del tronco (más fina) y, alrededor, cuatro troncos que se ENTRELAZAN en espiral, como en la referencia
-tronco.tube(trunk_pts, [r * 0.72 for r in trunk_r], 40, urep=4.0, rough=0.14, ridges=18, twist=0.012, flare=trunk_flare, seed=1.7, cap=True)
-STRANDS = 4
+tronco.tube(trunk_pts, [r * 0.7 for r in trunk_r], 40, urep=4.0, rough=0.14, ridges=18, twist=0.012, flare=trunk_flare, seed=1.7, cap=True)
+STRANDS = 5
 strand_paths = []
+strand_radii = []
 for k in range(STRANDS):
     pts, radii = [], []
     for i, c in enumerate(trunk_pts):
-        t = i / 45
-        ang = k / STRANDS * math.tau + t * 1.55 * math.tau
-        spread = trunk_r[i] * 0.48 * (1 + 0.9 * math.exp(-t * 7))
+        t = i / (NT - 1)
+        ang = k / STRANDS * math.tau + t * 1.05 * math.tau
+        # (abajo, abiertas en contrafuerte; arriba se separan para salir como ramas)
+        spread = trunk_r[i] * 0.52 * (1 + 0.8 * math.exp(-t * 7)) * (1 + 0.45 * _sm((t - 0.7) / 0.3))
         pts.append(c + V(math.cos(ang) * spread, 0, math.sin(ang) * spread))
-        radii.append(trunk_r[i] * 0.5 * (1 + 0.35 * math.exp(-t * 7)))
-    tronco.tube(pts, radii, 24, urep=2.0, rough=0.18, ridges=10, twist=0.02, seed=7.3 + k, cap=True)
+        radii.append(trunk_r[i] * 0.47 * (1 + 0.3 * math.exp(-t * 7)))
+    tronco.tube(pts, radii, 26, urep=2.0, rough=0.2, ridges=10, twist=0.02, seed=7.3 + k, cap=True)
     strand_paths.append(pts)
+    strand_radii.append(radii)
 
 # RAÍCES REALISTAS (18-11-2026, el dueño: «haz las raíces más realistas»): junto al tronco salen como CONTRAFUERTES
 # (tablones altos y delgados que suben por el tronco); al alejarse se APLANAN (más anchas que altas, con la panza
@@ -209,7 +219,6 @@ for k in range(STRANDS):
 # se abren en raíces hijas y raicillas que acaban metiéndose en el suelo. Van en su propia pieza.
 raices = Mesh()
 roots_top = []
-_rand_antes = random.getstate()
 
 
 def root_tube(mesh, pts, prof, segs, seed, knots=0.22, urep=2.0):
@@ -328,90 +337,135 @@ for i in range(16):
         cd = (d + sd * random.uniform(-0.9, 0.9)).normalized()
         rootlet(pts[j], cd, L * 0.22, prof[j][1] * 0.4, i * 2.3 + c)
 
-# (las ramas y la copa siguen IGUAL que antes: se deja el azar como lo dejaban las raíces viejas)
-random.setstate(_rand_antes)
-for i in range(16):
-    a = i / 16 * math.tau + random.uniform(-0.1, 0.1)
-    if abs(((a - 1.5 * math.pi) + math.pi) % math.tau - math.pi) < math.radians(28):
-        continue
-    random.uniform(120, 175), random.uniform(13, 18), random.uniform(6, 13)
-    for c in range(random.choice((1, 2))):
-        random.randint(6, 11), random.choice((-1, 1)) * random.uniform(0.5, 0.9), random.uniform(0.35, 0.5)
+# (las ramas y la copa no dependen del azar de las raíces)
+random.seed(99171)
 
-# ramas (tres niveles)
+# RAMAS: cada hebra del tronco sigue hacia fuera como una RAMA MAESTRA gruesa que se abre casi en horizontal y luego
+# sube; de ella salen ramas y ramitas que acaban dentro de la copa
 ramas = Mesh()
 tips = []
-branch_paths = []
+limb_paths = []
+UP = V(0, 1, 0)
 
 
 def branch(p, d, L, r, depth, seed):
-    up = V(0, 1, 0)
-    side = d.cross(up)
+    side = d.cross(UP)
     if side.length < 1e-3:
         side = V(1, 0, 0)
     side.normalize()
-    bend = (d + up * 0.25).normalized()
-    p3 = p + bend * L
-    p1 = p + d * L * 0.35 + side * random.uniform(-0.12, 0.12) * L
-    p2 = p + (d * 0.6 + up * 0.35).normalized() * L * 0.7
-    pts = bezier(p, p1, p2, p3, 8 if depth >= 2 else 5)
-    radii = [r * (1 - 0.38 * (j / (len(pts) - 1))) for j in range(len(pts))]
-    ramas.tube(pts, radii, 12 if depth >= 2 else 7, urep=2.0, rough=0.12, ridges=8 if depth >= 2 else 0, twist=0.02, seed=seed, cap=True)
-    branch_paths.append(pts)
+    p3 = p + (d + UP * 0.3).normalized() * L
+    p1 = p + d * L * 0.35 + side * random.uniform(-0.15, 0.15) * L
+    p2 = p + (d * 0.65 + UP * 0.3).normalized() * L * 0.72
+    pts = bezier(p, p1, p2, p3, 7 if depth >= 2 else 5)
+    radii = [r * (1 - 0.45 * (j / (len(pts) - 1))) for j in range(len(pts))]
+    ramas.tube(pts, radii, 10 if depth >= 2 else 6, urep=2.0, rough=0.12, ridges=6 if depth >= 2 else 0, twist=0.02, seed=seed, cap=True)
     if depth == 0:
-        tips.append(p3)
+        tips.append((p3, d))
         return
-    kids = 3 if depth == 3 else random.choice((2, 3))
+    kids = random.choice((2, 3))
     for c in range(kids):
-        spin = c / kids * math.tau + random.uniform(-0.5, 0.5)
-        sd = (d * 0.55 + V(math.cos(spin), 0, math.sin(spin)) * 0.6 + up * random.uniform(0.25, 0.5)).normalized()
-        branch(p3, sd, L * random.uniform(0.6, 0.72), radii[-1] * 0.9, depth - 1, seed + c * 1.7)
+        spin = c / kids * math.tau + random.uniform(-0.6, 0.6)
+        sd = (d * 0.7 + V(math.cos(spin), 0, math.sin(spin)) * 0.55 + UP * random.uniform(0.15, 0.4)).normalized()
+        branch(p3, sd, L * random.uniform(0.55, 0.7), radii[-1] * 0.95, depth - 1, seed + c * 1.7)
 
 
-for i in range(7):
-    j = 26 + int(i * 2.6)
-    a = i / 7 * math.tau + random.uniform(-0.25, 0.25)
-    d = (V(math.cos(a), 0, math.sin(a)) * 0.9 + V(0, random.uniform(0.22, 0.4), 0)).normalized()
-    branch(trunk_pts[j], d, random.uniform(72, 88), trunk_r[j] * 0.5, 3, 10.0 + i)
-# la guía de arriba
-branch(trunk_pts[-1], V(0.1, 1, 0.05).normalized(), 40, trunk_r[-1] * 0.7, 2, 40.0)
+for k, sp in enumerate(strand_paths):
+    j0 = NT - 6  # (la rama arranca un poco por debajo de la punta de la hebra: no se ve la junta)
+    s0 = sp[j0]
+    c0 = trunk_pts[j0]
+    o = V(s0.x - c0.x, 0, s0.z - c0.z).normalized()
+    sd = UP.cross(o).normalized()
+    L = random.uniform(105, 122)
+    tw = random.uniform(-0.25, 0.25)
+    od = (o + sd * tw).normalized()
+    p1 = s0 + (od * 0.35 + UP * 0.9).normalized() * 34
+    p2 = s0 + od * L * 0.55 + UP * L * 0.42
+    p3 = s0 + od * L + UP * L * 0.62
+    pts = bezier(s0, p1, p2, p3, 16)
+    r0 = strand_radii[k][j0] * 0.98
+    radii = [r0 * (1 - 0.62 * (j / 15)) for j in range(16)]
+    ramas.tube(pts, radii, 16, urep=2.0, rough=0.16, ridges=8, twist=0.02, seed=20.0 + k, cap=True)
+    limb_paths.append((pts, radii))
+    # ramas que salen de la mitad y de la punta
+    for jj, ln in ((8, 70), (11, 62), (15, 58)):
+        q = pts[jj]
+        tan = (pts[min(jj + 1, 15)] - pts[jj - 1]).normalized()
+        h = V(tan.x, 0, tan.z).normalized()
+        turn = random.choice((-1, 1)) * random.uniform(0.4, 0.9) if jj < 15 else random.uniform(-0.3, 0.3)
+        bd = (h * math.cos(turn) + UP.cross(h).normalized() * math.sin(turn) + UP * 0.35).normalized()
+        branch(q, bd, ln * random.uniform(0.9, 1.1), radii[jj] * 0.7, 2 if jj < 15 else 1, 30.0 + k * 3 + jj)
+# la guía del centro, que sube entre las ramas maestras
+branch(trunk_pts[-1], V(0.05, 1, 0.08).normalized(), 70, trunk_r[-1] * 0.45, 2, 40.0)
 
-# copa: masas grandes sobre una cúpula y masas en cada punta
+# COPA: una cúpula enorme y ancha hecha de muchos RACIMOS abultados (como coliflores), con los bordes que caen un
+# poco y huecos oscuros entre racimos; un racimo en la punta de cada ramita
 blobs = []
-top = trunk_pts[-1] + V(0, 30, 0)
-for q in range(46):
+CC = V(0, 226, 0)
+for q in range(175):
     a = random.uniform(0, math.tau)
-    e = math.acos(1 - random.uniform(0, 1.1))
-    shell = random.uniform(0.7, 1.0)
-    c = top + V(math.sin(e) * math.cos(a) * 118 * shell, math.cos(e) * 44 * shell - 6, math.sin(e) * math.sin(a) * 118 * shell)
-    s = random.uniform(30, 44)
-    blobs.append((c, s * random.uniform(1.0, 1.25), s * 0.72, s * random.uniform(1.0, 1.25)))
-for t in tips:
-    s = random.uniform(18, 26)
-    blobs.append((t + V(0, 4, 0), s * 1.2, s * 0.75, s * 1.2))
-
-copas = [Mesh() for _ in range(4)]
+    e = math.acos(1 - random.uniform(0, 1.25))  # de arriba hasta algo por debajo del ecuador
+    shell = random.uniform(0.82, 1.0) if q < 150 else random.uniform(0.45, 0.7)
+    c = CC + V(math.sin(e) * math.cos(a) * 168 * shell, math.cos(e) * 88 * shell, math.sin(e) * math.sin(a) * 168 * shell)
+    if e > math.pi / 2:
+        c.y -= (e - math.pi / 2) * 30  # (los bordes caen)
+    s = random.uniform(25, 35) * (1.15 if e < 0.6 else 1.0)
+    blobs.append((c, s * random.uniform(1.0, 1.2), s * 0.78, s * random.uniform(1.0, 1.2)))
+for t, d in tips:
+    s = random.uniform(17, 24)
+    blobs.append((t + V(0, 5, 0), s * 1.15, s * 0.8, s * 1.15))
+random.shuffle(blobs)
+copas = [Mesh() for _ in range(5)]
 for i, (c, rx, ry, rz) in enumerate(blobs):
-    copas[i % 4].blob(c, rx, ry, rz, segs=18, rings=10, lump=0.3, seed=i * 0.73)
+    copas[i % 5].blob(c, rx, ry, rz, segs=16, rings=9, lump=0.34, seed=i * 0.73)
 
-# venas de energía: suben retorciéndose por el tronco y siguen por algunas raíces
+# VENAS de energía: cintas gruesas que suben retorciéndose por cada hebra (y otra que cruza la hebra en ondas),
+# espirales grabadas en el tronco, y siguen por las ramas maestras y por algunas raíces
 venas = Mesh()
 for k, sp in enumerate(strand_paths):
-    for side in (1,):
+    for wv in (0, 1):
         pts, radii = [], []
-        for i in range(0, 40):
-            t = i / 45
+        for i in range(2, NT - 4):
+            t = i / (NT - 1)
             c = trunk_pts[i]
             off = sp[i] - c
-            ln = off.length
-            outward = off.normalized() if ln > 1e-3 else V(1, 0, 0)
-            tang = V(0, 1, 0).cross(outward).normalized()
-            rr = trunk_r[i] * 0.5 * (1 + 0.35 * math.exp(-t * 7))
-            pts.append(sp[i] + outward * rr * 0.86 + tang * side * rr * 0.45)
-            radii.append(0.55 if i % 9 else 0.85)
+            outward = V(off.x, 0, off.z).normalized()
+            tang = UP.cross(outward).normalized()
+            rr = strand_radii[k][i]
+            wob = math.sin(t * 9 + k * 1.3) * 0.55 if wv else 0.0
+            dirv = (outward * math.cos(wob) + tang * math.sin(wob)).normalized()
+            pts.append(sp[i] + dirv * rr * 1.0)
+            radii.append(1.3 + 0.6 * math.sin(t * 11 + k + wv))
         venas.tube(pts, radii, 6, urep=1.0)
+# espirales (como en la imagen: se enroscan sobre el tronco)
+for k in range(STRANDS):
+    i = 9 + (k * 5) % 18
+    sp = strand_paths[k]
+    c = trunk_pts[i]
+    off = sp[i] - c
+    outward = V(off.x, 0, off.z).normalized()
+    tang = UP.cross(outward).normalized()
+    rr = strand_radii[k][i]
+    pts = []
+    for s in range(34):
+        th = s / 33 * math.tau * 1.6
+        rad = 1.5 + s / 33 * rr * 0.55
+        local = tang * math.cos(th) * rad + UP * math.sin(th) * rad
+        # (se curva con la superficie de la hebra)
+        bulge = math.sqrt(max(rr * rr - rad * rad * 0.5, 1.0))
+        pts.append(sp[i] + outward * (bulge + 0.6) + local)
+    venas.tube(pts, [1.0] * len(pts), 6, urep=1.0)
+for pts, radii in limb_paths:
+    vp = []
+    for j in range(11):
+        a = (pts[min(j + 1, 15)] - pts[max(j - 1, 0)]).normalized()
+        sideh = UP.cross(a).normalized()
+        upn = a.cross(sideh).normalized()
+        if upn.y < 0:
+            upn = -upn
+        vp.append(pts[j] + upn * radii[j] * 1.0 + sideh * math.sin(j * 0.9) * radii[j] * 0.4)
+    venas.tube(vp, [1.1] * len(vp), 6, urep=1.0)
 for i in range(0, len(roots_top), 2):
-    venas.tube(roots_top[i], [0.5] * len(roots_top[i]), 6, urep=1.0)
+    venas.tube(roots_top[i], [0.9] * len(roots_top[i]), 6, urep=1.0)
 
 # ------------------------------------------------------------------ exportar
 for o in list(bpy.data.objects):
@@ -467,7 +521,7 @@ if os.environ.get("ARBOL_RENDER"):
     scene.collection.objects.link(cam)
     scene.camera = cam
     cam.data.lens = 28
-    for tag, eye, target in (("lejos", (380, -380, 130), (0, 0, 110)), ("cerca", (150, -170, 30), (0, 0, 80))):
+    for tag, eye, target in (("lejos", (430, -430, 120), (0, 0, 130)), ("cerca", (0, -330, 25), (0, 0, 110))):
         cam.location = Vector(eye)
         d = Vector(target) - cam.location
         cam.rotation_euler = d.to_track_quat("-Z", "Y").to_euler()

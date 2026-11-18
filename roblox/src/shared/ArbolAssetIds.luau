@@ -8,14 +8,15 @@
 return {
 	Completa = "",
 	Piezas = {
-		Copa1 = "rbxassetid://133946231174564",
-		Copa2 = "rbxassetid://72337789176283",
-		Copa3 = "rbxassetid://111027343070358",
-		Copa4 = "rbxassetid://135169510987780",
+		Copa1 = "rbxassetid://82633161481351",
+		Copa2 = "rbxassetid://110242734701968",
+		Copa3 = "rbxassetid://119796241440458",
+		Copa4 = "rbxassetid://96051404715990",
+		Copa5 = "rbxassetid://77578873749599",
 		Raices = "rbxassetid://86682572207198",
-		Ramas = "rbxassetid://113192715856346",
-		Tronco = "rbxassetid://101255338273709",
-		Venas = "rbxassetid://87178187944664",
+		Ramas = "rbxassetid://131874575745607",
+		Tronco = "rbxassetid://77095639193748",
+		Venas = "rbxassetid://107401669650729",
 	},
 	Texturas = {
 		corteza_color = "rbxassetid://110070404971817",
