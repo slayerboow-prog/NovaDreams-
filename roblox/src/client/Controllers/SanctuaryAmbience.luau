@@ -66,11 +66,11 @@ function SanctuaryAmbience.init()
 		cc.Enabled = k > 0.01
 		bloom.Enabled = k > 0.01
 		if k > 0.01 then
-			cc.TintColor = Color3.new(1, 1, 1):Lerp(Color3.fromRGB(196, 206, 255), k)
-			cc.Saturation = 0.12 * k
+			cc.TintColor = Color3.new(1, 1, 1):Lerp(Color3.fromRGB(184, 186, 255), k)
+			cc.Saturation = 0.18 * k
 			cc.Brightness = 0.03 * k
 			cc.Contrast = 0.06 * k
-			bloom.Intensity = 0.55 * k
+			bloom.Intensity = 0.75 * k
 			bloom.Size = 26
 			bloom.Threshold = 1.25
 			-- el latido (vetas del árbol y runas)

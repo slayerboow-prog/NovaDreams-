@@ -11,6 +11,6 @@ return {
 		{ Name = "Copa3", Center = Vector3.new(5.43, 260.46, -10.79), Size = Vector3.new(392.71, 140.25, 414.65), Material = "Grass", Set = "hojas", Tris = 14688 },
 		{ Name = "Copa4", Center = Vector3.new(-22.31, 262.18, 6.44), Size = Vector3.new(398.22, 158.63, 389.65), Material = "Grass", Set = "hojas", Tris = 14688 },
 		{ Name = "Copa5", Center = Vector3.new(1.37, 263.05, -2.52), Size = Vector3.new(454.34, 151.10, 396.34), Material = "Grass", Set = "hojas", Tris = 14688 },
-		{ Name = "Venas", Center = Vector3.new(-9.00, 82.81, 9.93), Size = Vector3.new(179.19, 162.44, 173.40), Material = "Neon", Set = nil, Tris = 7632 },
+		{ Name = "Venas", Center = Vector3.new(-8.25, 82.84, 9.16), Size = Vector3.new(181.04, 162.68, 174.72), Material = "Neon", Set = nil, Tris = 5652 },
 	},
 }

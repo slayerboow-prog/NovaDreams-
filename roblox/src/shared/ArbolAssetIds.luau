@@ -16,7 +16,7 @@ return {
 		Raices = "rbxassetid://86682572207198",
 		Ramas = "rbxassetid://131874575745607",
 		Tronco = "rbxassetid://77095639193748",
-		Venas = "rbxassetid://107401669650729",
+		Venas = "rbxassetid://81211435317545",
 	},
 	Texturas = {
 		corteza_color = "rbxassetid://110070404971817",

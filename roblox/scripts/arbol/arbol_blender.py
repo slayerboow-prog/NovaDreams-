@@ -200,6 +200,7 @@ tronco.tube(trunk_pts, [r * 0.7 for r in trunk_r], 40, urep=4.0, rough=0.14, rid
 STRANDS = 5
 strand_paths = []
 strand_radii = []
+strand_rings = []
 for k in range(STRANDS):
     pts, radii = [], []
     for i, c in enumerate(trunk_pts):
@@ -209,7 +210,7 @@ for k in range(STRANDS):
         spread = trunk_r[i] * 0.52 * (1 + 0.8 * math.exp(-t * 7)) * (1 + 0.45 * _sm((t - 0.7) / 0.3))
         pts.append(c + V(math.cos(ang) * spread, 0, math.sin(ang) * spread))
         radii.append(trunk_r[i] * 0.47 * (1 + 0.3 * math.exp(-t * 7)))
-    tronco.tube(pts, radii, 26, urep=2.0, rough=0.2, ridges=10, twist=0.02, seed=7.3 + k, cap=True)
+    strand_rings.append(tronco.tube(pts, radii, 26, urep=2.0, rough=0.2, ridges=10, twist=0.02, seed=7.3 + k, cap=True))
     strand_paths.append(pts)
     strand_radii.append(radii)
 
@@ -228,6 +229,7 @@ def root_tube(mesh, pts, prof, segs, seed, knots=0.22, urep=2.0):
     base = len(mesh.verts)
     length = 0.0
     avg = sum(w + h for w, h in prof) / (2 * n)
+    tops = []
     for i in range(n):
         if i > 0:
             length += (pts[i] - pts[i - 1]).length
@@ -242,14 +244,19 @@ def root_tube(mesh, pts, prof, segs, seed, knots=0.22, urep=2.0):
         w, h = prof[i]
         # nudo: un bulto que engorda la raíz a trozos
         kn = 1.0 + knots * max(0.0, noise.noise(V(length * 0.045, seed, 0.3))) * 1.6
+        top = None
         for s in range(segs + 1):
             th = s / segs * math.tau
             cs, sn = math.cos(th), math.sin(th)
             hh = h if sn >= 0 else h * 0.42
             q = V(cs * 1.4, length * 0.05, sn * 1.4) + V(seed, seed * 0.6, 1.0)
             k = kn * (1.0 + 0.12 * noise.noise(q) + 0.05 * math.sin(th * 7 + length * 0.08))
-            mesh.verts.append(pts[i] + side * (cs * w * k) + upv * (sn * hh * k))
+            vtx = pts[i] + side * (cs * w * k) + upv * (sn * hh * k)
+            mesh.verts.append(vtx)
+            if top is None or vtx.y > top.y:
+                top = vtx
             mesh.uvs.append((s / segs * urep, length / (math.tau * avg) * urep))
+        tops.append(top)
     wv = segs + 1
     for i in range(n - 1):
         for s in range(segs):
@@ -262,6 +269,7 @@ def root_tube(mesh, pts, prof, segs, seed, knots=0.22, urep=2.0):
     last = base + (n - 1) * wv
     for s in range(segs):
         mesh.faces.append((last + s, last + s + 1, ci))
+    return tops
 
 
 def smooth(x):
@@ -309,8 +317,9 @@ for i in range(16):
         p = d * (12 + L * t) + sd * wig + V(0, yc, 0)
         pts.append(p)
         prof.append((w, h))
-    root_tube(raices, pts, prof, 14, 3.1 + i, knots=0.25)
-    roots_top.append([p + V(0, h * 1.02 + 0.5, 0) for p, (w, h) in zip(pts[:14], prof[:14])])
+    tops = root_tube(raices, pts, prof, 14, 3.1 + i, knots=0.25)
+    # (la veta, por el lomo de verdad de la raíz: el vértice más alto de cada anillo)
+    roots_top.append([p + V(0, 0.3, 0) for p in tops[:14]])
     # raíces hijas (planas) que se abren a los lados y raicillas al final
     for c in range(random.choice((2, 2, 3))):
         j = random.randint(7, 14)
@@ -345,6 +354,7 @@ random.seed(99171)
 ramas = Mesh()
 tips = []
 limb_paths = []
+limb_rings = []
 UP = V(0, 1, 0)
 
 
@@ -384,7 +394,7 @@ for k, sp in enumerate(strand_paths):
     pts = bezier(s0, p1, p2, p3, 16)
     r0 = strand_radii[k][j0] * 0.98
     radii = [r0 * (1 - 0.62 * (j / 15)) for j in range(16)]
-    ramas.tube(pts, radii, 16, urep=2.0, rough=0.16, ridges=8, twist=0.02, seed=20.0 + k, cap=True)
+    limb_rings.append(ramas.tube(pts, radii, 16, urep=2.0, rough=0.16, ridges=8, twist=0.02, seed=20.0 + k, cap=True))
     limb_paths.append((pts, radii))
     # ramas que salen de la mitad y de la punta
     for jj, ln in ((8, 70), (11, 62), (15, 58)):
@@ -418,54 +428,86 @@ copas = [Mesh() for _ in range(5)]
 for i, (c, rx, ry, rz) in enumerate(blobs):
     copas[i % 5].blob(c, rx, ry, rz, segs=16, rings=9, lump=0.34, seed=i * 0.73)
 
-# VENAS de energía: cintas gruesas que suben retorciéndose por cada hebra (y otra que cruza la hebra en ondas),
-# espirales grabadas en el tronco, y siguen por las ramas maestras y por algunas raíces
+# VENAS de energía (18-11-2026, el dueño: «no están alineadas con el árbol»): ahora se calculan SOBRE la superficie
+# de verdad de cada hebra, rama y raíz (los mismos vértices de la corteza, con sus bultos), medio hundidas en ella:
+# cintas que suben retorciéndose por cada hebra (y otra que serpentea), espirales grabadas en el tronco, y siguen por
+# las ramas maestras y por algunas raíces
 venas = Mesh()
-for k, sp in enumerate(strand_paths):
-    for wv in (0, 1):
-        pts, radii = [], []
-        for i in range(2, NT - 4):
-            t = i / (NT - 1)
-            c = trunk_pts[i]
-            off = sp[i] - c
-            outward = V(off.x, 0, off.z).normalized()
-            tang = UP.cross(outward).normalized()
-            rr = strand_radii[k][i]
-            wob = math.sin(t * 9 + k * 1.3) * 0.55 if wv else 0.0
-            dirv = (outward * math.cos(wob) + tang * math.sin(wob)).normalized()
-            pts.append(sp[i] + dirv * rr * 1.0)
-            radii.append(1.3 + 0.6 * math.sin(t * 11 + k + wv))
-        venas.tube(pts, radii, 6, urep=1.0)
-# espirales (como en la imagen: se enroscan sobre el tronco)
+
+
+def surf(rings, centers, fi, fs):
+    """Punto de la superficie de un tubo (anillo fi, segmento fs, con decimales) y su normal hacia fuera."""
+    n = len(rings)
+    segs = len(rings[0]) - 1
+    fi = min(max(fi, 0.0), n - 1.001)
+    i0 = int(fi)
+    a = fi - i0
+    fs = fs % segs
+    s0 = int(fs)
+    b = fs - s0
+    r0 = rings[i0][s0].lerp(rings[i0][s0 + 1], b)
+    r1 = rings[i0 + 1][s0].lerp(rings[i0 + 1][s0 + 1], b)
+    p = r0.lerp(r1, a)
+    c = centers[i0].lerp(centers[i0 + 1], a)
+    return p, (p - c).normalized()
+
+
+def best_seg(ring, center, d):
+    """El segmento del anillo que mira más hacia d."""
+    return max(range(len(ring) - 1), key=lambda s: (ring[s] - center).dot(d))
+
+
+def smooth_segs(fs, segs, win=3, passes=3):
+    """Quita los saltos de segmento en segmento (la veta va recta y suave, sin zigzag)."""
+    out = [fs[0]]
+    for v in fs[1:]:
+        d = (v - out[-1] + segs / 2) % segs - segs / 2
+        out.append(out[-1] + d)
+    for _ in range(passes):
+        out = [sum(out[max(0, i - win):i + win + 1]) / len(out[max(0, i - win):i + win + 1]) for i in range(len(out))]
+    return out
+
+
+SINK = 0.7  # (cuánto asoma la veta: medio hundida en la corteza)
 for k in range(STRANDS):
-    i = 9 + (k * 5) % 18
-    sp = strand_paths[k]
-    c = trunk_pts[i]
-    off = sp[i] - c
-    outward = V(off.x, 0, off.z).normalized()
-    tang = UP.cross(outward).normalized()
-    rr = strand_radii[k][i]
+    rings, cen = strand_rings[k], strand_paths[k]
+    segs = len(rings[0]) - 1
+    for wv in (0,):
+        pts, radii = [], []
+        idx = list(range(2, NT - 4))
+        base_s = smooth_segs([best_seg(rings[i], cen[i], V(cen[i].x - trunk_pts[i].x, 0, cen[i].z - trunk_pts[i].z).normalized()) for i in idx], segs)
+        for n_, i in enumerate(idx):
+            t = i / (NT - 1)
+            wob = math.sin(t * 9 + k * 1.3) * segs * 0.16 if wv else 0.0
+            p, nrm = surf(rings, cen, i, base_s[n_] + wob)
+            pts.append(p + nrm * SINK)
+            radii.append(1.5 + 0.5 * math.sin(t * 11 + k))
+        venas.tube(pts, radii, 6, urep=1.0)
+    # una espiral grabada en cada hebra
+    i0 = 9 + (k * 5) % 18
+    out = V(cen[i0].x - trunk_pts[i0].x, 0, cen[i0].z - trunk_pts[i0].z).normalized()
+    sc = best_seg(rings[i0], cen[i0], out)
+    dz = (cen[i0 + 1] - cen[i0]).length
+    arc = math.tau * strand_radii[k][i0] / segs
     pts = []
     for s in range(34):
         th = s / 33 * math.tau * 1.6
-        rad = 1.5 + s / 33 * rr * 0.55
-        local = tang * math.cos(th) * rad + UP * math.sin(th) * rad
-        # (se curva con la superficie de la hebra)
-        bulge = math.sqrt(max(rr * rr - rad * rad * 0.5, 1.0))
-        pts.append(sp[i] + outward * (bulge + 0.6) + local)
-    venas.tube(pts, [1.0] * len(pts), 6, urep=1.0)
-for pts, radii in limb_paths:
+        rad = 1.5 + s / 33 * strand_radii[k][i0] * 0.55
+        p, nrm = surf(rings, cen, i0 + math.sin(th) * rad / dz, sc + math.cos(th) * rad / arc)
+        pts.append(p + nrm * SINK)
+    venas.tube(pts, [0.95] * len(pts), 6, urep=1.0)
+# por encima de cada rama maestra
+for (lp, lr), rings in zip(limb_paths, limb_rings):
     vp = []
+    segs = len(rings[0]) - 1
+    ls = smooth_segs([best_seg(rings[j], lp[j], V(0, 1, 0)) for j in range(11)], segs)
     for j in range(11):
-        a = (pts[min(j + 1, 15)] - pts[max(j - 1, 0)]).normalized()
-        sideh = UP.cross(a).normalized()
-        upn = a.cross(sideh).normalized()
-        if upn.y < 0:
-            upn = -upn
-        vp.append(pts[j] + upn * radii[j] * 1.0 + sideh * math.sin(j * 0.9) * radii[j] * 0.4)
-    venas.tube(vp, [1.1] * len(vp), 6, urep=1.0)
+        p, nrm = surf(rings, lp, j, ls[j] + math.sin(j * 0.9) * 1.2)
+        vp.append(p + nrm * SINK)
+    venas.tube(vp, [1.0] * len(vp), 6, urep=1.0)
+# por el lomo de algunas raíces
 for i in range(0, len(roots_top), 2):
-    venas.tube(roots_top[i], [0.9] * len(roots_top[i]), 6, urep=1.0)
+    venas.tube(roots_top[i], [0.85] * len(roots_top[i]), 6, urep=1.0)
 
 # ------------------------------------------------------------------ exportar
 for o in list(bpy.data.objects):

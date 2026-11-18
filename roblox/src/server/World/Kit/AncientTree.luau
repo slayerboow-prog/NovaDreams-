@@ -116,7 +116,8 @@ function AncientTree.buildMesh(parent: Instance, base: CFrame, scale: number?): 
 			-- (Roblox importa el FBX girado media vuelta: se endereza para que cada pieza caiga en su sitio)
 			mp.CFrame = base * CF(piece.Center * k) * CFrame.Angles(0, math.pi, 0)
 			pcall(function()
-				(mp :: any).RenderFidelity = Enum.RenderFidelity.Automatic
+				-- (el tronco y las vetas, con todo el detalle: si no, de lejos el tronco se simplifica y tapa las vetas)
+				(mp :: any).RenderFidelity = if piece.Name == "Tronco" or piece.Name == "Venas" then Enum.RenderFidelity.Precise else Enum.RenderFidelity.Automatic
 			end)
 			if piece.Material == "Neon" then
 				mp.Material = M.Neon
@@ -193,6 +194,17 @@ function AncientTree.buildMesh(parent: Instance, base: CFrame, scale: number?): 
 		l.Color = GLOW
 		l.Range = 55
 		l.Brightness = 2.2
+		l.Shadows = false
+		l.Parent = g
+	end
+	-- y luz azul dentro de la copa (las hojas de abajo se tiñen de azul, como en la imagen)
+	for i = 0, 4 do
+		local a = i / 5 * math.pi * 2
+		local g = Builder.part({ Name = "LuzCopa", Size = V3(2, 2, 2), CFrame = CF(at(math.cos(a) * 95, 200, math.sin(a) * 95)), Transparency = 1, CanCollide = false, CanQuery = false, CanTouch = false, Parent = m })
+		local l = Instance.new("PointLight")
+		l.Color = GLOW
+		l.Range = 60
+		l.Brightness = 1.6
 		l.Shadows = false
 		l.Parent = g
 	end
