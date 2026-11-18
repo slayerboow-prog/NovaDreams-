@@ -86,7 +86,7 @@ En cada campaña:
 | **I · La Academia** | **Existe:** `Acad01`-`Acad05` | Entrar en la Academia, perder contra Kael, Brenn, la chapa de Ander Vey, Dara en la Caza del Oeste, el juramento. Etapa del jugador: **Aprendiz**. |
 | **II · Guerrero y Reconquista** | **Existe:** `Gue01`-`Gue05`, `Rec01`-`Rec05`. **Nueva:** 1 escena en `Rec03` | La primera patrulla, el primer despegue, otro mundo, la baliza, el agua, el pantano, el diario del padre de Sorel, la bandera. **Escena nueva en el paso del pantano:** un Velado joven no ataca a Brenn (semilla de Tomás). |
 | **III · La Grieta y el Umbral** | **Existe:** `Gri01`-`Gri06` | La voz de Halden a las 3:12; el piloto: «la abrieron los de vuestro lado»; el archivo; la orden de las 23:40; Brenn y Varn en la escalera; el Mundo Ceniza; la decisión sobre la Grieta (`GriFinal`). Etapa: **Superviviente**. |
-| **IV · La ceniza en la muralla** | **Existe:** `Mar01`. **Nueva:** ≈6 misiones | 1. Una semana después, el pulso de once segundos; Sorel lo oye la primera. 2. Los Hijos de la Ceniza en el asentamiento, con panfletos de Varn, que ha huido. 3. El segundo receptor de Ilse (peldaño 1). 4. Brenn reconoce a Tomás entre los Velados. 5. **Asedio:** los Hijos abren las puertas desde dentro y Tomás dirige a los Velados: «Me dijiste que esperara. Esperé.» 6. Brenn deserta para cazar a Varn (el tono depende de `GriBrenn`). **Revelación:** la muralla del Distrito Central coincide con el alcance de las raíces del Árbol Ancestral: el Sello salvó la ciudad. **Mazmorra 1:** las cloacas del Consejo, bajo el generador. |
+| **IV · La ceniza en la muralla** | **Existe:** `Mar01`. **Nueva:** ≈6 misiones | 1. Una semana después, el pulso de once segundos; Sorel lo oye la primera. 2. Los Hijos de la Ceniza en el asentamiento, con panfletos de Varn, que ha huido. 3. El segundo receptor de Ilse (peldaño 1). 4. Brenn reconoce a Tomás entre los Velados. 5. **Asedio:** los Hijos abren **la puerta sur** desde dentro y Tomás dirige a los Velados: «Me dijiste que esperara. Esperé.» Los refugiados de fuera corren hacia la puerta y el Consejo ordena cerrarla: **decisión única y central `ValPuertaSur`** (abrir o cerrar), con consecuencias en la población, en Ortal y en la legitimidad del Consejo. El juicio posterior del Consejo depende de las pruebas reunidas (matriz de decisiones §2). 6. Brenn deserta para cazar a Varn (el tono depende de `GriBrenn`). **Revelación:** la muralla del Distrito Central coincide con el alcance de las raíces del Árbol Ancestral: el Sello salvó la ciudad. **Mazmorra 1:** las cloacas del Consejo, bajo el generador. |
 | **V · El Hermano Gris** | **Nueva:** ≈5 misiones. **Existe:** `Mar02` | 1. Encontrar a Brenn en el Sur muerto. 2. La calle del mercado de Sorel y el hijo de Ortal. 3. **Mazmorra-jefe:** el Sur muerto y la torre del reloj parada a las 23:52. 4. **Jefe Tomás** (Vol. II §2.1); su muerte es la aparición 1 de Ithar. 5. El Árbol Ancestral se enciende del todo. 6. `Mar02`: Cosme, ILEN con la voz de Ilen y Kael funda la Coalición. «Primera parada: Tefra.» |
 
 **Decisiones que cuentan:** `AcadManoBrenn`, `AcadDara`, `RecAgua`, `RecDiario`, `GriMaren`, `GriCajaNegra`,
@@ -123,7 +123,7 @@ En cada campaña:
 |---|---|
 | **I · Respirar a medias** | **Existe:** `Mia01`-`Mia03`. Las ciudades colgadas; la góndola; el Seis; Andrés: «Eres igual que tu padre»; la tumba de Solis; el Fondo; `MiaSeis`. **Nueva:** la escena del Sello apagado. |
 | **II · Arriba y abajo** (≈4) | Mara reencuentra a Andrés después de once años y Leo no le recuerda. La gente de arriba empieza a sonreír demasiado. Sorel da su máscara a un niño. Pía y el racionamiento. **Ilse sobre la Calma:** «No suena tan mal» (peldaño 3). **Mazmorra 1:** las ruinas inclinadas del Seis. |
-| **III · La Calma** (≈3) | Andrés es el Heraldo: la Calma baja sobre las ciudades. Leo se va con su padre. Se busca un antídoto. |
+| **III · La Calma** (≈3) | Andrés es el Heraldo: la Calma baja sobre las ciudades. Leo se va con su padre. Se busca un antídoto. **La votación del Seis** (`MiaVoto`, eje de consentimiento, distinto de `MiaSeis` y de `MiaCalma`: matriz de decisiones §4). |
 | **IV · Cazas remendados** (≈4) | Asedio aéreo con los cazas de Mara. Rescate de la ciudad sedada. **Mazmorra 2:** el archivo del Seis, donde aparece **el contrato de hace 40 años** con «alguien del otro lado» (giro 4). |
 | **V · El Fondo** (≈3) | **Jefe Andrés** (Vol. II §2.3). Decisión: quitar la Calma de golpe o poco a poco. Se enciende el Sello y la niebla se vuelve blanca y respirable por zonas. |
 
@@ -137,10 +137,10 @@ En cada campaña:
 | Acto | Qué pasa |
 |---|---|
 | **I · El precio del agua** | **Existe:** `Sir01`-`Sir03`. «Paga hoy, bebe mañana»; Rafa; el acuífero escondido; Luz Pozo y la tumba de Ana (`SirLuz`); la tormenta de fuego; **la primera lluvia**. **Nueva:** la escena del Sello apagado y el baile bajo la lluvia (Sorel saca a bailar a Kael: la risa de Kael). Kael viaja por radio: es la voz de Sorel la que cuenta que se ríe. |
-| **II · Las Cisternas** (≈4) | La vida bajo tierra. Las carreras clandestinas por agua de Rafa y Nina. Marisa Duna y su odio a Rafa. Luz, sola, deja flores todos los días. El Coro le ofrece la voz de su madre. **Mazmorra 1:** las Cisternas viejas. |
-| **III · Las válvulas** (≈3) | Luz toma el acuífero. La Tía Cifra vende al grupo. Tavo «Aguador» traiciona a Rafa por una plaza en las Arcas. |
-| **IV · La tormenta** (≈3) | Vuelve la tormenta de fuego. Asalto a las Cisternas. La última carrera de Rafa. |
-| **V · La Biblioteca de Arena** (≈4) | **Mazmorra-jefe:** la Biblioteca. **Jefa Luz Pozo** (Vol. II §2.4): la voz de su madre no recuerda su nombre, que es la pista del giro 9. **Gran revelación:** los murales tienen nueve estrellas, una tachada, y está el Gran Corte (giro 5). El nombre de Ithar (aparición 3). **Ilse arranca una página** (peldaño 4). |
+| **II · El vacío** (≈4) | Tras la lluvia, nadie manda. **Marisa** mueve el Cártel de las Cisternas y toma el agua: «Si el agua no es de nadie, la cuidaré yo». Con `LuzTrato`, la Coalición no llega a proteger a Luz; con `LuzExpuesta`, Luz ya no es nadie. El Coro le ofrece la voz de su madre. Reputación con dos bandos (`SirBando`). Nina en los Boxes. **Mazmorra 1:** las Cisternas viejas. |
+| **III · La caída de Luz** (≈3) | Luz acepta al Coro y sus Velados de arena quitan el acuífero al Cártel. Marisa, derrotada, ofrece una alianza con su propio plan (`SirAlianza`). La Tía Cifra vende al grupo. Tavo «Aguador» traiciona a Rafa. |
+| **IV · La última carrera** (≈3) | Vuelve la tormenta de fuego. El precio de Marisa: la Gran Vuelta a través de la tormenta (`SirCarrera`): corre Rafa (escolta; puede morir), corre el jugador (con Nina de mecánica) o ruptura (el Cártel ataca en el asalto). **Mazmorra 2.** |
+| **V · La Biblioteca de Arena** (≈4) | **Mazmorra-jefe:** la Biblioteca. **Jefa Luz Pozo** (Vol. II §2.4): la voz de su madre no recuerda su nombre, que es la pista del giro 9. **Gran revelación:** los murales tienen nueve estrellas, una tachada, y está el Gran Corte (giro 5). El nombre de Ithar (aparición 3). **Ilse arranca una página** (peldaño 4). La recuperación de Luz (`SirLuzAncla`) y, después, el destino de Marisa (`SirMarisa`). |
 
 **Gancho:** los murales señalan el Faro de Nivalis como el único mundo que votó en contra.
 
@@ -184,7 +184,7 @@ demasiado deprisa.
 |---|---|
 | **I · Lo que hay bajo el agua** | **Existe:** `Tal01`-`Tal03`. La boya; Noa; la Estación Abisal; las 140 personas; la cápsula (`TalCapsula`); la fosa; Coria une Tálasa a la Coalición. **Nueva:** la escena del Sello apagado. |
 | **II · El Consejo de Mareas** (≈4) | Las ciudades flotantes. Bruma saca a la luz la Cúpula Honda y Coria es repudiada. **Mazmorra 1:** la Cúpula Honda sumergida. |
-| **III · La verdad de Kael** (≈4) | Irene despierta del todo (si se la sacó en cápsula, despierta ahora). Pide ver a Kael. **Kael rompe su voto y sale de Valmar.** Irene: «Yo estaba al otro lado de esa compuerta. Ella la cerró» (giro 8). Kael y Coria: «Usted y yo hicimos lo mismo.» Silencio. Irene perdona a Kael o no. |
+| **III · La verdad de Kael** (≈4) | Irene despierta del todo (si se la sacó en cápsula, despierta ahora). Pide ver a Kael. Kael descubre que Irene vive. ILEN reproduce el mensaje de Ilen y **Kael rompe su voto: sale de Valmar por primera vez desde que volvió de Tefra.** Irene pide las cartas y Kael no se las da. Irene: «Yo estaba al otro lado de esa compuerta. Ella la cerró» (giro 8). Kael y Coria: «Usted y yo hicimos lo mismo.» Silencio. Irene perdona a Kael o no. |
 | **IV · El Nudo** (≈4) | Ilse ve a Noa con su madre. El pulso le habla con la voz de Adrián: «Mamá, abre.» **Ilse abre el Nudo** (peldaño 7). Inundación y persecución por la estación. **Mazmorra 2:** los pozos de la fosa. |
 | **V · La compuerta** (≈4) | **Jefa Coria** (Vol. II §2.7). **Kael muere sujetando la compuerta** (hecho fijo). Aparición 6 de Ithar. Brenn toma el mando. Se enciende el Nudo y la fosa se vuelve azul. |
 
@@ -201,7 +201,7 @@ demasiado deprisa.
 | **II · La ciudad perfecta** (≈4) | ÁGORA lo gobierna todo. La gente no protesta porque nunca le falta nada. Gil y el origen de ÁGORA. La lista del Arca. **Mazmorra 1:** el subsuelo de servicio. |
 | **III · ILEN** (≈4) | ÁGORA intenta absorber a ILEN. Sorel pierde parches de su chaqueta. Llega la redención o la caída de Ilse (peldaño 8). |
 | **IV · El asalto a la Torre** (≈4) | La Coalición entera asalta MegaVerso. Halvek huye en el Arca. **Mazmorra 2:** las plantas 60 a 120. |
-| **V · La Consola** (≈4) | **Jefa ÁGORA** (Vol. II §2.8). **Cara a cara con Ithar** en su cuerpo de ceniza (aparición 7): «El Coro olvida. Lo sé» (giro 9). La Consola abre el Hilo hacia Oren. ILEN: «La Marea ha encontrado la puerta que quedaba. Viene de Valmar.» |
+| **V · La Consola** (≈4) | **Jefa ÁGORA** (Vol. II §2.8). **Cara a cara con Ithar** en su cuerpo de ceniza (aparición 7): «El Coro olvida. Lo sé» (giro 9). La Consola abre el Hilo hacia Oren. Después, **la petición de que vuelva ÁGORA** (`VerPeticion`): ILEN solo puede gestionar sistemas técnicos, nunca sustituir la voluntad ciudadana. ILEN: «La Marea ha encontrado la puerta que quedaba. Viene de Valmar.» |
 
 ### 2.9 LA PUERTA — Oren (5 h)
 
@@ -264,51 +264,14 @@ Se ve en el juego: aliados que aparecen después, tiendas, rutas y la flota fina
 
 ## 5. Tabla de decisiones y consecuencias
 
-### 5.1 Decisiones que ya existen en el juego
-
-| Clave | Opciones (Flags) | Dónde reaparece | Afecta al final |
-|---|---|---|---|
-| `AcadManoBrenn` | Mano, Esperar, Burla | Primera escena de respeto de Brenn (Valmar IV); su discurso como líder | Relación con Brenn |
-| `AcadDara` | **DaraSalvada** / **DaraBengala** | Dara en la muralla (Valmar IV); la flota | — |
-| `RecAgua` | **AguaHospital** / **AguaReparto** / **AguaGuardia** | Quién defiende la muralla en el asedio (Valmar IV) | — |
-| `RecDiario` | **DiarioSorel** / **DiarioGuardado** | Si se guardó, se le puede dar en Nivalis, tras el contacto, como ancla de memoria | **Salvación de Sorel** |
-| `GriMaren` | **MarenConfia** / **MarenDelatada** | La confianza de Ilse; peldaño 1 | Redención de Ilse |
-| `GriCajaNegra` | **CajaKael** / **CajaMaren** | Quién descifra el símbolo del piloto (Siroco) | — |
-| `GriVerdad` | **UmbralPublico** / **UmbralKael** / **UmbralPresion** | Cómo te recibe el asentamiento (Valmar IV); juicio de Varn | — |
-| `GriBrenn` | **BrennDetenido** / **BrennConvencido** / **BrennLibre** | Tono de la deserción de Brenn (Valmar IV) | Relación con Brenn |
-| `GriFinal` | **GrietaCerrada** / **GrietaAbierta** / **GrietaHalden** (+ **HaldenCruza** / **HaldenPerdida**) | Todo Valmar IV; Halden como aliada | Rutas alternativas en el final |
-| `MarILEN` | **ILENVoz** / **ILENNeutra** | ILEN en Tálasa y Vértice | — |
-| `TefTregua` | **TreguaAmbos** / **TreguaCorvo** / **TreguaDalia** | Confianza de Dalia o de Corvo (Tefra II-IV) | Sello de Tefra |
-| `TefCorvo` | **TefraVerdad** / **TefraPromesa** | Si se prometió, la Coalición tiene que cumplir (Tefra II) | — |
-| `MiaSeis` | **SeisSube** / **SeisPrioridad** | Quién vive en el Seis cuando baja la Calma | Sello de Miasma |
-| `SirLuz` | **LuzTrato** / **LuzExpuesta** | Cómo cae Luz Pozo (Vol. II §2.4) | Sello de Siroco |
-| `NivTila` | **TilaFarol** / **SorelFarol** | Vínculo de Sorel con Tila antes del contacto | — |
-| `UmbVarn` | **VarnSeguidores** / **VarnAtacado** | Cuántos Hijos de la Ceniza vuelven (Umbría III) | Sello de Umbría |
-| `TalCapsula` | **MadreNoaDespierta** / **MadreNoaCapsula** | Cuándo despierta Irene del todo (Tálasa III) | — |
-| `VerVarn` | **VarnJuzgado** / **VarnMultitud** | El destino de Varn; Brenn | — |
-| `<Planeta>CierreLimpio` / `<Planeta>CierreSucio` | Cómo se cerró cada grieta en el Acto I | **Punto (a) del Sello** (§5.3) | Estado del Sello |
-
-### 5.2 Decisiones nuevas de la campaña (las grandes)
-
-| Campaña | Decisión | Opciones | Consecuencia |
-|---|---|---|---|
-| Valmar V | Tomás | Brenn termina con él / lo haces tú / la luz del Árbol | Arco de Brenn; Rel; punto (c) del Sello de Valmar si se elige la luz del Árbol |
-| Tefra IV | Lía (decide Cosme; el jugador le aconseja) | Traerla / dejarla descansar | Lía puede despertar en «Liberar el Coro» |
-| Tefra V | Corvo | Perdón / entregarle a Dalia | Dominio unido o partido; epílogo |
-| Miasma V | La Calma | De golpe / poco a poco | Muertos frente a absorbidos; punto (c) |
-| Nivalis IV | Los tocados de los sótanos | Sacarlos / dejarlos para salvar el asalto | Nilo vive o no; punto (c) |
-| Nivalis V | Casimir (decide Ámbar; el jugador opina) | Último farolero / juicio / exilio | Epílogo de Ámbar |
-| Umbría IV | La quema | El Vivero / Raíz Honda / el bosque viejo | Qué se pierde; punto (c) |
-| Tálasa III | Kael ante Irene | Interceder / callar | Irene perdona o no a Kael (variante de su muerte) |
-| Tálasa V | La compuerta | Intentar ocupar su sitio / dejarla | Variante de la muerte de Kael (nunca la evita) |
-| Vértice III | Ilse | Buscarla / dejarla ir | Redención o caída (peldaño 8) |
-| Vértice V | ÁGORA | Apagarla / aislarla / que ILEN aprenda | Cómo es ILEN en el final |
-| La puerta | El final | Ver §6 | — |
+### 5.1 y 5.2 Decisiones existentes y nuevas
+Todas las decisiones, con sus claves, flags, estado y consecuencias, están en **`matriz-decisiones.md`**, que sustituye a
+las tablas que había aquí. No se duplican para que no se desincronicen.
 
 ### 5.3 Qué significa «encender bien un Sello»
 Cada Sello termina en un estado según **tres puntos**:
-- **(a)** La grieta del Acto I se cerró limpia (`<Planeta>CierreLimpio`). En Valmar, el punto (a) es el Árbol encendido
-  en el Acto V.
+- **(a)** La grieta del Acto I se cerró limpia (`<Planeta>CierreLimpio`). En Valmar, el punto (a) es el cierre de `Gri06`
+  (RC-057).
 - **(b)** El ritual de encender el Sello en el Acto V se completó bien: un minijuego de la misión.
 - **(c)** La decisión moral del planeta abrió la puerta en vez de cerrarla: no se sacrificó a unos por otros cuando
   había otra salida (las marcadas con «punto (c)» en §5.2).
@@ -333,13 +296,27 @@ En el corazón del Coro, Ithar no pelea primero: habla.
 - Lys está a su lado y le pide que la deje irse.
 - Hay combate (el Coro defiende a su Pastor), pero la decisión final es una elección, no un golpe.
 
-### 6.2 Los tres finales
+### 6.2 Los tres finales (versión de cierre, RC-054 y RC-055)
 
-| Final | Requisitos | Qué pasa | El precio |
+Cada final responde de una manera distinta a la pregunta de Ithar: **¿qué se hace con los que ya se han perdido?**
+
+| | **Cerrar el Telar** | **Liberar el Coro** (canónico) | **Ocupar su lugar** |
 |---|---|---|---|
-| **Cerrar el Telar** | Siempre disponible | Se repite el Gran Corte: el generador del Umbral sella todos los Hilos para siempre. La Marea queda fuera. Ithar y el Coro se apagan. | Mueren todas las mentes del Coro: los hijos de Corvo, Lía, la abuela de Nía y la madre de Luz. Sorel sobrevive, pero **no recuerda al jugador**. Los mundos quedan aislados otra vez. «Hiciste lo mismo que tus antepasados.» |
-| **Liberar el Coro** (canónico) | **Los ocho Sellos al menos Encendidos** + la confianza de Lys (Umbría V, más la conversación final) | Lys pide a su padre que sea él mismo una última vez. Ithar suelta el Coro: las mentes con cuerpo despiertan y las demás descansan (R9). Los Ocho Sellos sostienen el borde. | Ithar muere y Lys descansa con él. Lo que despierta depende de lo que el jugador hizo: Lía, los hijos de Corvo, Nilo… |
-| **Ocupar su lugar** | Siempre hay un candidato | Alguien se queda como nuevo Pastor para contener la Marea con piedad: **Ilse** (si cayó en Vértice), **Sorel** (si su deterioro no tiene vuelta) o **el jugador**. En un MMO, el jugador no desaparece: es un epílogo en el que su personaje ve el Coro desde dentro y vuelve con una cicatriz. | Pierdes a alguien para siempre, o a una parte de ti |
+| **Postura** | **La supervivencia nacida del miedo:** los vivos por encima de todo, aunque haya que abandonar a los muertos y repetir el Gran Corte | **Dejar ir:** lo que termina tiene sentido | **Sostener:** nadie deja caer un hilo sin que otro lo tome |
+| **Requisitos** | Siempre disponible | Los ocho Sellos al menos Encendidos (o estabilizados con «Reavivar») + la confianza de Lys, que se puede recuperar en Oren con una acción significativa | Siempre disponible; el sucesor tiene que aceptar la corona conscientemente (R12) |
+| **Ithar** | Muere con el Coro, sin paz: «Lo mismo que ellos. Ahora ya sabes por qué lo hicieron.» | Suelta el Coro a petición de Lys y muere en paz | Entrega la corona por voluntad propia; su cuerpo de ceniza se deshace |
+| **Lys** | Sobrevive sola en la Semilla y no consigue descansar. Nía puede oírla en la plaza de Umbría. | Descansa con su padre por voluntad propia | No acepta la corona. Con la autorización del nuevo Pastor, **guía por la raíz profunda a las conciencias completamente borradas** hacia su final, sin salir de su anclaje, y descansa ella también: «Me llevo a los que ya no se acuerdan de nada. Los demás son tuyos. No los dejes olvidar.» |
+| **El Coro** | Se apaga: todas las mentes se borran y nadie despierta | Se libera: las mentes con cuerpo y recuerdo despiertan (R9) y las demás descansan | Continúa, más pequeño y sin hambre, con las mentes que todavía recuerdan |
+| **El borde** | Hilos sellados para siempre; mundos aislados | Lo sostienen los ocho Sellos; los mundos siguen conectados | Lo contiene la voluntad del nuevo Pastor |
+| **Precio** | Mueren todas las mentes del Coro: los hijos de Corvo, Lía, la abuela de Nía, la madre de Luz… Sorel sobrevive, pero **no recuerda al jugador**. «Hiciste lo mismo que tus antepasados.» | Descansan para siempre los que no tienen cuerpo | La vida del Pastor; las mentes que siguen en el Coro se borran poco a poco (R6) |
+
+**Candidatos a Pastor en «Ocupar»** (R12):
+- **El jugador**, siempre, y solo si lo elige. Reina desde fuera. Conserva su cuerpo, su personaje y su continuidad en
+  el MMO, con una cicatriz.
+- **Ilse**, solo si cayó en Vértice (está dentro del Coro) y lo acepta.
+- **Sorel**, solo si su deterioro no tiene vuelta y lo acepta en un momento de lucidez.
+
+Ninguno lo es por obligación ni por llegar al final.
 
 **La salvación de Sorel.** Solo es posible en «Liberar el Coro» y requiere:
 1. **Cinco o más Sellos Plenos.**

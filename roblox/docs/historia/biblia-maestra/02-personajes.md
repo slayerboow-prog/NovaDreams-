@@ -152,6 +152,8 @@ Según cuándo aceptaron la oferta del Coro, hay dos tipos (choque 7):
 | **5 · Motivación** | No volver a sentir la sed ni la pérdida |
 | **6 · Consecuencias** | La decisión del Acto I importa. Con **LuzExpuesta**, cae más rápido y con rencor. Con **LuzTrato**, cae por miedo a fallar al desierto. |
 | **7 · Combate** | En la Biblioteca de Arena. **Fase 1:** sus aguadores entre las estanterías. **Fase 2:** la arena cae como agua y las salas se inundan de arena. **Fase 3:** la voz de Ana suena en la sala y Luz duda. |
+| **Familia** | Exmujer de Rafa Quiroga («no le perdona; le quiere»): no le perdona que siguiera corriendo tras la muerte de Cholo. Madre de **Nina** (17). |
+| **Recuperación** | El nombre es el detonante, no la salvación: vuelve solo si queda algo de su identidad, llega alguien que la conoce (Rafa, Nina o el jugador) y el vínculo sigue abierto. Si no, se queda Velada (matriz de decisiones §5.1). |
 | **8 · Conclusión** | La voz de su madre **no recuerda su nombre**. Es la pista del giro 9. Luz se rompe y entrega al jugador la llave del Archivo, donde está el nombre de Ithar: «Me cantaba sin saber a quién.» Vive y se encarga del acuífero, sin deudas, o se marcha al desierto, según lo que haga el jugador. |
 
 ### 2.5 CASIMIR VARGA, Lord Regente — Nivalis
@@ -309,10 +311,11 @@ Según cuándo aceptaron la oferta del Coro, hay dos tipos (choque 7):
 | **Voz** | Frases cortas y órdenes. No da las gracias: las demuestra. |
 | **Gesto** | Cierra todas las puertas que cruza. Cuenta a los cadetes al volver, en voz baja. Nunca entra en ascensores. |
 | **Tema musical** | Un cello solo |
-| **Historia** | Valmaresa. A los 22 entró en la seguridad del Consorcio, en Vértice. **1.194:** la expedición, la primera puerta (ver abajo). Dejó el Consorcio, volvió a Valmar y entró en la Guardia. **1.211:** **salió de Valmar** al frente de una escuadra de once rumbo a Tefra (segunda puerta). Se quedó atrapada en Tefra y volvió a una Valmar arrasada. **1.213:** funda la Academia en un colegio con las ventanas tapiadas. |
+| **Historia** | Valmaresa (1.168). A los 22 entró en la seguridad del Consorcio, en Vértice, donde conoció a Irene Ferran; fue madrina de su hija Noa. **9-10-1.194:** la expedición de nueve, la primera puerta (ver abajo). El Consorcio le dijo que los ocho que dejó habían muerto. Dejó el Consorcio, volvió a Valmar y entró en la Guardia. **Noviembre de 1.211:** **salió de Valmar** al frente de una escuadra de doce rumbo a Tefra (segunda puerta). Se quedó atrapada en Tefra y volvió después de la Caída a una Valmar arrasada, donde también habían muerto los dos que salvó. **1.213:** funda la Academia en un colegio con las ventanas tapiadas. Cronología completa en `cronologia.md`. |
 | **El voto de Kael** | Después de Tefra, **se negó a volver a participar en ninguna expedición fuera de Valmar**. Manda desde Valmar y habla por radio. Cuando Sorel dice «Kael nunca sale de Valmar» (`Coalicion_Mundos2`), describe lo que ve desde que la conoce: desde Tefra, nunca. |
 | **Quiere / teme** | Quiere formar guerreros que no hagan lo que ella hizo. Teme que se sepa lo de la primera puerta. |
-| **Contradicción** | Exige a sus cadetes que no dejen a nadie atrás, y ella dejó a nueve |
+| **Contradicción** | Exige a sus cadetes que no dejen a nadie atrás, y ella dejó a ocho al otro lado de una compuerta |
+| **Las veinte cartas** | Cada 9 de octubre, desde 1.195, escribe a Irene, a la que cree muerta, y no envía la carta. Hablan del presente. La de 1.211, escrita en Tefra, está sin terminar. Solo la de 1.214 habla de la compuerta. Cuando Irene pide el fajo en Tálasa III, **Kael no se lo da**. Tras su muerte, el jugador decide si se lo da a Irene, a Noa o lo guarda (RC-051). |
 | **Vulnerabilidad** | La voz de ILEN, que es la de Ilen. La foto «Ilen. Tefra. Vuelve» (`Guerrero`). |
 | **Momento de risa** | Obligatorio antes de Tálasa: una escena en la que Kael se ríe de verdad (Siroco, con la lluvia), para que su muerte duela |
 
@@ -321,10 +324,10 @@ Según cuándo aceptaron la oferta del Coro, hay dos tipos (choque 7):
 | Puerta | Cuándo | Qué hizo | Quién lo sabe |
 |---|---|---|---|
 | Primera | 1.194, expedición de Vértice | **Cerró** la compuerta con su equipo al otro lado, entre ellos Irene Ferran. Obedeció. | Nadie |
-| Segunda | 1.211, Tefra | **Desobedeció** la orden de retirada para no repetirlo. Salvó a 2 de 11. Ilen no volvió. | Todos: es su herida «oficial» |
+| Segunda | 1.211, Tefra | **Desobedeció** la orden de retirada para no repetirlo. Salvó a 2 de 11 (Oriol y Mirta), que murieron un año después en la Caída. Ilen murió sosteniendo la plataforma. En 1.214 es la única viva de los doce. | Todos: es su herida «oficial» |
 | Tercera | Tálasa, Acto V | **Sostiene** la compuerta abierta para que pasen los demás, y muere | La que el jugador ve |
 
-**Romper el voto.** En Tálasa, Acto III, Irene despierta y pide verla. Kael sale de Valmar por primera vez en tres años.
+**Romper el voto.** En Tálasa, Acto III, Irene despierta y pide verla. Kael descubre que Irene está viva. Duda en el puerto hasta que ILEN reproduce el mensaje de Ilen («si algún día alguien te necesita tanto como yo te necesité hoy, ve») y sale de Valmar **por primera vez desde que volvió de Tefra**.
 Sorel lo nota: «Kael ha cogido una nave.» Es el principio de su final.
 
 **Su muerte: hecho fijo de la campaña.**
@@ -411,7 +414,9 @@ Sorel lo nota: «Kael ha cogido una nave.» Es el principio de su final.
 | | |
 |---|---|
 | **Aspecto** | Una muchacha hecha de luz verde y hojas, dentro de la Semilla. Aparece en el árbol joven «Garza» de Raíz Honda y, después, en el árbol madre. |
-| **Historia** | Jardinera del Árbol Primero de Oren hace 1.214 años. Sostuvo la luz del Árbol para que los refugiados pudieran huir y la Marea la alcanzó. Su padre apartó su mente del Coro y la escondió en la Semilla de Umbría, el único lugar al que el Coro no llega. |
+| **Historia** | Jardinera del Árbol Primero de Oren hace 1.214 años. Sostuvo la luz del Árbol para que los refugiados pudieran huir y la Marea alcanzó su cuerpo. Su padre salvó su **conciencia** y la empujó por la raíz profunda (R11) hasta la Semilla del árbol madre de Umbría, el único lugar al que el Coro no llega, ni siquiera él. Hoy la Semilla crece en la plaza de Raíz Honda como el árbol joven «Garza», descendiente directo del árbol madre. |
+| **Límites (R11)** | No tiene cuerpo: no toca, no lucha ni mueve nada. Solo aparece junto a raíces conectadas, y cada aparición gasta la luz de la Semilla. No puede sacar a nadie del Coro por la fuerza. |
+| **Finales** | «Cerrar»: sobrevive sola en la Semilla, sin el descanso que desea. «Liberar»: descansa con su padre por voluntad propia. «Ocupar»: no acepta la corona; con la autorización del nuevo Pastor, guía a los olvidados hacia su final por la raíz profunda y descansa ella también (RC-054). |
 | **Voz** | Tranquila y curiosa, con palabras de hace mil años |
 | **Filosofía** | «Quedarse para siempre no es vivir. Lo que no termina no significa nada.» |
 | **Lo que quiere** | Que su padre la deje irse. Y que él se deje ir. |
@@ -462,7 +467,7 @@ Nudo es el último peldaño, no un giro inventado.
 | 5 | Nivalis | Se ofrece a entrar sola en la zona oscura. Vuelve tranquila. Miente sobre dónde ha estado; Halden, si está, lo nota. | Habla con el Coro a solas |
 | 6 | Umbría | Pregunta a Lys si los muertos están en el Coro. Lys: «Están. Pero no son.» Ilse se queda solo con la primera mitad. | Elige creer |
 | 7 | Tálasa, Actos III-IV | Ve a Noa abrazar a su madre recuperada (Irene). Se rompe. Esa noche, el pulso le habla con la voz de Adrián: «Mamá, abre.» **Abre el Nudo.** | La traición |
-| 8 | Vértice | **Redención** (si el jugador la buscó y Halden o Kael la perdonaron): desactiva el Plan Puerta desde dentro y pierde las manos en la Consola. **Caída** (si no): se queda con Ithar y en Oren es una de las candidatas a «Ocupar su lugar». | Consecuencia |
+| 8 | Vértice | **Redención** (si el jugador la buscó y Halden o Kael la perdonaron): desactiva el Plan Puerta desde dentro y pierde las manos en la Consola. **Caída** (si no): cruza la Consola con Ithar (R8) y entra en el Coro. En Oren es candidata a «Ocupar su lugar», y solo si lo acepta (R12). | Consecuencia |
 
 **El hijo:** **Adrián Maren**, 19 años. Era voluntario en el hospital de campaña del Sur y murió la noche de la Caída,
 mientras su madre estaba en el observatorio abriendo la Grieta. La voz que oye Ilse es la de Adrián tal como el Coro la
@@ -507,11 +512,12 @@ Ilse no quiere oír.
 - **Abuela Niebla**, superviviente del Seis; **Pía**, la racionadora; **la vieja Bruma**, del taller de filtros.
 
 ### Siroco
-- **Rafa «el Zorro» Quiroga.** Aguador y expiloto de carreras. **Arco:** rompe el libro de deudas (`Sir03`) y corre su
+- **Rafa «el Zorro» Quiroga.** 47 años. Aguador, expiloto de carreras y exmarido de Luz Pozo. **Arco:** rompe el libro de deudas (`Sir03`) y corre su
   última carrera.
-- **Nina Quiroga.** Su hija.
-- **Marisa Duna.** Madre de Cholo, que murió en la Gran Vuelta por culpa de Rafa. **Arco:** su odio a Rafa y su perdón
-  son una secundaria del planeta.
+- **Nina Quiroga.** 17 años, hija de Rafa y de Luz (RC-042). La mejor mecánica de los Boxes. Quiere salvar Pozo Hondo, no a sus padres, y no perdona a ninguno de los dos. Es menor: nunca sufre daño en pantalla.
+- **Marisa Duna.** Unos 60 años. Madre de Cholo, que murió en la Gran Vuelta por culpa de Rafa. **Antagonista humana de
+  Siroco (RC-041):** jefa del Cártel de las Cisternas, toma el agua tras la lluvia y exige la última carrera de Rafa.
+  Su destino (juicio, perdón por el acuífero o el Cártel) está en la matriz de decisiones §5.
 - **Tavo «Aguador».** Mejor amigo de Rafa; «quiere una plaza en las Arcas, cueste lo que cueste». **Arco:** traiciona a
   Rafa por una plaza en el Plan Puerta. El nombre choca con el Tavo de Valmar: ver el registro.
 - **La Tía Cifra.** Corredora de apuestas; vende al grupo en el Acto III.
@@ -531,8 +537,9 @@ Ilse no quiere oír.
 
 ### Tálasa
 - **Noa Ferran.** Unos 26 años, buceadora. **Arco:** recupera a su madre y descubre que su madre tenía un secreto.
-- **Irene Ferran.** 46 años en el calendario y un cuerpo mayor (R4). **Arco:** testigo, víctima y la que decide perdonar
-  o no a Kael.
+- **Irene Ferran.** 46 años en el calendario y un cuerpo mayor (R4 y el criosueño). Sobrevivió en 1.194 apagando la luz
+  y dejándose llevar por los Hilos hasta el Ancla. **Sabía que Kael vivía y nunca le escribió.** **Arco:** testigo,
+  víctima y la que decide perdonar o no a Kael. Siente rabia, gratitud, duelo y celos.
 - **Bruma.** Buceadora de Las Balsas que lo perdió todo en la Cúpula Honda. **Arco:** saca a la luz la verdad de Coria.
 
 ### Vértice

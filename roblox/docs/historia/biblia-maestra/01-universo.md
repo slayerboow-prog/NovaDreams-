@@ -122,6 +122,10 @@ fondo de cada grieta (Siroco, Nivalis, Umbría): es el punto donde el Sello est�
 | **R8** | Ithar no puede cruzar en persona un Hilo cerrado. La Consola de Vértice es el único Sello que funciona como puerta en los dos sentidos. | Su cuerpo de ceniza en Vértice; en carne, solo en Oren |
 | **R9** | Lo que tiene cuerpo puede volver del Coro mientras le quede un recuerdo propio. Lo que ya no tiene cuerpo solo puede descansar. | El final «Liberar el Coro»; Lía, los hijos de Corvo, Sorel |
 | **R10** | La raíz de los árboles-Sello es frontera entre la Semilla y el Coro: junto a ellos se oye a los perdidos. | Nía oye a su abuela en la raíz; las voces que llaman al jugador por su nombre en el árbol madre |
+| **R11** | **La raíz profunda.** Los árboles-Sello son esquejes del Árbol Primero y sus raíces conservan bajo los Hilos una conexión de luz y memoria que no transporta cuerpos, materia ni Marea. Lys, anclada en la Semilla de Umbría, proyecta imagen y voz junto a las raíces de los árboles-Sello y de sus descendientes directos. La proyección no es un cuerpo. Tiene cinco límites (ver `reglas-universo.md`). | Lys en Umbría y en Oren; los finales |
+| **R12** | **La corona.** Solo pasa por entrega voluntaria y con aceptación consciente de quien la recibe, y quien la lleva tiene que poder ser oído por el Coro. El cuerpo de ceniza de Ithar se deshace al cederla. | El final «Ocupar su lugar» |
+
+**Fuente de las reglas:** `reglas-universo.md` (redacción oficial y límites). **Las reglas no se adaptan a la escena.**
 
 ### 3.5 Las señales (canon del juego)
 - **El pulso de once segundos.** Es el latido del Coro buscando una puerta. Empieza a oírse en todas las radios una
@@ -149,23 +153,25 @@ juego da una fecha, esta tabla la respeta.
 | 1.124 | Empieza la guerra de Tefra entre el **Dominio de Bastión** y su luna **Ovilla**, que dura noventa años. Los Desertores del Ovillo (la resistencia) son los que no quieren luchar en ella (RC-032). | Juego: «noventa años con el fin del mundo» |
 | 1.174 | La voz de Ithar llega a **Augusto Halvek**, en Vértice, por un Hilo dormido de la Consola. Nace el **Consorcio Umbral** y empiezan las perforaciones (las «anclas»). | Biblia |
 | 1.176 | Prueba del Consorcio en Tefra: se abre «un agujero en el cielo» sobre la Calle del Horno. **Cosme, con nueve años, cae dentro** y aparece en Valmar envejecido (R4). Su hermana Lía se queda en Tefra. | Juego (`Coalicion_Marea`) |
-| 1.194 | **La expedición del Consorcio** cruza la perforación de la Torre de Vértice. Van **Kael** (26 años, seguridad del Consorcio) e **Irene Ferran** (ingeniera). Ithar perdona a Kael («vuelve y cuéntaselo»). Kael cierra la compuerta con su equipo al otro lado. | Biblia + choque 3 |
+| 9-10-1.194 | **La expedición del Consorcio, de nueve personas**, cruza la perforación de la Torre de Vértice. Van **Kael** (26 años, seguridad del Consorcio), **Irene Ferran** (ingeniera) y siete más. Ithar perdona a Kael («vuelve y cuéntaselo»). Por orden, Kael cierra la compuerta con ocho compañeros al otro lado: siete mueren e Irene sobrevive a oscuras en los Hilos. Kael cree muertos a los ocho. | RC-046, RC-047, RC-048 |
 | 1.194 | Estudio del Consorcio en Siroco: un acuífero natural bajo el desierto. «No divulgar.» | Juego (`Sir01`) |
-| 1.196 | Irene vuelve por la fosa de Tálasa, envejecida (R4, R5). El Consorcio la silencia y construye sobre ese punto la **Estación Abisal «Umbral»**. | Choque 3 |
+| 1.196 | Irene sale por el Ancla de Tálasa, envejecida (R4, R5). El Consorcio la recoge, la silencia a cambio de la custodia de Noa y construye sobre ese punto la **Estación Abisal «Umbral»**. Kael nunca lo sabe. | RC-048 |
 | ~1.200 | En Tálasa, Coria sella la Cúpula Honda con mil personas dentro para salvar a diez mil | Biblia |
 | 1.203 | Cae el **Anclaje Seis** de Miasma («prueba 6»). El padre de Mara corta el cable. Andrés queda abajo. | Juego («once años») |
 | 1.204 | Cholo muere en la Gran Vuelta de Siroco: Rafa forzó el motor en la última curva | Juego (`Siroco_Episodio`, retirado; secundario) |
 | **1.207** | **Cláusula 19.** El rey Osric de Nivalis firma el contrato solar que negoció su hermano Casimir. Meses después, el Consorcio apaga el sol cuando deja de ser rentable: siete años de noche. | Juego («siete años de noche») |
 | 1.208 | Ámbar, la heredera de Nivalis, «muere» en el Glaciar | Juego («hace seis años») |
 | 1.208 | La Estación Abisal se inunda. 140 personas a bordo y nadie va a buscarlas. La boya pide ayuda desde entonces. | Juego («hace seis años») |
-| 1.211 | **Kael sale de Valmar** al frente de una escuadra de once que va a Tefra. La perforación de la Lanza se ensancha. Kael desobedece la orden de retirada y salva a 2 de 11. **Ilen** no vuelve. Kael se queda atrapada en Tefra. | Juego («hace tres años») |
+| Noviembre de 1.211 | **Kael sale de Valmar** al frente de una escuadra de doce (ella y once) que escolta a los técnicos del Consorcio en la Lanza. Ocho mueren en la Lanza. Kael desobedece la retirada y salva a dos (Oriol y Mirta). **Ilen** muere sosteniendo la plataforma y la nave vuelve con los dos heridos. Kael se queda atrapada en Tefra; el Consejo le niega el rescate. | Juego («hace tres años»); RC-049 |
 | **1.212** | **La Caída de Valmar.** El Proyecto Umbral hace la **primera apertura completa** de una grieta («Primera apertura»). Halden cruza a reparar una sonda y la Grieta se abre del todo. Varn firma a las 23:40: el Sur no se evacua. Tomás llama a Brenn a las 23:52 y muere. El padre de Sorel muere en el refugio del campus, que aguanta tres días. Adrián, el hijo de Ilse, muere en el Sur. | Juego (`Grieta_Umbral`) |
-| 1.212 | Por la puerta abierta de Valmar, el pulso del Coro alcanza todas las perforaciones: empieza **la cascada**. Vértice cae sin que nadie lo note: ÁGORA calcula y acepta. Caen Tefra y Miasma (la Calma). Kael vuelve a una Valmar arrasada. | Choque 4 |
+| 1.212 | Por la puerta abierta de Valmar, el pulso del Coro alcanza todas las perforaciones: empieza **la cascada**. Vértice cae sin que nadie lo note: ÁGORA calcula y acepta. Caen Tefra y Miasma (la Calma). Los dos salvados por Kael mueren esa noche en el hospital del Sur. Con la cascada, Kael sale de Tefra en un carguero de los Desertores del Ovillo y vuelve a una Valmar arrasada. | Choque 4 |
 | 1.213 | Caen Siroco, Nivalis (Casimir pacta con el Coro), Umbría y Tálasa | Choque 4 |
 | 1.213 | Kael funda la **Academia de Guerreros** en un antiguo colegio con las ventanas tapiadas | Juego («hace un año esto era un colegio») |
 | **1.214** | **Empieza el juego.** «Dos años después de la Caída» (`Acad01`). | Juego |
 | 1.214 | El Umbral, la Coalición y las ocho campañas (Vol. III) | — |
 | 1.215 | La puerta: Oren y el desenlace | Vol. III |
+
+**La cronología completa, con el calendario de campañas y la comprobación de todos los «hace X años», está en `cronologia.md`, que manda sobre esta tabla.**
 
 ### 4.1 Qué significa que Valmar sea «el último bastión»
 
@@ -221,6 +227,9 @@ dentro de un gobierno que parece libre (ver Vol. II, Heraldos).
 - Ithar llegó al Árbol cuando Lys ya era gris. **Entró en la Marea a buscarla** y descubrió que dentro estaban todos,
   dormidos y sin dolor: el Coro.
 - Encontró la mente de Lys, la apartó y no la soltó nunca.
+- **Cómo (R11):** salvó su **conciencia**, no su cuerpo, que la Marea ya había alcanzado. La empujó por la raíz profunda
+  del Árbol Primero hasta la semilla del árbol madre de Umbría, donde el Coro no puede llegar. Tampoco llega él: la
+  escondió donde ni él mismo puede tocarla. «No la soltó nunca» quiere decir que no la deja descansar.
 
 ### 5.6 Lo que queda de Oren hoy
 - Un mundo gris y silencioso: ciudades congeladas en el instante en que cayeron y el Árbol Primero, petrificado.

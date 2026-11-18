@@ -146,9 +146,9 @@ bombardeo y bombardeo, gente que sigue haciendo pan.
 ### E3 · La Calle del Horno y la casa de Cosme ✅ (se ajusta)
 - **Existe:** la casa de la familia de Cosme (el armazón y el marco de la puerta con las rayas de alturas) y la
   panadería.
-- **Ajuste de continuidad** (pendiente P-8, necesita aprobación): el marco dice «Cosme 8 · Ada 6». La historia
-  publicada llama **Lía** a su hermana. **Propuesta:** cambiar «Ada» por «Lía» en el marco, el texto de «Mirar», el
-  recuerdo y los objetos (bufanda y candado).
+- **Ajuste de continuidad** (✅ aprobado, RC-062; se aplica con el plan de `auditoria-cierre.md`): el marco dice
+  «Cosme 8 · Ada 6». «Ada» es el nombre antiguo de Lía. Se cambia el texto visible a «Lía» en siete sitios (el marco,
+  «Mirar», dos recuerdos, dos objetos y la ficha de Ernesto) y se conservan los identificadores internos.
 - **Se añade** 🆕 el muro con la ventana redonda y la placa medio fundida «Calle del Horno» (`Tef01`).
 
 ### E4 · La cadena de montaje de Velados (la Fundición Negra) 🆕

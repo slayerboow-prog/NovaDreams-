@@ -18,6 +18,14 @@
 | V · El cine | `05-cine.md` | v1 · 18-11-2026: auditoría del motor, gramática y las 15 grandes secuencias |
 | V-b · Estándar cinematográfico | `05b-estandar-cinematografico.md` | v1 · 18-11-2026: las seis referencias del dueño convertidas en reglas (lentes, luz, actuación, montaje, enganche a jugabilidad) |
 | VI · MMO, producción y calidad | `06-mmo-y-calidad.md` | Pendiente |
+| Reglas del universo (R1-R12) | `reglas-universo.md` | Cierre · 18-11-2026 (fuente de las reglas) |
+| Cronología completa | `cronologia.md` | Cierre · 18-11-2026 (fuente de las fechas) |
+| Matriz de decisiones y flags | `matriz-decisiones.md` | Cierre · 18-11-2026 (sustituye a Vol. III §5.1-5.2) |
+| Matriz de personajes, edades y relaciones | `matriz-personajes.md` | Cierre · 18-11-2026 (sustituye al §6.1) |
+| Auditoría de contradicciones y plan de aplicación | `auditoria-cierre.md` | Cierre · 18-11-2026 |
+
+**Documentos de trabajo de las decisiones** (historia de cómo se decidió; el canon es lo que recoge este registro):
+`auditoria-definitiva.md`, `aprobacion-H1-H14.md`, `revision-final-decisiones.md`.
 
 **Documentos anteriores** (se conservan como historia, pero no son canon cuando contradicen este registro):
 - `docs/historia/biblia-narrativa.md` (v1);
@@ -59,7 +67,7 @@ Antes de cambiar o añadir un hecho:
 |---|---|---|---|---|---|
 | RC-001 | 18-11 | **Cosme**: 47 años en el calendario y cuerpo de 70 (regla R4: cruzar cuesta años) | Choque 1: «nueve años» + «treinta y ocho» frente a 71 en la biblia v1 | `Coalicion_Marea` | Vol. I R4; Vol. II §4.5 |
 | RC-002 | 18-11 | **Lía**, hermana de Cosme, es la Velada de Tefra. La abuela se queda como pista. | Choque 2 | `Coalicion_Marea` (lista «esperando a Cosme») | Vol. II §4.5; Vol. III Tefra IV |
-| RC-003 | 18-11 | **Kael: dos pérdidas.** 1.194 expedición (secreta) y 1.211 Tefra (escuadra de once, salvó a 2, Ilen muere). **Corrige la propuesta C3** de la auditoría, que era errónea. | Choque 2 | `Academia` («salvé a dos de once»), `Coalicion_Marea` («hace tres años»), `Guerrero` (foto) | Vol. I §4; Vol. II §4.1 |
+| RC-003 | 18-11 | **Kael: dos pérdidas.** 1.194 expedición (secreta) y 1.211 Tefra (escuadra de once, salvó a 2, Ilen muere; **precisado por RC-049:** doce en total, Kael y once). **Corrige la propuesta C3** de la auditoría, que era errónea. | Choque 2 | `Academia` («salvé a dos de once»), `Coalicion_Marea` («hace tres años»), `Guerrero` (foto) | Vol. I §4; Vol. II §4.1 |
 | RC-004 | 18-11 | **El voto de Kael:** salió de Valmar para la misión de Tefra (1.211) y después se negó a cualquier expedición fuera de su planeta. Lo rompe en Tálasa III. «Kael nunca sale de Valmar» describe lo que se ve desde Tefra. | Petición del dueño (punto 1) | `Coalicion_Mundos2` («Kael nunca sale de Valmar») | Vol. II §4.1; Vol. III Tálasa III |
 | RC-005 | 18-11 | **Irene Ferran**: iba en la expedición de 1.194, volvió por el Ancla en 1.196 (R5), el Consorcio la escondió en la Estación Abisal «Umbral» y revela el secreto de Kael | Choque 3 | `Coalicion_Mundos2` (estación, «mujer mayor», cápsula cedida) | Vol. I §4; Vol. II §7; Vol. III Tálasa III |
 | RC-006 | 18-11 | **Valmar cayó en 1.212** y el juego empieza en 1.214 | Choque 4 | `Acad01` («dos años después de la Caída»), `Gri06` («por primera vez en dos años») | Vol. I §4 |
@@ -97,6 +105,33 @@ Antes de cambiar o añadir un hecho:
 | RC-038 | 18-11 | **Luz Pozo y Marisa Duna, separadas:** Luz es la hija que perdió a su madre, Ana, por la sed, y la dueña del agua. Marisa es la madre que perdió a su hijo, Cholo, en la Gran Vuelta, una carrera por agua. No se mezclan. | Aclaración: el mensaje del dueño atribuía a Luz «la madre que perdió a su hijo», que en el juego es de Marisa | `Sir02`, `Siroco_Episodio` | Vol. II §2.4 y §7; documentos antiguos corregidos |
 | RC-039 | 18-11 | **La reina de Nivalis:** la Estatua Rota de la Plaza de los Faroles es la de la **reina Liv** | Diseño antiguo (Fortaleza Albor) | `docs/planetas/nivalis-umbria.md` | Vol. II §2.5; Vol. IV Nivalis |
 | RC-040 | 18-11 | **El Palacio de Escarcha** (ladera norte) es la corte de Casimir; los tocados van a sus sótanos. El gancho antiguo «Nilo vivo en las Minas» (episodio retirado) se sustituye. | Continuidad | `nivalis-umbria.md` | Vol. II §2.5; Vol. IV Nivalis |
+| RC-041 | 18-11 | ✅ **Siroco (H2):** Luz Pozo sigue siendo Heraldo (cae en el Acto III, es la jefa del Acto V y conserva la pista «la voz no recuerda mi nombre»). **Marisa Duna**, unos 60 años, es la antagonista humana: jefa del Cártel de las Cisternas. | Aprobación del dueño | `Sir01`-`Sir03`, `Cast` | Vol. II §2.4 y §7; Vol. III Siroco; matriz de decisiones §5 |
+| RC-042 | 18-11 | ✅ **Luz es exmujer de Rafa** (dato del reparto) y **su hija es común** (decisión del dueño). Es **Nina Quiroga**, 17 años, que ya existe en el reparto (`Cast.luau:433`). Es menor: tiene postura propia y su supervivencia no depende de ninguna decisión sobre Rafa. | Choque N3 + decisión D10 | `Cast.luau:432, 433, 434` | Matriz de personajes §4.4 |
+| RC-043 | 18-11 | ✅ La matriz de consecuencias de Siroco. 🟡 **La recuperación de Luz** exige tres condiciones (identidad, alguien que la conoce, vínculo abierto): el nombre detona, no salva. | D9 con corrección del dueño | — | Matriz de decisiones §5.1 |
+| RC-044 | 18-11 | **Rafa Quiroga tiene 47 años** (no «~50») | Choque nuevo: el §6.1 contradecía al reparto | `Cast.luau:432` | Matriz de personajes |
+| RC-045 | 18-11 | ✅ **Nela** (25), hija de Lía (45) y de Ulises († 1.201), sobrina de Cosme. La reconciliación se gana. | H3 | `Coalicion_Marea`, RC-001, RC-033 | Vol. II §4.5; matriz de personajes |
+| RC-046 | 18-11 | ✅ **Cronología de Kael e Irene** con fechas fijas: la expedición, el **9-10-1.194**; el juego empieza en **primavera de 1.214**; Tálasa, en **noviembre de 1.214**; La puerta, en **1.215**. Kael sale hacia Tálasa **«por primera vez desde que volvió de Tefra»** (sustituye a «por primera vez en tres años»). | D1 con corrección del dueño | Ver cronología §6 | Cronología; Vol. II §4.1; Vol. III Tálasa |
+| RC-047 | 18-11 | ✅ **La expedición de 1.194 eran nueve:** Kael, Irene y siete más. Kael dejó a ocho; murieron siete; Irene sobrevivió. **Kael cree muertos a los ocho** y no sabe que Irene vive hasta Tálasa III. | D3, D4 | Vol. II («nueve», corregido), auditoría («siete») | Vol. I §4; Vol. II §4.1 |
+| RC-048 | 18-11 | 🟡 **Cómo sobrevivió Irene:** apagó la luz y se dejó llevar por los Hilos hasta el Ancla (R5); salió en 1.196 envejecida (R4); el Consorcio la recogió y la silenció a cambio de la custodia de Noa | Corrección pedida por el dueño | R4, R5, RC-005 | Cronología §5.1 |
+| RC-049 | 18-11 | ✅ **Tefra, 1.211:** escuadra de doce; dos salvados; Ilen muere sosteniendo la plataforma; Kael vuelve después de la Caída; los dos salvados mueren en la Caída por la orden de Varn. 🟡 **Logística:** los salvados se llaman **Oriol** (navegante, pilota la nave de vuelta con el retorno asistido) y **Mirta** (sanitaria); los otros ocho mueren en la Lanza; los Desertores del Ovillo sacan a Kael de Tefra en 1.212; el Consejo le negó el rescate. | D2 con corrección del dueño | `Academia`, `Guerrero`, `Coalicion_Marea`, `Fin02` | Cronología §5.2; Vol. II §4.1 |
+| RC-050 | 18-11 | ✅ **Ilen ≠ ILEN:** Ilen es la persona († 1.211); ILEN es la IA entrenada con su caja negra | Norma del dueño | `Cast.luau:261` | Todos |
+| RC-051 | 18-11 | ✅ **Las veinte cartas** (1.195-1.214): hablan del presente; la de 1.211, escrita en Tefra, se queda **sin terminar** y no explica nada; solo la última habla de la compuerta. Kael **no entrega el fajo** cuando Irene lo pide; la entrega, tras su muerte, la decide el jugador. | D1 con corrección del dueño | — | Vol. II §4.1 |
+| RC-052 | 18-11 | ✅ **R11, la raíz profunda**, con la redacción y los cinco límites del dueño. Ithar salvó la **conciencia** de Lys, no su cuerpo. | D5 | R2, R8, R9, R10 | `reglas-universo.md` §2; Vol. I §3.4 y §5.5 |
+| RC-053 | 18-11 | ✅ El árbol joven **«Garza»** es **descendiente directo** del árbol madre de Umbría, conectado por la raíz; **no es un árbol-Sello**. 🟡 **Nombre del Sello de Valmar:** el juego dice «Árbol Ancestral» en sus 8 apariciones y nunca «Árbol Antiguo»; se propone mantener «Árbol Ancestral» (RC-031). | D5 + comprobación | `Umb03`; `Kit/AncientTree`, `SanctuaryService` | `reglas-universo.md` §2 |
+| RC-054 | 18-11 | ✅ **Los tres finales con postura propia:** Cerrar = la supervivencia nacida del miedo; Liberar = dejar ir (canónico); Ocupar = sostener. Lys: sola en la Semilla en «Cerrar»; descansa con Ithar en «Liberar»; en «Ocupar», **guía a los olvidados sin salir de su anclaje** y descansa, siempre que el nuevo Pastor lo **autorice voluntariamente**. | D6, D7 con corrección del dueño | R6, R9, R11 | Vol. III §6 |
+| RC-055 | 18-11 | ✅ **R12, la corona:** solo pasa por entrega voluntaria y con **aceptación consciente** de quien la recibe; nunca es automática. El cuerpo de ceniza de Ithar se deshace al cederla. El jugador conserva cuerpo, personaje y continuidad en el MMO. 🟡 Encaje de cada candidato con R7 (Ilse dentro del Coro por la Consola; Sorel en la tercera fase y con consentimiento lúcido; el jugador por el Umbral). | D8 con corrección del dueño | R7, R8 | `reglas-universo.md` §3; Vol. III §6 |
+| RC-056 | 18-11 | ✅ La confianza de Lys se puede recuperar en Oren **con una acción significativa**, nunca con una frase. 🟡 La acción: sostener la luz del Árbol Primero mientras Lys habla con su padre. | Corrección del dueño | — | Matriz de decisiones §10 |
+| RC-057 | 18-11 | ✅ **«Reavivar el Sello» (H8):** estabiliza sin borrar decisiones, puntos ni consecuencias. Ningún Sello bloquea contenido, progresión ni el final canónico. **El punto A de Valmar es el cierre de `Gri06`**, no el Árbol. | H8 | `Gri06` | Vol. III §5.3; matriz de decisiones §1 |
+| RC-058 | 18-11 | ✅ (idea) / 🟡 (detalle) **Política de Valmar:** Greta Albar (secretaria de actas, que certificó la orden de las 23:40 y la denegación del rescate de 1.211); **la puerta sur es una única decisión central del asedio**; el juicio depende de las pruebas reunidas (0-4). | D11 con corrección del dueño | `EncOrtal`, `GriVerdad` | Matriz de decisiones §2; matriz de personajes §4.1 |
+| RC-059 | 18-11 | 🟡 **Miasma:** `MiaSeis` (logística, publicada), `MiaVoto` (consentimiento) y `MiaCalma` (método) son tres ejes distintos y no duplican la decisión | Corrección del dueño | `Coalicion_Mundos1:107` | Matriz de decisiones §4 |
+| RC-060 | 18-11 | 🟡 **Nivalis:** la Casa elegida condiciona los recursos del reinado de Ámbar; el desenlace depende también de Casimir, de Osric y de la confianza de Ámbar; **la que elige qué reina ser es Ámbar** | Corrección del dueño | — | Matriz de decisiones §6 |
+| RC-061 | 18-11 | ✅ **Vértice:** ILEN puede administrar sistemas técnicos limitados (tráfico, agua, mantenimiento), **nunca sustituir la voluntad ciudadana**. 🟡 Octavia Prill y Ciro Mallo, pendientes de comprobación final. | Corrección del dueño | — | Matriz de decisiones §9 |
+| RC-062 | 18-11 | ✅ **Ada → Lía (H14):** Ada es el nombre antiguo de la misma hermana (episodio retirado). Cambian **siete** textos (seis visibles y la ficha de Ernesto); los identificadores internos se conservan. **Aplicación pendiente del plan de `auditoria-cierre.md`.** | H14 / D12 | Búsqueda global (7 apariciones vigentes) | Vol. IV Tefra; P-8 |
+| RC-063 | 18-11 | 🟡 **Criosueño de emergencia:** ralentiza el envejecimiento a tres cuartas partes. El chico tiene 21 años de calendario y un cuerpo de 19-20: adulto, sin cambiar el texto de `Tal02`. | N6 | `Tal02` | Cronología §5.3 |
+| RC-064 | 18-11 | ✅ **P3 · Reubicación:** las frases de Kael de `Fin01` y el mensaje de Ilen de `Fin02` pasan a Tálasa III; «¿Sabes por qué nunca salía de Valmar?» pasa a Tálasa V. **Aplicación pendiente del plan.** | D13 | `Fin01`, `Fin02` | Vol. III Tálasa y §2.9 |
+| RC-065 | 18-11 | ✅ **Cine:** tres modalidades (completa, dinámica y ambiental); una cinemática completa por acto como criterio general, con excepciones justificadas | Aprobación del dueño | — | Vol. V y V-b |
+| RC-066 | 18-11 | 🟡 **Calendario de campañas 1.214-1.215**, comprobado contra todos los «hace X años» publicados | Comprobación pedida por el dueño | Cronología §4 y §6 | Cronología |
+| RC-067 | 18-11 | **Choque nuevo:** el epílogo publicado de `Fin03` dice «En Siroco… nadie paga por el agua», lo que choca con el desenlace del Cártel; también da por hecho «una madre y una hija bucean juntas». Necesita variantes por decisión al reescribir el final. | Detectado en la auditoría de cierre | `Fin03` | P-10 |
 
 ---
 
@@ -118,46 +153,19 @@ Antes de cambiar o añadir un hecho:
 | 18-11 | Seis volúmenes conectados por este registro |
 | 18-11 | No se toca código ni se construyen misiones hasta que la Biblia Maestra esté sólida |
 | 18-11 | No se modifican sistemas que funcionan sin auditarlos antes |
+| 18-11 | **Aprobados:** H2 (Siroco), H3 (Nela), H8 (Reavivar), H11 (política, para desarrollo), las tres modalidades de cine, D3, D4, D6, D7, D10 (hija común de Rafa y Luz) y D12 (Ada → Lía). **Aprobados con correcciones:** D1, D2, D5, D8, D9, D11, D13 y N6 (ver RC-041 a RC-067). |
+| 18-11 | **Rechazado:** que Lys herede la corona (la propuesta B′) |
+| 18-11 | **Las reglas del universo no se adaptan a cada escena** |
+| 18-11 | Aprobar una historia **no autoriza a implementarla:** todo cambio de contenido publicado o de código necesita antes un plan (archivos, IDs y flags conservados, partidas guardadas, pruebas de regresión y reversión) |
 
 ---
 
 ## 6. Hechos fijos (la tabla que todo el mundo consulta)
 
 ### 6.1 Personas (edad en 1.214)
-
-| Persona | Edad | Hecho clave | Fuente |
-|---|---|---|---|
-| Kael | 46 | Valmaresa; 1.194 expedición; 1.211 Tefra; 1.213 Academia; muere en Tálasa V | RC-003, 004, 027 |
-| Sorel | 19 | Del Sur, calle del mercado; su padre murió en el refugio del campus; toca el Coro en Nivalis V | `Acad01`, `Rec04` |
-| Brenn | 20 | Hermano de Tomás; llamada de las 23:52; espada «B. y T.» | `Gri03`, `Gri04` |
-| Tomás | † a los 17 (1.212) | Heraldo de Valmar | RC-018 |
-| Ilse Maren | 52 | Dirigió el Umbral; madre de Adrián | `Gri01`, RC-021 |
-| Adrián Maren | † a los 19 (1.212) | Voluntario del hospital del Sur | RC-021 |
-| Halden | ~40 | Compañera de Ilse; 2 años al otro lado; voz de las 3:12 | `Gri01`, `Gri06` |
-| Cosme | 47 (cuerpo de 70) | Calle del Horno; cayó en 1.176; hermana Lía | RC-001 |
-| Lía | (Velada) | Hermana de Cosme | RC-002 |
-| Ilen | † 1.211 | Segunda de Kael; su voz es la de ILEN | `Coalicion_Marea` |
-| Amadeo Varn | ~56 | Orden de las 23:40; Plan Puerta; destino `VerVarn` | `Gri03`, `Ver02` |
-| Augusto Halvek | ~75 | Primer contacto de Ithar en 1.174; huye en el Arca | Vol. II §2.9 |
-| Bastián Corvo | ~60 | Dominio; hijos Darío y Marco | `Tef02` |
-| Andrés | ~45 | Exmarido de Mara; once años en el Seis | RC-009 |
-| Mara Solis | 41 | Madre de Leo | `Cast` |
-| Leo Solis | 15 | Hijo de Mara y Andrés | `Cast` |
-| Luz Pozo | 42 | Heraldo de Siroco; su madre Ana murió de sed cuando Luz tenía 12 años | RC-019 |
-| Rafa Quiroga | ~50 | Aguador; Cholo murió por su culpa | `Sir01`, `Siroco_Episodio` |
-| Osric Varga | 61 | Rey de Nivalis; firmó la Cláusula 19; mudo desde 1.207 | RC-012 |
-| Casimir Varga | 56 | Regente; Heraldo de Nivalis | RC-012 |
-| Ámbar Varga | 23 | Heredera; «muerta» en 1.208 | RC-017; `Cast` |
-| Tila | 16 | Farolera; hermano Nilo | `Cast`, `Niv02` |
-| Savia | ~50 | Alcaldesa y después Madre Savia; hija Nía; madre Hiedra | RC-011, 029 |
-| Nía | 10 | Hija de Savia; Dron 7 | `Umb02`; `Cast` |
-| Coria | ~58 | Cúpula Honda (~1.200) | Vol. II §2.7 |
-| Noa Ferran | ~26 | Hija de Irene | `Tal01` |
-| Irene Ferran | 46 (cuerpo mayor) | Expedición de 1.194; Estación Abisal | RC-005 |
-| Abril Cruz | ~35 | Conservadora del museo | RC-025 |
-| Gil | ~30 | Ayudó a construir ÁGORA | Vol. II §2.8 |
-| Ithar | >1.260 | Rey-tejedor de Oren | Vol. I §5 |
-| Lys | (mente) | Hija de Ithar; en la Semilla | RC-014 |
+La tabla completa está en **`matriz-personajes.md`**, que es la fuente de edades, fechas de nacimiento, estados y
+relaciones. Correcciones de esta versión: Rafa tiene 47 años (RC-044); personas nuevas: Nela, Ulises, Greta
+Albar, Oriol, Mirta, Irsa Orvane, Bertil Selm, Edda Ivel, Octavia Prill y Ciro Mallo.
 
 ### 6.2 Fechas clave
 - 0: Gran Corte.
@@ -174,12 +182,17 @@ Antes de cambiar o añadir un hecho:
 - 1.211: Kael en Tefra.
 - 1.212: la Caída de Valmar y la cascada.
 - 1.213: caen los demás mundos y se funda la Academia.
-- 1.214: empieza el juego.
+- 9-10-1.194: la expedición de nueve.
+- 1.211 (noviembre): Tefra; muere Ilen.
+- 1.214 (primavera): empieza el juego.
+- 9-10-1.214: la vigésima carta de Kael.
+- 1.214 (noviembre): Tálasa; muere Kael.
+- 1.215: La puerta.
 
-Detalle completo en Vol. I §4.
+Detalle completo en **`cronologia.md`**, que manda sobre el Vol. I §4.
 
 ### 6.3 Reglas del universo
-R1-R10 (Vol. I §3.4). **No se añade una regla sin una entrada en el registro.**
+R1-R12 en **`reglas-universo.md`** (R11, la raíz profunda; R12, la corona). **No se añade ni se cambia una regla sin una entrada en el registro aprobada por el dueño. Las reglas no se adaptan a la escena.**
 
 ### 6.4 Hechos fijos que ninguna decisión cambia
 - Kael muere en Tálasa V sosteniendo la compuerta.
@@ -199,7 +212,7 @@ Se pasa al terminar cada volumen o cada planeta:
 - [ ] ¿Cada edad cuadra con las fechas del §6.2?
 - [ ] ¿Cada fecha respeta lo que dicen las misiones publicadas?
 - [ ] ¿Cada relación coincide con el §6.1 y con el mapa (Vol. II §8)?
-- [ ] ¿Cada regla usada está en R1-R10?
+- [ ] ¿Cada regla usada está en R1-R12 y se respetan sus límites?
 - [ ] ¿Cada giro tiene al menos dos pistas sembradas antes (Vol. I §7)?
 - [ ] ¿Algún hecho fijo (§6.4) queda en entredicho?
 - [ ] ¿Todo cambio tiene su entrada en el §4?
@@ -221,5 +234,8 @@ RC-018 a RC-027, que ya están resueltos en los volúmenes.
 | P-5 | **El mundo de `Gue04` y `Gri05`** («el planeta más cercano a la Grieta») | Canon provisional: el **Mundo Ceniza**, un mundo ya devorado del Otro Lado | Vol. IV |
 | P-6 | **Monetización del diseño antiguo:** el pase premium con multiplicadores (XP ×1,15, recolectar ×1,2…) choca con «sin pay-to-win» | Revisar en el Vol. VI antes de tocar `BattlePass*` | Vol. VI |
 | P-7 | **Clasificación:** el diseño antiguo dice «13+ Moderado»; el público es 17+ | Fijar en el Vol. VI y en el cuestionario de Roblox | Vol. VI |
-| P-8 | **Ada → Lía en Tefra** (texto del juego construido): el marco de la puerta «Cosme 8 · Ada 6» (`TefraCityBuilder`), el «Mirar» de `TefraCity`, el recuerdo `CasaDeCosme` y `CandadoDeAda` (`Memories`) y los objetos `BufandaAda` y `CandadoAda` (`Items`). La historia publicada llama **Lía** a la hermana de Cosme. | **Necesita aprobación del dueño** (texto que el jugador ve). Propuesta: cambiar a «Lía» en el texto visible y mantener los identificadores internos. | Antes de construir Tefra |
+| P-8 | **Ada → Lía en Tefra** (texto del juego construido): el marco de la puerta «Cosme 8 · Ada 6» (`TefraCityBuilder`), el «Mirar» de `TefraCity`, el recuerdo `CasaDeCosme` y `CandadoDeAda` (`Memories`) y los objetos `BufandaAda` y `CandadoAda` (`Items`). La historia publicada llama **Lía** a la hermana de Cosme. | ✅ **Aprobado por el dueño** (RC-062): siete textos, identificadores intactos. Se aplica solo con el plan de `auditoria-cierre.md`. | Antes de construir Tefra |
 | P-9 | **Mazmorras instanciadas** y **jefes por fases**: no existe el sistema (auditado: no hay servicio de mazmorras) | Auditoría técnica y diseño en el Vol. VI | Antes de la producción de Valmar V |
+| P-10 | **El epílogo de `Fin03`** da por hecho un resultado único («en Siroco nadie paga por el agua», «una madre y una hija bucean juntas») | Variantes por decisión al reescribir los finales (RC-015, RC-067) | Con P3 |
+| P-11 | **Propuestas sin decidir:** H5 (Halvek pelea para huir), H6 (registro de revelaciones), H7 («Ensayos»), H9 (resto de reglas del Pastor, cubiertas en parte por RC-054 y RC-055), H10 (capas personal, compartida y canónica), H12 (psicología y regla de menores) y H13 (clasificación) | El dueño las aprueba o las rechaza | Antes de la producción de Valmar |
+| P-12 | **Nombre del Sello de Valmar:** «Árbol Ancestral» (juego) o «Árbol Antiguo» (revisión del dueño) | Confirmación del dueño (RC-053) | Antes de Valmar |
