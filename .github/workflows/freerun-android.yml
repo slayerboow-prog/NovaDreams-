@@ -101,6 +101,8 @@ jobs:
           mkdir -p export/web
           timeout 600 "$HOME/godot" --headless --export-release "Web" export/web/index.html
           test -s export/web/index.wasm
+          # Cada versión nueva llega sola al móvil (sin quedarse la antigua en caché)
+          python3 tools/patch_pwa.py export/web/index.service.worker.js
           touch export/web/.nojekyll
           ls -la export/web
 
