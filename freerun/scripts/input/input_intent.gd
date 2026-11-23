@@ -15,6 +15,10 @@ var tuck := false               # dedo/tecla de truco mantenido = agruparse (gir
 var camera_delta := Vector2.ZERO
 var respawn_pressed := false
 var kick := false               # giro sobre el eje largo (360/540/720) o tirabuzón añadido
+var vault_pressed := false      # botón VAULT (flanco)
+var grab_pressed := false       # botón AGARRAR (flanco)
+var grab_held := false
+var rot := Vector2.ZERO         # joystick derecho analógico (x derecha, y arriba), magnitud 0..1
 
 func clear_edges() -> void:
 	jump_pressed = false
@@ -23,8 +27,11 @@ func clear_edges() -> void:
 	camera_delta = Vector2.ZERO
 	respawn_pressed = false
 	kick = false
+	vault_pressed = false
+	grab_pressed = false
 
 func copy_from(o: InputIntent) -> void:
 	move = o.move; sprint = o.sprint; jump_pressed = o.jump_pressed; jump_held = o.jump_held
 	action_pressed = o.action_pressed; action_held = o.action_held; flick = o.flick; tuck = o.tuck
-	camera_delta = o.camera_delta; respawn_pressed = o.respawn_pressed; kick = o.kick
+	camera_delta = o.camera_delta; respawn_pressed = o.respawn_pressed; kick = o.kick; rot = o.rot
+	vault_pressed = o.vault_pressed; grab_pressed = o.grab_pressed; grab_held = o.grab_held

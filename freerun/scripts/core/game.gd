@@ -70,6 +70,9 @@ func _ready() -> void:
 	ui.menu_requested.connect(func():
 		set_paused(false)
 		show_menu())
+	ui.respawn_requested.connect(func():
+		set_paused(false)
+		player.respawn())
 	ui.extra_pressed.connect(func():
 		if mode: mode.on_extra_button())
 

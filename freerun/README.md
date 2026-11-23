@@ -16,29 +16,36 @@ Atajos: `godot --path freerun -- --mode=freerun` salta el menú (`tricking`, `wa
 
 ## Controles
 
-**Móvil (iPhone / Android)**
-- **Joystick izquierdo**: moverse (a fondo = sprint).
-- **SALTO**: pulsa para saltar. **Sin levantar el dedo, deslízalo** para hacer una acrobacia:
-  ↓ Backflip · ↑ Frontflip · ← → Sideflip/Aerial · ↙ ↘ Cork · ↖ ↗ Butterfly Kick.
-  Con carrera: Gainer, Webster y Aerial.
-- **Mantén el dedo** = agruparse y girar más rápido (dobles). **Suelta** = abrirse y preparar el aterrizaje.
-- Durante el mortal, **otro deslizamiento lateral** añade tirabuzón (Backflip → Cheat Gainer, Cork → Cork 720).
-- **Vuelve a pulsar SALTO en el aire** (o el centro **GIRO** de la cruceta): sin mortal = patada giratoria (360 Kick / Tornado Kick, cada toque suma media vuelta: 540 Kick, 720 Kick / Cheat 720, 900, 1080); durante un mortal = tirabuzón completo (Back Full, Gainer Full, Front Full, Double Full, Full In...).
-- **Gesto justo antes de un vault**: lateral = Reverse Vault; en caja de kong ↑ = Double Kong, ↓ = Kash Vault. Gesto durante el vault = mortal al salir (Kong Gainer, Dash Bomb, Kong Front...).
-- **Cruceta TRUCOS**: lo mismo con botones (pulsar = truco, mantener = agruparse, arrastrar a un lado = tirabuzón, centro = GIRO).
-- **Zona derecha**: en el suelo mueve la cámara; en el aire controla el cuerpo.
-- **RODAR**: pulsar justo antes de caer desde alto (Safety Roll). **↻**: reaparecer.
-- Indicador en el aire: nombre del truco, grados y dial (zona verde = vertical para aterrizar).
+**Móvil (iPhone / Android) — Doble joystick (por defecto)**: dos joysticks y solo cuatro botones (SALTO, VAULT, AGARRAR, RODAR). No hay un botón por truco: los trucos salen del joystick derecho según el contexto.
+- **Joystick izquierdo** (abajo a la izquierda): moverse de forma analógica; cuanto más lo inclinas, más rápido; a fondo = sprint.
+- **SALTO** (grande, encima del joystick derecho): saltar e impulsarse. Mantenerlo junto a una pared = Wall Run; en el aire junto a una pared = Tic Tac.
+- **VAULT**: supera el obstáculo con la técnica viable según velocidad, ángulo y forma (Step, Speed, Lazy, Kong, Dash, Step Up). Con el joystick derecho inclinado elige variante: ← → Reverse Vault, ↑ Double Kong, ↓ Kash Vault. Ante una pared alta, trepa.
+- **AGARRAR**: junto a una pared alta, trepar; en el aire, agarrar el borde (aunque vengas de un giro, si ya estás casi vertical); colgado se convierte en **SOLTAR**.
+- **RODAR**: Parkour Roll corriendo; justo antes de caer desde alto, Safety Roll.
+- **Joystick derecho** (abajo, a la derecha del centro):
+  - **En el aire** (tras SALTO): ↓ Backflip · ↑ Frontflip · ← → Sideflip (siempre encogido) · ↙ ↘ Cork · ↗ Front Full · ↖ Aerial (parado) o Butterfly Kick (con carrera). Con carrera ↓/↑ = Gainer / Webster. Es analógico: más inclinado hacia el giro = más agrupado y más rápido; soltarlo abre el cuerpo; en contra frena. Volver al centro e inclinar otra vez = otra vuelta; a un lado durante un mortal = tirabuzón; tocarlo sin inclinar = GIRO.
+  - **En el suelo** (sin SALTO, mantenlo inclinado un instante): ← → **Cartwheel** · ↙ ↘ **Round-off** (cae mirando atrás y deja un rebote: el siguiente salto sale un 15 % más alto, ideal para Round-off → Backflip) · ↓ **Back Handspring** (también rebota) · ↑ **Front Handspring** · ↗ 360 Kick / Tornado · ↖ Aerial / Butterfly Kick.
+  - **Ante un obstáculo** el joystick elige la variante del vault en vez de hacer un movimiento de suelo.
+  - **En la pared** (wall run, wall climb o colgado): ↓ Wall Flip / Wall Gainer · ↑ Wall Front · lateral = con giro.
+- **Tras una caída**: SALTO = **Kip-up** (te levantas al momento).
+- Arrastrar fuera de los controles = cámara.
+- **Menú de pausa**: Reaparecer, **Movimientos** (biblioteca con más de 100 técnicas por categoría, su entrada y su estado) y **Tutorial de controles** (10 pasos que avanzan al hacer cada movimiento de verdad).
 
-**Teclado**: WASD + Shift · Espacio salto (mantener: wall run; otra vez en el aire = giro) · Flechas = acrobacias (mantener = agruparse) · Ctrl rodar · R reaparecer.
+**Otros modos (Ajustes → Controles de trucos)**: *Solo gestos*, *Solo cruceta* y *Gestos + cruceta*.
+- Gestos: pulsa SALTO y, sin levantar el dedo, deslízalo (mismas direcciones que el joystick derecho). Deslizar dos veces igual = doble. En el aire, la zona derecha también acepta gestos.
+- Cruceta TRUCOS: pulsar = truco, mantener = agruparse, tocar LATERAL durante un mortal = tirabuzón, centro = GIRO. Las direcciones principales tienen zonas más grandes que las diagonales.
+- Volver a pulsar SALTO en el aire: sin mortal = patada giratoria (360 Kick / Tornado Kick, cada toque suma media vuelta: 540, 720 / Cheat 720, 900, 1080); durante un mortal = tirabuzón completo.
+- Gesto justo antes de un vault: lateral = Reverse Vault; en caja de kong ↑ = Double Kong, ↓ = Kash Vault. Gesto durante el vault = mortal al salir (Kong Gainer, Dash Bomb, Kong Front...).
 
-Ajustes: ayuda de rotación (Alta / Media / Pro), controles de trucos (gestos + cruceta / solo gestos / solo cruceta), tamaño de controles, distancia de cámara, opacidad, sensibilidad de cámara y de gestos, y modo zurdo.
+**Teclado**: WASD + Shift · Espacio salto (mantener: wall run; otra vez en el aire = giro) · Flechas = joystick derecho (acrobacias en el aire, tricking de suelo si las mantienes sin saltar) · V vault · G agarrar · Ctrl rodar · R reaparecer.
 
-Cada acrobacia se anima por fases a partir del giro real: preparación (flexión antes de despegar), impulso, agrupación, rotación, apertura y recepción, con una forma corporal propia para Backflip, Frontflip, Sideflip, Aerial, Gainer, Webster, Butterfly Kick, Cork y tirabuzones.
+Ajustes: ayuda de rotación (Alta / Media / Pro), controles de trucos (doble joystick / solo gestos / solo cruceta / gestos + cruceta), tamaño de controles, distancia de cámara, opacidad, sensibilidad de cámara y del joystick derecho / gestos, y modo zurdo.
+
+Cada acrobacia tiene su propio ritmo de giro (backflip explosivo; aerial y butterfly más amplios), el doble mortal gira más rápido que el simple, y se anima por fases a partir del giro real: preparación (flexión antes de despegar), impulso, agrupación, rotación, apertura y recepción, con una forma corporal propia para Backflip, Frontflip, Sideflip, Gainer, Webster, Butterfly Kick, Cork y tirabuzones.
 
 ## Pruebas
 
-Aceptación de acrobacias por la ruta táctil real (joystick + SALTO deslizando), criterio a criterio:
+Aceptación de acrobacias por la ruta táctil real (gestos sobre SALTO y doble joystick, multitáctil), criterio a criterio (`-- --only=joystick` para una parte, `-- --capture=dir` para grabar):
 ```
 godot --headless --fixed-fps 60 --path freerun res://tests/acceptance_tricks.tscn
 ```
@@ -72,11 +79,18 @@ El `InputIntent` es la frontera entre dispositivos y personaje: replays, ghosts 
 - **Web**: preset "Web" sin hilos (compatible con Safari/iOS y GitHub Pages). Se publica sola al subir cambios a `main`.
 - **iOS**: requiere macOS con Xcode. Project → Export → iOS genera un proyecto Xcode que se firma y compila en el Mac.
 
+## Biblioteca de movimientos
+
+`scripts/core/move_library.gd` (en el juego: Pausa → Movimientos) cataloga 102 técnicas en 17 categorías: vaults, precision, paredes, escalada, barras, rolls, mortales, laterales, aerials y websters, gainers, corks, butterfly y patadas, handsprings, ruedas y rondadas, suelo, combos y avanzados.
+
+- **Estado**: 61 hechas (impulso, trayectoria y postura propias, con prueba), 14 parciales (se reconocen y rotan bien, pero comparten postura con su familia) y 27 pendientes (cada una con el motivo; las de barra necesitan barras en el mapa).
+- **Fuentes**: nombres, variantes y niveles de [pkfr.world/tutorials](https://pkfr.world/tutorials/) y [trickipedia.app](https://www.trickipedia.app/). Ninguna describe la técnica en texto y sus vídeos no se han podido ver, así que la biomecánica del juego se basa en la técnica deportiva estándar.
+
 ## Trucos reconocidos
 
 - **Mortales atrás**: Backflip, Gainer, Double Backflip/Gainer, Triple Backflip, Back Half, Cheat Gainer, Back Full, Gainer Full, Back 1.5, Double Full, Full In, Cork, Cork 540, Cork 720, Cork 1080, Double Cork, Triple Cork.
 - **Mortales adelante**: Frontflip, Webster, Double/Triple Front, Arabian, Front Full, Rudi, Front Double Full, Double Arabian.
-- **Laterales**: Sideflip (bola cerrada), Aerial, Double Sideflip/Aerial, Raiz, Aerial Twist, Aerial Double Twist.
+- **Laterales**: Sideflip (bola cerrada, con o sin carrera), Double Sideflip, Raiz, Aerial Twist, Aerial Double Twist.
 - **Butterfly**: Butterfly Kick, Double Butterfly, Butterfly Twist, Butterfly Twist 720.
 - **Patadas giratorias**: 360 Kick, Tornado Kick, 540 Kick, 720 Kick, Cheat 720, 900 Kick, 1080 Kick.
 - **Desde pared y vault**: Wall Flip, Wall Gainer, Wall Front, Wall Full, Wall Half, Wall Sideflip, Kong Gainer, Dash Gainer, Vault Gainer, Dash Bomb, Kong Front, Ledge Backflip.

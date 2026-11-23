@@ -57,7 +57,7 @@ func _draw() -> void:
 	elif tr.tucked:
 		hint = "SUELTA para abrir y aterrizar"
 	else:
-		hint = "MANTÉN para girar más"
+		hint = "inclina otra vez = otra vuelta"
 	_text(font, Vector2(cx, c.y + r + 34), hint, 20, Color(0.85, 0.95, 1, _alpha))
 	var _t := turns
 

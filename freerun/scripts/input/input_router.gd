@@ -56,6 +56,8 @@ func _setup_actions() -> void:
 	_add_key("cam_left", [KEY_Q])
 	_add_key("cam_right", [KEY_E])
 	_add_key("respawn", [KEY_R], [JOY_BUTTON_BACK])
+	_add_key("vault", [KEY_V], [JOY_BUTTON_RIGHT_STICK])
+	_add_key("grab", [KEY_G], [JOY_BUTTON_DPAD_UP])
 	_add_axis("cam_left", JOY_AXIS_RIGHT_X, -1.0)
 	_add_axis("cam_right", JOY_AXIS_RIGHT_X, 1.0)
 	_add_key("cam_up", [])
@@ -85,6 +87,8 @@ func _physics_process(_dt: float) -> void:
 		intent.move = Vector2.ZERO
 		intent.jump_held = false
 		intent.tuck = false
+		intent.rot = Vector2.ZERO
+		intent.grab_held = false
 		intent.action_held = false
 		_mouse_delta = Vector2.ZERO
 		return
@@ -97,6 +101,9 @@ func _physics_process(_dt: float) -> void:
 	intent.action_pressed = Input.is_action_just_pressed("action")
 	intent.action_held = Input.is_action_pressed("action")
 	intent.respawn_pressed = Input.is_action_just_pressed("respawn")
+	intent.vault_pressed = Input.is_action_just_pressed("vault")
+	intent.grab_pressed = Input.is_action_just_pressed("grab")
+	intent.grab_held = Input.is_action_pressed("grab")
 
 	var trick_vec := Vector2(
 		Input.get_action_strength("trick_right") - Input.get_action_strength("trick_left"),
@@ -106,6 +113,7 @@ func _physics_process(_dt: float) -> void:
 	if any_trick_pressed and trick_vec.length() > 0.1:
 		intent.flick = trick_vec.normalized()
 	intent.tuck = trick_vec.length() > 0.1
+	intent.rot = trick_vec.limit_length(1.0)
 
 	var sens := Settings.camera_sensitivity
 	var cam := _mouse_delta * 0.0032 * sens
@@ -130,4 +138,9 @@ func _physics_process(_dt: float) -> void:
 		intent.camera_delta += t.camera_delta
 		intent.respawn_pressed = intent.respawn_pressed or t.respawn_pressed
 		intent.kick = intent.kick or t.kick
+		intent.vault_pressed = intent.vault_pressed or t.vault_pressed
+		intent.grab_pressed = intent.grab_pressed or t.grab_pressed
+		intent.grab_held = intent.grab_held or t.grab_held
+		if t.rot.length() > 0.01:
+			intent.rot = t.rot
 	intent.move = mv.limit_length(1.0)

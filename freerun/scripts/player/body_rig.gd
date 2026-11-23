@@ -336,13 +336,17 @@ func trick_kind(tr: TrickSystem) -> String:
 		"side":
 			if twisting:
 				return "twist"
-			return "aerial" if moving else "side"
+			return "side"   # lateral siempre encogido (rodillas al pecho)
+		"aerial":
+			return "twist" if twisting else "aerial"   # rueda sin manos: piernas abiertas
 		"cork":
 			return "cork"
 		"butterfly":
 			return "butterfly"
 		"kick":
 			return "kick"
+		"cartwheel", "roundoff", "bhs", "fhs":
+			return tr.style
 	return "back"
 
 const V0 := Vector3.ZERO
@@ -397,6 +401,27 @@ func _impulse_pose(kind: String, rs: float) -> Dictionary:
 				"elbow_l": Vector3(0.5, 0, 0), "elbow_r": Vector3(0.5, 0, 0),
 				"hip_l": Vector3(-0.85, 0, -0.2), "knee_l": Vector3(-0.15, 0, 0),
 				"hip_r": Vector3(0.3, 0, 0), "knee_r": Vector3(-0.3, 0, 0)}
+		"cartwheel", "roundoff":
+			# Zancada de entrada: pierna delantera flexionada, brazos arriba, tronco cayendo de lado
+			var lean := 0.35 if kind == "cartwheel" else 0.6
+			return {"spine": Vector3(-lean, 0, 0.35 * rs), "neck": Vector3(0.2, 0, 0.2 * rs),
+				"shoulder_l": Vector3(2.95, 0, -0.15), "shoulder_r": Vector3(2.95, 0, 0.15),
+				"elbow_l": Vector3(0.05, 0, 0), "elbow_r": Vector3(0.05, 0, 0),
+				"hip_r": Vector3(0.75, 0, 0), "knee_r": Vector3(-0.7, 0, 0),
+				"hip_l": Vector3(-0.45, 0, 0), "knee_l": Vector3(-0.05, 0, 0)}
+		"bhs":
+			# Flic-flac: tras sentarse, extensión explosiva con brazos atrás-arriba y cabeza atrás
+			return {"spine": Vector3(0.5, 0, 0), "neck": Vector3(0.6, 0, 0),
+				"shoulder_l": Vector3(3.05, 0, -0.2), "shoulder_r": Vector3(3.05, 0, 0.2),
+				"elbow_l": Vector3(0.05, 0, 0), "elbow_r": Vector3(0.05, 0, 0),
+				"hip_l": Vector3(-0.3, 0, 0), "hip_r": Vector3(-0.3, 0, 0), "knee_l": Vector3(-0.1, 0, 0), "knee_r": Vector3(-0.1, 0, 0)}
+		"fhs":
+			# Paloma: tronco lanzado adelante buscando el suelo con las manos, pierna de atrás pateando
+			return {"spine": Vector3(-0.75, 0, 0), "neck": Vector3(-0.15, 0, 0),
+				"shoulder_l": Vector3(2.9, 0, -0.15), "shoulder_r": Vector3(2.9, 0, 0.15),
+				"elbow_l": Vector3(0.05, 0, 0), "elbow_r": Vector3(0.05, 0, 0),
+				"hip_l": Vector3(-0.8, 0, 0), "knee_l": Vector3(-0.1, 0, 0),
+				"hip_r": Vector3(0.55, 0, 0), "knee_r": Vector3(-0.45, 0, 0)}
 	# Backflip: brazos arriba, pecho y cabeza atrás, piernas estiradas empujando el suelo
 	return {"spine": Vector3(0.3, 0, 0), "neck": Vector3(0.45, 0, 0),
 		"shoulder_l": Vector3(2.95, 0, -0.25), "shoulder_r": Vector3(2.95, 0, 0.25),
@@ -472,6 +497,35 @@ func _gather_pose(kind: String, rs: float, ph: float) -> Dictionary:
 				"knee_l": Vector3(-0.15 - 0.3 * maxf(0.0, -k), 0, 0), "knee_r": Vector3(-0.15 - 0.3 * maxf(0.0, k), 0, 0),
 				"shoulder_l": Vector3(1.35 + 0.35 * k, 0, -0.75), "shoulder_r": Vector3(1.35 - 0.35 * k, 0, 0.75),
 				"elbow_l": Vector3(1.1, 0, 0), "elbow_r": Vector3(1.1, 0, 0)}
+		"cartwheel":
+			# Rueda con apoyo: brazos estirados por encima de la cabeza (al suelo), cuerpo recto
+			# en el plano del giro, piernas en straddle amplio
+			return {"spine": Vector3(0.0, 0, 0), "neck": Vector3(0.3, 0, 0),
+				"shoulder_l": Vector3(3.05, 0, -0.2), "shoulder_r": Vector3(3.05, 0, 0.2),
+				"elbow_l": Vector3(0.05, 0, 0), "elbow_r": Vector3(0.05, 0, 0),
+				"hip_l": Vector3(0.05, 0, -1.15), "hip_r": Vector3(0.05, 0, 1.15),
+				"knee_l": Vector3(-0.05, 0, 0), "knee_r": Vector3(-0.05, 0, 0)}
+		"roundoff":
+			# Rondada: en la vertical las piernas se juntan y la cadera carpa para el golpe al suelo
+			return {"spine": Vector3(-0.35, 0, 0), "neck": Vector3(0.35, 0, 0),
+				"shoulder_l": Vector3(3.0, 0, -0.15), "shoulder_r": Vector3(3.0, 0, 0.15),
+				"elbow_l": Vector3(0.05, 0, 0), "elbow_r": Vector3(0.05, 0, 0),
+				"hip_l": Vector3(0.6, 0, -0.08), "hip_r": Vector3(0.6, 0, 0.08),
+				"knee_l": Vector3(-0.1, 0, 0), "knee_r": Vector3(-0.1, 0, 0)}
+		"bhs":
+			# Puente en el aire: espalda arqueada, cabeza atrás buscando las manos, piernas juntas
+			return {"spine": Vector3(0.75, 0, 0), "neck": Vector3(0.7, 0, 0),
+				"shoulder_l": Vector3(3.05, 0, -0.18), "shoulder_r": Vector3(3.05, 0, 0.18),
+				"elbow_l": Vector3(0.05, 0, 0), "elbow_r": Vector3(0.05, 0, 0),
+				"hip_l": Vector3(-0.45, 0, -0.04), "hip_r": Vector3(-0.45, 0, 0.04),
+				"knee_l": Vector3(-0.15, 0, 0), "knee_r": Vector3(-0.15, 0, 0)}
+		"fhs":
+			# Vuelo extendido y arqueado sobre las manos, piernas ligeramente separadas
+			return {"spine": Vector3(0.45, 0, 0), "neck": Vector3(0.6, 0, 0),
+				"shoulder_l": Vector3(3.05, 0, -0.18), "shoulder_r": Vector3(3.05, 0, 0.18),
+				"elbow_l": Vector3(0.05, 0, 0), "elbow_r": Vector3(0.05, 0, 0),
+				"hip_l": Vector3(-0.5, 0, 0), "hip_r": Vector3(-0.15, 0, 0),
+				"knee_l": Vector3(-0.1, 0, 0), "knee_r": Vector3(-0.15, 0, 0)}
 	# Backflip: rodillas al pecho, manos a las espinillas, cabeza neutra mirando atrás
 	return {"spine": Vector3(-0.6, 0, 0), "neck": Vector3(0.15, 0, 0),
 		"hip_l": Vector3(2.5, 0, -0.1), "hip_r": Vector3(2.45, 0, 0.1), "knee_l": Vector3(-2.6, 0, 0), "knee_r": Vector3(-2.55, 0, 0),
@@ -510,14 +564,14 @@ func _trick_pose(p: Dictionary, tr: TrickSystem) -> void:
 	var kind := trick_kind(tr)
 	var ax := tr.primary_axis()
 	var s: int = tr.dir.get(ax, 1)
-	var rs := float(tr.dir.get("roll", 0)) if kind in ["side", "aerial"] else float(tr.dir.get("twist", 0))
+	var rs := float(tr.dir.get("roll", 0)) if kind in ["side", "aerial", "cartwheel", "roundoff"] else float(tr.dir.get("twist", 0))
 	if rs == 0.0:
 		rs = float(tr.dir.get("spin", 1))
 	var period := tr.twist_period if ax == "twist" else TAU
 	var prog: float = absf(tr.total.get(ax, 0.0))
 	var goal_turns := maxi(int(tr.goal.get(ax, 1)), 1)
 	# Agrupación: empieza en cuanto termina el impulso; manteniendo el dedo es inmediata y más cerrada.
-	var early := kind in ["side", "back", "front", "gainer"]
+	var early := kind in ["side", "back", "front", "gainer", "cartwheel", "roundoff", "bhs", "fhs"]
 	var gather := _smooth((tr.air_time - (0.03 if early else 0.06)) / (0.07 if tr.tucked or early else 0.1))
 	# Apertura: al acercarse la última vuelta pedida (sin mantener) el cuerpo se alarga y frena.
 	var open := 0.0

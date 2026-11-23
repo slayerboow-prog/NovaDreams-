@@ -8,6 +8,7 @@ signal resume_requested
 signal restart_requested
 signal menu_requested
 signal extra_pressed
+signal respawn_requested
 
 var game: Node
 var touch: TouchControls
@@ -31,7 +32,26 @@ var trick_indicator: TrickIndicator
 var main_menu: Control
 var pause_menu: Control
 var settings_panel: Control
+var library_panel: Control
+var tutorial_label: Label
 var theme_res: Theme
+
+# Tutorial opcional (menú de pausa): cada paso avanza al detectar el movimiento real.
+const TUTORIAL := [
+	["Corre: inclina el joystick izquierdo (a fondo = sprint)", ["@run"]],
+	["Pulsa SALTO", ["@air"]],
+	["SALTO y joystick derecho ↓ = Backflip (más inclinado = más agrupado)", ["Backflip", "Gainer"]],
+	["SALTO y joystick derecho ↑ = Frontflip", ["Frontflip", "Webster"]],
+	["Joystick derecho ← o → en el suelo, sin SALTO = Cartwheel", ["Cartwheel"]],
+	["Joystick derecho ↓ en el suelo = Back Handspring", ["Back Handspring"]],
+	["Joystick derecho ↙ en el suelo y al caer SALTO + ↓ = Round-off → Backflip", ["@roundoff_back"]],
+	["Corre hacia un obstáculo y pulsa VAULT", ["@vault"]],
+	["Salta hacia un borde alto y pulsa AGARRAR", ["Ledge Grab", "Cat Leap", "Mantle"]],
+	["Pulsa RODAR justo antes de caer desde alto (o corriendo)", ["Safety Roll", "Roll"]],
+]
+var tutorial_step := -1
+var _last_move := ""
+var _last_move_t := 0.0
 
 var _landing_time := 0.0
 
@@ -49,6 +69,7 @@ func setup(g: Node) -> void:
 	_build_main_menu()
 	_build_pause()
 	_build_settings()
+	_build_library()
 	_build_rotate_overlay()
 	Settings.changed.connect(_apply_settings)
 	_apply_settings()
@@ -157,6 +178,14 @@ func _build_hud() -> void:
 	landing_label.position.y += 60
 	landing_label.grow_horizontal = Control.GROW_DIRECTION_BOTH
 	hud.add_child(landing_label)
+	tutorial_label = _label("", 24, Color(1, 0.92, 0.55), HORIZONTAL_ALIGNMENT_CENTER)
+	tutorial_label.set_anchors_preset(Control.PRESET_CENTER_TOP)
+	tutorial_label.grow_horizontal = Control.GROW_DIRECTION_BOTH
+	tutorial_label.position.y = 118
+	tutorial_label.add_theme_color_override("font_outline_color", Color.BLACK)
+	tutorial_label.add_theme_constant_override("outline_size", 7)
+	tutorial_label.visible = false
+	hud.add_child(tutorial_label)
 
 	popups = VBoxContainer.new()
 	popups.set_anchors_preset(Control.PRESET_CENTER)
@@ -226,6 +255,8 @@ func update_hud(combo: ComboSystem, player: PlayerController, mode_status: Strin
 	fps_label.visible = Settings.show_fps
 	fps_label.text = "%d FPS" % Engine.get_frames_per_second()
 	touch.context_label = player.context_hint
+	touch.grab_label = "SOLTAR" if player.state == PlayerController.State.HANG else "AGARRAR"
+	_tutorial_tick(player)
 	help_label.visible = not touch.visible
 	extra_btn.visible = extra != ""
 	extra_btn.text = extra
@@ -298,10 +329,84 @@ func _build_pause() -> void:
 	var box: VBoxContainer = r[1]
 	box.add_child(_label("PAUSA", 44, ACCENT, HORIZONTAL_ALIGNMENT_CENTER))
 	box.add_child(_button("Continuar", func(): resume_requested.emit()))
+	box.add_child(_button("Reaparecer", func(): respawn_requested.emit()))
 	box.add_child(_button("Reiniciar", func(): restart_requested.emit()))
+	box.add_child(_button("Movimientos", func(): open_library()))
+	box.add_child(_button("Tutorial de controles", func(): start_tutorial()))
 	box.add_child(_button("Ajustes", func(): open_settings()))
 	box.add_child(_button("Menú principal", func(): menu_requested.emit()))
 	pause_menu.visible = false
+
+## Biblioteca de movimientos: solo en el menú, nunca ocupa la pantalla de juego.
+func _build_library() -> void:
+	var r := _centered_panel()
+	library_panel = r[0]
+	var box: VBoxContainer = r[1]
+	box.add_child(_label("MOVIMIENTOS", 36, ACCENT, HORIZONTAL_ALIGNMENT_CENTER))
+	var scroll := ScrollContainer.new()
+	scroll.custom_minimum_size = Vector2(1000, 500)
+	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	box.add_child(scroll)
+	var text := RichTextLabel.new()
+	text.bbcode_enabled = true
+	text.fit_content = true
+	text.custom_minimum_size = Vector2(980, 0)
+	text.add_theme_font_size_override("normal_font_size", 19)
+	text.add_theme_font_size_override("bold_font_size", 20)
+	text.text = MoveLibrary.bbcode()
+	scroll.add_child(text)
+	box.add_child(_button("Volver", func(): library_panel.visible = false))
+	library_panel.visible = false
+
+func open_library() -> void:
+	library_panel.visible = true
+
+func start_tutorial() -> void:
+	tutorial_step = 0
+	var p: PlayerController = game.player
+	if not p.move_performed.is_connected(_on_tutorial_move):
+		p.move_performed.connect(_on_tutorial_move)
+	resume_requested.emit()
+	_refresh_tutorial()
+
+func _refresh_tutorial() -> void:
+	if tutorial_label == null:
+		return
+	tutorial_label.visible = tutorial_step >= 0
+	if tutorial_step >= 0:
+		tutorial_label.text = "TUTORIAL %d/%d   %s" % [tutorial_step + 1, TUTORIAL.size(), TUTORIAL[tutorial_step][0]]
+
+func _tutorial_advance() -> void:
+	tutorial_step += 1
+	if tutorial_step >= TUTORIAL.size():
+		tutorial_step = -1
+		popup("¡Tutorial completado! Biblioteca completa en Pausa → Movimientos", ACCENT)
+	else:
+		popup("¡Bien!", ACCENT)
+	_refresh_tutorial()
+
+func _on_tutorial_move(move_name: String, _q: float, _i: Dictionary) -> void:
+	var prev := _last_move
+	var recent := Time.get_ticks_msec() / 1000.0 - _last_move_t < 2.0
+	_last_move = move_name
+	_last_move_t = Time.get_ticks_msec() / 1000.0
+	if tutorial_step < 0:
+		return
+	var want: Array = TUTORIAL[tutorial_step][1]
+	var ok := want.has(move_name)
+	if want.has("@vault") and (move_name.contains("Vault") or move_name.contains("Kong")):
+		ok = true
+	if want.has("@roundoff_back") and move_name in ["Backflip", "Gainer"] and prev == "Round-off" and recent:
+		ok = true
+	if ok:
+		_tutorial_advance()
+
+func _tutorial_tick(player: PlayerController) -> void:
+	if tutorial_step < 0:
+		return
+	var want: Array = TUTORIAL[tutorial_step][1]
+	if (want.has("@run") and player.speed() > 5.0) or (want.has("@air") and player.state == PlayerController.State.AIR):
+		_tutorial_advance()
 
 func _slider(box: VBoxContainer, text: String, key: String, mn: float, mx: float, step: float) -> void:
 	var row := HBoxContainer.new()
@@ -350,10 +455,10 @@ func _build_settings() -> void:
 	var box: VBoxContainer = r[1]
 	box.add_child(_label("AJUSTES", 40, ACCENT, HORIZONTAL_ALIGNMENT_CENTER))
 	_option(box, "Ayuda de rotación", "rotation_assist", ["Pro (sin ayudas)", "Media", "Alta"])
-	_option(box, "Controles de trucos", "trick_controls", ["Gestos + cruceta", "Solo gestos", "Solo cruceta"])
+	_option(box, "Controles de trucos", "trick_controls", ["Doble joystick", "Solo gestos", "Solo cruceta", "Gestos + cruceta"])
 	_option(box, "Gráficos", "graphics_preset", ["Bajo", "Medio", "Alto"])
 	_slider(box, "Sensibilidad cámara", "camera_sensitivity", 0.3, 2.5, 0.05)
-	_slider(box, "Sensibilidad gestos", "gesture_sensitivity", 0.4, 2.0, 0.05)
+	_slider(box, "Sensibilidad joystick/gestos", "gesture_sensitivity", 0.4, 2.0, 0.05)
 	_slider(box, "Tamaño controles", "control_scale", 0.7, 1.4, 0.05)
 	_slider(box, "Distancia cámara", "camera_distance", 0.75, 1.4, 0.05)
 	_slider(box, "Opacidad controles", "control_opacity", 0.2, 1.0, 0.05)

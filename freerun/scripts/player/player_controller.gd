@@ -53,6 +53,11 @@ var jump_load_kind := "stand"
 var land_quality := ""                  # último aterrizaje (para la animación de recepción)
 var land_timer := 9.0                   # tiempo desde el último aterrizaje
 var context_hint := ""                  # texto del botón contextual
+var vault_buffer := 0.0                 # botón VAULT pulsado hace poco
+var grab_buffer := 0.0                  # botón AGARRAR pulsado hace poco
+var ground_pending := 0.12              # espera breve: joystick derecho en el suelo sin SALTO
+var ground_wait := 0.0                  # = movimiento de suelo (rueda, rondada, flic-flac...)
+var roundoff_timer := 0.0               # rebote tras una rondada: el siguiente salto sale más alto
 
 # Datos de la acción en curso
 var vault := {}
@@ -101,6 +106,8 @@ func respawn() -> void:
 	tricks.reset()
 	stun = 0.0
 	jump_load = 0.0
+	ground_wait = 0.0
+	roundoff_timer = 0.0
 	_set_state(State.AIR)
 	air_kind = "fall"
 	reset_physics_interpolation()
@@ -135,13 +142,20 @@ func _turn_facing(dir: Vector3, rate: float, dt: float) -> void:
 func _emit_move(name: String, quality := 1.0, info := {}) -> void:
 	move_performed.emit(name, quality, info)
 
+## Gravedad en el aire. Durante una acrobacia el atleta "flota" algo más (impulso explosivo
+## de piernas y brazos): da tiempo a ver cada fase sin acelerar ni ralentizar el giro.
+func _air_gravity_base() -> float:
+	if tricks.active and state == State.AIR:
+		return t.gravity * t.trick_gravity_mult
+	return t.gravity
+
 func time_to_ground() -> float:
 	var gy := sensor.ground_below(global_position)
 	var h := global_position.y - gy
 	if gy == -INF or h > 60.0:
 		return 1.2
 	var vy := velocity.y
-	var g := t.gravity
+	var g := _air_gravity_base()
 	var disc := vy * vy + 2.0 * g * maxf(h, 0.0)
 	return (vy + sqrt(disc)) / g
 
@@ -164,6 +178,11 @@ func _physics_process(dt: float) -> void:
 	else:
 		flick_timer = maxf(0.0, flick_timer - dt)
 	kick_timer = 0.25 if intent.kick else maxf(0.0, kick_timer - dt)
+	vault_buffer = 0.3 if intent.vault_pressed else maxf(0.0, vault_buffer - dt)
+	grab_buffer = 0.3 if intent.grab_pressed else maxf(0.0, grab_buffer - dt)
+	roundoff_timer = maxf(0.0, roundoff_timer - dt)
+	if intent.flick != Vector2.ZERO and state == State.GROUND and jump_load <= 0.0 and jump_buffer <= 0.0:
+		ground_wait = ground_pending
 	if intent.respawn_pressed:
 		respawn()
 		return
@@ -230,6 +249,23 @@ func _state_ground(dt: float) -> void:
 			_takeoff(jump_load_kind)
 			return
 	elif stun <= 0.0:
+		# VAULT: supera el obstáculo con la técnica viable (variante = dirección del joystick derecho);
+		# si es una pared alta, trepa. AGARRAR junto a una pared: escalada.
+		if vault_buffer > 0.0 and (_try_vault() or _try_wall_climb()):
+			vault_buffer = 0.0
+			ground_wait = 0.0
+			return
+		if grab_buffer > 0.0 and _try_wall_climb():
+			grab_buffer = 0.0
+			return
+		if ground_wait > 0.0:
+			if jump_buffer > 0.0 or vault_buffer > 0.0:
+				ground_wait = 0.0          # con SALTO el truco sale en el despegue
+			else:
+				ground_wait -= dt
+				if ground_wait <= 0.0 and intent.rot.length() > 0.5 and not _obstacle_ahead():
+					_ground_move(TouchControls.sector_of(intent.rot))
+					return
 		if jump_buffer > 0.0:
 			jump_buffer = 0.0
 			if _try_vault():
@@ -260,10 +296,33 @@ func _takeoff(kind: String) -> void:
 	# Gesto hecho justo antes de saltar (o durante la flexión): el mortal arranca en el despegue.
 	if flick_timer > 0.0:
 		tricks.apply_flick(flick_buffer)
+	elif intent.rot.length() > 0.55:
+		# Joystick derecho ya inclinado al pulsar SALTO: el mortal sale en el despegue
+		tricks.apply_flick(TouchControls.sector_dir(TouchControls.sector_of(intent.rot)))
 	if kick_timer > 0.0:
 		tricks.apply_kick(_kick_dir())
 	flick_timer = 0.0
 	kick_timer = 0.0
+
+## Cuánto empuja el jugador la rotación (0..1), o -1 si tira en contra para abrirse y frenar.
+## AGRUPAR (o el dedo en SALTO) = agrupado total; el joystick derecho es analógico:
+## inclinarlo hacia el sentido del giro agrupa poco a poco, soltarlo abre, en contra frena.
+func trick_push() -> float:
+	var p := 1.0 if intent.tuck else 0.0
+	var r := intent.rot
+	if not tricks.active or r.length() < 0.25:
+		return p
+	var along := 0.0
+	match tricks.primary_axis():
+		"pitch": along = -r.y * tricks.dir.pitch
+		"roll": along = r.x * tricks.dir.roll
+		"spin": along = r.length()
+		"twist": along = absf(r.x)
+	if along > 0.3:
+		p = maxf(p, clampf((along - 0.3) / 0.55, 0.0, 1.0))
+	elif along < -0.45 and p < 0.5:
+		p = -1.0
+	return p
 
 ## Sentido del giro: hacia donde empuja el joystick (por defecto, a la izquierda).
 func _kick_dir() -> int:
@@ -272,7 +331,13 @@ func _kick_dir() -> int:
 func _do_jump(kind: String) -> void:
 	var spd := speed()
 	velocity.y = t.jump_velocity + spd * t.jump_speed_bonus
+	var rebound := roundoff_timer > 0.0
+	if rebound:
+		velocity.y *= 1.15                 # rebote de la rondada: más altura para el mortal
+		roundoff_timer = 0.0
 	_enter_air(kind)
+	if rebound:
+		tricks.takeoff_detail = "roundoff"
 	move_and_slide()
 
 func _enter_air(kind: String) -> void:
@@ -298,8 +363,8 @@ func _state_air(dt: float) -> void:
 		hv = hv.limit_length(max_s)
 	velocity.x = hv.x
 	velocity.z = hv.z
-	var g := t.gravity
-	if velocity.y > 0.0 and not intent.jump_held and not tricks.active and air_kind in ["run", "stand"]:
+	var g := _air_gravity_base()
+	if velocity.y > 0.0 and not intent.jump_held and intent.rot.length() < 0.3 and not tricks.active and air_kind in ["run", "stand"]:
 		g *= t.low_jump_mult
 	velocity.y = maxf(velocity.y - g * dt, -t.max_fall)
 	peak_y = maxf(peak_y, global_position.y)
@@ -308,10 +373,20 @@ func _state_air(dt: float) -> void:
 		tricks.apply_flick(intent.flick)
 	if intent.kick:
 		tricks.apply_kick(_kick_dir())
-	tricks.step(dt, intent.tuck, time_to_ground(), Settings.assist_strength(), t)
+	tricks.step(dt, trick_push(), time_to_ground(), Settings.assist_strength(), t)
 	if not tricks.active and hv.length() > 1.0:
 		_turn_facing(hv, 4.0, dt)
 
+	# AGARRAR / VAULT en el aire: agarrar el borde (o subirlo) aunque vengas de un giro,
+	# si el cuerpo ya está casi vertical; si no hay borde, agarrarse a la pared.
+	if (grab_buffer > 0.0 or vault_buffer > 0.0) and tricks.upright_error() < deg_to_rad(70.0):
+		if _try_ledge():
+			grab_buffer = 0.0
+			vault_buffer = 0.0
+			return
+		if grab_buffer > 0.0 and _try_wall_climb():
+			grab_buffer = 0.0
+			return
 	var upright := tricks.upright_error() < deg_to_rad(45.0)
 	if upright and not tricks.has_rotation():
 		if _try_ledge():
@@ -379,6 +454,8 @@ func _land() -> void:
 	land_timer = 0.0
 	if not trick.is_empty():
 		_emit_move(trick.name, qmult, trick)
+	if tricks.takeoff_kind in ["roundoff", "bhs"] and quality != "sloppy":
+		roundoff_timer = 0.45              # rondada / flic-flac: enlace con rebote
 	tricks.reset()
 	land_impact = clampf(impact / 12.0, 0.3, 1.0)
 	landed.emit(result)
@@ -452,8 +529,9 @@ func _try_vault() -> bool:
 	# Variantes elegidas con un gesto justo antes del vault (SALTO + deslizar o cruceta):
 	#   lateral = Reverse Vault (giro de 360 sobre el obstáculo)
 	#   arriba en caja de kong = Double Kong · abajo en caja de kong = Kash Vault
-	if flick_timer > 0.0 and not info.mount:
-		var sec := TouchControls.sector_of(flick_buffer)
+	var vdir := flick_buffer if flick_timer > 0.0 else (intent.rot if intent.rot.length() > 0.55 else Vector2.ZERO)
+	if vdir != Vector2.ZERO and not info.mount:
+		var sec := TouchControls.sector_of(vdir)
 		if sec in [0, 4]:
 			kind = "Reverse Vault"
 			speed_mult = 0.92
@@ -488,6 +566,59 @@ func _try_vault() -> bool:
 	_set_state(State.VAULT)
 	_emit_move(kind, timing, {"timing": timing, "height": h})
 	return true
+
+## Hay un obstáculo saltable justo delante: el joystick derecho elige la variante del vault
+## en vez de hacer un movimiento de suelo.
+func _obstacle_ahead() -> bool:
+	var hv := horizontal_velocity()
+	var spd := hv.length()
+	if spd < t.vault_min_speed:
+		return false
+	return not sensor.probe_vault(global_position, hv / spd, spd, t.vault_max_height, t.vault_min_height).is_empty()
+
+## Tricking de suelo con el joystick derecho (sin SALTO). Cada movimiento tiene su impulso,
+## trayectoria y forma corporal (BodyRig): no es un salto genérico con otra rotación.
+##   ← →  Cartwheel (rueda: manos al suelo, piernas abiertas, avanza de lado)
+##   ↙ ↘  Round-off (rondada: rueda con media vuelta, cae mirando atrás y rebota)
+##   ↓    Back Handspring (flic-flac: brazos atrás-arriba, cuerpo arqueado, viaja hacia atrás)
+##   ↑    Front Handspring (paloma: manos delante, cuerpo extendido, viaja hacia delante)
+##   ↗    360 Kick / Tornado Kick · ↖ Aerial (parado) / Butterfly Kick (con carrera)
+func _ground_move(sec: int) -> void:
+	var hv := horizontal_velocity()
+	var spd := hv.length()
+	var fwd := facing
+	var right := fwd.cross(Vector3.UP).normalized()
+	ground_wait = 0.0
+	flick_timer = 0.0
+	match sec:
+		0, 4:
+			var side := 1 if sec == 0 else -1
+			_ground_hop("cartwheel", hv * 0.45 + right * side * 2.6, 6.2)
+			tricks.start_ground("cartwheel", side)
+		-1, -3:
+			var side := 1 if sec == -1 else -1
+			_ground_hop("roundoff", fwd * maxf(spd * 0.9, 3.2), 6.3)
+			tricks.start_ground("roundoff", side)
+		-2:
+			_ground_hop("bhs", hv * 0.2 - fwd * 3.6, 6.0)
+			tricks.start_ground("bhs", 1)
+		2:
+			_ground_hop("fhs", fwd * maxf(spd, 3.8), 6.0)
+			tricks.start_ground("fhs", 1)
+		1:
+			jump_load = 0.0
+			_do_jump("run" if spd > 3.0 else "stand")
+			tricks.apply_kick(_kick_dir())
+		3:
+			jump_load = 0.0
+			_do_jump("run" if spd > 3.0 else "stand")
+			tricks.apply_flick(Vector2(-0.7, 0.7))
+
+func _ground_hop(kind: String, hvel: Vector3, vy: float) -> void:
+	jump_load = 0.0
+	velocity = Vector3(hvel.x, vy, hvel.z)
+	_enter_air(kind)
+	move_and_slide()
 
 func _vault_point(s: float) -> Vector3:
 	var p0: Vector3 = vault.p0
@@ -767,7 +898,7 @@ func _state_hang(dt: float) -> void:
 			ledge_cooldown = 0.25
 			_enter_air("ledge")
 		return
-	if intent.action_pressed or (wish.dot(n) > 0.8 and intent.move.length() > 0.95 and state_time > 0.4):
+	if intent.action_pressed or intent.grab_pressed or (wish.dot(n) > 0.8 and intent.move.length() > 0.95 and state_time > 0.4):
 		ledge_cooldown = 0.5
 		velocity = n * 1.0
 		_enter_air("fall")
@@ -837,6 +968,13 @@ func _state_crash(dt: float) -> void:
 	velocity.z = hv.z
 	velocity.y = maxf(velocity.y - t.gravity * dt, -t.max_fall)
 	move_and_slide()
+	# Kip-up: desde el suelo, SALTO = levantarse de un golpe de riñones (sin esperar)
+	if state_time > 0.3 and is_on_floor() and jump_buffer > 0.0:
+		jump_buffer = 0.0
+		velocity = Vector3(facing.x * 0.6, 5.0, facing.z * 0.6)
+		_enter_air("kipup")
+		_emit_move("Kip-up", 1.0, {})
+		return
 	if state_time > t.crash_time and is_on_floor():
 		velocity = Vector3.ZERO
 		_set_state(State.GROUND)
