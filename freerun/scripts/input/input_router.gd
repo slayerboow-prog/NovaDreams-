@@ -1,0 +1,132 @@
+class_name InputRouter
+extends Node
+## Combina teclado, ratón, mando y controles táctiles en un InputIntent por frame de física.
+## Se ejecuta antes que el jugador (process_physics_priority negativo).
+## Los tests asignan `scripted` para controlar al personaje con un bot.
+
+var intent := InputIntent.new()
+var touch: TouchControls
+var scripted: Callable          # func(intent: InputIntent, frame: int) -> void
+var frame := 0
+var enabled := true
+
+var _mouse_delta := Vector2.ZERO
+var _prev_pad_trick := Vector2.ZERO
+
+func _ready() -> void:
+	process_physics_priority = -100
+	_setup_actions()
+
+static func _add_key(action: String, keys: Array, pad_buttons: Array = []) -> void:
+	if not InputMap.has_action(action):
+		InputMap.add_action(action, 0.2)
+	for k in keys:
+		var e := InputEventKey.new()
+		e.physical_keycode = k
+		InputMap.action_add_event(action, e)
+	for b in pad_buttons:
+		var j := InputEventJoypadButton.new()
+		j.button_index = b
+		InputMap.action_add_event(action, j)
+
+static func _add_axis(action: String, axis: int, value: float) -> void:
+	var j := InputEventJoypadMotion.new()
+	j.axis = axis
+	j.axis_value = value
+	InputMap.action_add_event(action, j)
+
+func _setup_actions() -> void:
+	if InputMap.has_action("move_forward"):
+		return
+	_add_key("move_forward", [KEY_W])
+	_add_key("move_back", [KEY_S])
+	_add_key("move_left", [KEY_A])
+	_add_key("move_right", [KEY_D])
+	_add_axis("move_forward", JOY_AXIS_LEFT_Y, -1.0)
+	_add_axis("move_back", JOY_AXIS_LEFT_Y, 1.0)
+	_add_axis("move_left", JOY_AXIS_LEFT_X, -1.0)
+	_add_axis("move_right", JOY_AXIS_LEFT_X, 1.0)
+	_add_key("sprint", [KEY_SHIFT], [JOY_BUTTON_LEFT_STICK])
+	_add_key("jump", [KEY_SPACE], [JOY_BUTTON_A])
+	_add_key("action", [KEY_CTRL, KEY_C, KEY_F], [JOY_BUTTON_B])
+	_add_key("trick_up", [KEY_UP, KEY_I], [JOY_BUTTON_Y])
+	_add_key("trick_down", [KEY_DOWN, KEY_K], [JOY_BUTTON_X])
+	_add_key("trick_left", [KEY_LEFT, KEY_J], [JOY_BUTTON_LEFT_SHOULDER])
+	_add_key("trick_right", [KEY_RIGHT, KEY_L], [JOY_BUTTON_RIGHT_SHOULDER])
+	_add_key("cam_left", [KEY_Q])
+	_add_key("cam_right", [KEY_E])
+	_add_key("respawn", [KEY_R], [JOY_BUTTON_BACK])
+	_add_axis("cam_left", JOY_AXIS_RIGHT_X, -1.0)
+	_add_axis("cam_right", JOY_AXIS_RIGHT_X, 1.0)
+	_add_key("cam_up", [])
+	_add_key("cam_down", [])
+	_add_axis("cam_up", JOY_AXIS_RIGHT_Y, -1.0)
+	_add_axis("cam_down", JOY_AXIS_RIGHT_Y, 1.0)
+
+func _unhandled_input(event: InputEvent) -> void:
+	if event is InputEventMouseMotion and Input.mouse_mode == Input.MOUSE_MODE_CAPTURED:
+		_mouse_delta += event.relative
+	elif event is InputEventMouseButton and event.pressed and not _touch_active():
+		if Input.mouse_mode != Input.MOUSE_MODE_CAPTURED and not DisplayServer.get_name() == "headless":
+			Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
+	elif event is InputEventKey and event.pressed and event.physical_keycode == KEY_ESCAPE:
+		Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
+
+func _touch_active() -> bool:
+	return touch != null and touch.visible
+
+func _physics_process(_dt: float) -> void:
+	frame += 1
+	intent.clear_edges()
+	if scripted.is_valid():
+		scripted.call(intent, frame)
+		return
+	if not enabled:
+		intent.move = Vector2.ZERO
+		intent.jump_held = false
+		intent.tuck = false
+		intent.action_held = false
+		_mouse_delta = Vector2.ZERO
+		return
+
+	# --- Teclado / mando ---
+	var mv := Input.get_vector("move_left", "move_right", "move_back", "move_forward")
+	intent.sprint = Input.is_action_pressed("sprint")
+	intent.jump_pressed = Input.is_action_just_pressed("jump")
+	intent.jump_held = Input.is_action_pressed("jump")
+	intent.action_pressed = Input.is_action_just_pressed("action")
+	intent.action_held = Input.is_action_pressed("action")
+	intent.respawn_pressed = Input.is_action_just_pressed("respawn")
+
+	var trick_vec := Vector2(
+		Input.get_action_strength("trick_right") - Input.get_action_strength("trick_left"),
+		Input.get_action_strength("trick_up") - Input.get_action_strength("trick_down"))
+	var any_trick_pressed := Input.is_action_just_pressed("trick_up") or Input.is_action_just_pressed("trick_down") \
+		or Input.is_action_just_pressed("trick_left") or Input.is_action_just_pressed("trick_right")
+	if any_trick_pressed and trick_vec.length() > 0.1:
+		intent.flick = trick_vec.normalized()
+	intent.tuck = trick_vec.length() > 0.1
+
+	var sens := Settings.camera_sensitivity
+	var cam := _mouse_delta * 0.0032 * sens
+	_mouse_delta = Vector2.ZERO
+	var pad_cam := Vector2(Input.get_action_strength("cam_right") - Input.get_action_strength("cam_left"),
+		Input.get_action_strength("cam_down") - Input.get_action_strength("cam_up"))
+	cam += pad_cam * 0.045 * sens
+	intent.camera_delta = cam
+
+	# --- Táctil ---
+	if touch and touch.visible:
+		var t := touch.collect()
+		if t.move.length() > 0.01:
+			mv = t.move
+		intent.jump_pressed = intent.jump_pressed or t.jump_pressed
+		intent.jump_held = intent.jump_held or t.jump_held
+		intent.action_pressed = intent.action_pressed or t.action_pressed
+		intent.action_held = intent.action_held or t.action_held
+		if t.flick != Vector2.ZERO:
+			intent.flick = t.flick
+		intent.tuck = intent.tuck or t.tuck
+		intent.camera_delta += t.camera_delta
+		intent.respawn_pressed = intent.respawn_pressed or t.respawn_pressed
+	intent.move = mv.limit_length(1.0)
