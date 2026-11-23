@@ -9,6 +9,7 @@ config/name="Project Freerun"
 config/description="Parkour, freerunning, tricking y water tricks para móvil."
 run/main_scene="res://scenes/main.tscn"
 config/features=PackedStringArray("4.4", "GL Compatibility")
+config/icon="res://icon.svg"
 run/max_fps=60
 boot_splash/bg_color=Color(0.08, 0.09, 0.12, 1)
 
