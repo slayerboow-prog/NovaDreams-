@@ -19,7 +19,7 @@ Atajos: `godot --path freerun -- --mode=freerun` salta el menú (`tricking`, `wa
 **Móvil (iPhone / Android) — Doble joystick (por defecto)**: dos joysticks y solo cuatro botones (SALTO, VAULT, AGARRAR, RODAR). No hay un botón por truco: los trucos salen del joystick derecho según el contexto.
 - **Joystick izquierdo** (abajo a la izquierda): moverse de forma analógica; cuanto más lo inclinas, más rápido; a fondo = sprint.
 - **SALTO** (grande, encima del joystick derecho): saltar e impulsarse. Mantenerlo junto a una pared = Wall Run; en el aire junto a una pared = Tic Tac.
-- **VAULT**: supera el obstáculo con la técnica viable según velocidad, ángulo y forma (Step, Speed, Lazy, Kong, Dash, Step Up). Con el joystick derecho inclinado elige variante: ← → Reverse Vault, ↑ Double Kong, ↓ Kash Vault. Ante una pared alta, trepa.
+- **VAULT**: supera el obstáculo con la técnica viable según velocidad, ángulo y forma (Step, Speed, Lazy, Kong, Dash, Step Up). Con el joystick derecho inclinado elige variante: ← → Reverse Vault, ↑ Double Kong, ↓ Kash Vault, ↖ ↗ Thief Vault (paso de ladrón: obstáculo estrecho y con carrera, piernas primero), ↙ ↘ Turn Vault (paso con giro: media vuelta sobre las manos, cae frenado de cara al obstáculo). Si el obstáculo no permite la variante (p. ej. Thief en una caja profunda), hace la técnica normal. Ante una pared alta, trepa.
 - **AGARRAR**: junto a una pared alta, trepar; en el aire, agarrar el borde (aunque vengas de un giro, si ya estás casi vertical); colgado se convierte en **SOLTAR**.
 - **RODAR**: Parkour Roll corriendo; justo antes de caer desde alto, Safety Roll.
 - **Joystick derecho** (abajo, a la derecha del centro):
@@ -88,7 +88,7 @@ En el juego los nombres se muestran en español (Mortal atrás, Rondada, Flic-fl
 
 `scripts/core/move_library.gd` (en el juego: Pausa → Movimientos) cataloga 102 técnicas en 17 categorías: vaults, precision, paredes, escalada, barras, rolls, mortales, laterales, aerials y websters, gainers, corks, butterfly y patadas, handsprings, ruedas y rondadas, suelo, combos y avanzados.
 
-- **Estado**: 61 hechas (impulso, trayectoria y postura propias, con prueba), 14 parciales (se reconocen y rotan bien, pero comparten postura con su familia) y 27 pendientes (cada una con el motivo; las de barra necesitan barras en el mapa).
+- **Estado**: 63 hechas (impulso, trayectoria y postura propias, con prueba), 14 parciales (se reconocen y rotan bien, pero comparten postura con su familia) y 25 pendientes (cada una con el motivo; las de barra necesitan barras en el mapa).
 - **Validación en 5 niveles** (no se confunden): 1 documentado · 2 implementado · 3 probado técnicamente · 4 inspeccionado visualmente · 5 validado en móvil. Ninguno está en 5 hasta que se confirme en un iPhone.
 - **Fuentes**: nombres, variantes y niveles de [pkfr.world/tutorials](https://pkfr.world/tutorials/) y [trickipedia.app](https://www.trickipedia.app/). Ninguna describe la técnica en texto y sus vídeos no se han podido ver, así que la biomecánica del juego se basa en la técnica deportiva estándar.
 

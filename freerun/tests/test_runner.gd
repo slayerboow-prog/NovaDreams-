@@ -944,6 +944,42 @@ func t_new_tricks() -> void:
 
 ## Variantes de vault elegidas con gesto justo antes de saltar.
 func t_vault_variants() -> void:
+	# VAULT + joystick derecho en diagonal: paso de ladrón (↗) y paso con giro (↙)
+	for v in [[Vector2(0.7, 0.7), "Thief Vault"], [Vector2(-0.7, -0.7), "Turn Vault"]]:
+		await place(Vector3(0, 0.1, 2), Vector3.FORWARD)
+		var st := {"pressed": false, "peak": -INF, "vault_t": 0.0}
+		var rv: Vector2 = v[0]
+		var keep_running: bool = v[1] == "Thief Vault"
+		await run(func(i, f):
+			# En el paso con giro el jugador suelta el joystick al acabar (queda de cara al obstáculo)
+			i.move = Vector2(0, 0.8) if keep_running or st.vault_t == 0.0 or player.state == PlayerController.State.VAULT else Vector2.ZERO
+			var go: bool = not st.pressed and player.global_position.z <= -4.85
+			i.rot = rv if player.global_position.z <= -4.0 and not st.pressed else Vector2.ZERO
+			i.vault_pressed = go
+			st.pressed = st.pressed or go
+			if player.state == PlayerController.State.VAULT:
+				st.peak = maxf(st.peak, player.global_position.y)
+				st.vault_t += 1.0 / 60.0, 200,
+			func(): return st.pressed and player.state == PlayerController.State.GROUND and player.state_time > 0.15)
+		var nm: String = v[1]
+		check("%s: VAULT + joystick derecho en diagonal, lo supera" % nm, nm in moves and player.global_position.z < -6.0, "%s z %.2f" % [str(moves), player.global_position.z])
+		if nm == "Thief Vault":
+			check("Thief Vault: trayectoria rasante y conserva la carrera", st.peak < 1.25 and player.speed() > 3.5, "pico %.2f vel %.2f" % [st.peak, player.speed()])
+		else:
+			var to_wall := player.facing.dot(Vector3.BACK)
+			check("Turn Vault: más lento, cae frenado y mirando al obstáculo", st.vault_t > 0.45 and player.speed() < 1.0 and to_wall > 0.9,
+				"duración %.2f vel %.2f mira %.2f" % [st.vault_t, player.speed(), to_wall])
+	# Thief en caja profunda no es viable: hace la técnica normal
+	await place(Vector3(0, 0.1, -8), Vector3.FORWARD)
+	var st2 := {"pressed": false}
+	await run(func(i, f):
+		i.move = Vector2(0, 1); i.sprint = true
+		var go: bool = not st2.pressed and player.global_position.z <= -12.9
+		i.rot = Vector2(0.7, 0.7) if player.global_position.z <= -12.0 and not st2.pressed else Vector2.ZERO
+		i.vault_pressed = go
+		st2.pressed = st2.pressed or go, 200,
+		func(): return st2.pressed and player.state == PlayerController.State.GROUND and player.global_position.z < -15.0)
+	check("Thief Vault: no se fuerza en un obstáculo profundo (sale Kong)", not "Thief Vault" in moves and "Kong Vault" in moves, str(moves))
 	for v in [[Vector2(1, 0), "Reverse Vault", Vector3(0, 0.1, 2), 0.8, false, -4.85, -6.5],
 			[Vector2(0, 1), "Double Kong", Vector3(0, 0.1, -8), 1.0, true, -12.9, -15.0],
 			[Vector2(0, -1), "Kash Vault", Vector3(0, 0.1, -8), 1.0, true, -12.9, -15.0]]:

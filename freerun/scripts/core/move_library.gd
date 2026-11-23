@@ -32,8 +32,8 @@ const MOVES := [
 	{"name": "Kash Vault", "cat": "Vaults", "lvl": 1, "input": "VAULT + JD ↓ en caja de kong (Kong + Dash)", "status": "ok"},
 	{"name": "Reverse Vault / 360 Vault", "cat": "Vaults", "lvl": 2, "input": "VAULT + JD ← o →", "status": "ok"},
 	{"name": "Step Up", "cat": "Vaults", "lvl": 1, "input": "VAULT ante un muro bajo para subirlo", "status": "ok"},
-	{"name": "Thief Vault", "cat": "Vaults", "lvl": 1, "input": "-", "status": "pendiente", "note": "falta postura propia (pies primero, una mano)"},
-	{"name": "Turn Vault", "cat": "Vaults", "lvl": 1, "input": "-", "status": "pendiente", "note": "necesita quedarse colgado al otro lado del obstáculo"},
+	{"name": "Thief Vault", "cat": "Vaults", "lvl": 1, "input": "VAULT + JD ↖ o ↗ (obstáculo estrecho y con carrera; piernas primero, una mano detrás)", "status": "ok"},
+	{"name": "Turn Vault", "cat": "Vaults", "lvl": 1, "input": "VAULT + JD ↙ o ↘ (dos manos, media vuelta; cae frenado y de cara al obstáculo, sin quedarse colgado)", "status": "ok"},
 	{"name": "Gate Vault", "cat": "Vaults", "lvl": 1, "input": "-", "status": "pendiente", "note": "pendiente de postura propia"},
 	{"name": "Dive Kong", "cat": "Vaults", "lvl": 2, "input": "-", "status": "pendiente", "note": "pendiente de trayectoria con vuelo previo"},
 	# --- Precision ---
@@ -151,7 +151,7 @@ const LEVELS := ["", "Documentado", "Implementado", "Probado técnicamente", "In
 ## Revisados en capturas/vídeo de la partida (fotogramas de las fases del movimiento).
 const VISUALLY_INSPECTED := ["Backflip / Back Tuck", "Frontflip / Front Tuck", "Double Backflip", "Sideflip",
 	"Gainer (backflip avanzando)", "Back Handspring (flic-flac)", "Front Handspring (paloma)",
-	"Cartwheel (rueda)", "Round-off (rondada)"]
+	"Cartwheel (rueda)", "Round-off (rondada)", "Thief Vault", "Turn Vault"]
 ## Confirmados por el jugador en su móvil (vacío hasta tener esa confirmación).
 const MOBILE_VALIDATED: Array[String] = []
 

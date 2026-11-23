@@ -551,6 +551,8 @@ func _try_vault() -> bool:
 	# Variantes elegidas con un gesto justo antes del vault (SALTO + deslizar o cruceta):
 	#   lateral = Reverse Vault (giro de 360 sobre el obstáculo)
 	#   arriba en caja de kong = Double Kong · abajo en caja de kong = Kash Vault
+	#   ↖ ↗ en obstáculo estrecho = Thief Vault (paso de ladrón: piernas primero, una mano detrás)
+	#   ↙ ↘ = Turn Vault (paso con giro: dos manos, media vuelta y cae mirando al obstáculo, frenado)
 	var vdir := flick_buffer if flick_timer > 0.0 else (intent.rot if intent.rot.length() > 0.55 else Vector2.ZERO)
 	if vdir != Vector2.ZERO and not info.mount:
 		var sec := TouchControls.sector_of(vdir)
@@ -563,7 +565,16 @@ func _try_vault() -> bool:
 		elif kind == "Kong Vault" and sec == -2:
 			kind = "Kash Vault"
 			speed_mult = 1.05
-		if kind in ["Reverse Vault", "Double Kong", "Kash Vault"]:
+		elif sec in [1, 3] and depth < 0.9 and spd > 3.5:
+			# Necesita obstáculo estrecho (las piernas pasan por delante de la mano de apoyo) y carrera
+			kind = "Thief Vault"
+			speed_mult = 0.95
+			ideal = Vector2(0.5, 1.6)
+		elif sec in [-1, -3] and depth < 1.2:
+			kind = "Turn Vault"
+			speed_mult = 0.0
+			ideal = Vector2(0.1, 1.2)
+		if kind in ["Reverse Vault", "Double Kong", "Kash Vault", "Thief Vault", "Turn Vault"]:
 			flick_timer = 0.0
 	var timing := 1.0
 	if d < ideal.x or d > ideal.y:
@@ -575,9 +586,18 @@ func _try_vault() -> bool:
 		length = d + 0.55
 	var exit_speed := maxf(spd * speed_mult, 3.5)
 	var duration := clampf(length / maxf(exit_speed, 4.0) * (1.25 if info.mount else 1.0), 0.28, 0.8)
+	if kind == "Turn Vault":
+		# Apoyo en dos manos y media vuelta: más lento, el cuerpo queda pegado al obstáculo
+		length = d + depth + 0.45
+		exit_speed = 0.2
+		duration = clampf(length / maxf(spd, 3.0) * 1.6, 0.5, 0.8)
 	var y0 := global_position.y
 	var y1 := top_y + 0.02 if info.mount else maxf(top_y - 0.35, info.land_y + 0.02)
 	var peak := top_y + (0.0 if kind in ["Step Vault", "Step Up", "Climb Up"] else (0.3 if kind == "Double Kong" else 0.14))
+	if kind == "Thief Vault":
+		peak = top_y + 0.08          # trayectoria baja y rasante
+	elif kind == "Turn Vault":
+		peak = top_y + 0.32          # cadera alta sobre las manos para girar
 	if info.mount:
 		peak = top_y + 0.12
 	vault = {"kind": kind, "p0": global_position, "dir": dir, "length": length, "duration": duration,
@@ -664,6 +684,9 @@ func _state_vault(dt: float) -> void:
 	velocity = (p - prev) / maxf(dt, 0.001)
 	if s >= 1.0:
 		var exit: Vector3 = vault.dir * vault.exit_speed
+		if vault.kind == "Turn Vault":
+			facing = -vault.dir          # termina de cara al obstáculo
+			ledge_cooldown = 0.6         # no se vuelve a agarrar al borde que acaba de pasar
 		velocity = Vector3(exit.x, 0.0 if vault.mount else -1.0, exit.z)
 		if vault.mount:
 			_set_state(State.GROUND)
