@@ -580,8 +580,8 @@ func _trick_pose(p: Dictionary, tr: TrickSystem) -> void:
 	elif tr.spotting or not tr.tucked:
 		var next_stop := (floorf(prog / period + 0.0001) + 1.0) * period
 		if next_stop >= goal_turns * period - 0.001 or tr.spotting:
-			# Se abre en el último tramo de la vuelta (~250°-310°): agrupado durante el giro principal
-			open = _smooth((period * 0.3 - (next_stop - prog)) / (period * 0.14))
+			# Se abre solo en el último tramo de la vuelta (~290°-330°): agrupado durante casi todo el giro
+			open = _smooth((period * 0.2 - (next_stop - prog)) / (period * 0.11))
 	var imp := _smooth(1.0 - tr.air_time / (0.1 if early else 0.13))
 	var ttg := player.time_to_ground()
 	var rec := 0.0
@@ -598,6 +598,11 @@ func _trick_pose(p: Dictionary, tr: TrickSystem) -> void:
 		_apply(p, g, 1.0 - open * 0.6)       # la tijera sigue hasta casi aterrizar
 	else:
 		_apply(p, g, gather * (1.0 - open))
+		# Vuelta ya completada pero queda vuelo: el atleta no se queda tieso, mantiene las
+		# rodillas recogidas (medio agrupado) y solo extiende las piernas al buscar el suelo.
+		if open > 0.0 and kind in ["back", "front", "side", "gainer", "webster", "twist", "cork"]:
+			var compact := clampf((ttg - 0.22) / 0.2, 0.0, 1.0)
+			_apply(p, g, gather * open * 0.55 * compact)
 	_apply(p, _impulse_pose(kind, rs), imp)
 	_apply(p, RECEPTION, rec)
 	last_kind = kind

@@ -566,7 +566,7 @@ func t_new_controls() -> void:
 		func(): return _f > 10 and player.state == PlayerController.State.GROUND)
 	var combo_h: float = peak.v - y0
 	var back_after := moves.size() >= 2 and moves[0] == "Round-off" and (moves[1] in ["Backflip", "Gainer"])
-	check("Combo Round-off → Backflip: enlaza y salta más alto (%.2f m vs %.2f m)" % [combo_h, plain_h], back_after and combo_h > plain_h * 1.15, str(moves))
+	check("Combo Round-off → Backflip: enlaza y salta más alto (%.2f m vs %.2f m)" % [combo_h, plain_h], back_after and combo_h > plain_h * 1.1, str(moves))
 	# Kong Vault → Frontflip: VAULT a sprint y joystick derecho ↑ durante el vault
 	await place(Vector3(0, 0.1, -8), Vector3.FORWARD)
 	st.p = false

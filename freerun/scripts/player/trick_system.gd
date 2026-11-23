@@ -43,7 +43,7 @@ var drive := 0.0                     # -1 frenar/abrir · 0 neutro · +1 empujar
 ## Fracción del vuelo en la que cada acrobacia completa su vuelta SIN agruparse. Agrupado
 ## (hasta ×tuck_mult, de forma progresiva) termina antes y queda tiempo para abrirse.
 ## Cada truco tiene su ritmo: el backflip es explosivo, el butterfly es amplio y lento.
-const COMPLETE_AT := {"back": 0.66, "front": 0.7, "side": 0.66, "aerial": 0.72, "cork": 0.72,
+const COMPLETE_AT := {"back": 0.76, "front": 0.78, "side": 0.76, "aerial": 0.76, "cork": 0.78,
 	"butterfly": 0.72, "kick": 0.64,
 	# Suelo: el giro dura casi todo el vuelo (apoyo de manos, sin agrupar)
 	"cartwheel": 0.8, "roundoff": 0.78, "bhs": 0.72, "fhs": 0.74}
