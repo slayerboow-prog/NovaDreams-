@@ -66,17 +66,20 @@ func _ready() -> void:
 	await trick("360 Kick", [Vector2.ZERO], false, "tap")
 	await trick("Back Full", [Vector2(0, -1), Vector2.ZERO], false, "tap")
 	await trick("Gainer Full", [Vector2(0, -1), Vector2.ZERO], true, "tap")
-	# DOBLE JOYSTICK: SALTO y después el joystick derecho (toques reales, multitáctil)
+	# DOBLE JOYSTICK: rueda SALTO/MORTALES (zona = salto + mortal, mantener = agrupado) y
+	# joystick GIRO para el tirabuzón (toques reales, multitáctil). Vector2 = zona de la rueda
+	# (la primera en el suelo, las siguientes en el aire); int = fotogramas de GIRO (+ derecha).
 	await trick("Backflip", [Vector2(0, -1)], false, "stick")
 	await trick("Frontflip", [Vector2(0, 1)], false, "stick")
 	await trick("Sideflip", [Vector2(1, 0)], true, "stick")
-	await trick("Aerial", [Vector2(-0.7, 0.7)], false, "stick")
+	await trick("Sideflip", [Vector2(-1, 0)], false, "stick")
 	await trick("Gainer", [Vector2(0, -1)], true, "stick")
 	await trick("Webster", [Vector2(0, 1)], true, "stick")
-	await trick("Butterfly Kick", [Vector2(-0.7, 0.7)], true, "stick")
-	await trick("Cork", [Vector2(0.7, -0.7)], true, "stick")
-	await trick("Cork 720", [Vector2(-0.7, -0.7), Vector2(-1, 0)], true, "stick")
-	await trick("Front Full", [Vector2(0.7, 0.7)], false, "stick")
+	await trick("Cork", [Vector2(0, -1), 26], true, "stick")
+	await trick("Cork 720", [Vector2(0, -1), 52], true, "stick")
+	await trick("Front Full", [Vector2(0, 1), -26], false, "stick")
+	await trick("Back Half", [Vector2(0, -1), 13], false, "stick")
+	await trick("Backflip Hyper", [Vector2(0, -1), 5], false, "stick")
 	await trick("Double Backflip", [Vector2(0, -1), Vector2(0, -1)], false, "stick")
 	# TRICKING DE SUELO: joystick derecho sin SALTO (toques reales)
 	await seq("Cartwheel", [["stick", Vector2(1, 0), 22], ["land"]], ["Cartwheel"])
@@ -86,12 +89,12 @@ func _ready() -> void:
 	await seq("Butterfly Kick (suelo)", [["run", true], ["wait", 40], ["stick", Vector2(-0.7, 0.7), 22], ["land"]], ["Butterfly Kick"])
 	await seq("360 Kick (suelo)", [["stick", Vector2(0.7, 0.7), 22], ["land"]], ["360 Kick"])
 	# COMBINACIONES (toques reales, multitáctil)
-	await seq("Round-off → Backflip", [["stick", Vector2(0.7, -0.7), 22], ["rebound"], ["jumpstick", Vector2(0, -1)], ["land"]], ["Round-off", "@back"])
-	await seq("Round-off → Back Handspring → Backflip", [["stick", Vector2(0.7, -0.7), 22], ["rebound"], ["stick", Vector2(0, -1), 18], ["rebound"], ["jumpstick", Vector2(0, -1)], ["land"]], ["Round-off", "Back Handspring", "@back"])
+	await seq("Round-off → Backflip", [["stick", Vector2(0.7, -0.7), 22], ["rebound"], ["jumpwheel", Vector2(0, -1)], ["land"]], ["Round-off", "@back"])
+	await seq("Round-off → Back Handspring → Backflip", [["stick", Vector2(0.7, -0.7), 22], ["rebound"], ["stick", Vector2(0, -1), 18], ["rebound"], ["jumpwheel", Vector2(0, -1)], ["land"]], ["Round-off", "Back Handspring", "@back"])
 	await seq("Aerial → Butterfly Kick", [["stick", Vector2(-0.7, 0.7), 22], ["land"], ["run", true], ["wait", 30], ["stick", Vector2(-0.7, 0.7), 22], ["land"]], ["Aerial", "Butterfly Kick"])
-	await seq("Gainer → Cork", [["run", true], ["wait", 45], ["jumpstick", Vector2(0, -1)], ["land"], ["wait", 6], ["jumpstick", Vector2(0.7, -0.7)], ["land"]], ["Gainer", "Cork"])
-	await seq("Backflip + giro adicional (Back Full)", [["jumpstick", Vector2(0, -1)], ["wait", 8], ["tapstick"], ["land"]], ["Back Full"])
-	await seq("Cork 720 + aterrizaje controlado", [["run", true], ["wait", 45], ["jumpstick", Vector2(-0.7, -0.7), Vector2(-1, 0)], ["land"]], ["Cork 720"])
+	await seq("Gainer → Cork", [["run", true], ["wait", 45], ["jumpwheel", Vector2(0, -1)], ["land"], ["wait", 6], ["jumpwheel", Vector2(0, -1), 26], ["land"]], ["Gainer", "Cork"])
+	await seq("Backflip + giro adicional (Back Full)", [["jumpwheel", Vector2(0, -1)], ["wait", 8], ["tapstick"], ["land"]], ["Back Full"])
+	await seq("Cork 720 + aterrizaje controlado", [["run", true], ["wait", 45], ["jumpwheel", Vector2(0, -1), -52], ["land"]], ["Cork 720"])
 
 	var failed := 0
 	print("\n========== ACEPTACIÓN DE ACROBACIAS (ruta táctil real) ==========")
@@ -200,6 +203,7 @@ func _stick_release() -> void:
 
 ## Secuencia de toques reales: movimientos de suelo y combinaciones.
 ##   ["stick", dir, frames]  inclinar el joystick derecho (sin SALTO) y soltarlo
+##   ["jumpwheel", dir, giro?]  zona de la rueda de SALTO (+ fotogramas de joystick GIRO, + derecha)
 ##   ["jumpstick", dir, dir2?]  SALTO y joystick derecho (dir2: volver al centro y llevarlo a dir2)
 ##   ["tapstick"]  tocar el joystick derecho sin inclinar (GIRO)
 ##   ["land"]  esperar a aterrizar · ["rebound"] esperar al rebote de rondada/flic-flac
@@ -241,6 +245,20 @@ func seq(name: String, steps: Array, expect: Array) -> void:
 				_touch(2, rc, true)
 				await frames(1)
 				_touch(2, rc, false)
+			"jumpwheel":
+				# Zona de la rueda (salto + mortal, mantenida = agrupado) y GIRO opcional (fotogramas)
+				var jc2 := touch._jump_center()
+				var wd: Vector2 = st[1]
+				var wp := jc2 + Vector2(wd.x, -wd.y).normalized() * touch._jump_radius() * 0.7
+				_touch(1, wp, true)
+				await frames(8)
+				if st.size() > 2:
+					var tf: int = st[2]
+					await _stick_push(Vector2(signf(tf), 0))
+					await frames(absi(tf) - 3)
+					_stick_release()
+				await frames(12)
+				_touch(1, wp, false)
 			"jumpstick":
 				var jc := touch._jump_center()
 				_touch(1, jc, true)
@@ -330,14 +348,15 @@ func trick(name: String, swipes: Array, running: bool, hold: String) -> void:
 	var pos := jc
 	# Desliza el mismo dedo (primer gesto)
 	var d0: Vector2 = swipes[0]
+	var twist_frames := 0
 	if stick:
-		await frames(2)
-		_touch(1, jc, false)                              # suelta SALTO y pasa al joystick derecho
-		await _stick_push(d0)
+		# El dedo de SALTO se había apoyado en el centro: lo levanta y pulsa la zona de la rueda
+		_touch(1, jc, false)
+		pos = jc + Vector2(d0.x, -d0.y).normalized() * touch._jump_radius() * 0.7
+		_touch(1, pos, true)                               # salta + mortal; mantener = agrupado
 		for si in range(1, swipes.size()):
-			await frames(5)
-			await _stick_center()
-			await _stick_push(swipes[si])
+			if swipes[si] is int:
+				twist_frames = swipes[si]
 	elif d0 == Vector2.ZERO:
 		_touch(1, pos, false)                             # salto sin truco; el giro llega con otro toque
 		await frames(8)
@@ -350,6 +369,12 @@ func trick(name: String, swipes: Array, running: bool, hold: String) -> void:
 			pos += step
 			_drag(1, pos, step)
 			await frames(1)
+	# Doble joystick: GIRO y zonas extra de la rueda se programan dentro del bucle de vuelo
+	var extra_wedges: Array = []
+	if stick:
+		for si in range(1, swipes.size()):
+			if swipes[si] is Vector2:
+				extra_wedges.append(swipes[si])
 	# Gestos adicionales con el mismo dedo (tirabuzón)
 	for si in range(1 if not stick else swipes.size(), swipes.size()):
 		await frames(6)
@@ -369,12 +394,28 @@ func trick(name: String, swipes: Array, running: bool, hold: String) -> void:
 	var inverted := false
 	var horizontal := false
 	var max_rot := 0.0
-	var released := hold == "tap" or stick
+	var released := hold == "tap"
 	if hold == "tap":
 		_touch(1, pos, false)
 	var need_rot := TAU * (2.0 if name.begins_with("Double") else 1.0) - deg_to_rad(10)
 	var left_ground := false
 	for i in 150:
+		if stick:
+			if twist_frames != 0 and i == 8:
+				var rc := touch._rot_center()
+				var tgt := rc + Vector2(signf(twist_frames), 0) * touch._rot_travel()
+				_touch(2, rc, true)
+				_drag(2, tgt, tgt - rc)
+				stick_pos = tgt
+			if twist_frames != 0 and i == 8 + absi(twist_frames):
+				_stick_release()
+			for wi in extra_wedges.size():
+				var wv: Vector2 = extra_wedges[wi]
+				var wp: Vector2 = jc + Vector2(wv.x, -wv.y).normalized() * touch._jump_radius() * 0.7
+				if i == 18 + wi * 12:
+					_touch(4, wp, true)
+				if i == 20 + wi * 12:
+					_touch(4, wp, false)
 		await frames(1)
 		var tr := player.tricks
 		var up := tr.basis * Vector3.UP
@@ -388,10 +429,13 @@ func trick(name: String, swipes: Array, running: bool, hold: String) -> void:
 		peak = maxf(peak, player.global_position.y)
 		if player.state == PlayerController.State.AIR:
 			left_ground = true
+		if stick and not released and max_rot > need_rot - deg_to_rad(110):
+			_touch(1, pos, false)                         # suelta la rueda: abrirse y aterrizar
+			released = true
 		if not released and absf(tr.total_pitch) > TAU * 2.0 - deg_to_rad(100):
 			_touch(1, pos, false)                         # suelta para preparar el aterrizaje
 			released = true
-		if stick_pos != Vector2.ZERO and max_rot > need_rot - deg_to_rad(110):
+		if stick_pos != Vector2.ZERO and max_rot > need_rot - deg_to_rad(110) and not stick:
 			_stick_release()                              # suelta el joystick: abrir y aterrizar
 		if left_ground and player.state != PlayerController.State.AIR:
 			break
@@ -439,7 +483,7 @@ func trick(name: String, swipes: Array, running: bool, hold: String) -> void:
 			shape_ok = max_lead > 2.2 and max_tuck > 1.5; shape_txt = "agrupado a una pierna %.2f/%.2f" % [max_lead, max_tuck]
 		"Webster":
 			shape_ok = max_lead > 2.2 and max_scissor > 1.0; shape_txt = "agrupado en tijera %.2f/%.2f" % [max_lead, max_scissor]
-		"Cork", "Cork 720", "Double Cork", "Cheat Gainer", "Front Full":
+		"Cork", "Cork 720", "Double Cork", "Cheat Gainer", "Front Full", "Back Half", "Backflip Hyper":
 			shape_ok = max_tuck > 0.9; shape_txt = "semiagrupado con brazos cerrados %.2f" % max_tuck
 		_:
 			shape_ok = max_tuck > 1.8; shape_txt = "agrupado real (cadera %.2f rad)" % max_tuck

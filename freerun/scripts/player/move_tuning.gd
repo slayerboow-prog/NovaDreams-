@@ -66,6 +66,7 @@ extends Resource
 @export var flip_rate_pro := 10.5
 @export var twist_rate_min := 7.0
 @export var twist_rate_max := 16.0
+@export var twist_stick_rate := 14.0 # rad/s con el joystick GIRO a fondo (¼ ≈ 0,11 s, 1 vuelta ≈ 0,45 s, 2 ≈ 0,9 s); poco inclinado = más lento y preciso
 @export var tuck_mult := 1.5         # agrupado del todo: gira un 50 % más rápido (se alcanza poco a poco)
 @export var open_mult_pro := 0.55
 

@@ -66,6 +66,7 @@ const ES := {
 	"Wall Spin": "Giro en pared", "Palm Flip": "Mortal de palma",
 	"Cat Leap": "Salto de brazo", "Cat Leap 180": "Salto de brazo 180", "Ledge Grab": "Agarre de borde",
 	"Mantle": "Subida de borde", "Drop": "Soltarse",
+	"Hyper": "Híper", "Hyper (¼ de giro en cualquier mortal)": "Híper (¼ de giro en cualquier mortal)",
 	"Ledge Grab y Shimmy": "Agarre de borde y desplazamiento lateral", "Wall Jump desde borde": "Salto de pared desde borde",
 	# Barras
 	"Underbar": "Paso bajo barra", "Bar Swing": "Balanceo en barra", "Kickstart": "Impulso de piernas",
@@ -80,6 +81,11 @@ const ES := {
 
 ## Nombre en español de un movimiento (si no está en la lista, se deja tal cual).
 static func es(name: String) -> String:
+	# Cuartos de vuelta del joystick GIRO: "Backflip Hyper" (¼), "Back Half +¼" (¾)...
+	if name.ends_with(" Hyper"):
+		return es(name.trim_suffix(" Hyper")) + " híper (¼ de giro)"
+	if name.ends_with(" +¼"):
+		return es(name.trim_suffix(" +¼")) + " y ¼ de giro"
 	return ES.get(name, name)
 
 ## Sustituye nombres sueltos dentro de una frase (instrucciones de la biblioteca).

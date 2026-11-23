@@ -15,7 +15,7 @@ extends RefCounted
 ##   4 Inspeccionado visualmente (capturas/vídeo revisados) · 5 Validado en móvil (por el jugador)
 ## Ningún movimiento está en el nivel 5 hasta que se confirme en un iPhone real.
 ##
-## Entrada: SALTO, VAULT, AGARRAR, RODAR · JD = joystick derecho · JI = joystick izquierdo.
+## Entrada: SALTO, VAULT, AGARRAR, RODAR · Rueda = SALTO con zonas ADELANTE/ATRÁS/LATERAL · GIRO / JD = joystick derecho · JI = joystick izquierdo.
 
 const CATEGORIES := ["Vaults", "Precision", "Paredes", "Escalada", "Barras", "Rolls y recepciones",
 	"Mortales adelante y atrás", "Laterales", "Aerials y Websters", "Gainers", "Corks",
@@ -44,10 +44,10 @@ const MOVES := [
 	# --- Paredes ---
 	{"name": "Wall Run", "cat": "Paredes", "lvl": 1, "input": "Mantén SALTO corriendo hacia una pared", "status": "ok"},
 	{"name": "Tic Tac", "cat": "Paredes", "lvl": 1, "input": "SALTO en el aire junto a una pared lateral", "status": "ok"},
-	{"name": "Wall Flip", "cat": "Paredes", "lvl": 2, "input": "Durante el wall run / wall climb: JD ↓", "status": "ok"},
-	{"name": "Wall Gainer", "cat": "Paredes", "lvl": 3, "input": "Wall run lateral + JD ↓", "status": "ok"},
-	{"name": "Wall Front", "cat": "Paredes", "lvl": 3, "input": "Desde la pared: JD ↑", "status": "ok"},
-	{"name": "Wall Flip 180 / Wall Half · Wall Full", "cat": "Paredes", "lvl": 3, "input": "Wall flip + JD lateral", "status": "parcial"},
+	{"name": "Wall Flip", "cat": "Paredes", "lvl": 2, "input": "Durante el wall run / wall climb: rueda ATRÁS", "status": "ok"},
+	{"name": "Wall Gainer", "cat": "Paredes", "lvl": 3, "input": "Wall run lateral + rueda ATRÁS", "status": "ok"},
+	{"name": "Wall Front", "cat": "Paredes", "lvl": 3, "input": "Desde la pared: rueda ADELANTE", "status": "ok"},
+	{"name": "Wall Flip 180 / Wall Half · Wall Full", "cat": "Paredes", "lvl": 3, "input": "Wall flip + GIRO ½ o 1", "status": "parcial"},
 	{"name": "Wall Spin", "cat": "Paredes", "lvl": 2, "input": "-", "status": "pendiente", "note": "giro apoyando manos en la pared"},
 	{"name": "Palm Flip", "cat": "Paredes", "lvl": 3, "input": "-", "status": "pendiente", "note": "empuje con la mano en la pared"},
 	# --- Escalada ---
@@ -56,7 +56,7 @@ const MOVES := [
 	{"name": "Ledge Grab y Shimmy", "cat": "Escalada", "lvl": 1, "input": "AGARRAR en el aire; JI a los lados para desplazarte", "status": "ok"},
 	{"name": "Mantle", "cat": "Escalada", "lvl": 1, "input": "VAULT/AGARRAR en un borde a la altura del pecho", "status": "ok"},
 	{"name": "Soltar / Drop", "cat": "Escalada", "lvl": 1, "input": "Colgado: AGARRAR (SOLTAR)", "status": "ok"},
-	{"name": "Wall Jump desde borde", "cat": "Escalada", "lvl": 1, "input": "Colgado: SALTO + JI hacia atrás (JD = mortal)", "status": "ok"},
+	{"name": "Wall Jump desde borde", "cat": "Escalada", "lvl": 1, "input": "Colgado: SALTO + JI hacia atrás (rueda = mortal)", "status": "ok"},
 	{"name": "Cat Leap 180", "cat": "Escalada", "lvl": 1, "input": "-", "status": "pendiente", "note": "giro de 180 colgado"},
 	# --- Barras ---
 	{"name": "Underbar", "cat": "Barras", "lvl": 1, "input": "-", "status": "pendiente", "note": "no hay barras en el mapa (fase de escenarios)"},
@@ -72,55 +72,56 @@ const MOVES := [
 	{"name": "Barrel Roll / Side Roll", "cat": "Rolls y recepciones", "lvl": 1, "input": "-", "status": "pendiente"},
 	{"name": "Back Roll", "cat": "Rolls y recepciones", "lvl": 1, "input": "-", "status": "pendiente"},
 	# --- Mortales adelante y atrás ---
-	{"name": "Backflip / Back Tuck", "cat": "Mortales adelante y atrás", "lvl": 2, "input": "SALTO + JD ↓ (parado)", "status": "ok"},
-	{"name": "Frontflip / Front Tuck", "cat": "Mortales adelante y atrás", "lvl": 2, "input": "SALTO + JD ↑ (parado)", "status": "ok"},
-	{"name": "Double Backflip", "cat": "Mortales adelante y atrás", "lvl": 4, "input": "SALTO + JD ↓, centro y ↓ otra vez", "status": "ok"},
-	{"name": "Double / Triple Front", "cat": "Mortales adelante y atrás", "lvl": 4, "input": "SALTO + JD ↑ dos veces", "status": "ok"},
-	{"name": "Back Full", "cat": "Mortales adelante y atrás", "lvl": 4, "input": "Backflip + toque en JD (GIRO)", "status": "ok"},
-	{"name": "Back Half · Back 1.5 · Double Full · Full In", "cat": "Mortales adelante y atrás", "lvl": 4, "input": "Backflip + JD lateral / GIRO varias veces", "status": "parcial"},
-	{"name": "Front Full", "cat": "Mortales adelante y atrás", "lvl": 4, "input": "SALTO + JD ↗", "status": "ok"},
-	{"name": "Arabian (Backflip 180 a front)", "cat": "Mortales adelante y atrás", "lvl": 3, "input": "Frontflip + JD lateral", "status": "parcial"},
+	{"name": "Backflip / Back Tuck", "cat": "Mortales adelante y atrás", "lvl": 2, "input": "Rueda: ATRÁS (parado)", "status": "ok"},
+	{"name": "Frontflip / Front Tuck", "cat": "Mortales adelante y atrás", "lvl": 2, "input": "Rueda: ADELANTE (parado)", "status": "ok"},
+	{"name": "Double Backflip", "cat": "Mortales adelante y atrás", "lvl": 4, "input": "Rueda: ATRÁS y otra vez ATRÁS en el aire", "status": "ok"},
+	{"name": "Double / Triple Front", "cat": "Mortales adelante y atrás", "lvl": 4, "input": "Rueda: ADELANTE dos veces", "status": "ok"},
+	{"name": "Hyper (¼ de giro en cualquier mortal)", "cat": "Mortales adelante y atrás", "lvl": 3, "input": "Cualquier mortal + toque corto de GIRO: aterriza de lado", "status": "ok"},
+	{"name": "Back Full", "cat": "Mortales adelante y atrás", "lvl": 4, "input": "ATRÁS + GIRO una vuelta (o tocar el joystick GIRO)", "status": "ok"},
+	{"name": "Back Half · Back 1.5 · Double Full · Full In", "cat": "Mortales adelante y atrás", "lvl": 4, "input": "ATRÁS + GIRO ½, 1½, 2 vueltas…", "status": "parcial"},
+	{"name": "Front Full", "cat": "Mortales adelante y atrás", "lvl": 4, "input": "ADELANTE + GIRO una vuelta", "status": "ok"},
+	{"name": "Arabian (Backflip 180 a front)", "cat": "Mortales adelante y atrás", "lvl": 3, "input": "Frontflip + GIRO ½", "status": "parcial"},
 	{"name": "Barani (Front 180)", "cat": "Mortales adelante y atrás", "lvl": 3, "input": "-", "status": "pendiente"},
 	{"name": "Rudi (Front 540)", "cat": "Mortales adelante y atrás", "lvl": 4, "input": "Front Full + GIRO", "status": "parcial"},
 	{"name": "Layout · Pike", "cat": "Mortales adelante y atrás", "lvl": 4, "input": "-", "status": "pendiente", "note": "formas extendida y carpada"},
 	{"name": "Ledge Backflip", "cat": "Mortales adelante y atrás", "lvl": 2, "input": "Backflip saliendo de un borde", "status": "ok"},
 	# --- Laterales ---
-	{"name": "Sideflip", "cat": "Laterales", "lvl": 2, "input": "SALTO + JD ← o →", "status": "ok"},
+	{"name": "Sideflip", "cat": "Laterales", "lvl": 2, "input": "Rueda: LATERAL (corriendo se pone de lado y avanza girando)", "status": "ok"},
 	{"name": "Double Sideflip", "cat": "Laterales", "lvl": 4, "input": "Sideflip + volver a inclinar", "status": "ok"},
-	{"name": "Wall Sideflip", "cat": "Laterales", "lvl": 2, "input": "Desde la pared: JD lateral", "status": "parcial"},
-	{"name": "Raiz", "cat": "Laterales", "lvl": 3, "input": "Sideflip + JD lateral durante el giro", "status": "parcial"},
+	{"name": "Wall Sideflip", "cat": "Laterales", "lvl": 2, "input": "Desde la pared: rueda LATERAL", "status": "parcial"},
+	{"name": "Raiz", "cat": "Laterales", "lvl": 3, "input": "Sideflip + GIRO ½", "status": "parcial"},
 	{"name": "Touchdown Raiz", "cat": "Laterales", "lvl": 3, "input": "-", "status": "pendiente", "note": "apoyo de una mano"},
 	# --- Aerials y Websters ---
-	{"name": "Aerial (rueda sin manos)", "cat": "Aerials y Websters", "lvl": 2, "input": "SALTO + JD ↖ parado (o JD ↖ en el suelo)", "status": "ok"},
-	{"name": "Webster (front a una pierna)", "cat": "Aerials y Websters", "lvl": 1, "input": "SALTO + JD ↑ corriendo", "status": "ok"},
+	{"name": "Aerial (rueda sin manos)", "cat": "Aerials y Websters", "lvl": 2, "input": "Joystick GIRO ↖ en el suelo, parado", "status": "ok"},
+	{"name": "Webster (front a una pierna)", "cat": "Aerials y Websters", "lvl": 1, "input": "Rueda: ADELANTE corriendo", "status": "ok"},
 	{"name": "Aerial Twist", "cat": "Aerials y Websters", "lvl": 3, "input": "Aerial + GIRO", "status": "parcial"},
 	{"name": "Double Aerial", "cat": "Aerials y Websters", "lvl": 4, "input": "Aerial + volver a inclinar", "status": "parcial"},
 	# --- Gainers ---
-	{"name": "Gainer (backflip avanzando)", "cat": "Gainers", "lvl": 2, "input": "SALTO + JD ↓ corriendo", "status": "ok"},
-	{"name": "Cheat Gainer / Kick the Moon", "cat": "Gainers", "lvl": 2, "input": "Gainer + JD lateral", "status": "ok"},
+	{"name": "Gainer (backflip avanzando)", "cat": "Gainers", "lvl": 2, "input": "Rueda: ATRÁS corriendo", "status": "ok"},
+	{"name": "Cheat Gainer / Kick the Moon", "cat": "Gainers", "lvl": 2, "input": "Gainer + GIRO ½", "status": "ok"},
 	{"name": "Gainer Full / Gainer 360", "cat": "Gainers", "lvl": 4, "input": "Gainer + GIRO", "status": "ok"},
 	{"name": "Double Gainer", "cat": "Gainers", "lvl": 4, "input": "Gainer + ↓ otra vez", "status": "ok"},
 	{"name": "Kong Gainer · Dash Gainer · Vault Gainer", "cat": "Gainers", "lvl": 3, "input": "JD ↓ durante el vault", "status": "ok"},
 	# --- Corks ---
-	{"name": "Cork / Corkscrew", "cat": "Corks", "lvl": 4, "input": "SALTO + JD ↙ o ↘ corriendo", "status": "ok"},
+	{"name": "Cork / Corkscrew", "cat": "Corks", "lvl": 4, "input": "Rueda: ATRÁS corriendo + GIRO una vuelta", "status": "ok"},
 	{"name": "Cork 720", "cat": "Corks", "lvl": 4, "input": "Cork + JD lateral", "status": "ok"},
 	{"name": "Cork 540 · Cork 1080", "cat": "Corks", "lvl": 4, "input": "Cork + giros añadidos", "status": "parcial"},
 	{"name": "Double Cork · Triple Cork", "cat": "Corks", "lvl": 4, "input": "Cork + volver a inclinar", "status": "ok"},
 	# --- Butterfly y patadas ---
-	{"name": "Butterfly Kick", "cat": "Butterfly y patadas", "lvl": 2, "input": "JD ↖ corriendo (en el suelo o tras SALTO)", "status": "ok"},
+	{"name": "Butterfly Kick", "cat": "Butterfly y patadas", "lvl": 2, "input": "Joystick GIRO ↖ en el suelo, corriendo", "status": "ok"},
 	{"name": "Butterfly Twist", "cat": "Butterfly y patadas", "lvl": 3, "input": "Butterfly + GIRO", "status": "parcial"},
-	{"name": "360 Kick / Tornado Kick", "cat": "Butterfly y patadas", "lvl": 1, "input": "JD ↗ en el suelo, o GIRO tras SALTO", "status": "ok"},
+	{"name": "360 Kick / Tornado Kick", "cat": "Butterfly y patadas", "lvl": 1, "input": "Joystick GIRO ↗ en el suelo, o SALTO + GIRO sin mortal", "status": "ok"},
 	{"name": "540 Kick", "cat": "Butterfly y patadas", "lvl": 1, "input": "360 Kick + GIRO otra vez", "status": "ok"},
 	{"name": "720 · Cheat 720 · 900 · 1080", "cat": "Butterfly y patadas", "lvl": 3, "input": "Más toques de GIRO", "status": "parcial"},
 	{"name": "Axe Kick Aerial · Frisbee", "cat": "Butterfly y patadas", "lvl": 3, "input": "-", "status": "pendiente"},
 	# --- Handsprings ---
-	{"name": "Back Handspring (flic-flac)", "cat": "Handsprings", "lvl": 3, "input": "JD ↓ en el suelo (sin SALTO)", "status": "ok"},
-	{"name": "Front Handspring (paloma)", "cat": "Handsprings", "lvl": 2, "input": "JD ↑ en el suelo (sin SALTO)", "status": "ok"},
+	{"name": "Back Handspring (flic-flac)", "cat": "Handsprings", "lvl": 3, "input": "Joystick GIRO ↓ en el suelo (sin SALTO)", "status": "ok"},
+	{"name": "Front Handspring (paloma)", "cat": "Handsprings", "lvl": 2, "input": "Joystick GIRO ↑ en el suelo (sin SALTO)", "status": "ok"},
 	{"name": "Side Handspring", "cat": "Handsprings", "lvl": 1, "input": "-", "status": "pendiente"},
 	{"name": "Back Handspring Twist", "cat": "Handsprings", "lvl": 3, "input": "Flic-flac + GIRO", "status": "parcial"},
 	# --- Ruedas y rondadas ---
-	{"name": "Cartwheel (rueda)", "cat": "Ruedas y rondadas", "lvl": 1, "input": "JD ← o → en el suelo (sin SALTO)", "status": "ok"},
-	{"name": "Round-off (rondada)", "cat": "Ruedas y rondadas", "lvl": 2, "input": "JD ↙ o ↘ en el suelo (sin SALTO)", "status": "ok"},
+	{"name": "Cartwheel (rueda)", "cat": "Ruedas y rondadas", "lvl": 1, "input": "Joystick GIRO ← o → en el suelo (sin SALTO)", "status": "ok"},
+	{"name": "Round-off (rondada)", "cat": "Ruedas y rondadas", "lvl": 2, "input": "Joystick GIRO ↙ o ↘ en el suelo (sin SALTO)", "status": "ok"},
 	{"name": "One Arm Round-off", "cat": "Ruedas y rondadas", "lvl": 2, "input": "-", "status": "pendiente"},
 	# --- Suelo ---
 	{"name": "Kip-up", "cat": "Suelo", "lvl": 1, "input": "Tras una caída: SALTO", "status": "ok"},
@@ -128,12 +129,12 @@ const MOVES := [
 	{"name": "Scoot · Gumbi", "cat": "Suelo", "lvl": 2, "input": "-", "status": "pendiente"},
 	{"name": "Handstand", "cat": "Suelo", "lvl": 1, "input": "-", "status": "pendiente"},
 	# --- Combos ---
-	{"name": "Round-off → Backflip", "cat": "Combos", "lvl": 3, "input": "JD ↙ en el suelo, al caer SALTO + JD ↓ (rebote más alto)", "status": "ok"},
-	{"name": "Round-off → Back Handspring → Backflip", "cat": "Combos", "lvl": 4, "input": "JD ↙ · JD ↓ · SALTO + JD ↓", "status": "ok"},
+	{"name": "Round-off → Backflip", "cat": "Combos", "lvl": 3, "input": "Joystick GIRO ↙ en el suelo y al caer rueda ATRÁS (rebote más alto)", "status": "ok"},
+	{"name": "Round-off → Back Handspring → Backflip", "cat": "Combos", "lvl": 4, "input": "GIRO ↙ · GIRO ↓ (suelo) · rueda ATRÁS", "status": "ok"},
 	{"name": "Kong Vault → Frontflip (Kong Front)", "cat": "Combos", "lvl": 3, "input": "VAULT a sprint + JD ↑ durante el vault", "status": "ok"},
 	{"name": "Wall Run → Wall Flip", "cat": "Combos", "lvl": 2, "input": "Mantén SALTO en la pared + JD ↓", "status": "ok"},
-	{"name": "Aerial → Butterfly Kick", "cat": "Combos", "lvl": 3, "input": "Al caer del aerial, JD ↖ con carrera", "status": "ok"},
-	{"name": "Gainer → Cork", "cat": "Combos", "lvl": 4, "input": "Gainer y, al aterrizar, SALTO + JD ↙", "status": "ok"},
+	{"name": "Aerial → Butterfly Kick", "cat": "Combos", "lvl": 3, "input": "Al caer del aerial, GIRO ↖ con carrera", "status": "ok"},
+	{"name": "Gainer → Cork", "cat": "Combos", "lvl": 4, "input": "Gainer y, al aterrizar, ATRÁS + GIRO una vuelta", "status": "ok"},
 	{"name": "Backflip + giro adicional", "cat": "Combos", "lvl": 4, "input": "Backflip + GIRO (Back Full)", "status": "ok"},
 	# --- Avanzados ---
 	{"name": "Double Full · Full In · Rudi", "cat": "Avanzados", "lvl": 4, "input": "Mortales con varios GIROS", "status": "parcial"},
@@ -185,7 +186,7 @@ static func bbcode() -> String:
 	var n := counts()
 	var t := "[b]%d movimientos[/b]  ·  [color=#5fe08a]%d hechos[/color]  ·  [color=#f2c14e]%d parciales[/color]  ·  [color=#999999]%d pendientes[/color]\n" % [MOVES.size(), n.ok, n.parcial, n.pendiente]
 	t += "[color=#aaaaaa]Validación: 1 documentado · 2 implementado · 3 probado técnicamente · 4 inspeccionado visualmente · 5 validado en móvil[/color]\n"
-	t += "[color=#aaaaaa]SALTO · VAULT · AGARRAR · RODAR · JD = joystick derecho · JI = joystick izquierdo[/color]\n"
+	t += "[color=#aaaaaa]SALTO · VAULT · AGARRAR · RODAR · Rueda = SALTO con zonas ADELANTE/ATRÁS/LATERAL · GIRO / JD = joystick derecho · JI = joystick izquierdo[/color]\n"
 	var groups := by_category()
 	for c in CATEGORIES:
 		t += "\n[b][color=#2fd9c6]%s[/color][/b]\n" % CATEGORY_ES.get(c, c)

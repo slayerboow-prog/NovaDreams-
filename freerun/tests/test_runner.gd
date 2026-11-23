@@ -98,6 +98,7 @@ func _run_all() -> void:
 	await t_touch()
 	await t_dual_stick()
 	await t_new_controls()
+	await t_wheel_twist()
 	await t_touch_layout()
 	await t_landing_feel()
 	await t_new_tricks()
@@ -423,7 +424,7 @@ func t_dual_stick() -> void:
 	var partial := fr.rot.y < -0.3 and fr.rot.y > -0.5 and fr.flick == Vector2.ZERO
 	drg.call(1, rc + Vector2(0, trav))
 	fr = touch.collect()
-	check("Doble joystick: analógico (inclinación parcial sin truco, a fondo = backflip)", partial and fr.flick.y < -0.9 and fr.rot.y < -0.95, "rot %s flick %s" % [fr.rot, fr.flick])
+	check("Joystick GIRO: analógico y nunca lanza un mortal (solo aviso de suelo)", partial and fr.flick == Vector2.ZERO and fr.rot_flick.y < -0.9 and fr.rot.y < -0.95, "rot %s flick %s rot_flick %s" % [fr.rot, fr.flick, fr.rot_flick])
 	check("Doble joystick: multitáctil (mover y rotar a la vez)", fr.move.y > 0.9 and fr.rot.length() > 0.9, "move %s rot %s" % [fr.move, fr.rot])
 	# Mantener inclinado no repite el truco; deslizar a un lado sí (tirabuzón)
 	drg.call(1, rc + Vector2(0, trav * 1.02))
@@ -433,12 +434,12 @@ func t_dual_stick() -> void:
 	touch._time += 0.1
 	drg.call(1, rc + Vector2(trav * 1.01, 0))
 	fr = touch.collect()
-	check("Doble joystick: mantener no repite; cambiar de dirección añade (tirabuzón)", no_repeat and fr.flick.x > 0.9, "flick %s" % fr.flick)
+	check("Joystick GIRO: mantener no repite; cambiar de dirección avisa (suelo)", no_repeat and fr.rot_flick.x > 0.9 and fr.flick == Vector2.ZERO, "rot_flick %s" % fr.rot_flick)
 	# Volver al centro e inclinar otra vez = otra vuelta
 	drg.call(1, rc + Vector2(0, trav * 0.1))
 	drg.call(1, rc + Vector2(0, trav))
 	fr = touch.collect()
-	check("Doble joystick: volver a inclinar = otra vuelta", fr.flick.y < -0.9, "flick %s" % fr.flick)
+	check("Joystick GIRO: volver a inclinar avisa otra vez", fr.rot_flick.y < -0.9, "rot_flick %s" % fr.rot_flick)
 	tch.call(1, rc + Vector2(0, trav), false)
 	fr = touch.collect()
 	check("Doble joystick: soltar = vuelve al centro (abrir)", fr.rot == Vector2.ZERO and fr.move.y > 0.9, "rot %s" % fr.rot)
@@ -452,7 +453,7 @@ func t_dual_stick() -> void:
 	tch.call(1, rc, true)
 	drg.call(1, rc + Vector2(0, -trav))
 	fr = touch.collect()
-	check("Botones: VAULT + joystick derecho + correr a la vez", fr.vault_pressed and fr.flick.y > 0.9 and fr.move.y > 0.9, "vault %s flick %s move %s" % [fr.vault_pressed, fr.flick, fr.move])
+	check("Botones: VAULT + joystick derecho + correr a la vez", fr.vault_pressed and fr.rot.y > 0.9 and fr.move.y > 0.9, "vault %s rot %s move %s" % [fr.vault_pressed, fr.rot, fr.move])
 	tch.call(2, touch._vault_center(), false)
 	tch.call(5, touch._grab_center(), true)
 	fr = touch.collect()
@@ -464,6 +465,31 @@ func t_dual_stick() -> void:
 	fr = touch.collect()
 	check("Botones: RODAR", fr.action_pressed, "")
 	tch.call(6, touch._action_center(), false)
+	# Rueda SALTO / MORTALES: centro = SALTO; zonas = salto + mortal; mantener = agrupado
+	var jc := touch._jump_center()
+	var jr := touch._jump_radius()
+	tch.call(7, jc, true)
+	fr = touch.collect()
+	check("Rueda: centro = SALTO sin mortal", fr.jump_pressed and fr.flick == Vector2.ZERO, "")
+	tch.call(7, jc, false)
+	var wheel_ok := true
+	for w in [[Vector2(0, jr * 0.7), Vector2(0, -1)], [Vector2(0, -jr * 0.7), Vector2(0, 1)], [Vector2(jr * 0.7, 0), Vector2(1, 0)], [Vector2(-jr * 0.7, 0), Vector2(-1, 0)]]:
+		tch.call(8, jc + w[0], true)
+		fr = touch.collect()
+		wheel_ok = wheel_ok and fr.jump_pressed and fr.flick.distance_to(w[1]) < 0.05 and fr.tuck
+		fr = touch.collect()
+		wheel_ok = wheel_ok and fr.tuck and fr.jump_held      # mantener = agrupado
+		tch.call(8, jc + w[0], false)
+		fr = touch.collect()
+		wheel_ok = wheel_ok and not fr.tuck                  # soltar = abrirse
+	check("Rueda: ATRÁS/ADELANTE/LATERAL saltan con su mortal, mantener agrupa, soltar abre", wheel_ok, "")
+	touch.air_mode = true
+	tch.call(8, jc + Vector2(0, jr * 0.7), true)
+	fr = touch.collect()
+	touch.air_mode = false
+	tch.call(8, jc + Vector2(0, jr * 0.7), false)
+	touch.collect()
+	check("Rueda: en el aire suma el mortal sin volver a saltar", fr.flick.y < -0.9 and not fr.jump_pressed, "")
 	# Zona libre en modo joystick = solo cámara (ni rápido ni en el aire lanza trucos)
 	touch.air_mode = true
 	tch.call(3, Vector2(820, 250), true)
@@ -495,6 +521,92 @@ func t_dual_stick() -> void:
 		i.rot = Vector2(0, 1) if f >= 9 else Vector2.ZERO, 22)
 	check("Doble joystick: tirar en contra frena el giro", absf(player.tricks.pitch_rate) < rates[0], "%.1f rad/s" % absf(player.tricks.pitch_rate))
 	await run(func(i, f): i.rot = Vector2.ZERO, 90, func(): return player.state != PlayerController.State.AIR)
+
+## Rueda de mortales + joystick GIRO (doble joystick): un solo joystick para los giros de
+## todos los mortales, en cuartos de vuelta; cork; sideflip de lado en carrera.
+func t_wheel_twist() -> void:
+	# Mortal atrás parado + GIRO durante distintos tiempos → ¼ (Hyper), ½, 1 vuelta
+	var res := {}
+	for hold in [5, 13, 26]:
+		await place(Vector3(-35, 0.1, 30), Vector3.FORWARD)
+		await run(func(i, f):
+			i.stick_twist = true
+			i.jump_pressed = f == 0
+			i.flick = Vector2(0, -1) if f == 0 else Vector2.ZERO
+			i.tuck = f < 25
+			i.jump_held = f < 25
+			i.twist = 1.0 if f >= 14 and f < 14 + hold else 0.0
+			if f == 0: i.rot = Vector2.ZERO, 150,
+			func(): return _f > 10 and player.state == PlayerController.State.GROUND)
+		res[hold] = moves.duplicate()
+	check("GIRO: un toque corto = ¼ de giro (Hyper)", "Backflip Hyper" in res[5], str(res[5]))
+	check("GIRO: algo más = medio giro (Back Half)", "Back Half" in res[13], str(res[13]))
+	check("GIRO: mantenerlo = tirabuzón completo (Back Full)", "Back Full" in res[26], str(res[26]))
+	# El mismo joystick gira cualquier mortal: adelante y lateral
+	for fl in [[Vector2(0, 1), "Front Full"], [Vector2(1, 0), "Aerial Twist"]]:
+		await place(Vector3(-35, 0.1, 30), Vector3.FORWARD)
+		var flv: Vector2 = fl[0]
+		await run(func(i, f):
+			i.stick_twist = true
+			i.jump_pressed = f == 0
+			i.flick = flv if f == 0 else Vector2.ZERO
+			i.tuck = f < 25; i.jump_held = f < 25
+			i.twist = -1.0 if f >= 12 and f < 38 else 0.0, 150,
+			func(): return _f > 10 and player.state == PlayerController.State.GROUND)
+		check("GIRO: también en %s" % fl[1], fl[1] in moves, str(moves))
+	# Cork: mortal atrás corriendo + vuelta completa de GIRO; Cork 720 con dos vueltas
+	for c in [[26, "Cork"], [52, "Cork 720"]]:
+		await place(Vector3(-35, 0.1, 40), Vector3.FORWARD)
+		var hold: int = c[0]
+		var st := {"t0": -1}
+		await run(func(i, f):
+			i.stick_twist = true
+			i.move = Vector2(0, 1)
+			var go: bool = f == 50
+			i.jump_pressed = go
+			i.flick = Vector2(0, -1) if go else Vector2.ZERO
+			if go: st.t0 = f
+			var since: int = f - st.t0 if st.t0 >= 0 else -1
+			i.tuck = since >= 0 and since < 30; i.jump_held = i.tuck
+			i.twist = 1.0 if since >= 10 and since < 10 + hold else 0.0
+			if since > 20: i.move = Vector2.ZERO, 220,
+			func(): return st.t0 >= 0 and _f > st.t0 + 10 and player.state in [PlayerController.State.GROUND, PlayerController.State.ROLL, PlayerController.State.CRASH])
+		check("Cork con la rueda + GIRO: %s" % c[1], c[1] in moves, str(moves))
+	# Cork y rondada ya no se confunden: GIRO inclinado antes de saltar no hace rondada
+	await place(Vector3(-35, 0.1, 40), Vector3.FORWARD)
+	await run(func(i, f):
+		i.stick_twist = true
+		i.move = Vector2(0, 1)
+		i.rot = Vector2(0.7, -0.7) if f >= 40 else Vector2.ZERO
+		i.rot_flick = Vector2(0.7, -0.7) if f == 40 else Vector2.ZERO
+		i.twist = i.rot.x
+		i.jump_pressed = f == 46
+		i.flick = Vector2(0, -1) if f == 46 else Vector2.ZERO
+		i.tuck = f >= 46 and f < 76; i.jump_held = i.tuck
+		if f > 92: i.rot = Vector2.ZERO; i.twist = 0.0, 220,
+		func(): return _f > 60 and player.state in [PlayerController.State.GROUND, PlayerController.State.ROLL, PlayerController.State.CRASH])
+	check("GIRO inclinado justo antes de ATRÁS: sale el cork, no la rondada", not "Round-off" in moves and moves.any(func(m): return m.begins_with("Cork")), str(moves))
+	# Sideflip corriendo: se pone de lado antes de despegar y avanza girando, mirando al lado
+	await place(Vector3(-35, 0.1, 40), Vector3.FORWARD)
+	var sd := {"face": Vector3.ZERO, "vel": Vector3.ZERO, "z0": 0.0, "load_turned": false}
+	await run(func(i, f):
+		i.stick_twist = true
+		i.move = Vector2(0, 1)
+		i.jump_pressed = f == 50
+		i.flick = Vector2(-1, 0) if f == 50 else Vector2.ZERO
+		i.tuck = f >= 50 and f < 80; i.jump_held = i.tuck
+		if player.jump_load > 0.0 and player.facing.angle_to(Vector3.FORWARD) > 0.6:
+			sd.load_turned = true
+		if f == 50: sd.z0 = player.global_position.z
+		if player.state == PlayerController.State.AIR and player.tricks.air_time > 0.3 and sd.face == Vector3.ZERO:
+			sd.face = player.facing; sd.vel = player.horizontal_velocity()
+		if f > 60: i.move = Vector2(0, 0.3), 200,
+		func(): return _f > 60 and player.state != PlayerController.State.AIR and sd.face != Vector3.ZERO)
+	var side_ang := rad_to_deg(sd.face.angle_to(Vector3.FORWARD))
+	check("Sideflip en carrera: gira el cuerpo de lado ya en la flexión previa", sd.load_turned, "")
+	check("Sideflip en carrera: en el aire mira al lado (~90°) y avanza hacia delante", side_ang > 70.0 and side_ang < 110.0 and sd.vel.z < -3.0,
+		"mira %.0f° · vel %s" % [side_ang, sd.vel])
+	check("Sideflip en carrera: reconocido y su eje es la carrera (avanza)", "Sideflip" in moves and player.global_position.z < sd.z0 - 3.0, "%s dz %.1f" % [moves, player.global_position.z - sd.z0])
 
 ## Controles definitivos: VAULT, AGARRAR, tricking de suelo con el joystick derecho, Kip-up.
 func t_new_controls() -> void:

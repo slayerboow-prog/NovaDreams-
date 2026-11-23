@@ -55,9 +55,12 @@ var land_timer := 9.0                   # tiempo desde el último aterrizaje
 var context_hint := ""                  # texto del botón contextual
 var vault_buffer := 0.0                 # botón VAULT pulsado hace poco
 var grab_buffer := 0.0                  # botón AGARRAR pulsado hace poco
-var ground_pending := 0.12              # espera breve: joystick derecho en el suelo sin SALTO
+var ground_pending := 0.22              # espera: joystick derecho en el suelo sin SALTO
 var ground_wait := 0.0                  # = movimiento de suelo (rueda, rondada, flic-flac...)
 var roundoff_timer := 0.0               # rebote tras una rondada: el siguiente salto sale más alto
+var twist_lock := false                 # el joystick derecho hizo un movimiento de suelo: no gira hasta soltarlo
+var side_turn := 0.0                    # > 0: girando el cuerpo de lado antes de un sideflip en carrera
+var side_target := Vector3.ZERO
 var momentum := 0.0                     # carrera acumulada 0..1: el sprint completo se gana corriendo
 var flow_boost := 0.0                   # 0..1 lo fija el FlowSystem (algo más de velocidad y recuperación)
 
@@ -111,6 +114,7 @@ func respawn() -> void:
 	ground_wait = 0.0
 	roundoff_timer = 0.0
 	momentum = 0.0
+	side_turn = 0.0
 	_set_state(State.AIR)
 	air_kind = "fall"
 	reset_physics_interpolation()
@@ -184,7 +188,8 @@ func _physics_process(dt: float) -> void:
 	vault_buffer = 0.3 if intent.vault_pressed else maxf(0.0, vault_buffer - dt)
 	grab_buffer = 0.3 if intent.grab_pressed else maxf(0.0, grab_buffer - dt)
 	roundoff_timer = maxf(0.0, roundoff_timer - dt)
-	if intent.flick != Vector2.ZERO and state == State.GROUND and jump_load <= 0.0 and jump_buffer <= 0.0:
+	var ground_flick := intent.rot_flick if intent.stick_twist else intent.flick
+	if ground_flick != Vector2.ZERO and state == State.GROUND and jump_load <= 0.0 and jump_buffer <= 0.0:
 		ground_wait = ground_pending
 	if intent.respawn_pressed:
 		respawn()
@@ -253,7 +258,11 @@ func _state_ground(dt: float) -> void:
 	velocity.x = hv.x
 	velocity.z = hv.z
 	velocity.y = -1.0
-	if hv.length() > 0.3:
+	if side_turn > 0.0 and jump_load > 0.0:
+		# Sideflip en carrera: antes de despegar el atleta se pone de lado (eje del mortal
+		# perpendicular a la carrera) y seguirá avanzando mientras gira, mirando al lado.
+		_turn_facing(side_target, absf(facing.signed_angle_to(side_target, Vector3.UP)) / maxf(jump_load, dt), dt)
+	elif hv.length() > 0.3:
 		_turn_facing(hv, t.facing_turn, dt)
 	elif mag > 0.08:
 		_turn_facing(wish, t.facing_turn, dt)
@@ -289,11 +298,12 @@ func _state_ground(dt: float) -> void:
 			if _try_wall_climb():
 				return
 			var kind := "run" if spd > 3.0 else "stand"
-			if land_impact > 0.3 or t.jump_load_time <= 0.0:
+			_prepare_side_turn(spd)
+			if side_turn <= 0.0 and (land_impact > 0.3 or t.jump_load_time <= 0.0):
 				# Rebote: las piernas ya vienen flexionadas del aterrizaje → enlace inmediato.
 				_takeoff(kind)
 				return
-			jump_load = t.jump_load_time
+			jump_load = maxf(t.jump_load_time, 0.16 if side_turn > 0.0 else 0.0)
 			jump_load_kind = kind
 		if intent.action_pressed and spd > 3.0:
 			_start_roll(false)
@@ -306,13 +316,30 @@ func _state_ground(dt: float) -> void:
 		coyote = t.coyote_time
 		_enter_air("fall")
 
+## Si el salto lleva un mortal lateral y el atleta corre: alarga un poco la flexión y gira el
+## cuerpo de lado (el lado hacia el que gira el mortal mira en la dirección de la carrera).
+func _prepare_side_turn(spd: float) -> void:
+	side_turn = 0.0
+	if flick_timer <= 0.0 or spd < 2.5:
+		return
+	var sec := TouchControls.sector_of(flick_buffer)
+	if sec != 0 and sec != 4:
+		return
+	var hs := 1.0 if sec == 0 else -1.0
+	var v := horizontal_velocity().normalized()
+	side_target = Vector3.UP.cross(v) * hs
+	side_turn = 1.0
+
 func _takeoff(kind: String) -> void:
 	jump_load = 0.0
+	if side_turn > 0.0:
+		facing = side_target          # despega ya de lado
+		side_turn = 0.0
 	_do_jump(kind)
 	# Gesto hecho justo antes de saltar (o durante la flexión): el mortal arranca en el despegue.
 	if flick_timer > 0.0:
 		tricks.apply_flick(flick_buffer)
-	elif intent.rot.length() > 0.55:
+	elif intent.rot.length() > 0.55 and not intent.stick_twist:
 		# Joystick derecho ya inclinado al pulsar SALTO: el mortal sale en el despegue
 		tricks.apply_flick(TouchControls.sector_dir(TouchControls.sector_of(intent.rot)))
 	if kick_timer > 0.0:
@@ -325,6 +352,8 @@ func _takeoff(kind: String) -> void:
 ## inclinarlo hacia el sentido del giro agrupa poco a poco, soltarlo abre, en contra frena.
 func trick_push() -> float:
 	var p := 1.0 if intent.tuck else 0.0
+	if intent.stick_twist:
+		return p                  # rueda de SALTO mantenida = agrupado; el joystick derecho es el GIRO
 	var r := intent.rot
 	if not tricks.active or r.length() < 0.25:
 		return p
@@ -392,6 +421,9 @@ func _state_air(dt: float) -> void:
 		tricks.apply_flick(intent.flick)
 	if intent.kick:
 		tricks.apply_kick(_kick_dir())
+	if twist_lock and absf(intent.twist) < 0.3:
+		twist_lock = false
+	tricks.twist_input(0.0 if twist_lock else intent.twist, dt, t)
 	tricks.step(dt, trick_push(), time_to_ground(), Settings.assist_strength(), t)
 	if not tricks.active and hv.length() > 1.0:
 		_turn_facing(hv, 4.0, dt)
@@ -626,6 +658,7 @@ func _obstacle_ahead() -> bool:
 ##   ↑    Front Handspring (paloma: manos delante, cuerpo extendido, viaja hacia delante)
 ##   ↗    360 Kick / Tornado Kick · ↖ Aerial (parado) / Butterfly Kick (con carrera)
 func _ground_move(sec: int) -> void:
+	twist_lock = true                  # el joystick sigue inclinado: no es un tirabuzón
 	var hv := horizontal_velocity()
 	var spd := hv.length()
 	var fwd := facing

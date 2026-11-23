@@ -39,6 +39,10 @@ var max_height := 0.0
 var _new_axes: Array[String] = []
 var _recal: Array[String] = []       # ejes con más vueltas pedidas: recalibrar velocidad
 var drive := 0.0                     # -1 frenar/abrir · 0 neutro · +1 empujar/agrupar (joystick, botón)
+var twist_manual := false            # tirabuzón controlado con el joystick GIRO (en cuartos de vuelta)
+var twist_hold := false              # el joystick GIRO está inclinado ahora mismo
+var tuck_time := 0.0                 # tiempo agrupado (lateral agrupado = sideflip; abierto = aerial)
+const QUARTER := PI * 0.5
 
 ## Fracción del vuelo en la que cada acrobacia completa su vuelta SIN agruparse. Agrupado
 ## (hasta ×tuck_mult, de forma progresiva) termina antes y queda tiempo para abrirse.
@@ -91,6 +95,9 @@ func reset(kind := "run", speed := 0.0) -> void:
 	max_height = 0.0
 	_new_axes.clear()
 	_recal.clear()
+	twist_manual = false
+	twist_hold = false
+	tuck_time = 0.0
 
 func has_rotation() -> bool:
 	if not active:
@@ -218,6 +225,39 @@ func apply_kick(d := 1) -> void:
 	flicks += 1
 	active = true
 
+## Joystick GIRO (eje x, -1..1): tirabuzón sobre el eje largo para CUALQUIER mortal.
+## Mantenerlo inclinado gira (más inclinado = más rápido); al soltarlo el giro termina en el
+## cuarto de vuelta más cercano: ¼ (hyper), ½, ¾, 1 (full), 1½, 2... Sin mortal = pirueta.
+func twist_input(x: float, dt: float, t: MoveTuning) -> void:
+	var mag := absf(x)
+	if mag < 0.35:
+		twist_hold = false
+		return
+	var s := 1 if x > 0.0 else -1
+	if not twist_manual:
+		if dir.twist != 0 and not settled.twist:
+			return                       # ya hay un giro automático en curso (rondada, patada)
+		twist_manual = true
+		dir.twist = s
+		settled.twist = false
+		if style == "":
+			style = "kick"               # giro sin mortal: pirueta / patada giratoria
+		active = true
+	elif s != dir.twist and absf(total.twist) < 0.3:
+		dir.twist = s                    # cambio de idea al principio: cambia el sentido
+	# Mortal atrás con carrera + tirabuzón = Cork (eje inclinado)
+	if style == "back" and takeoff_speed > 4.0 and takeoff_kind in ["run", "stand"]:
+		style = "cork"
+	twist_hold = true
+	settled.twist = false
+	var r := t.twist_stick_rate * lerpf(0.45, 1.0, clampf((mag - 0.35) / 0.6, 0.0, 1.0))
+	rate.twist = dir.twist * r
+	total.twist += rate.twist * dt
+
+## Cuartos de vuelta de tirabuzón completados (con el joystick GIRO).
+func twist_quarters() -> int:
+	return int(floor((absf(total.twist) + deg_to_rad(25.0)) / QUARTER))
+
 ## `push`: 0..1 cuánto se agrupa/empuja el jugador (botón AGRUPAR, dedo en SALTO, joystick
 ## derecho inclinado hacia el giro); negativo = tirar en contra: abrirse y frenar.
 func step(dt: float, push: float, time_left: float, assist: float, t: MoveTuning) -> void:
@@ -230,6 +270,8 @@ func step(dt: float, push: float, time_left: float, assist: float, t: MoveTuning
 	tuck_amount = move_toward(tuck_amount, tuck_target, dt * (4.0 if tuck_target > tuck_amount else 6.0))
 	if not active:
 		return
+	if drive > 0.5:
+		tuck_time += dt
 	time_left = maxf(time_left, 0.25)
 	for ax in _new_axes:
 		var period := TAU
@@ -262,6 +304,9 @@ func step(dt: float, push: float, time_left: float, assist: float, t: MoveTuning
 	for ax in AXES:
 		var s: int = dir[ax]
 		if s == 0:
+			continue
+		if ax == "twist" and twist_manual:
+			_step_manual_twist(dt)
 			continue
 		var period := twist_period if ax == "twist" else TAU
 		var window := deg_to_rad(lerpf(22.0, 70.0 if ax == "twist" else 120.0, assist) * (1.4 if drive < -0.4 else 1.0))
@@ -297,6 +342,25 @@ func step(dt: float, push: float, time_left: float, assist: float, t: MoveTuning
 			rate[ax] = s * cur
 			total[ax] += rate[ax] * dt
 	_update_basis()
+
+## Tirabuzón del joystick GIRO: mientras está inclinado ya giró en twist_input; al soltarlo
+## termina suavemente en el cuarto de vuelta más cercano (puede corregir unos grados atrás).
+func _step_manual_twist(dt: float) -> void:
+	if twist_hold or settled.twist:
+		if settled.twist:
+			rate.twist = 0.0
+		return
+	var target := roundf(total.twist / QUARTER) * QUARTER
+	var spd := maxf(absf(rate.twist) * 0.9, 5.0)
+	total.twist = move_toward(total.twist, target, spd * dt)
+	rate.twist = signf(target - total.twist) * spd if absf(target - total.twist) > 0.0001 else 0.0
+	if absf(total.twist - target) < 0.0001:
+		total.twist = target
+		rate.twist = 0.0
+		settled.twist = true
+		if absf(target) < 0.01:
+			dir.twist = 0                # toque accidental: sin tirabuzón
+			twist_manual = false
 
 func _update_basis() -> void:
 	var lean := 0.0
@@ -337,7 +401,7 @@ func counts() -> Dictionary:
 
 static func trick_name(pn: int, rn: int, sn: int, th: int, back: bool, moving: bool, wall: bool,
 		st := "", kind := "", detail := "") -> String:
-	var cork := st == "cork"
+	var cork := st == "cork" and th >= 2         # cork = mortal atrás en carrera con tirabuzón completo
 	var vaulted := kind == "vault"
 	match st:
 		"cartwheel":
@@ -418,10 +482,16 @@ static func trick_name(pn: int, rn: int, sn: int, th: int, back: bool, moving: b
 ## Identifica el truco realizado a partir de las rotaciones acumuladas.
 func evaluate() -> Dictionary:
 	var c := counts()
+	var tq := -1
+	if twist_manual:
+		tq = twist_quarters()
+		c.th = tq / 2
 	var name := trick_name(c.pn, c.rn, c.sn, c.th, total.pitch > 0.0, takeoff_speed > 4.0, takeoff_kind == "wall",
 		style, takeoff_kind, takeoff_detail)
 	if name == "":
 		return {}
+	if tq > 0 and tq % 2 == 1:
+		name += " Hyper" if tq == 1 else " +¼"    # cuarto de vuelta: aterriza de lado
 	var difficulty: float = 1.0 + (c.pn - 1) * 1.8 + c.th * 0.6
 	if c.pn == 0:
 		difficulty = 0.9 + (c.rn + c.sn - 1) * 1.6 + c.th * 0.6
@@ -438,8 +508,10 @@ func evaluate() -> Dictionary:
 		difficulty += 0.15
 	if takeoff_kind == "wall":
 		difficulty += 0.4
+	if tq > 0 and tq % 2 == 1:
+		difficulty += 0.3
 	return {"name": name, "difficulty": difficulty, "flips": c.pn, "rolls": c.rn, "spins": c.sn,
-		"twist_halves": c.th, "air_time": air_time}
+		"twist_halves": c.th, "twist_quarters": tq if tq >= 0 else c.th * 2, "air_time": air_time}
 
 ## Nombre en directo para el HUD (lo que se está ejecutando ahora mismo).
 func live_name() -> String:

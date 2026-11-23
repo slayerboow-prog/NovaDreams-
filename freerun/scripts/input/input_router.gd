@@ -59,6 +59,10 @@ func _setup_actions() -> void:
 	_add_key("vault", [KEY_V], [JOY_BUTTON_RIGHT_STICK])
 	_add_key("grab", [KEY_G], [JOY_BUTTON_DPAD_UP])
 	_add_key("cam_recenter", [KEY_T], [JOY_BUTTON_LEFT_STICK])
+	_add_key("twist_left", [KEY_U])
+	_add_key("twist_right", [KEY_O])
+	_add_axis("twist_left", JOY_AXIS_TRIGGER_LEFT, 1.0)
+	_add_axis("twist_right", JOY_AXIS_TRIGGER_RIGHT, 1.0)
 	_add_axis("cam_left", JOY_AXIS_RIGHT_X, -1.0)
 	_add_axis("cam_right", JOY_AXIS_RIGHT_X, 1.0)
 	_add_key("cam_up", [])
@@ -132,6 +136,8 @@ func _read_intent(_dt: float) -> void:
 		intent.flick = trick_vec.normalized()
 	intent.tuck = trick_vec.length() > 0.1
 	intent.rot = trick_vec.limit_length(1.0)
+	intent.twist = Input.get_action_strength("twist_right") - Input.get_action_strength("twist_left")
+	intent.stick_twist = false
 
 	var sens := Settings.camera_sensitivity
 	var cam := _mouse_delta * 0.0032 * sens
@@ -163,4 +169,10 @@ func _read_intent(_dt: float) -> void:
 		intent.grab_held = intent.grab_held or t.grab_held
 		if t.rot.length() > 0.01:
 			intent.rot = t.rot
+		if touch.stick_enabled():
+			# Doble joystick: los mortales van en la rueda de SALTO y el joystick derecho es el GIRO
+			intent.stick_twist = true
+			if absf(t.rot.x) > absf(intent.twist):
+				intent.twist = t.rot.x
+			intent.rot_flick = t.rot_flick
 	intent.move = mv.limit_length(1.0)

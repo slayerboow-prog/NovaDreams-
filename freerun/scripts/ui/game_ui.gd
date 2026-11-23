@@ -44,8 +44,11 @@ const TUTORIAL := [
 	["Corre: inclina el joystick izquierdo (a fondo = sprint)", ["@run"]],
 	["Mueve la cámara: arrastra en una zona libre (doble toque = detrás del atleta)", ["@camera"]],
 	["Pulsa SALTO", ["@air"]],
-	["SALTO y joystick derecho ↓ = Mortal atrás (más inclinado = más agrupado)", ["Backflip", "Gainer"]],
-	["SALTO y joystick derecho ↑ = Mortal adelante", ["Frontflip", "Webster"]],
+	["Rueda de SALTO, zona ATRÁS = Mortal atrás (mantén el dedo = agrupado)", ["Backflip", "Gainer"]],
+	["Zona ADELANTE de la rueda = Mortal adelante", ["Frontflip", "Webster"]],
+	["Zona LATERAL corriendo = Mortal lateral (se pone de lado y avanza girando)", ["Sideflip"]],
+	["En un mortal, joystick GIRO a un lado: suéltalo en ¼ (híper), ½ o 1 giro", ["@twist"]],
+	["Corre, zona ATRÁS y GIRO una vuelta = Sacacorchos", ["Cork", "Cork 540", "Cork 720"]],
 	["Joystick derecho ← o → en el suelo, sin SALTO = Rueda", ["Cartwheel"]],
 	["Joystick derecho ↓ en el suelo = Flic-flac", ["Back Handspring"]],
 	["Joystick derecho ↙ en el suelo y al caer SALTO + ↓ = Rondada → Mortal atrás", ["@roundoff_back"]],
@@ -427,6 +430,8 @@ func _on_tutorial_move(move_name: String, _q: float, _i: Dictionary) -> void:
 		return
 	var want: Array = TUTORIAL[tutorial_step][1]
 	var ok := want.has(move_name)
+	if want.has("@twist") and (_i.get("twist_quarters", 0) > 0):
+		ok = true
 	if want.has("@vault") and (move_name.contains("Vault") or move_name.contains("Kong")):
 		ok = true
 	if want.has("@roundoff_back") and move_name in ["Backflip", "Gainer"] and prev == "Round-off" and recent:

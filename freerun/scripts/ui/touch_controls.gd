@@ -35,6 +35,7 @@ class TouchFrame:
 	var grab_pressed := false
 	var grab_held := false
 	var camera_recenter := false
+	var rot_flick := Vector2.ZERO
 
 var grab_label := "AGARRAR"           # SOLTAR cuando está colgado
 var context_label := "RODAR"
@@ -99,13 +100,15 @@ const JOY_R := 118.0
 # Doble joystick: joystick de rotación en la esquina inferior derecha, SALTO grande a su
 # izquierda (abajo, donde el pulgar llega sin estirarse), RODAR encima, AGRUPAR a la izquierda.
 const ROT_R := 138.0
-const STICK_JUMP_R := 106.0
+const STICK_JUMP_R := 128.0          # rueda SALTO / MORTALES (centro SALTO, 4 zonas de mortal)
+const WHEEL_CORE := 0.42              # fracción del radio que ocupa el centro (SALTO)
+const WHEEL_LABELS := {2: "ADELANTE", -2: "ATRÁS", 0: "LATERAL", 4: "LATERAL"}
 const SMALL_R := 62.0                 # VAULT, AGARRAR, RODAR
 
 func _jump_center() -> Vector2:
 	var s := _s()
 	if stick_enabled():
-		return Vector2(_mirror(size.x - 280.0 * s), maxf(size.y - 430.0 * s, _jump_radius() * 1.12 + 8.0))
+		return Vector2(_mirror(size.x - 300.0 * s), maxf(size.y - 430.0 * s, _jump_radius() * 1.03 + 8.0))
 	return Vector2(_mirror(size.x - 158.0 * s), size.y - 158.0 * s)
 
 func _jump_radius() -> float:
@@ -113,7 +116,7 @@ func _jump_radius() -> float:
 
 func _rot_center() -> Vector2:
 	var s := _s()
-	return Vector2(_mirror(size.x - 480.0 * s), size.y - 195.0 * s)
+	return Vector2(_mirror(size.x - 520.0 * s), size.y - 195.0 * s)
 
 func _rot_radius() -> float:
 	return ROT_R * _s()
@@ -178,8 +181,8 @@ func _pad_radius() -> float:
 ## Radios de pulsación (algo mayores que el dibujo para acertar con el pulgar sin mirar).
 func hit_radii() -> Dictionary:
 	var small := 1.15 if stick_enabled() else 1.2
-	return {"jump": _jump_radius() * 1.12, "action": _action_radius() * small, "pad": _pad_radius() * 1.08,
-		"rot": _rot_radius() * 1.12, "vault": _small_radius() * 1.15, "grab": _small_radius() * 1.15}
+	return {"jump": _jump_radius() * (1.03 if stick_enabled() else 1.12), "action": _action_radius() * small, "pad": _pad_radius() * 1.08,
+		"rot": _rot_radius() * 1.08, "vault": _small_radius() * 1.15, "grab": _small_radius() * 1.15}
 
 ## Zonas táctiles activas en el modo actual (las pruebas comprueban que no se solapan).
 func zones() -> Dictionary:
@@ -214,6 +217,9 @@ func collect() -> TouchFrame:
 			"jump":
 				f.jump_held = true
 				f.tuck = f.tuck or fd.flicked
+			"flipw":
+				f.jump_held = true
+				f.tuck = true
 			"action":
 				f.action_held = true
 			"pad":
@@ -251,6 +257,11 @@ static func sector_of(v: Vector2) -> int:
 		sec = int(floorf(ang / 90.0) * 2.0) + 1
 	return 4 if sec == -4 else sec
 
+## Rueda de mortales: 4 zonas de 90° (↑ adelante, ↓ atrás, ← → lateral).
+static func wheel_sector(v: Vector2) -> int:
+	var card := int(roundf(rad_to_deg(atan2(v.y, v.x)) / 90.0)) * 2
+	return 4 if card == -4 else card
+
 static func sector_dir(sec: int) -> Vector2:
 	var a := deg_to_rad(sec * 45.0)
 	return Vector2(cos(a), sin(a))
@@ -272,7 +283,20 @@ func _on_touch(e: InputEventScreenTouch) -> void:
 		var role := ""
 		var info := {"start": p, "pos": p, "time": _time, "flicked": false, "anchor": p, "sector": 99}
 		var hr := hit_radii()
-		if p.distance_to(_jump_center()) < hr.jump:
+		if p.distance_to(_jump_center()) < hr.jump and stick_enabled() \
+				and p.distance_to(_jump_center()) > _jump_radius() * WHEEL_CORE:
+			# Rueda: zona de mortal = salta y hace ese mortal (en el aire: lo empieza o suma otra
+			# vuelta). Mantener el dedo = agruparse; soltar = abrirse.
+			role = "flipw"
+			var v := p - _jump_center()
+			var sec := wheel_sector(Vector2(v.x, -v.y))
+			info.sector = sec
+			if not air_mode:
+				_pending.jump_pressed = true
+			_emit_flick(sector_dir(sec))
+			_flash["wheel"] = 0.3
+			_flash["wheel_sec"] = sec
+		elif p.distance_to(_jump_center()) < hr.jump:
 			role = "jump"
 			_pending.jump_pressed = true
 			_flash["jump"] = 0.15
@@ -405,11 +429,13 @@ func _rot_drag(f: Dictionary, pos: Vector2) -> void:
 	if m < 0.55:
 		return
 	var sec := sector_of(_rot_vec)
+	# Doble joystick: el joystick derecho es el GIRO (analógico); su inclinación brusca solo
+	# cuenta para los movimientos de suelo, nunca lanza un mortal.
 	if f.armed:
 		f.armed = false
 		f.sector = sec
 		f.cand = 99
-		_emit_flick(sector_dir(sec))
+		_pending.rot_flick = sector_dir(sec)
 	elif sec != f.sector:
 		if f.cand != sec:
 			f.cand = sec
@@ -417,7 +443,7 @@ func _rot_drag(f: Dictionary, pos: Vector2) -> void:
 		elif _time - f.cand_t > 0.07:
 			f.sector = sec
 			f.cand = 99
-			_emit_flick(sector_dir(sec))
+			_pending.rot_flick = sector_dir(sec)
 
 ## Deslizamiento con el dedo apoyado: primer gesto = acrobacia; gestos siguientes = añadidos.
 func _swipe(f: Dictionary, pos: Vector2) -> void:
@@ -442,13 +468,15 @@ func _process(dt: float) -> void:
 	if size != vs:
 		size = vs
 	for k in _flash.keys():
-		if k == "sector":
+		if k == "sector" or k == "wheel_sec":
 			continue
 		_flash[k] -= dt
 		if _flash[k] <= 0.0:
 			_flash.erase(k)
 	if not _flash.has("flick"):
 		_flash.erase("sector")
+	if not _flash.has("wheel"):
+		_flash.erase("wheel_sec")
 	queue_redraw()
 
 func _draw() -> void:
@@ -477,11 +505,14 @@ func _draw() -> void:
 	for f in _fingers.values():
 		if f.role == "jump":
 			jheld = true
-	draw_circle(jc, _jump_radius(), accent if (jheld or _flash.has("jump")) else dark)
-	draw_arc(jc, _jump_radius(), 0, TAU, 64, white, 4.0 * s, true)
-	_label(font, jc + Vector2(0, -10 * s), "SALTO", 40 * s, white)
-	if gestures_enabled():
-		_label(font, jc + Vector2(0, 36 * s), "desliza = truco", 19 * s, Color(1, 1, 1, a + 0.15))
+	if stick_enabled():
+		_draw_wheel(font, s, a, white, dark, accent)
+	else:
+		draw_circle(jc, _jump_radius(), accent if (jheld or _flash.has("jump")) else dark)
+		draw_arc(jc, _jump_radius(), 0, TAU, 64, white, 4.0 * s, true)
+		_label(font, jc + Vector2(0, -10 * s), "SALTO", 40 * s, white)
+		if gestures_enabled():
+			_label(font, jc + Vector2(0, 36 * s), "desliza = truco", 19 * s, Color(1, 1, 1, a + 0.15))
 	# RODAR (y, en los modos clásicos, acción contextual)
 	var ac := _action_center()
 	var roll_ring := Color(0.35, 0.95, 0.45, white.a) if stick_enabled() else white
@@ -512,8 +543,8 @@ func _draw() -> void:
 		var hc := Vector2(size.x * 0.5, size.y * 0.16)
 		var ha := clampf(1.0 - (_hint_time - 7.0) / 2.0, 0.0, 1.0)
 		if stick_enabled():
-			_label(font, hc, "SALTO + joystick derecho = mortales (más inclinado = más agrupado y rápido)", 24 * s, Color(1, 1, 1, ha))
-			_label(font, hc + Vector2(0, 36 * s), "Joystick derecho en el suelo = rueda, rondada, flic-flac · VAULT · AGARRAR · RODAR", 24 * s, Color(1, 1, 1, ha))
+			_label(font, hc, "Rueda de SALTO: ADELANTE · ATRÁS · LATERAL = mortales (mantén = agrupado)", 24 * s, Color(1, 1, 1, ha))
+			_label(font, hc + Vector2(0, 36 * s), "Joystick GIRO durante el mortal = ¼ (híper), ½ o tirabuzón · en el suelo: rueda, rondada, flic-flac", 24 * s, Color(1, 1, 1, ha))
 			_label(font, hc + Vector2(0, 72 * s), "Biblioteca de movimientos y tutorial: menú de pausa", 24 * s, Color(1, 1, 1, ha))
 			return
 		_label(font, hc, "Pulsa SALTO y desliza: abajo mortal atrás, arriba adelante, lados lateral", 24 * s, Color(1, 1, 1, ha))
@@ -550,6 +581,38 @@ func _draw_camera_hint(font: Font, s: float, a: float) -> void:
 	_label(font, c, "<   CÁMARA   >", 22 * s, col)
 	_label(font, c + Vector2(0, 26 * s), "arrastra aquí · doble toque = detrás", 15 * s, col)
 
+## Rueda SALTO / MORTALES: centro SALTO y 4 zonas (ADELANTE, ATRÁS, LATERAL ← →).
+func _draw_wheel(font: Font, s: float, a: float, white: Color, dark: Color, accent: Color) -> void:
+	var jc := _jump_center()
+	var r := _jump_radius()
+	var held_sec := 99
+	var core_held := false
+	for f in _fingers.values():
+		if f.role == "flipw":
+			held_sec = f.sector
+		elif f.role == "jump":
+			core_held = true
+	if held_sec == 99 and _flash.has("wheel"):
+		held_sec = _flash.get("wheel_sec", 99)
+	draw_circle(jc, r, Color(dark, dark.a * 0.85))
+	for sec in [2, -2, 0, 4]:
+		var c := -deg_to_rad(sec * 45.0)
+		var pts := PackedVector2Array()
+		for i in 9:
+			var ang := c + deg_to_rad(lerpf(-43.0, 43.0, i / 8.0))
+			pts.append(jc + Vector2(cos(ang), sin(ang)) * r * 0.97)
+		for i in 9:
+			var ang := c + deg_to_rad(lerpf(43.0, -43.0, i / 8.0))
+			pts.append(jc + Vector2(cos(ang), sin(ang)) * r * (WHEEL_CORE + 0.03))
+		draw_colored_polygon(pts, accent if sec == held_sec else Color(1, 1, 1, a * 0.14))
+		var d := sector_dir(sec)
+		var lbl: String = WHEEL_LABELS[sec]
+		_label(font, jc + Vector2(d.x, -d.y) * r * 0.71, lbl, (15.0 if sec % 4 == 0 else 17.0) * s, white)
+	draw_arc(jc, r, 0, TAU, 64, white, 4.0 * s, true)
+	draw_circle(jc, r * WHEEL_CORE, accent if (core_held or _flash.has("jump")) else Color(dark, minf(dark.a + 0.25, 1.0)))
+	draw_arc(jc, r * WHEEL_CORE, 0, TAU, 48, Color(white, white.a * 0.8), 3.0 * s, true)
+	_label(font, jc, "SALTO", 20 * s, white)
+
 ## Joystick derecho de rotación: base con las 8 direcciones rotuladas y mando analógico.
 func _draw_rot_stick(font: Font, s: float, a: float, white: Color, dark: Color, accent: Color) -> void:
 	var rc := _rot_center()
@@ -562,29 +625,21 @@ func _draw_rot_stick(font: Font, s: float, a: float, white: Color, dark: Color, 
 	if not finger.is_empty():
 		base = finger.origin
 	draw_circle(base, rr, Color(dark, dark.a * 0.85))
-	# Sector activo resaltado
-	var hot := 99
-	if not finger.is_empty() and _rot_vec.length() > 0.55:
-		hot = sector_of(_rot_vec)
-	elif _flash.has("sector"):
-		hot = _flash.sector
-	for sec in [0, 1, 2, 3, 4, -1, -2, -3]:
-		var half := (CARDINAL_HALF if sec % 2 == 0 else 45.0 - CARDINAL_HALF) - 2.0
-		var c := -deg_to_rad(sec * 45.0)
+	# Joystick GIRO: mitades izquierda / derecha = sentido del tirabuzón (analógico).
+	for side in [1, -1]:
+		var hot: bool = not finger.is_empty() and _rot_vec.x * side > 0.35
+		var c := 0.0 if side == 1 else PI
 		var pts := PackedVector2Array()
-		for i in 7:
-			var ang := c + deg_to_rad(lerpf(-half, half, i / 6.0))
+		for i in 9:
+			var ang := c + deg_to_rad(lerpf(-60.0, 60.0, i / 8.0))
 			pts.append(base + Vector2(cos(ang), sin(ang)) * rr * 0.97)
-		for i in 7:
-			var ang := c + deg_to_rad(lerpf(half, -half, i / 6.0))
-			pts.append(base + Vector2(cos(ang), sin(ang)) * rr * 0.72)
-		draw_colored_polygon(pts, accent if sec == hot else Color(1, 1, 1, a * 0.12))
-		var d := sector_dir(sec)
-		var lbl: String = PAD_LABELS[sec]
-		var fs := (13.0 if sec % 2 != 0 else 17.0)
-		if lbl.length() > 9:
-			fs = 11.0                     # nombres largos en español (SACACORCHOS, RUEDA AÉREA)
-		_label(font, base + Vector2(d.x, -d.y) * rr * 0.83, lbl, fs * s, white)
+		for i in 9:
+			var ang := c + deg_to_rad(lerpf(60.0, -60.0, i / 8.0))
+			pts.append(base + Vector2(cos(ang), sin(ang)) * rr * 0.7)
+		draw_colored_polygon(pts, accent if hot else Color(1, 1, 1, a * 0.13))
+		_label(font, base + Vector2(side * rr * 0.84, 0), "GIRO" if side == 1 else "GIRO", 15 * s, white)
+	_label(font, base + Vector2(0, -rr * 0.82), "¼ · ½ · 1", 14 * s, Color(1, 1, 1, white.a * 0.8))
+	_label(font, base + Vector2(0, rr + 18 * s), "en el suelo: rueda · rondada · flic-flac · paloma", 13 * s, Color(1, 1, 1, white.a * 0.75))
 	draw_arc(base, rr, 0, TAU, 64, Color(white, white.a * 0.8), 3.0 * s, true)
 	# Mando
 	var knob := base + Vector2(_rot_vec.x, -_rot_vec.y) * _rot_travel()
