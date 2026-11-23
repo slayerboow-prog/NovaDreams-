@@ -57,6 +57,10 @@ jobs:
         working-directory: freerun
         run: timeout 600 "$HOME/godot" --headless --fixed-fps 60 res://tests/test_runner.tscn
 
+      - name: Aceptación de acrobacias (ruta táctil)
+        working-directory: freerun
+        run: timeout 600 "$HOME/godot" --headless --fixed-fps 60 res://tests/acceptance_tricks.tscn
+
       - name: Clave de firma
         env:
           KS_B64: ${{ secrets.FREERUN_KEYSTORE_BASE64 }}
