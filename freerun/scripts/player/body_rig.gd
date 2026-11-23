@@ -6,6 +6,8 @@ extends Node3D
 ## agrupado/abierto en acrobacias, recepción, rodar y caída.
 ## La rotación de acrobacias se aplica en `pivot` (centro de masas).
 
+signal footstep(strength: float)
+
 const COM_HEIGHT := 0.95
 
 var player: PlayerController
@@ -244,7 +246,10 @@ func _idle_pose(p: Dictionary) -> void:
 
 func _run_pose(p: Dictionary, spd: float, dt: float) -> void:
 	var step_len := 0.55 + 0.085 * spd
+	var prev_half := floori(phase / PI)
 	phase += TAU * spd / (2.0 * step_len) * dt
+	if floori(phase / PI) != prev_half:
+		footstep.emit(clampf(spd / 9.0, 0.2, 1.0))
 	var amt := clampf(spd / 9.0, 0.0, 1.0)
 	var amp := 0.35 + 0.65 * amt
 	var s := sin(phase)

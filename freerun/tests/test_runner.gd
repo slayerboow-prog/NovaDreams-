@@ -86,6 +86,7 @@ func _run_all() -> void:
 	await t_jump()
 	await t_backflip()
 	await t_frontflip_cork()
+	await t_ground_flick_buffer()
 	await t_overrotation_crash()
 	await t_speed_vault()
 	await t_kong_vault()
@@ -177,6 +178,20 @@ func t_frontflip_cork() -> void:
 		i.flick = Vector2(1, 0) if f == 2 else Vector2.ZERO, 120,
 		func(): return player.state == PlayerController.State.GROUND and _f > 5)
 	check("Sideflip: reconocido", "Sideflip" in moves, str(moves))
+
+func t_ground_flick_buffer() -> void:
+	await place(Vector3(-35, 0.1, 35), Vector3.FORWARD)
+	await run(func(i, f): i.flick = Vector2(0, -1) if f == 0 else Vector2.ZERO, 30)
+	check("Gesto en suelo sin salto: no salta (es cámara)", player.state == PlayerController.State.GROUND and moves.is_empty(),
+		PlayerController.STATE_NAMES[player.state])
+	await run(func(i, f):
+		i.flick = Vector2(0, -1) if f == 0 else Vector2.ZERO
+		i.jump_pressed = f == 8
+		i.jump_held = f >= 8, 120,
+		func(): return _f > 10 and player.state == PlayerController.State.GROUND)
+	check("Gesto y salto en <0,25 s: backflip desde el despegue", "Backflip" in moves, str(moves))
+	var fb: Feedback = game.get_node("Feedback")
+	check("Audio: efectos sintetizados", fb.sounds.size() >= 9 and fb.sounds.step.data.size() > 1000, str(fb.sounds.keys()))
 
 func t_overrotation_crash() -> void:
 	await place(Vector3(-35, 0.1, 35), Vector3.FORWARD, 0)  # modo Pro

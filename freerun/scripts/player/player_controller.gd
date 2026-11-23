@@ -44,6 +44,8 @@ var takeoff_y := 0.0
 var peak_y := 0.0
 var prev_velocity := Vector3.ZERO
 var land_impact := 0.0                  # para la animación de recepción
+var flick_buffer := Vector2.ZERO        # gesto hecho en el suelo justo antes de saltar
+var flick_timer := 0.0
 var last_landing := {}
 var context_hint := ""                  # texto del botón contextual
 
@@ -149,6 +151,11 @@ func _physics_process(dt: float) -> void:
 	land_impact = move_toward(land_impact, 0.0, dt * 3.0)
 	jump_buffer = t.jump_buffer_time if intent.jump_pressed else maxf(0.0, jump_buffer - dt)
 	roll_buffer = t.roll_window if intent.action_pressed else maxf(0.0, roll_buffer - dt)
+	if intent.flick != Vector2.ZERO:
+		flick_buffer = intent.flick
+		flick_timer = 0.25
+	else:
+		flick_timer = maxf(0.0, flick_timer - dt)
 	if intent.respawn_pressed:
 		respawn()
 		return
@@ -213,10 +220,10 @@ func _state_ground(dt: float) -> void:
 			if _try_wall_climb():
 				return
 			_do_jump("run" if spd > 3.0 else "stand")
-			return
-		if intent.flick != Vector2.ZERO:
-			_do_jump("run" if spd > 3.0 else "stand")
-			tricks.apply_flick(intent.flick)
+			# Gesto hecho justo antes de saltar: el mortal arranca en el despegue.
+			if flick_timer > 0.0:
+				tricks.apply_flick(flick_buffer)
+			flick_timer = 0.0
 			return
 		if intent.action_pressed and spd > 3.0:
 			_start_roll(false)

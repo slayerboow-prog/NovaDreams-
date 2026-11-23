@@ -38,6 +38,11 @@ func _ready() -> void:
 	player.add_child(rig)
 	rig.setup(player)
 
+	var feedback := Feedback.new()
+	feedback.name = "Feedback"
+	add_child(feedback)
+	feedback.setup(player, rig, combo)
+
 	camera = CameraRig.new()
 	camera.name = "CameraRig"
 	add_child(camera)
