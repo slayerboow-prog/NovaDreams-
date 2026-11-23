@@ -98,6 +98,8 @@ func _run_all() -> void:
 	await t_touch()
 	await t_touch_layout()
 	await t_landing_feel()
+	await t_new_tricks()
+	await t_vault_variants()
 	await t_combo_logic()
 	await t_respawn_repeat()
 	await t_modes()
@@ -478,3 +480,71 @@ func t_landing_feel() -> void:
 		st.load = st.load or player.jump_load > 0.0, 30,
 		func(): return player.state == PlayerController.State.AIR)
 	check("Salto con flexión previa (anticipación) y despegue", st.load and player.state == PlayerController.State.AIR, "")
+
+## Trucos nuevos: patadas giratorias (SALTO otra vez en el aire / botón GIRO),
+## mortales con tirabuzón completo y nombres según el despegue.
+func t_new_tricks() -> void:
+	# 360 Kick parado: salto y segundo toque de SALTO en el aire
+	await place(Vector3(-35, 0.1, 35), Vector3.FORWARD)
+	await run(func(i, f):
+		i.jump_pressed = f == 0 or f == 9
+		i.jump_held = f < 2 or (f >= 9 and f < 11), 120,
+		func(): return _f > 12 and player.state == PlayerController.State.GROUND)
+	var q: String = landings[-1].quality if landings.size() > 0 else "none"
+	check("360 Kick: segundo toque de SALTO en el aire", "360 Kick" in moves and q in ["perfect", "clean"], str(moves) + " " + q)
+	# 540: dos toques en el aire
+	await place(Vector3(-35, 0.1, 35), Vector3.FORWARD)
+	await run(func(i, f):
+		i.jump_pressed = f == 0 or f == 10 or f == 16
+		i.jump_held = f < 2, 120,
+		func(): return _f > 16 and player.state == PlayerController.State.GROUND)
+	q = landings[-1].quality if landings.size() > 0 else "none"
+	check("540 Kick: dos toques en el aire (aterriza de espaldas)", "540 Kick" in moves and q in ["perfect", "clean"], str(moves) + " " + q)
+	# Back Full: backflip + botón GIRO durante el mortal
+	await place(Vector3(-35, 0.1, 35), Vector3.FORWARD)
+	await run(func(i, f):
+		i.jump_pressed = f == 0
+		i.jump_held = true
+		i.flick = Vector2(0, -1) if f == 2 else Vector2.ZERO
+		i.kick = f == 8, 120,
+		func(): return _f > 10 and player.state == PlayerController.State.GROUND)
+	q = landings[-1].quality if landings.size() > 0 else "none"
+	check("Back Full: mortal atrás + GIRO = tirabuzón completo", "Back Full" in moves and q in ["perfect", "clean"], str(moves) + " " + q)
+	# Nombres según despegue y tirabuzones (tabla de trucos)
+	var TS := TrickSystem
+	var cases := [
+		[TS.trick_name(1, 0, 0, 0, true, false, true, "back", "wall", "wallclimb"), "Wall Flip"],
+		[TS.trick_name(1, 0, 0, 0, true, true, false, "back", "vault", "Kong Vault"), "Kong Gainer"],
+		[TS.trick_name(1, 0, 0, 0, false, true, false, "front", "vault", "Dash Vault"), "Dash Bomb"],
+		[TS.trick_name(1, 0, 0, 2, true, true, false, "back"), "Gainer Full"],
+		[TS.trick_name(2, 0, 0, 2, true, false, false, "back"), "Full In"],
+		[TS.trick_name(1, 0, 0, 4, true, false, false, "back"), "Double Full"],
+		[TS.trick_name(1, 0, 0, 1, false, false, false, "front"), "Arabian"],
+		[TS.trick_name(1, 0, 0, 2, false, false, false, "front"), "Front Full"],
+		[TS.trick_name(0, 1, 0, 1, false, true, false, "side"), "Raiz"],
+		[TS.trick_name(0, 0, 1, 2, false, true, false, "butterfly"), "Butterfly Twist"],
+		[TS.trick_name(0, 0, 0, 4, false, true, false, "kick"), "Cheat 720"],
+		[TS.trick_name(2, 0, 0, 4, true, true, false, "cork"), "Double Cork"],
+	]
+	var bad := cases.filter(func(c): return c[0] != c[1])
+	check("Tabla de trucos: nombres de flips, twists, kicks y despegues", bad.is_empty(), str(bad))
+
+## Variantes de vault elegidas con gesto justo antes de saltar.
+func t_vault_variants() -> void:
+	for v in [[Vector2(1, 0), "Reverse Vault", Vector3(0, 0.1, 2), 0.8, false, -4.85, -6.5],
+			[Vector2(0, 1), "Double Kong", Vector3(0, 0.1, -8), 1.0, true, -12.9, -15.0],
+			[Vector2(0, -1), "Kash Vault", Vector3(0, 0.1, -8), 1.0, true, -12.9, -15.0]]:
+		await place(v[2], Vector3.FORWARD)
+		var st := {"pressed": false}
+		var jz: float = v[5]
+		var stick: float = v[3]
+		var spr: bool = v[4]
+		var fl: Vector2 = v[0]
+		await run(func(i, f):
+			i.move = Vector2(0, stick); i.sprint = spr
+			var go: bool = not st.pressed and player.global_position.z <= jz
+			i.flick = fl if go else Vector2.ZERO
+			i.jump_pressed = go
+			st.pressed = st.pressed or go, 200,
+			func(): return st.pressed and player.state == PlayerController.State.GROUND and player.global_position.z < v[6])
+		check("%s: gesto + salto ante el obstáculo, lo supera" % v[1], v[1] in moves and player.global_position.z < v[6], "%s z %.2f" % [str(moves), player.global_position.z])

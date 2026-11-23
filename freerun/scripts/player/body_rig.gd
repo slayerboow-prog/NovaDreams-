@@ -341,6 +341,8 @@ func trick_kind(tr: TrickSystem) -> String:
 			return "cork"
 		"butterfly":
 			return "butterfly"
+		"kick":
+			return "kick"
 	return "back"
 
 const V0 := Vector3.ZERO
@@ -382,6 +384,13 @@ func _impulse_pose(kind: String, rs: float) -> Dictionary:
 				"shoulder_l": Vector3(2.5, 0, -0.7), "shoulder_r": Vector3(1.7, 0, 0.9),
 				"elbow_l": Vector3(0.2, 0, 0), "elbow_r": Vector3(0.6, 0, 0),
 				"hip_l": Vector3(-0.1, 0, 0), "hip_r": Vector3(0.4, 0, 0), "knee_l": Vector3(-0.1, 0, 0), "knee_r": Vector3(-0.5, 0, 0)}
+		"kick":
+			# Patada giratoria: brazos lanzados hacia el giro, pierna de impulso empujando
+			return {"spine": Vector3(-0.15, 0.6 * rs, 0), "neck": Vector3(0.1, 0.4 * rs, 0),
+				"shoulder_l": Vector3(1.6, 0, -1.0), "shoulder_r": Vector3(1.2, 0, 1.2),
+				"elbow_l": Vector3(0.6, 0, 0), "elbow_r": Vector3(0.6, 0, 0),
+				"hip_l": Vector3(-0.1, 0, 0), "knee_l": Vector3(-0.1, 0, 0),
+				"hip_r": Vector3(1.2, 0, 0), "knee_r": Vector3(-1.5, 0, 0)}
 		"butterfly":
 			return {"spine": Vector3(-0.75, 0.6 * rs, 0), "neck": Vector3(0.4, 0, 0),
 				"shoulder_l": Vector3(1.5, 0, -1.0), "shoulder_r": Vector3(1.5, 0, 1.0),
@@ -411,12 +420,13 @@ func _gather_pose(kind: String, rs: float, ph: float) -> Dictionary:
 				"shoulder_l": Vector3(0.9, 0, 0.1), "shoulder_r": Vector3(0.9, 0, -0.1),
 				"elbow_l": Vector3(1.5, 0, 0), "elbow_r": Vector3(1.5, 0, 0)}
 		"side":
-			# Lateral agrupado: rodillas al pecho girando hacia el lado, brazos recogidos (no estrella)
-			return {"spine": Vector3(-0.5, 0, 0.2 * rs), "neck": Vector3(0.0, 0, 0.25 * rs),
-				"hip_l": Vector3(2.25, 0, 0.12 * rs), "hip_r": Vector3(2.25, 0, 0.12 * rs),
-				"knee_l": Vector3(-2.45, 0, 0), "knee_r": Vector3(-2.45, 0, 0),
-				"shoulder_l": Vector3(0.85, 0, 0.35), "shoulder_r": Vector3(0.85, 0, -0.35),
-				"elbow_l": Vector3(2.0, 0, 0), "elbow_r": Vector3(2.0, 0, 0)}
+			# Sideflip real: bola cerrada. Rodillas al pecho, talones a los glúteos, manos
+			# agarrando las rodillas y cabeza metida; la pierna de atrás sube primero.
+			return {"spine": Vector3(-0.85, 0, 0.15 * rs), "neck": Vector3(-0.4, 0, 0.2 * rs),
+				"hip_l": Vector3(2.7, 0, 0.1 * rs), "hip_r": Vector3(2.65, 0, 0.1 * rs),
+				"knee_l": Vector3(-2.75, 0, 0), "knee_r": Vector3(-2.75, 0, 0),
+				"shoulder_l": Vector3(1.15, 0, 0.18), "shoulder_r": Vector3(1.15, 0, -0.18),
+				"elbow_l": Vector3(1.05, 0, 0), "elbow_r": Vector3(1.05, 0, 0)}
 		"aerial":
 			# Rueda sin manos: tronco carpado, piernas abiertas en el plano del giro, brazos pegados
 			return {"spine": Vector3(-1.1, 0, 0), "neck": Vector3(0.45, 0, 0),
@@ -445,6 +455,15 @@ func _gather_pose(kind: String, rs: float, ph: float) -> Dictionary:
 				"knee_l": Vector3(-1.35, 0, 0), "knee_r": Vector3(-1.4, 0, 0),
 				"shoulder_l": Vector3(0.55, 0, 0.6), "shoulder_r": Vector3(0.55, 0, -0.6),
 				"elbow_l": Vector3(2.35, 0, 0), "elbow_r": Vector3(2.35, 0, 0)}
+		"kick":
+			# Giro vertical con brazos cerrados; a mitad de vuelta sale la patada (pierna extendida)
+			var kf := sin(ph * 0.5)
+			var kick := clampf(kf * 1.4, 0.0, 1.0)
+			return {"spine": Vector3(-0.2 - 0.3 * kick, 0, 0.35 * kick * rs), "neck": Vector3(0.15, 0, 0),
+				"shoulder_l": Vector3(0.6, 0, 0.55), "shoulder_r": Vector3(0.6, 0, -0.55),
+				"elbow_l": Vector3(2.2, 0, 0), "elbow_r": Vector3(2.2, 0, 0),
+				"hip_l": Vector3(0.3 + 1.2 * kick, 0, -0.9 * kick), "knee_l": Vector3(-1.2 + 1.05 * kick, 0, 0),
+				"hip_r": Vector3(0.9 - 0.5 * kick, 0, 0.05), "knee_r": Vector3(-1.4 + 0.6 * kick, 0, 0)}
 		"butterfly":
 			# Cuerpo tumbado, patada de tijera continua, brazos a la altura del hombro y flexionados
 			var k := sin(ph)
@@ -498,7 +517,8 @@ func _trick_pose(p: Dictionary, tr: TrickSystem) -> void:
 	var prog: float = absf(tr.total.get(ax, 0.0))
 	var goal_turns := maxi(int(tr.goal.get(ax, 1)), 1)
 	# Agrupación: empieza en cuanto termina el impulso; manteniendo el dedo es inmediata y más cerrada.
-	var gather := _smooth((tr.air_time - 0.06) / (0.07 if tr.tucked else 0.1))
+	var early := kind in ["side", "back", "front", "gainer"]
+	var gather := _smooth((tr.air_time - (0.03 if early else 0.06)) / (0.07 if tr.tucked or early else 0.1))
 	# Apertura: al acercarse la última vuelta pedida (sin mantener) el cuerpo se alarga y frena.
 	var open := 0.0
 	if tr.all_settled():
@@ -508,13 +528,15 @@ func _trick_pose(p: Dictionary, tr: TrickSystem) -> void:
 		if next_stop >= goal_turns * period - 0.001 or tr.spotting:
 			# Se abre en el último tramo de la vuelta (~250°-310°): agrupado durante el giro principal
 			open = _smooth((period * 0.3 - (next_stop - prog)) / (period * 0.14))
-	var imp := _smooth(1.0 - tr.air_time / 0.13)
+	var imp := _smooth(1.0 - tr.air_time / (0.1 if early else 0.13))
 	var ttg := player.time_to_ground()
 	var rec := 0.0
 	if open >= 0.99 and player.velocity.y < 0.0:
 		rec = _smooth(1.0 - ttg / 0.24)
 
 	var ph := absf(tr.total_spin) * 2.0 + tr.air_time * 9.0
+	if kind == "kick":
+		ph = absf(tr.total_twist)
 	var g := _gather_pose(kind, rs, ph)
 	# Base abierta → agrupado → impulso (inicio) → recepción (final)
 	_apply(p, OPEN_POSE, 1.0)
@@ -565,6 +587,32 @@ func _vault_pose(p: Dictionary) -> Basis:
 			p.shoulder_l.x = lerpf(2.8, 0.3, s); p.shoulder_r.x = lerpf(2.8, 0.3, s)
 			p.elbow_l.x = 0.2; p.elbow_r.x = 0.2
 			return Basis(Vector3.RIGHT, -1.0 * arc)
+		"Double Kong":
+			# Dos apoyos de manos: dos arcos de agrupado sobre el obstáculo
+			var a2 := absf(sin(s * TAU))
+			_tuck_pose(p, a2)
+			p.shoulder_l.x = 2.6 - 1.2 * a2; p.shoulder_r.x = 2.6 - 1.2 * a2
+			p.elbow_l.x = 0.2; p.elbow_r.x = 0.2
+			return Basis(Vector3.RIGHT, -0.9 * a2)
+		"Kash Vault":
+			# Kong al principio, dash (piernas delante) al final
+			if s < 0.5:
+				_tuck_pose(p, sin(s * TAU) * 0.9)
+				p.shoulder_l.x = 2.7; p.shoulder_r.x = 2.7
+				return Basis(Vector3.RIGHT, -0.9 * sin(s * TAU))
+			var k2 := sin((s - 0.5) * TAU)
+			p.hip_l.x = 1.5 * k2; p.hip_r.x = 1.4 * k2
+			p.knee_l.x = -0.2; p.knee_r.x = -0.3
+			p.shoulder_l.x = -0.6 * k2; p.shoulder_r.x = -0.6 * k2
+			return Basis(Vector3.RIGHT, 0.5 * k2)
+		"Reverse Vault":
+			# Giro completo de espaldas sobre el obstáculo, apoyando una mano
+			p.hip_l.x = 1.0 * arc; p.hip_r.x = 0.8 * arc
+			p.knee_l.x = -0.9 * arc; p.knee_r.x = -1.1 * arc
+			p.shoulder_r.x = 1.2 * arc; p.shoulder_r.z = 0.6 * arc
+			p.shoulder_l.z = -1.0 * arc
+			p.spine.x = -0.3 * arc
+			return Basis(Vector3.UP, -TAU * _ease_in_out(s)) * Basis(Vector3.BACK, 0.35 * arc)
 		"Dash Vault":
 			p.hip_l.x = 1.5 * arc; p.hip_r.x = 1.4 * arc
 			p.knee_l.x = -0.2; p.knee_r.x = -0.3

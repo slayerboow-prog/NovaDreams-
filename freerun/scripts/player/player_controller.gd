@@ -46,6 +46,7 @@ var prev_velocity := Vector3.ZERO
 var land_impact := 0.0                  # para la animación de recepción
 var flick_buffer := Vector2.ZERO        # gesto hecho en el suelo justo antes de saltar
 var flick_timer := 0.0
+var kick_timer := 0.0                   # botón GIRO pulsado justo antes de saltar
 var last_landing := {}
 var jump_load := 0.0                    # flexión previa al salto (anticipación)
 var jump_load_kind := "stand"
@@ -162,6 +163,7 @@ func _physics_process(dt: float) -> void:
 		flick_timer = 0.25
 	else:
 		flick_timer = maxf(0.0, flick_timer - dt)
+	kick_timer = 0.25 if intent.kick else maxf(0.0, kick_timer - dt)
 	if intent.respawn_pressed:
 		respawn()
 		return
@@ -258,7 +260,14 @@ func _takeoff(kind: String) -> void:
 	# Gesto hecho justo antes de saltar (o durante la flexión): el mortal arranca en el despegue.
 	if flick_timer > 0.0:
 		tricks.apply_flick(flick_buffer)
+	if kick_timer > 0.0:
+		tricks.apply_kick(_kick_dir())
 	flick_timer = 0.0
+	kick_timer = 0.0
+
+## Sentido del giro: hacia donde empuja el joystick (por defecto, a la izquierda).
+func _kick_dir() -> int:
+	return -1 if intent.move.x > 0.3 else 1
 
 func _do_jump(kind: String) -> void:
 	var spd := speed()
@@ -297,6 +306,8 @@ func _state_air(dt: float) -> void:
 
 	if intent.flick != Vector2.ZERO:
 		tricks.apply_flick(intent.flick)
+	if intent.kick:
+		tricks.apply_kick(_kick_dir())
 	tricks.step(dt, intent.tuck, time_to_ground(), Settings.assist_strength(), t)
 	if not tricks.active and hv.length() > 1.0:
 		_turn_facing(hv, 4.0, dt)
@@ -311,6 +322,10 @@ func _state_air(dt: float) -> void:
 			return
 		if intent.jump_held and _try_wall_run():
 			return
+	# Volver a pulsar SALTO en el aire (lejos de paredes): giro 360/540/720 o tirabuzón completo.
+	if intent.jump_pressed and jump_buffer > 0.0 and air_kind != "fall":
+		tricks.apply_kick(_kick_dir())
+		jump_buffer = 0.0
 
 	move_and_slide()
 	if _check_water():
@@ -434,6 +449,22 @@ func _try_vault() -> bool:
 		kind = "Step Vault"
 		speed_mult = 0.85
 		ideal = Vector2(0.15, 1.0)
+	# Variantes elegidas con un gesto justo antes del vault (SALTO + deslizar o cruceta):
+	#   lateral = Reverse Vault (giro de 360 sobre el obstáculo)
+	#   arriba en caja de kong = Double Kong · abajo en caja de kong = Kash Vault
+	if flick_timer > 0.0 and not info.mount:
+		var sec := TouchControls.sector_of(flick_buffer)
+		if sec in [0, 4]:
+			kind = "Reverse Vault"
+			speed_mult = 0.92
+		elif kind == "Kong Vault" and sec == 2 and depth >= 1.2:
+			kind = "Double Kong"
+			speed_mult = 1.1
+		elif kind == "Kong Vault" and sec == -2:
+			kind = "Kash Vault"
+			speed_mult = 1.05
+		if kind in ["Reverse Vault", "Double Kong", "Kash Vault"]:
+			flick_timer = 0.0
 	var timing := 1.0
 	if d < ideal.x or d > ideal.y:
 		timing = 0.6
@@ -446,7 +477,7 @@ func _try_vault() -> bool:
 	var duration := clampf(length / maxf(exit_speed, 4.0) * (1.25 if info.mount else 1.0), 0.28, 0.8)
 	var y0 := global_position.y
 	var y1 := top_y + 0.02 if info.mount else maxf(top_y - 0.35, info.land_y + 0.02)
-	var peak := top_y + (0.0 if kind in ["Step Vault", "Step Up", "Climb Up"] else 0.14)
+	var peak := top_y + (0.0 if kind in ["Step Vault", "Step Up", "Climb Up"] else (0.3 if kind == "Double Kong" else 0.14))
 	if info.mount:
 		peak = top_y + 0.12
 	vault = {"kind": kind, "p0": global_position, "dir": dir, "length": length, "duration": duration,
@@ -492,6 +523,7 @@ func _state_vault(dt: float) -> void:
 			velocity.y = t.jump_velocity * 0.95
 			air_kind = "vault"
 			tricks.reset("vault", vault.exit_speed)
+			tricks.takeoff_detail = vault.kind
 			if vault.flick != Vector2.ZERO:
 				tricks.apply_flick(vault.flick)
 
@@ -555,6 +587,7 @@ func _state_wallrun(dt: float) -> void:
 		facing = ObstacleSensor.flat(out).normalized()
 		wall_cooldown = 0.25
 		_enter_air("wall")
+		tricks.takeoff_detail = "wallrun"
 		_emit_move("Wall Jump", 1.0, {})
 		if intent.flick != Vector2.ZERO:
 			tricks.apply_flick(intent.flick)
@@ -597,6 +630,7 @@ func _try_tic_tac() -> bool:
 	wall_cooldown = 0.2
 	last_wall_normal = n
 	_enter_air("wall")
+	tricks.takeoff_detail = "tictac"
 	_emit_move("Tic Tac", 1.0, {})
 	return true
 
@@ -641,6 +675,7 @@ func _state_wallclimb(dt: float) -> void:
 		if wish.dot(n) > 0.4:
 			facing = n                     # gira y sale de cara
 		_enter_air("wall")
+		tricks.takeoff_detail = "wallclimb"
 		_emit_move("Wall Kick", 1.0, {})
 		if intent.flick != Vector2.ZERO:
 			tricks.apply_flick(intent.flick)
