@@ -85,6 +85,7 @@ func _physics_process(_dt: float) -> void:
 		intent.move = Vector2.ZERO
 		intent.jump_held = false
 		intent.tuck = false
+		intent.rot = Vector2.ZERO
 		intent.action_held = false
 		_mouse_delta = Vector2.ZERO
 		return
@@ -106,6 +107,7 @@ func _physics_process(_dt: float) -> void:
 	if any_trick_pressed and trick_vec.length() > 0.1:
 		intent.flick = trick_vec.normalized()
 	intent.tuck = trick_vec.length() > 0.1
+	intent.rot = trick_vec.limit_length(1.0)
 
 	var sens := Settings.camera_sensitivity
 	var cam := _mouse_delta * 0.0032 * sens
@@ -130,4 +132,6 @@ func _physics_process(_dt: float) -> void:
 		intent.camera_delta += t.camera_delta
 		intent.respawn_pressed = intent.respawn_pressed or t.respawn_pressed
 		intent.kick = intent.kick or t.kick
+		if t.rot.length() > 0.01:
+			intent.rot = t.rot
 	intent.move = mv.limit_length(1.0)

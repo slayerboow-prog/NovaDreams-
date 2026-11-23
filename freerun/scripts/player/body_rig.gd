@@ -336,7 +336,9 @@ func trick_kind(tr: TrickSystem) -> String:
 		"side":
 			if twisting:
 				return "twist"
-			return "aerial" if moving else "side"
+			return "side"   # lateral siempre encogido (rodillas al pecho)
+		"aerial":
+			return "twist" if twisting else "aerial"   # rueda sin manos: piernas abiertas
 		"cork":
 			return "cork"
 		"butterfly":

@@ -4,7 +4,7 @@ extends RefCounted
 ##
 ## El cuerpo gira sobre cuatro ejes con velocidad angular propia:
 ##   pitch  mortal atrás (+) / adelante (-)        → Backflip, Frontflip, Gainer, Webster
-##   roll   mortal lateral (cabeza a la derecha +)  → Sideflip, Aerial
+##   roll   mortal lateral (cabeza a la derecha +)  → Sideflip (siempre encogido)
 ##   twist  tirabuzón sobre el eje largo            → Cork, Cork 720, Cheat Gainer
 ##   spin   giro horizontal con el cuerpo tumbado   → Butterfly Kick
 ##
@@ -38,6 +38,13 @@ var air_time := 0.0
 var max_height := 0.0
 var _new_axes: Array[String] = []
 var _recal: Array[String] = []       # ejes con más vueltas pedidas: recalibrar velocidad
+var drive := 0.0                     # -1 frenar/abrir · 0 neutro · +1 empujar/agrupar (joystick, botón)
+
+## Fracción del vuelo en la que cada acrobacia completa su vuelta SIN agruparse. Agrupado
+## (hasta ×tuck_mult, de forma progresiva) termina antes y queda tiempo para abrirse.
+## Cada truco tiene su ritmo: el backflip es explosivo, el butterfly es amplio y lento.
+const COMPLETE_AT := {"back": 0.66, "front": 0.7, "side": 0.66, "aerial": 0.72, "cork": 0.72,
+	"butterfly": 0.72, "kick": 0.64}
 
 # Compatibilidad con el resto del código
 var pitch_rate: float:
@@ -73,6 +80,7 @@ func reset(kind := "run", speed := 0.0) -> void:
 	tuck_amount = 0.0
 	spotting = false
 	style = ""
+	drive = 0.0
 	twist_period = TAU
 	takeoff_kind = kind
 	takeoff_detail = ""
@@ -105,8 +113,10 @@ func _start_axis(ax: String, s: int) -> void:
 	if base[ax] == 0.0:
 		_new_axes.append(ax)
 
-## Gesto en 8 direcciones (x derecha, y arriba):
-##   ↓ backflip · ↑ frontflip · ←/→ lateral · ↙/↘ cork · ↖/↗ butterfly kick
+## Gesto / joystick derecho en 8 direcciones (x derecha, y arriba):
+##   ↓ backflip · ↑ frontflip · ←/→ sideflip (encogido) · ↙/↘ mortal atrás + tirabuzón (cork)
+##   ↗ mortal adelante + tirabuzón (Front Full) · ↖ adelante + giro lateral: Aerial (parado)
+##   o Butterfly Kick (con carrera)
 ## Durante un mortal: gesto lateral = añadir tirabuzón; misma dirección = otra vuelta.
 func apply_flick(d: Vector2) -> void:
 	if d.length() < 0.1:
@@ -130,8 +140,14 @@ func apply_flick(d: Vector2) -> void:
 				_start_axis("roll", hs); style = "side"
 			-1, -3:
 				_start_axis("pitch", 1); _start_axis("twist", 1 if sector == -1 else -1); style = "cork"
-			1, 3:
-				_start_axis("spin", -1 if sector == 1 else 1); style = "butterfly"
+			1:
+				_start_axis("pitch", -1); _start_axis("twist", 1); twist_period = PI
+				goal.twist = 2; style = "front"
+			3:
+				if takeoff_speed > 4.0:
+					_start_axis("spin", 1); style = "butterfly"
+				else:
+					_start_axis("roll", -1); style = "aerial"
 	else:
 		if horizontal and (dir.pitch != 0 or dir.spin != 0):
 			if dir.twist == 0:
@@ -152,7 +168,8 @@ func apply_flick(d: Vector2) -> void:
 				if dir[ax] != 0:
 					settled[ax] = false
 					goal[ax] += 1
-					rate[ax] *= 1.3
+					if not _recal.has(ax):
+						_recal.append(ax)
 	flicks += 1
 	active = true
 
@@ -181,10 +198,16 @@ func apply_kick(d := 1) -> void:
 	flicks += 1
 	active = true
 
-func step(dt: float, held: bool, time_left: float, assist: float, t: MoveTuning) -> void:
+## `push`: 0..1 cuánto se agrupa/empuja el jugador (botón AGRUPAR, dedo en SALTO, joystick
+## derecho inclinado hacia el giro); negativo = tirar en contra: abrirse y frenar.
+func step(dt: float, push: float, time_left: float, assist: float, t: MoveTuning) -> void:
 	air_time += dt
+	drive = clampf(push, -1.0, 1.0)
+	var held := drive > 0.5
 	tucked = held and active
-	tuck_amount = move_toward(tuck_amount, 1.0 if tucked else 0.0, dt * 9.0)
+	# Agrupación progresiva: el cuerpo tarda ~0,25 s en cerrarse del todo (y se abre algo más rápido)
+	var tuck_target := maxf(drive, 0.0) if active else 0.0
+	tuck_amount = move_toward(tuck_amount, tuck_target, dt * (4.0 if tuck_target > tuck_amount else 6.0))
 	if not active:
 		return
 	time_left = maxf(time_left, 0.25)
@@ -195,8 +218,9 @@ func step(dt: float, held: bool, time_left: float, assist: float, t: MoveTuning)
 		if ax == "twist":
 			lo = t.twist_rate_min
 			hi = t.twist_rate_max
-		# Calibrado para completar la vuelta al ~80 % del vuelo: queda tiempo para abrirse.
-		var cal := clampf(period / (time_left * 0.8), lo, hi)
+		# Calibrado por truco (COMPLETE_AT): una vuelta visible, ni borrón ni cámara lenta.
+		var frac: float = COMPLETE_AT.get(style, 0.8)
+		var cal := clampf(period / (time_left * frac), lo, hi)
 		var pro := t.flip_rate_pro * (1.5 if ax == "twist" else 1.0)
 		base[ax] = lerpf(pro, cal, assist)
 		rate[ax] = dir[ax] * base[ax] * 0.7         # impulso inicial
@@ -211,21 +235,23 @@ func step(dt: float, held: bool, time_left: float, assist: float, t: MoveTuning)
 		rate[ax] = dir[ax] * maxf(absf(rate[ax]), base[ax] * 0.9)
 	_recal.clear()
 
-	var hold_mult := t.tuck_mult
-	var open_mult := lerpf(t.open_mult_pro, 0.92, assist)
+	var open_mult := lerpf(t.open_mult_pro, 1.0, assist)
+	if drive < -0.4:
+		open_mult *= 0.8                     # tirar en contra: cuerpo extendido, gira más despacio
 	spotting = false
 	for ax in AXES:
 		var s: int = dir[ax]
 		if s == 0:
 			continue
 		var period := twist_period if ax == "twist" else TAU
-		var window := deg_to_rad(lerpf(22.0, 70.0 if ax == "twist" else 120.0, assist))
+		var window := deg_to_rad(lerpf(22.0, 70.0 if ax == "twist" else 120.0, assist) * (1.4 if drive < -0.4 else 1.0))
 		var prog: float = total[ax] * s
 		var next_stop := (floorf(prog / period + 0.0001) + 1.0) * period
 		var rem := next_stop - prog
-		# Ayuda alta: si mantienes y ya no cabe otra vuelta completa, el cuerpo se abre solo.
-		var cur_mag := maxf(absf(rate[ax]), 0.1)
-		var force_spot := assist > 0.75 and held and time_left < (rem + period * 0.9) / cur_mag
+		# Ayuda alta: al completar las vueltas pedidas el cuerpo se abre aunque sigas agrupado
+		# (más vueltas se piden de forma explícita: volver a inclinar / deslizar otra vez).
+		# Sin ayuda completa (pro/media) agruparse sigue girando: abrirse a tiempo es cosa tuya.
+		var force_spot := held and assist > 0.75
 		if settled[ax]:
 			if held and not force_spot:
 				settled[ax] = false
@@ -246,7 +272,7 @@ func step(dt: float, held: bool, time_left: float, assist: float, t: MoveTuning)
 				rate[ax] = 0.0
 				settled[ax] = true
 		else:
-			var want: float = base[ax] * (hold_mult if held else open_mult)
+			var want: float = base[ax] * lerpf(open_mult, t.tuck_mult, tuck_amount)
 			var cur := move_toward(absf(rate[ax]), want, 65.0 * dt)
 			rate[ax] = s * cur
 			total[ax] += rate[ax] * dt
@@ -338,12 +364,14 @@ static func trick_name(pn: int, rn: int, sn: int, th: int, back: bool, moving: b
 			3: return "Rudi"
 			_: return "Front Double Full"
 	if rn >= 1:
+		if st == "aerial" and th == 0:
+			return "Double Aerial" if rn >= 2 else "Aerial"
 		if th >= 4: return "Aerial Double Twist"
 		if th >= 2: return "Aerial Twist"
 		if th == 1: return "Raiz"
-		if rn >= 2: return "Double Aerial" if moving else "Double Sideflip"
+		if rn >= 2: return "Double Sideflip"
 		if wall: return "Wall Sideflip"
-		return "Aerial" if moving else "Sideflip"
+		return "Sideflip"
 	if sn >= 1:
 		if th >= 4: return "Butterfly Twist 720"
 		if th >= 2: return "Butterfly Twist"
@@ -387,7 +415,8 @@ func live_name() -> String:
 	match style:
 		"back": return "Gainer" if takeoff_speed > 4.0 else "Backflip"
 		"front": return "Webster" if takeoff_speed > 4.0 else "Frontflip"
-		"side": return "Aerial" if takeoff_speed > 4.0 else "Sideflip"
+		"side": return "Sideflip"
+		"aerial": return "Aerial"
 		"cork": return "Cork"
 		"butterfly": return "Butterfly Kick"
 		"kick": return "Tornado Kick" if takeoff_speed > 4.0 else "360 Kick"

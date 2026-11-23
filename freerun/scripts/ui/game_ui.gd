@@ -350,10 +350,10 @@ func _build_settings() -> void:
 	var box: VBoxContainer = r[1]
 	box.add_child(_label("AJUSTES", 40, ACCENT, HORIZONTAL_ALIGNMENT_CENTER))
 	_option(box, "Ayuda de rotación", "rotation_assist", ["Pro (sin ayudas)", "Media", "Alta"])
-	_option(box, "Controles de trucos", "trick_controls", ["Gestos + cruceta", "Solo gestos", "Solo cruceta"])
+	_option(box, "Controles de trucos", "trick_controls", ["Doble joystick", "Solo gestos", "Solo cruceta", "Gestos + cruceta"])
 	_option(box, "Gráficos", "graphics_preset", ["Bajo", "Medio", "Alto"])
 	_slider(box, "Sensibilidad cámara", "camera_sensitivity", 0.3, 2.5, 0.05)
-	_slider(box, "Sensibilidad gestos", "gesture_sensitivity", 0.4, 2.0, 0.05)
+	_slider(box, "Sensibilidad joystick/gestos", "gesture_sensitivity", 0.4, 2.0, 0.05)
 	_slider(box, "Tamaño controles", "control_scale", 0.7, 1.4, 0.05)
 	_slider(box, "Distancia cámara", "camera_distance", 0.75, 1.4, 0.05)
 	_slider(box, "Opacidad controles", "control_opacity", 0.2, 1.0, 0.05)

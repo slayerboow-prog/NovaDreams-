@@ -135,13 +135,20 @@ func _turn_facing(dir: Vector3, rate: float, dt: float) -> void:
 func _emit_move(name: String, quality := 1.0, info := {}) -> void:
 	move_performed.emit(name, quality, info)
 
+## Gravedad en el aire. Durante una acrobacia el atleta "flota" algo más (impulso explosivo
+## de piernas y brazos): da tiempo a ver cada fase sin acelerar ni ralentizar el giro.
+func _air_gravity_base() -> float:
+	if tricks.active and state == State.AIR:
+		return t.gravity * t.trick_gravity_mult
+	return t.gravity
+
 func time_to_ground() -> float:
 	var gy := sensor.ground_below(global_position)
 	var h := global_position.y - gy
 	if gy == -INF or h > 60.0:
 		return 1.2
 	var vy := velocity.y
-	var g := t.gravity
+	var g := _air_gravity_base()
 	var disc := vy * vy + 2.0 * g * maxf(h, 0.0)
 	return (vy + sqrt(disc)) / g
 
@@ -260,10 +267,33 @@ func _takeoff(kind: String) -> void:
 	# Gesto hecho justo antes de saltar (o durante la flexión): el mortal arranca en el despegue.
 	if flick_timer > 0.0:
 		tricks.apply_flick(flick_buffer)
+	elif intent.rot.length() > 0.55:
+		# Joystick derecho ya inclinado al pulsar SALTO: el mortal sale en el despegue
+		tricks.apply_flick(TouchControls.sector_dir(TouchControls.sector_of(intent.rot)))
 	if kick_timer > 0.0:
 		tricks.apply_kick(_kick_dir())
 	flick_timer = 0.0
 	kick_timer = 0.0
+
+## Cuánto empuja el jugador la rotación (0..1), o -1 si tira en contra para abrirse y frenar.
+## AGRUPAR (o el dedo en SALTO) = agrupado total; el joystick derecho es analógico:
+## inclinarlo hacia el sentido del giro agrupa poco a poco, soltarlo abre, en contra frena.
+func trick_push() -> float:
+	var p := 1.0 if intent.tuck else 0.0
+	var r := intent.rot
+	if not tricks.active or r.length() < 0.25:
+		return p
+	var along := 0.0
+	match tricks.primary_axis():
+		"pitch": along = -r.y * tricks.dir.pitch
+		"roll": along = r.x * tricks.dir.roll
+		"spin": along = r.length()
+		"twist": along = absf(r.x)
+	if along > 0.3:
+		p = maxf(p, clampf((along - 0.3) / 0.55, 0.0, 1.0))
+	elif along < -0.45 and p < 0.5:
+		p = -1.0
+	return p
 
 ## Sentido del giro: hacia donde empuja el joystick (por defecto, a la izquierda).
 func _kick_dir() -> int:
@@ -298,8 +328,8 @@ func _state_air(dt: float) -> void:
 		hv = hv.limit_length(max_s)
 	velocity.x = hv.x
 	velocity.z = hv.z
-	var g := t.gravity
-	if velocity.y > 0.0 and not intent.jump_held and not tricks.active and air_kind in ["run", "stand"]:
+	var g := _air_gravity_base()
+	if velocity.y > 0.0 and not intent.jump_held and intent.rot.length() < 0.3 and not tricks.active and air_kind in ["run", "stand"]:
 		g *= t.low_jump_mult
 	velocity.y = maxf(velocity.y - g * dt, -t.max_fall)
 	peak_y = maxf(peak_y, global_position.y)
@@ -308,7 +338,7 @@ func _state_air(dt: float) -> void:
 		tricks.apply_flick(intent.flick)
 	if intent.kick:
 		tricks.apply_kick(_kick_dir())
-	tricks.step(dt, intent.tuck, time_to_ground(), Settings.assist_strength(), t)
+	tricks.step(dt, trick_push(), time_to_ground(), Settings.assist_strength(), t)
 	if not tricks.active and hv.length() > 1.0:
 		_turn_facing(hv, 4.0, dt)
 

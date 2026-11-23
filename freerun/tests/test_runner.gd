@@ -96,6 +96,7 @@ func _run_all() -> void:
 	await t_precision()
 	await t_water()
 	await t_touch()
+	await t_dual_stick()
 	await t_touch_layout()
 	await t_landing_feel()
 	await t_new_tricks()
@@ -322,6 +323,8 @@ func t_water() -> void:
 
 func t_touch() -> void:
 	var touch: TouchControls = game.ui.touch
+	var old_mode := Settings.trick_controls
+	Settings.trick_controls = 1                     # modo gestos (la zona libre lanza trucos en el aire)
 	touch.visible = true
 	touch.size = Vector2(1280, 720)
 	var jc := touch._jump_center()
@@ -373,6 +376,101 @@ func t_touch() -> void:
 	c.pressed = false
 	touch._on_touch(c)
 	touch.visible = false
+	Settings.trick_controls = old_mode
+
+## Doble joystick: los dos pulgares a la vez, joystick derecho analógico, AGRUPAR y GIRO.
+func t_dual_stick() -> void:
+	var touch: TouchControls = game.ui.touch
+	var old_mode := Settings.trick_controls
+	Settings.trick_controls = 0
+	touch.visible = true
+	touch.size = Vector2(1560, 720)
+	touch.collect()
+	var tch := func(idx: int, pos: Vector2, pressed: bool) -> void:
+		var e := InputEventScreenTouch.new()
+		e.index = idx; e.position = pos; e.pressed = pressed
+		touch._on_touch(e)
+	var drg := func(idx: int, pos: Vector2) -> void:
+		var e := InputEventScreenDrag.new()
+		e.index = idx; e.position = pos; e.relative = Vector2(8, 8)
+		touch._on_drag(e)
+	var rc := touch._rot_center()
+	var trav := touch._rot_travel()
+	# Pulgar izquierdo corre, pulgar derecho inclina hacia abajo a la vez
+	tch.call(0, Vector2(200, 520), true)
+	drg.call(0, Vector2(200, 420))
+	tch.call(1, rc, true)
+	var fr := touch.collect()
+	check("Doble joystick: tocar el joystick derecho no lanza truco", fr.flick == Vector2.ZERO and fr.rot == Vector2.ZERO, "flick %s" % fr.flick)
+	drg.call(1, rc + Vector2(0, trav * 0.4))
+	fr = touch.collect()
+	var partial := fr.rot.y < -0.3 and fr.rot.y > -0.5 and fr.flick == Vector2.ZERO
+	drg.call(1, rc + Vector2(0, trav))
+	fr = touch.collect()
+	check("Doble joystick: analógico (inclinación parcial sin truco, a fondo = backflip)", partial and fr.flick.y < -0.9 and fr.rot.y < -0.95, "rot %s flick %s" % [fr.rot, fr.flick])
+	check("Doble joystick: multitáctil (mover y rotar a la vez)", fr.move.y > 0.9 and fr.rot.length() > 0.9, "move %s rot %s" % [fr.move, fr.rot])
+	# Mantener inclinado no repite el truco; deslizar a un lado sí (tirabuzón)
+	drg.call(1, rc + Vector2(0, trav * 1.02))
+	fr = touch.collect()
+	var no_repeat := fr.flick == Vector2.ZERO
+	drg.call(1, rc + Vector2(trav, 0))
+	touch._time += 0.1
+	drg.call(1, rc + Vector2(trav * 1.01, 0))
+	fr = touch.collect()
+	check("Doble joystick: mantener no repite; cambiar de dirección añade (tirabuzón)", no_repeat and fr.flick.x > 0.9, "flick %s" % fr.flick)
+	# Volver al centro e inclinar otra vez = otra vuelta
+	drg.call(1, rc + Vector2(0, trav * 0.1))
+	drg.call(1, rc + Vector2(0, trav))
+	fr = touch.collect()
+	check("Doble joystick: volver a inclinar = otra vuelta", fr.flick.y < -0.9, "flick %s" % fr.flick)
+	tch.call(1, rc + Vector2(0, trav), false)
+	fr = touch.collect()
+	check("Doble joystick: soltar = vuelve al centro (abrir)", fr.rot == Vector2.ZERO and fr.move.y > 0.9, "rot %s" % fr.rot)
+	# Toque sin inclinar = GIRO
+	tch.call(1, rc, true)
+	tch.call(1, rc, false)
+	fr = touch.collect()
+	check("Doble joystick: toque = GIRO", fr.kick and fr.flick == Vector2.ZERO, "")
+	# AGRUPAR con el pulgar izquierdo (a la vez que el derecho)
+	tch.call(0, Vector2(200, 420), false)
+	tch.call(2, touch._tuck_center(), true)
+	tch.call(1, rc, true)
+	drg.call(1, rc + Vector2(0, -trav))
+	fr = touch.collect()
+	check("Doble joystick: AGRUPAR + joystick derecho a la vez", fr.tuck and fr.flick.y > 0.9, "tuck %s flick %s" % [fr.tuck, fr.flick])
+	tch.call(1, rc, false)
+	tch.call(2, touch._tuck_center(), false)
+	# Zona libre en modo joystick = solo cámara (ni rápido ni en el aire lanza trucos)
+	touch.air_mode = true
+	tch.call(3, Vector2(820, 250), true)
+	drg.call(3, Vector2(900, 330))
+	fr = touch.collect()
+	touch.air_mode = false
+	check("Doble joystick: arrastrar fuera de los controles = cámara, nunca truco", fr.flick == Vector2.ZERO and fr.camera_delta.length() > 0.0, "cam %s flick %s" % [fr.camera_delta, fr.flick])
+	tch.call(3, Vector2(900, 330), false)
+	touch.collect()
+	touch.visible = false
+	Settings.trick_controls = old_mode
+	# En el juego: joystick derecho controla la intensidad (más inclinado = gira más rápido)
+	var rates := []
+	for amount in [0.0, 1.0]:
+		await place(Vector3(0, 0.1, 6), Vector3.FORWARD)
+		await run(func(i, f):
+			i.jump_pressed = f == 0
+			i.jump_held = f < 3
+			i.flick = Vector2(0, -1) if f == 6 else Vector2.ZERO
+			i.rot = Vector2(0, -amount) if f >= 6 else Vector2.ZERO, 22)
+		rates.append(absf(player.tricks.pitch_rate))
+	check("Doble joystick: inclinar a fondo gira más rápido que soltar", rates[1] > rates[0] * 1.15, "%.1f vs %.1f rad/s" % [rates[1], rates[0]])
+	# Tirar en contra frena
+	await place(Vector3(0, 0.1, 6), Vector3.FORWARD)
+	await run(func(i, f):
+		i.jump_pressed = f == 0
+		i.jump_held = f < 3
+		i.flick = Vector2(0, -1) if f == 6 else Vector2.ZERO
+		i.rot = Vector2(0, 1) if f >= 9 else Vector2.ZERO, 22)
+	check("Doble joystick: tirar en contra frena el giro", absf(player.tricks.pitch_rate) < rates[0], "%.1f rad/s" % absf(player.tricks.pitch_rate))
+	await run(func(i, f): i.rot = Vector2.ZERO, 90, func(): return player.state != PlayerController.State.AIR)
 
 func t_combo_logic() -> void:
 	var a := ComboSystem.new()
@@ -433,13 +531,23 @@ func t_touch_layout() -> void:
 	var touch: TouchControls = game.ui.touch
 	var old_scale := Settings.control_scale
 	var problems: Array[String] = []
-	for sz in [Vector2(1560, 720), Vector2(1280, 720), Vector2(960, 720)]:
+	# Direcciones principales anchas (±30°), diagonales estrechas
+	for pair in [[25.0, 0], [-28.0, 0], [35.0, 1], [62.0, 2], [118.0, 2], [125.0, 3], [178.0, 4], [-155.0, 4], [-140.0, -3], [-95.0, -2], [-50.0, -1]]:
+		var v := Vector2.from_angle(deg_to_rad(pair[0]))
+		if TouchControls.sector_of(v) != pair[1]:
+			problems.append("sector %d° -> %d (esperado %d)" % [int(pair[0]), TouchControls.sector_of(v), pair[1]])
+	var old_mode := Settings.trick_controls
+	for combo in [[0, Vector2(1560, 720)], [0, Vector2(1280, 720)], [0, Vector2(960, 720)], [3, Vector2(1560, 720)], [3, Vector2(1280, 720)], [3, Vector2(960, 720)]]:
+		Settings.trick_controls = combo[0]
+		var sz: Vector2 = combo[1]
 		for sc in [1.0, 1.4]:
 			Settings.control_scale = sc
 			touch.size = sz
 			var hr := touch.hit_radii()
-			var zones := {"jump": touch._jump_center(), "action": touch._action_center(),
-				"pad": touch._pad_center(), "respawn": touch._respawn_center()}
+			var zones := touch.zones()
+			if touch.stick_enabled():
+				zones["joy"] = touch._joy_idle()
+				hr["joy"] = TouchControls.JOY_R * touch._s()
 			var names := zones.keys()
 			for i in names.size():
 				var c: Vector2 = zones[names[i]]
@@ -449,13 +557,18 @@ func t_touch_layout() -> void:
 				for j in range(i + 1, names.size()):
 					var c2: Vector2 = zones[names[j]]
 					if c.distance_to(c2) < r + hr[names[j]]:
-						problems.append("%s/%s solapan %s x%.1f" % [names[i], names[j], sz, sc])
+						problems.append("%s/%s solapan %s x%.1f modo %d" % [names[i], names[j], sz, sc, combo[0]])
 	Settings.control_scale = 1.0
 	touch.size = Vector2(1560, 720)
+	Settings.trick_controls = 3
 	var big: bool = touch._jump_radius() >= 120.0 and touch._pad_radius() >= 140.0
+	Settings.trick_controls = 0
+	var big_stick: bool = touch._jump_radius() >= 110.0 and touch._rot_radius() >= 135.0 and touch._tuck_radius() >= 70.0
+	Settings.trick_controls = old_mode
 	Settings.control_scale = old_scale
-	check("Táctil: zonas sin solapes y dentro de pantalla", problems.is_empty(), str(problems))
+	check("Táctil: zonas sin solapes y dentro de pantalla (doble joystick y cruceta)", problems.is_empty(), str(problems))
 	check("Táctil: SALTO y cruceta grandes (>=1/3 y >=2/5 de la altura)", big, "")
+	check("Táctil: doble joystick con SALTO, joystick y AGRUPAR grandes", big_stick, "")
 
 ## Sensación de aterrizaje: perfecto conserva el impulso, torcido lo pierde y tropieza.
 func t_landing_feel() -> void:

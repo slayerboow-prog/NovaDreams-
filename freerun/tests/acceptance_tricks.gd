@@ -15,6 +15,7 @@ var results: Array = []
 var moves: Array[String] = []
 var landings: Array = []
 var capture_dir := ""
+var only := ""                         # --only=joystick : graba/prueba solo los trucos cuyo nombre lo contenga
 var _frame_no := 0
 var _label: Label
 
@@ -25,6 +26,8 @@ func _ready() -> void:
 		if a.begins_with("--capture="):
 			capture_dir = a.substr(10)
 			DirAccess.make_dir_recursive_absolute(capture_dir)
+		elif a.begins_with("--only="):
+			only = a.substr(7)
 	game = load("res://scenes/main.tscn").instantiate()
 	add_child(game)
 	await get_tree().process_frame
@@ -49,19 +52,33 @@ func _ready() -> void:
 	await trick("Backflip", [Vector2(0, -1)], false, "tap")
 	await trick("Frontflip", [Vector2(0, 1)], false, "tap")
 	await trick("Sideflip", [Vector2(1, 0)], false, "tap")
-	await trick("Aerial", [Vector2(-1, 0)], true, "tap")
+	await trick("Sideflip", [Vector2(-1, 0)], true, "tap")   # con carrera: también encogido
+	await trick("Aerial", [Vector2(-0.7, 0.7)], false, "tap")
 	await trick("Gainer", [Vector2(0, -1)], true, "tap")
 	await trick("Webster", [Vector2(0, 1)], true, "tap")
-	await trick("Butterfly Kick", [Vector2(0.7, 0.7)], true, "tap")
+	await trick("Butterfly Kick", [Vector2(-0.7, 0.7)], true, "tap")
 	await trick("Cheat Gainer", [Vector2(0, -1), Vector2(1, 0)], true, "tap")
 	await trick("Cork", [Vector2(0.7, -0.7)], true, "tap")
 	await trick("Cork 720", [Vector2(-0.7, -0.7), Vector2(-1, 0)], true, "tap")
-	await trick("Double Backflip", [Vector2(0, -1)], false, "double")
-	await trick("Double Cork", [Vector2(0.7, -0.7)], true, "double")
+	await trick("Double Backflip", [Vector2(0, -1), Vector2(0, -1)], false, "double")
+	await trick("Double Cork", [Vector2(0.7, -0.7), Vector2(0.7, -0.7)], true, "double")
 	# Nuevos: SALTO otra vez en el aire (Vector2.ZERO) = giro / tirabuzón completo
 	await trick("360 Kick", [Vector2.ZERO], false, "tap")
 	await trick("Back Full", [Vector2(0, -1), Vector2.ZERO], false, "tap")
 	await trick("Gainer Full", [Vector2(0, -1), Vector2.ZERO], true, "tap")
+	# DOBLE JOYSTICK: SALTO y después el joystick derecho (toques reales, multitáctil)
+	await trick("Backflip", [Vector2(0, -1)], false, "stick")
+	await trick("Frontflip", [Vector2(0, 1)], false, "stick")
+	await trick("Sideflip", [Vector2(1, 0)], true, "stick")
+	await trick("Aerial", [Vector2(-0.7, 0.7)], false, "stick")
+	await trick("Gainer", [Vector2(0, -1)], true, "stick")
+	await trick("Webster", [Vector2(0, 1)], true, "stick")
+	await trick("Butterfly Kick", [Vector2(-0.7, 0.7)], true, "stick")
+	await trick("Cork", [Vector2(0.7, -0.7)], true, "stick")
+	await trick("Cork 720", [Vector2(-0.7, -0.7), Vector2(-1, 0)], true, "stick")
+	await trick("Front Full", [Vector2(0.7, 0.7)], false, "stick")
+	await trick("Double Backflip", [Vector2(0, -1), Vector2(0, -1)], false, "stick")
+	await trick("Backflip", [Vector2(0, -1)], false, "stick_tuck")      # con AGRUPAR (pulgar izquierdo)
 
 	var failed := 0
 	print("\n========== ACEPTACIÓN DE ACROBACIAS (ruta táctil real) ==========")
@@ -138,11 +155,40 @@ func joystick(on: bool) -> void:
 	else:
 		_touch(0, base + Vector2(0, -100.0 * touch._s()), false)
 
+## Joystick derecho con toques reales: se apoya el pulgar en el centro y se inclina a fondo.
+var stick_pos := Vector2.ZERO
+func _stick_push(dir: Vector2) -> void:
+	var rc := touch._rot_center()
+	if stick_pos == Vector2.ZERO:
+		_touch(2, rc, true)
+		stick_pos = rc
+	var target := rc + Vector2(dir.x, -dir.y).normalized() * touch._rot_travel()
+	for k in 3:
+		var np: Vector2 = stick_pos.lerp(target, 1.0 / (3 - k))
+		_drag(2, np, np - stick_pos)
+		stick_pos = np
+		await frames(1)
+
+func _stick_center() -> void:
+	var rc := touch._rot_center()
+	for k in 2:
+		var np: Vector2 = stick_pos.lerp(rc, 1.0 / (2 - k))
+		_drag(2, np, np - stick_pos)
+		stick_pos = np
+		await frames(1)
+
+func _stick_release() -> void:
+	_touch(2, stick_pos, false)
+	stick_pos = Vector2.ZERO
+
 # ------------------------------------------------------------------ truco
 
 func trick(name: String, swipes: Array, running: bool, hold: String) -> void:
+	var full := name + (" · joystick" if hold.begins_with("stick") else " · gesto")
+	if only != "" and not Array(only.split(",")).any(func(o): return full.contains(o)):
+		return
 	if _label:
-		_label.text = name.to_upper() + "   (SALTO + deslizar" + (" y mantener)" if hold == "double" else ")")
+		_label.text = name.to_upper() + ("   (SALTO + joystick derecho" + (" + AGRUPAR)" if hold == "stick_tuck" else ")") if hold.begins_with("stick") else "   (SALTO + deslizar)")
 	player.set_spawn(Transform3D(Basis(), SPOT), Vector3.FORWARD)
 	player.respawn()
 	game.camera.snap()
@@ -158,13 +204,24 @@ func trick(name: String, swipes: Array, running: bool, hold: String) -> void:
 	max_tuck = 0.0; max_lead = 0.0; max_split = 0.0; max_scissor = 0.0
 	sampling = true
 	var jc := touch._jump_center()
+	var stick := hold.begins_with("stick")
 	_touch(1, jc, true)                                   # pulsa SALTO
 	await frames(1)
 	var y0 := player.global_position.y
 	var pos := jc
 	# Desliza el mismo dedo (primer gesto)
 	var d0: Vector2 = swipes[0]
-	if d0 == Vector2.ZERO:
+	if stick:
+		await frames(2)
+		_touch(1, jc, false)                              # suelta SALTO y pasa al joystick derecho
+		if hold == "stick_tuck":
+			_touch(4, touch._tuck_center(), true)         # AGRUPAR con el pulgar izquierdo
+		await _stick_push(d0)
+		for si in range(1, swipes.size()):
+			await frames(5)
+			await _stick_center()
+			await _stick_push(swipes[si])
+	elif d0 == Vector2.ZERO:
 		_touch(1, pos, false)                             # salto sin truco; el giro llega con otro toque
 		await frames(8)
 		_touch(3, jc, true)
@@ -177,7 +234,7 @@ func trick(name: String, swipes: Array, running: bool, hold: String) -> void:
 			_drag(1, pos, step)
 			await frames(1)
 	# Gestos adicionales con el mismo dedo (tirabuzón)
-	for si in range(1, swipes.size()):
+	for si in range(1 if not stick else swipes.size(), swipes.size()):
 		await frames(6)
 		var dv: Vector2 = swipes[si]
 		if dv == Vector2.ZERO:
@@ -195,9 +252,10 @@ func trick(name: String, swipes: Array, running: bool, hold: String) -> void:
 	var inverted := false
 	var horizontal := false
 	var max_rot := 0.0
-	var released := hold == "tap"
-	if released:
+	var released := hold == "tap" or stick
+	if hold == "tap":
 		_touch(1, pos, false)
+	var need_rot := TAU * (2.0 if name.begins_with("Double") else 1.0) - deg_to_rad(10)
 	var left_ground := false
 	for i in 150:
 		await frames(1)
@@ -216,10 +274,17 @@ func trick(name: String, swipes: Array, running: bool, hold: String) -> void:
 		if not released and absf(tr.total_pitch) > TAU * 2.0 - deg_to_rad(100):
 			_touch(1, pos, false)                         # suelta para preparar el aterrizaje
 			released = true
+		if stick_pos != Vector2.ZERO and max_rot > need_rot - deg_to_rad(110):
+			_stick_release()                              # suelta el joystick: abrir y aterrizar
+			if hold == "stick_tuck":
+				_touch(4, touch._tuck_center(), false)
 		if left_ground and player.state != PlayerController.State.AIR:
 			break
 	if not released:
 		_touch(1, pos, false)
+	if stick_pos != Vector2.ZERO:
+		_stick_release()
+	_touch(4, touch._tuck_center(), false)
 	sampling = false
 	var landed: Dictionary = landings[-1] if landings.size() > 0 else {}
 	var q: String = landed.get("quality", "none")
@@ -229,8 +294,7 @@ func trick(name: String, swipes: Array, running: bool, hold: String) -> void:
 	await frames(40)
 	var recovered := player.state in [PlayerController.State.GROUND, PlayerController.State.ROLL] and player.speed() > 3.0
 	joystick(false)
-	var need_rot := TAU * (2.0 if hold == "double" else 1.0) - deg_to_rad(10)
-	var tag := "[%s] " % name
+	var tag := "[%s%s] " % [name, " · joystick" + (" + AGRUPAR" if hold == "stick_tuck" else "") if stick else ""]
 	check(tag + "despega con impulso (sube > 1 m)", left_ground and peak - y0 > 1.0, "altura %.2f" % (peak - y0))
 	check(tag + "rotación completa (%d°)" % int(rad_to_deg(need_rot) + 10), max_rot >= need_rot, "%d°" % int(rad_to_deg(max_rot)))
 	if name == "360 Kick":
@@ -261,7 +325,7 @@ func trick(name: String, swipes: Array, running: bool, hold: String) -> void:
 			shape_ok = max_lead > 2.2 and max_tuck > 1.5; shape_txt = "agrupado a una pierna %.2f/%.2f" % [max_lead, max_tuck]
 		"Webster":
 			shape_ok = max_lead > 2.2 and max_scissor > 1.0; shape_txt = "agrupado en tijera %.2f/%.2f" % [max_lead, max_scissor]
-		"Cork", "Cork 720", "Double Cork", "Cheat Gainer":
+		"Cork", "Cork 720", "Double Cork", "Cheat Gainer", "Front Full":
 			shape_ok = max_tuck > 0.9; shape_txt = "semiagrupado con brazos cerrados %.2f" % max_tuck
 		_:
 			shape_ok = max_tuck > 1.8; shape_txt = "agrupado real (cadera %.2f rad)" % max_tuck
