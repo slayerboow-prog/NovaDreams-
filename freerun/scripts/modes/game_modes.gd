@@ -267,7 +267,7 @@ class Challenge:
 			game.ui.popup("¡RÉCORD!  %s" % format_time(time), Color(1, 0.85, 0.2))
 		else:
 			game.ui.popup("Meta  %s  (récord %s)" % [format_time(time), format_time(best)], Color(0.7, 0.9, 1))
-		game.ui.popup("Pulsa ↺ / R para repetir", Color(1, 1, 1))
+		game.ui.popup("Pulsa el botón de reinicio (R) para repetir", Color(1, 1, 1))
 
 	static func format_time(t: float) -> String:
 		return "%02d:%05.2f" % [int(t) / 60, fmod(t, 60.0)]
@@ -308,7 +308,7 @@ class Freestyle:
 				game.ui.popup("¡RÉCORD FREESTYLE!  %d" % score, Color(1, 0.85, 0.2))
 			else:
 				game.ui.popup("Tiempo  ·  %d puntos (récord %d)" % [score, int(SaveData.get_record(KEY, 0))], Color(0.7, 0.9, 1))
-			game.ui.popup("Pulsa ↺ / R para otra ronda", Color(1, 1, 1))
+			game.ui.popup("Pulsa el botón de reinicio (R) para otra ronda", Color(1, 1, 1))
 
 	func status_text() -> String:
 		return "Tiempo %d s   ·   Puntos %d   ·   Récord %d" % [ceili(time_left), combo.total_score, int(SaveData.get_record(KEY, 0))]

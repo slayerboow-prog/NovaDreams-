@@ -2,7 +2,12 @@
 
 Juego móvil de parkour, freerunning, tricking y water tricks. Motor: **Godot 4.4** (renderer Compatibility / OpenGL ES 3, Android e iOS).
 
-## Ejecutar
+## Jugar en el móvil
+
+- **Web (iPhone y Android)**: https://slayerboow-prog.github.io/NovaDreams-/ — gira el móvil en horizontal. En iPhone: Compartir → *Añadir a pantalla de inicio* para jugar a pantalla completa como una app.
+- **Android (APK)**: Actions → última ejecución de "Freerun" → Artifacts → `ProjectFreerun-android`.
+
+## Ejecutar en PC
 
 1. Instala [Godot 4.4.x](https://godotengine.org/download) (estándar, no hace falta .NET).
 2. Abre `freerun/project.godot` y pulsa F5.
@@ -53,4 +58,5 @@ El `InputIntent` es la frontera entre dispositivos y personaje: replays, ghosts 
 ## Exportar
 
 - **Android**: Godot → Editor → Manage Export Templates; configura el SDK de Android y JDK 17 en Editor Settings; Project → Export → Android.
+- **Web**: preset "Web" sin hilos (compatible con Safari/iOS y GitHub Pages). Se publica sola al subir cambios a `main`.
 - **iOS**: requiere macOS con Xcode. Project → Export → iOS genera un proyecto Xcode que se firma y compila en el Mac.

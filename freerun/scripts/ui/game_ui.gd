@@ -25,6 +25,7 @@ var popups: VBoxContainer
 var pause_btn: Button
 var extra_btn: Button
 var help_label: Label
+var rotate_overlay: Control
 
 var main_menu: Control
 var pause_menu: Control
@@ -47,8 +48,30 @@ func setup(g: Node) -> void:
 	_build_main_menu()
 	_build_pause()
 	_build_settings()
+	_build_rotate_overlay()
 	Settings.changed.connect(_apply_settings)
 	_apply_settings()
+
+## En móvil en vertical el juego no cabe: pedimos girar el teléfono.
+func _build_rotate_overlay() -> void:
+	rotate_overlay = ColorRect.new()
+	(rotate_overlay as ColorRect).color = Color(0.04, 0.06, 0.09, 0.97)
+	rotate_overlay.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	var l := _label("Gira el móvil en horizontal\npara jugar", 44, ACCENT, HORIZONTAL_ALIGNMENT_CENTER)
+	l.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	l.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	l.autowrap_mode = TextServer.AUTOWRAP_WORD
+	rotate_overlay.add_child(l)
+	rotate_overlay.visible = false
+	add_child(rotate_overlay)
+
+func _process(_dt: float) -> void:
+	if rotate_overlay:
+		var vs := get_viewport().get_visible_rect().size
+		var portrait := vs.y > vs.x * 1.05 and _touch_wanted()
+		if rotate_overlay.visible != portrait:
+			rotate_overlay.visible = portrait
+			move_child(rotate_overlay, get_child_count() - 1)
 
 func _make_theme() -> Theme:
 	var th := Theme.new()

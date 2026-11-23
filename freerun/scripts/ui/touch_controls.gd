@@ -218,7 +218,11 @@ func _draw() -> void:
 	# Reaparecer
 	var rc := _respawn_center()
 	draw_circle(rc, 30.0 * s, dark)
-	_label(font, rc, "↺", 26 * s, white)
+	# Flecha circular dibujada (la fuente por defecto no trae el símbolo ↺)
+	var r := 13.0 * s
+	draw_arc(rc, r, -PI * 0.35, PI * 1.45, 24, white, 3.0 * s, true)
+	var tip := rc + Vector2(cos(-PI * 0.35), sin(-PI * 0.35)) * r
+	draw_colored_polygon(PackedVector2Array([tip + Vector2(-7, -5) * s, tip + Vector2(6, -6) * s, tip + Vector2(1, 6) * s]), white)
 	# Pista de gestos
 	if _hint_time < 6.0:
 		var hx := size.x * 0.68 if not Settings.left_handed else size.x * 0.32
