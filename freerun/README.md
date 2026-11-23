@@ -16,21 +16,28 @@ Atajos: `godot --path freerun -- --mode=freerun` salta el menú (`tricking`, `wa
 
 ## Controles
 
-| Acción | Móvil | Teclado / ratón | Mando |
-|---|---|---|---|
-| Mover | Joystick izquierdo (aparece donde apoyas el pulgar; a fondo = sprint) | WASD (+Shift sprint) | Stick izq. |
-| Saltar / vault / trepar | SALTO | Espacio | A |
-| Wall run | Mantener SALTO junto a una pared corriendo | Mantener Espacio | Mantener A |
-| Tic tac / wall climb | SALTO otra vez en el aire contra la pared | Espacio | A |
-| Acrobacia | Deslizar rápido en el lado derecho: ↓ backflip, ↑ frontflip, ←→ lateral, diagonal = con tirabuzón | Flechas | X / Y / LB / RB |
-| Agruparse (girar más rápido) | Mantener el dedo tras el gesto | Mantener la flecha | Mantener |
-| Rodar / soltarse del borde | Botón contextual | Ctrl / C | B |
-| Cámara | Arrastrar despacio en el lado derecho | Ratón (clic para capturar) / Q E | Stick der. |
-| Reaparecer | ↺ | R | Back |
+**Móvil (iPhone / Android)**
+- **Joystick izquierdo**: moverse (a fondo = sprint).
+- **SALTO**: pulsa para saltar. **Sin levantar el dedo, deslízalo** para hacer una acrobacia:
+  ↓ Backflip · ↑ Frontflip · ← → Sideflip/Aerial · ↙ ↘ Cork · ↖ ↗ Butterfly Kick.
+  Con carrera: Gainer, Webster y Aerial.
+- **Mantén el dedo** = agruparse y girar más rápido (dobles). **Suelta** = abrirse y preparar el aterrizaje.
+- Durante el mortal, **otro deslizamiento lateral** añade tirabuzón (Backflip → Cheat Gainer, Cork → Cork 720).
+- **Cruceta TRUCOS**: lo mismo con botones (pulsar = truco, mantener = agruparse, arrastrar a un lado = tirabuzón).
+- **Zona derecha**: en el suelo mueve la cámara; en el aire controla el cuerpo.
+- **RODAR**: pulsar justo antes de caer desde alto (Safety Roll). **↻**: reaparecer.
+- Indicador en el aire: nombre del truco, grados y dial (zona verde = vertical para aterrizar).
 
-Ayuda de rotación (Ajustes): **Alta** calibra el giro para aterrizar, **Pro** gira a velocidad fija y tú decides cuándo abrirte.
+**Teclado**: WASD + Shift · Espacio salto (mantener: wall run) · Flechas = acrobacias (mantener = agruparse) · Ctrl rodar · R reaparecer.
+
+Ajustes: ayuda de rotación (Alta / Media / Pro), controles de trucos (gestos + cruceta / solo gestos / solo cruceta), tamaño, opacidad, sensibilidad y modo zurdo.
 
 ## Pruebas
+
+Aceptación de acrobacias por la ruta táctil real (joystick + SALTO deslizando), criterio a criterio:
+```
+godot --headless --fixed-fps 60 --path freerun res://tests/acceptance_tricks.tscn
+```
 
 ```
 godot --headless --fixed-fps 60 --path freerun res://tests/test_runner.tscn

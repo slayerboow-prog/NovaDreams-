@@ -53,6 +53,7 @@ func _ready() -> void:
 	add_child(ui)
 	ui.setup(self)
 	router.touch = ui.touch
+	ui.trick_indicator.player = player
 
 	player.move_performed.connect(_on_move)
 	player.landed.connect(_on_landed)
@@ -202,6 +203,8 @@ func _process(dt: float) -> void:
 		camera.yaw = _menu_orbit
 		camera.pitch = -0.25
 		return
+	var S := PlayerController.State
+	ui.touch.air_mode = player.state in [S.AIR, S.WALLRUN, S.WALLCLIMB, S.HANG, S.VAULT]
 	if mode:
 		mode.tick(dt)
 		ui.update_hud(combo, player, mode.status_text(), GameModes.info(mode.id).get("title", ""), mode.extra_button())

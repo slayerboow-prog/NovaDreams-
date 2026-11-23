@@ -17,7 +17,7 @@ extends Resource
 
 # Salto y aire
 @export var gravity := 22.0
-@export var jump_velocity := 8.0
+@export var jump_velocity := 8.4
 @export var jump_speed_bonus := 0.06    # salto ligeramente más alto cuanto más rápido
 @export var low_jump_mult := 2.2        # soltar salto pronto = salto corto
 @export var max_fall := 30.0
@@ -57,11 +57,11 @@ extends Resource
 
 # Acrobacias (rad/s)
 @export var flip_rate_min := 6.0
-@export var flip_rate_max := 17.0
+@export var flip_rate_max := 13.0
 @export var flip_rate_pro := 9.5
 @export var twist_rate_min := 7.0
-@export var twist_rate_max := 22.0
-@export var tuck_mult := 1.35
-@export var open_mult_pro := 0.4
+@export var twist_rate_max := 16.0
+@export var tuck_mult := 2.3         # agrupado: gira más del doble
+@export var open_mult_pro := 0.55
 
 @export var kill_y := -25.0
