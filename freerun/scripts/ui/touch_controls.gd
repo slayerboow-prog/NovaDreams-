@@ -42,8 +42,11 @@ func _ready() -> void:
 	set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	mouse_filter = Control.MOUSE_FILTER_IGNORE
 
+## Escala de los controles. El diseño está en unidades de una pantalla de 720 de alto
+## (con canvas_items la altura virtual del juego siempre es ~720), así que los tamaños
+## son proporcionales a la altura real del móvil: un SALTO de ~2,3 cm en un iPhone.
 func _s() -> float:
-	return Settings.control_scale * clampf(size.y / 720.0, 0.6, 2.0)
+	return Settings.control_scale * clampf(minf(size.y / 720.0, size.x / 1280.0), 0.6, 2.0)
 
 func _mirror(x: float) -> float:
 	return x if not Settings.left_handed else size.x - x
@@ -54,30 +57,60 @@ func gestures_enabled() -> bool:
 func pad_enabled() -> bool:
 	return Settings.trick_controls != 1
 
+# Distribución ergonómica para el pulgar derecho (arco alrededor de la esquina inferior):
+#   SALTO grande en la esquina, cruceta de trucos a su izquierda, RODAR encima del salto.
+# Las zonas de pulsación no se solapan (se comprueba en las pruebas).
+const JUMP_R := 128.0
+const PAD_R := 150.0
+const ACTION_R := 66.0
+const JOY_R := 118.0
+
 func _jump_center() -> Vector2:
 	var s := _s()
-	return Vector2(_mirror(size.x - 128.0 * s), size.y - 128.0 * s)
+	return Vector2(_mirror(size.x - 158.0 * s), size.y - 158.0 * s)
 
 func _jump_radius() -> float:
-	return 84.0 * _s()
+	return JUMP_R * _s()
+
+## Pantallas menos panorámicas que un móvil actual (16:9, tablets): la cruceta sube encima
+## del SALTO para no tapar al personaje, y RODAR pasa a su izquierda.
+func _narrow() -> bool:
+	return size.x / maxf(size.y, 1.0) < 1.9
 
 func _action_center() -> Vector2:
 	var s := _s()
-	return Vector2(_mirror(size.x - 300.0 * s), size.y - 84.0 * s)
+	if _narrow():
+		return Vector2(_mirror(size.x - 392.0 * s), size.y - 130.0 * s)
+	# Encima del SALTO, ligeramente hacia dentro (a 234 unidades de su centro)
+	return Vector2(_mirror(size.x - 216.0 * s), size.y - 385.0 * s)
 
 func _action_radius() -> float:
-	return 54.0 * _s()
+	return ACTION_R * _s()
 
 func _pad_center() -> Vector2:
 	var s := _s()
-	return Vector2(_mirror(size.x - 300.0 * s), size.y - 300.0 * s)
+	if _narrow():
+		var hr := _pad_radius() * 1.08
+		var jc := _jump_center()
+		return Vector2(_mirror(size.x - maxf(215.0 * s, hr + 8.0)), jc.y - _jump_radius() * 1.12 - 6.0 - hr)
+	return Vector2(_mirror(size.x - 510.0 * s), size.y - 205.0 * s)
 
 func _pad_radius() -> float:
-	return 92.0 * _s()
+	if _narrow():
+		var free := _jump_center().y - _jump_radius() * 1.12 - 14.0
+		return minf(PAD_R * _s(), free * 0.5 / 1.08)
+	return PAD_R * _s()
 
+## Reinicio arriba, a la izquierda del botón de pausa (no se escala con el tamaño de
+## controles: es un botón de uso ocasional y así nunca invade a los demás).
 func _respawn_center() -> Vector2:
-	var s := _s()
-	return Vector2(_mirror(size.x - 56.0 * s), 128.0 * s)
+	var k := _s() / maxf(Settings.control_scale, 0.01)
+	return Vector2(_mirror(size.x - (470.0 if _narrow() else 180.0) * k), 52.0 * k)
+
+## Radios de pulsación (algo mayores que el dibujo para acertar con el pulgar sin mirar).
+func hit_radii() -> Dictionary:
+	return {"jump": _jump_radius() * 1.12, "action": _action_radius() * 1.2, "pad": _pad_radius() * 1.08,
+		"respawn": 44.0 * _s() / maxf(Settings.control_scale, 0.01)}
 
 func _is_move_side(p: Vector2) -> bool:
 	return p.x < size.x * 0.42 if not Settings.left_handed else p.x > size.x * 0.58
@@ -136,18 +169,19 @@ func _on_touch(e: InputEventScreenTouch) -> void:
 	if e.pressed:
 		var role := ""
 		var info := {"start": p, "pos": p, "time": _time, "flicked": false, "anchor": p, "sector": 99}
-		if p.distance_to(_jump_center()) < _jump_radius() * 1.2:
+		var hr := hit_radii()
+		if p.distance_to(_jump_center()) < hr.jump:
 			role = "jump"
 			_pending.jump_pressed = true
 			_flash["jump"] = 0.15
-		elif p.distance_to(_action_center()) < _action_radius() * 1.25:
+		elif p.distance_to(_action_center()) < hr.action:
 			role = "action"
 			_pending.action_pressed = true
 			_flash["action"] = 0.15
-		elif p.distance_to(_respawn_center()) < 40.0 * _s():
+		elif p.distance_to(_respawn_center()) < hr.respawn:
 			role = "respawn"
 			_pending.respawn_pressed = true
-		elif pad_enabled() and p.distance_to(_pad_center()) < _pad_radius() * 1.15:
+		elif pad_enabled() and p.distance_to(_pad_center()) < hr.pad:
 			role = "pad"
 			var v := p - _pad_center()
 			var sec := sector_of(Vector2(v.x, -v.y)) if v.length() > _pad_radius() * 0.18 else -2
@@ -183,7 +217,7 @@ func _on_drag(e: InputEventScreenDrag) -> void:
 	f.pos = e.position
 	match f.role:
 		"move":
-			var r := 72.0 * _s()
+			var r := JOY_R * 0.8 * _s()
 			var d: Vector2 = e.position - _joy_base
 			if d.length() > r * 1.25:
 				_joy_base = e.position - d.normalized() * r * 1.25
@@ -251,7 +285,7 @@ func _process(dt: float) -> void:
 func _draw() -> void:
 	var a := Settings.control_opacity
 	var s := _s()
-	var white := Color(1, 1, 1, minf(a + 0.25, 1.0))
+	var white := Color(1, 1, 1, minf(a + 0.3, 1.0))
 	var dark := Color(0.05, 0.07, 0.1, a * 0.6)
 	var accent := Color(0.15, 0.85, 0.78, minf(a + 0.2, 1.0))
 	var font := get_theme_default_font()
@@ -260,13 +294,14 @@ func _draw() -> void:
 	for f in _fingers.values():
 		if f.role == "move":
 			joy_active = true
-	var base := _joy_base if joy_active else Vector2(_mirror(180.0 * s), size.y - 170.0 * s)
-	draw_circle(base, 76.0 * s, dark)
-	draw_arc(base, 76.0 * s, 0, TAU, 48, white, 3.0 * s, true)
-	var knob := base + Vector2(_joy_vec.x, -_joy_vec.y) * 72.0 * s
-	draw_circle(knob, 32.0 * s, Color(1, 1, 1, a * (0.95 if joy_active else 0.55)))
+	var jr := JOY_R * s
+	var base := _joy_base if joy_active else Vector2(_mirror(230.0 * s), size.y - 220.0 * s)
+	draw_circle(base, jr, dark)
+	draw_arc(base, jr, 0, TAU, 56, white, 4.0 * s, true)
+	var knob := base + Vector2(_joy_vec.x, -_joy_vec.y) * jr * 0.8
+	draw_circle(knob, 48.0 * s, Color(1, 1, 1, a * (0.95 if joy_active else 0.55)))
 	if _joy_vec.length() > 0.93:
-		_label(font, base + Vector2(0, -96 * s), "SPRINT", 18 * s, accent)
+		_label(font, base + Vector2(0, -jr - 26 * s), "SPRINT", 26 * s, accent)
 	# Salto (con pista de deslizamiento)
 	var jc := _jump_center()
 	var jheld := false
@@ -274,37 +309,39 @@ func _draw() -> void:
 		if f.role == "jump":
 			jheld = true
 	draw_circle(jc, _jump_radius(), accent if (jheld or _flash.has("jump")) else dark)
-	draw_arc(jc, _jump_radius(), 0, TAU, 56, white, 3.0 * s, true)
-	_label(font, jc + Vector2(0, -6 * s), "SALTO", 26 * s, white)
+	draw_arc(jc, _jump_radius(), 0, TAU, 64, white, 4.0 * s, true)
+	_label(font, jc + Vector2(0, -10 * s), "SALTO", 40 * s, white)
 	if gestures_enabled():
-		_label(font, jc + Vector2(0, 26 * s), "desliza = truco", 13 * s, Color(1, 1, 1, a))
+		_label(font, jc + Vector2(0, 36 * s), "desliza = truco", 19 * s, Color(1, 1, 1, a + 0.15))
 	# Acción contextual
 	var ac := _action_center()
 	draw_circle(ac, _action_radius(), accent if _flash.has("action") else dark)
-	draw_arc(ac, _action_radius(), 0, TAU, 40, white, 2.5 * s, true)
-	_label(font, ac, context_label if context_label != "" else "RODAR", 17 * s, white)
+	draw_arc(ac, _action_radius(), 0, TAU, 48, white, 3.0 * s, true)
+	_label(font, ac, context_label if context_label != "" else "RODAR", 24 * s, white)
 	# Reinicio
 	var rc := _respawn_center()
-	draw_circle(rc, 32.0 * s, dark)
-	var r := 13.0 * s
-	draw_arc(rc, r, -PI * 0.35, PI * 1.45, 24, white, 3.0 * s, true)
+	var rs := s / maxf(Settings.control_scale, 0.01)
+	draw_circle(rc, 38.0 * rs, dark)
+	var r := 16.0 * rs
+	draw_arc(rc, r, -PI * 0.35, PI * 1.45, 24, white, 3.5 * s, true)
 	var tip := rc + Vector2(cos(-PI * 0.35), sin(-PI * 0.35)) * r
-	draw_colored_polygon(PackedVector2Array([tip + Vector2(-7, -5) * s, tip + Vector2(6, -6) * s, tip + Vector2(1, 6) * s]), white)
+	draw_colored_polygon(PackedVector2Array([tip + Vector2(-8, -6) * rs, tip + Vector2(7, -7) * rs, tip + Vector2(1, 7) * rs]), white)
 	# Cruceta de acrobacias
 	if pad_enabled():
 		_draw_pad(font, s, a, white, dark, accent)
 	# Pista de gestos al principio
 	if _hint_time < 9.0 and gestures_enabled():
-		var hc := Vector2(_mirror(size.x * 0.66), size.y * 0.3)
+		var hc := Vector2(size.x * 0.5, size.y * 0.16)
 		var ha := clampf(1.0 - (_hint_time - 7.0) / 2.0, 0.0, 1.0)
-		_label(font, hc, "Pulsa SALTO y desliza: ↓ back · ↑ front · ← → lateral · diagonales", 18 * s, Color(1, 1, 1, ha))
-		_label(font, hc + Vector2(0, 30 * s), "Mantén el dedo para girar más · suelta para aterrizar", 18 * s, Color(1, 1, 1, ha))
+		_label(font, hc, "Pulsa SALTO y desliza: abajo back, arriba front, lados lateral", 24 * s, Color(1, 1, 1, ha))
+		_label(font, hc + Vector2(0, 36 * s), "Mantén el dedo para agruparte y girar más; suelta para abrir y aterrizar", 24 * s, Color(1, 1, 1, ha))
 	# Rastro del gesto
 	if _flash.has("flick"):
 		for f in _fingers.values():
 			if f.role in ["gesture", "jump"]:
-				draw_circle(f.pos, 28.0 * s, Color(accent, 0.45))
+				draw_circle(f.pos, 40.0 * s, Color(accent, 0.45))
 
+## Cruceta en 8 sectores grandes (cuñas): cualquier punto del sector cuenta, no solo el círculo.
 func _draw_pad(font: Font, s: float, a: float, white: Color, dark: Color, accent: Color) -> void:
 	var pc := _pad_center()
 	var pr := _pad_radius()
@@ -312,20 +349,30 @@ func _draw_pad(font: Font, s: float, a: float, white: Color, dark: Color, accent
 	for f in _fingers.values():
 		if f.role == "pad":
 			active_sec = f.sector
-	draw_circle(pc, pr, Color(dark, dark.a * 0.8))
-	draw_arc(pc, pr, 0, TAU, 56, Color(white, white.a * 0.7), 2.0 * s, true)
+	draw_circle(pc, pr, Color(dark, dark.a * 0.85))
 	for sec in [0, 1, 2, 3, 4, -1, -2, -3]:
-		var d := sector_dir(sec)
-		var p := pc + Vector2(d.x, -d.y) * pr * 0.66
 		var hot: bool = sec == active_sec or (_flash.has("sector") and _flash.sector == sec)
-		draw_circle(p, 25.0 * s, accent if hot else Color(1, 1, 1, a * 0.18))
-		var arrow := pc + Vector2(d.x, -d.y) * pr * 0.66
+		# Cuña del sector (ángulo de pantalla: y hacia abajo)
+		var a0 := -deg_to_rad(sec * 45.0) - deg_to_rad(21.0)
+		var a1 := -deg_to_rad(sec * 45.0) + deg_to_rad(21.0)
+		var pts := PackedVector2Array()
+		var inner := pr * 0.3
+		for i in 9:
+			var ang := lerpf(a0, a1, i / 8.0)
+			pts.append(pc + Vector2(cos(ang), sin(ang)) * pr * 0.97)
+		for i in 9:
+			var ang := lerpf(a1, a0, i / 8.0)
+			pts.append(pc + Vector2(cos(ang), sin(ang)) * inner)
+		draw_colored_polygon(pts, accent if hot else Color(1, 1, 1, a * 0.16))
+		var d := sector_dir(sec)
 		var lbl: String = PAD_LABELS[sec]
-		var fs := 10.0 if lbl.length() > 5 else 12.0
-		_label(font, arrow, lbl, fs * s, white)
-	_label(font, pc, "TRUCOS", 13 * s, Color(1, 1, 1, a + 0.1))
+		var fs := 15.0 if lbl.length() > 5 else 18.0
+		_label(font, pc + Vector2(d.x, -d.y) * pr * 0.68, lbl, fs * s, white)
+	draw_arc(pc, pr, 0, TAU, 64, Color(white, white.a * 0.8), 3.0 * s, true)
+	_label(font, pc, "TRUCOS", 17 * s, Color(1, 1, 1, a + 0.15))
 
 func _label(font: Font, center: Vector2, text: String, fsize: float, color: Color) -> void:
 	var fs := int(fsize)
 	var w := font.get_string_size(text, HORIZONTAL_ALIGNMENT_CENTER, -1, fs).x
+	draw_string_outline(font, center + Vector2(-w * 0.5, fs * 0.35), text, HORIZONTAL_ALIGNMENT_LEFT, -1, fs, maxi(2, int(fs * 0.18)), Color(0, 0, 0, color.a * 0.55))
 	draw_string(font, center + Vector2(-w * 0.5, fs * 0.35), text, HORIZONTAL_ALIGNMENT_LEFT, -1, fs, color)

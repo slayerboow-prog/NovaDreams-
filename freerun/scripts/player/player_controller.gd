@@ -47,6 +47,10 @@ var land_impact := 0.0                  # para la animación de recepción
 var flick_buffer := Vector2.ZERO        # gesto hecho en el suelo justo antes de saltar
 var flick_timer := 0.0
 var last_landing := {}
+var jump_load := 0.0                    # flexión previa al salto (anticipación)
+var jump_load_kind := "stand"
+var land_quality := ""                  # último aterrizaje (para la animación de recepción)
+var land_timer := 9.0                   # tiempo desde el último aterrizaje
 var context_hint := ""                  # texto del botón contextual
 
 # Datos de la acción en curso
@@ -95,6 +99,7 @@ func respawn() -> void:
 	facing = spawn_facing
 	tricks.reset()
 	stun = 0.0
+	jump_load = 0.0
 	_set_state(State.AIR)
 	air_kind = "fall"
 	reset_physics_interpolation()
@@ -149,6 +154,7 @@ func _physics_process(dt: float) -> void:
 	wall_cooldown = maxf(0.0, wall_cooldown - dt)
 	stun = maxf(0.0, stun - dt)
 	land_impact = move_toward(land_impact, 0.0, dt * 3.0)
+	land_timer += dt
 	jump_buffer = t.jump_buffer_time if intent.jump_pressed else maxf(0.0, jump_buffer - dt)
 	roll_buffer = t.roll_window if intent.action_pressed else maxf(0.0, roll_buffer - dt)
 	if intent.flick != Vector2.ZERO:
@@ -199,10 +205,13 @@ func _state_ground(dt: float) -> void:
 				heading = desired
 		else:
 			heading = heading.rotated(Vector3.UP, clampf(ang, -turn_rate * dt, turn_rate * dt))
-			var acc := t.accel if spd < target_speed else t.overspeed_decel
+			# Arranque explosivo: acelera mucho al salir y menos cerca de la velocidad máxima.
+			var acc := t.overspeed_decel
+			if spd < target_speed:
+				acc = lerpf(t.accel_start, t.accel, clampf(spd / t.sprint_speed, 0.0, 1.0))
 			spd = move_toward(spd, target_speed, acc * dt)
 		hv = heading * spd
-	else:
+	elif jump_load <= 0.0:          # durante la flexión del salto se conserva el impulso
 		hv = hv.move_toward(Vector3.ZERO, t.decel * dt)
 	velocity.x = hv.x
 	velocity.z = hv.z
@@ -212,26 +221,44 @@ func _state_ground(dt: float) -> void:
 	elif mag > 0.08:
 		_turn_facing(wish, t.facing_turn, dt)
 
-	if stun <= 0.0:
+	if jump_load > 0.0:
+		# Flexión de piernas y brazos atrás antes de despegar (anticipación del salto).
+		jump_load -= dt
+		if jump_load <= 0.0:
+			_takeoff(jump_load_kind)
+			return
+	elif stun <= 0.0:
 		if jump_buffer > 0.0:
 			jump_buffer = 0.0
 			if _try_vault():
 				return
 			if _try_wall_climb():
 				return
-			_do_jump("run" if spd > 3.0 else "stand")
-			# Gesto hecho justo antes de saltar: el mortal arranca en el despegue.
-			if flick_timer > 0.0:
-				tricks.apply_flick(flick_buffer)
-			flick_timer = 0.0
-			return
+			var kind := "run" if spd > 3.0 else "stand"
+			if land_impact > 0.3 or t.jump_load_time <= 0.0:
+				# Rebote: las piernas ya vienen flexionadas del aterrizaje → enlace inmediato.
+				_takeoff(kind)
+				return
+			jump_load = t.jump_load_time
+			jump_load_kind = kind
 		if intent.action_pressed and spd > 3.0:
 			_start_roll(false)
 			return
 	move_and_slide()
 	if not is_on_floor():
+		if jump_load > 0.0:
+			_takeoff(jump_load_kind)
+			return
 		coyote = t.coyote_time
 		_enter_air("fall")
+
+func _takeoff(kind: String) -> void:
+	jump_load = 0.0
+	_do_jump(kind)
+	# Gesto hecho justo antes de saltar (o durante la flexión): el mortal arranca en el despegue.
+	if flick_timer > 0.0:
+		tricks.apply_flick(flick_buffer)
+	flick_timer = 0.0
 
 func _do_jump(kind: String) -> void:
 	var spd := speed()
@@ -333,10 +360,12 @@ func _land() -> void:
 	# Los tirabuzones cambian hacia dónde mira el personaje al aterrizar.
 	facing = facing.rotated(Vector3.UP, tricks.landing_yaw()).normalized()
 	var qmult: float = {"perfect": 1.25, "clean": 1.0, "sloppy": 0.5}[quality]
+	land_quality = "hard" if hard else quality
+	land_timer = 0.0
 	if not trick.is_empty():
 		_emit_move(trick.name, qmult, trick)
 	tricks.reset()
-	land_impact = clampf(impact / 14.0, 0.15, 1.0)
+	land_impact = clampf(impact / 12.0, 0.3, 1.0)
 	landed.emit(result)
 	var hv := horizontal_velocity()
 	if rolled and (impact > 7.0 or hv.length() > 3.0):
@@ -352,10 +381,18 @@ func _land() -> void:
 		velocity.z *= 0.3
 		_emit_move("Hard Landing", 0.0, {"penalty": true})
 	elif quality == "sloppy":
+		# Recepción torcida: tropieza, pierde velocidad y tarda en recuperar el control.
 		stun = t.stun_time
-		velocity.x *= 0.55
-		velocity.z *= 0.55
+		velocity.x *= 0.5
+		velocity.z *= 0.5
 	else:
+		# Recepción buena: absorbe con las piernas. Perfecta: conserva (y premia) el impulso.
+		var keep := 1.04 if quality == "perfect" else 0.9
+		var hv2 := horizontal_velocity() * keep
+		if hv2.length() > t.sprint_speed * 1.1:
+			hv2 = hv2.normalized() * t.sprint_speed * 1.1
+		velocity.x = hv2.x
+		velocity.z = hv2.z
 		if impact > 11.0:
 			_emit_move("Drop Landing", qmult, {"impact": impact})
 		if air_kind in ["run", "stand", "wall", "ledge", "vault"] and tricks.air_time >= 0.0 \

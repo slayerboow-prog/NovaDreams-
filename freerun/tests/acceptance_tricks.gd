@@ -68,10 +68,35 @@ func _ready() -> void:
 	print("%d/%d criterios superados" % [results.size() - failed, results.size()])
 	get_tree().quit(1 if failed > 0 else 0)
 
+var sampling := false
+var phases := {}
+var kinds := {}
+var max_tuck := 0.0
+var max_lead := 0.0
+var max_split := 0.0
+var max_scissor := 0.0
+
 func frames(n: int) -> void:
 	for i in n:
 		await get_tree().physics_frame
+		if sampling:
+			_sample()
 		_capture()
+
+## Lo que se VE en el cuerpo durante el vuelo: fase de la acrobacia y forma de piernas.
+func _sample() -> void:
+	var tr := player.tricks
+	if player.state != PlayerController.State.AIR or not tr.active:
+		return
+	var rig: BodyRig = game.rig
+	phases[rig.last_phase] = true
+	kinds[rig.last_kind] = true
+	var hl: Vector3 = rig.pose.hip_l
+	var hr: Vector3 = rig.pose.hip_r
+	max_tuck = maxf(max_tuck, minf(hl.x, hr.x))
+	max_lead = maxf(max_lead, maxf(hl.x, hr.x))
+	max_split = maxf(max_split, absf(hl.z - hr.z))
+	max_scissor = maxf(max_scissor, absf(hl.x - hr.x))
 
 func _capture() -> void:
 	if capture_dir == "":
@@ -103,11 +128,11 @@ func _drag(idx: int, pos: Vector2, rel: Vector2) -> void:
 func joystick(on: bool) -> void:
 	var base := Vector2(200, touch.size.y - 200)
 	if on:
-		var up := Vector2(0, -90.0 * touch._s())
+		var up := Vector2(0, -100.0 * touch._s())
 		_touch(0, base, true)
 		_drag(0, base + up, up)
 	else:
-		_touch(0, base + Vector2(0, -90.0 * touch._s()), false)
+		_touch(0, base + Vector2(0, -100.0 * touch._s()), false)
 
 # ------------------------------------------------------------------ truco
 
@@ -125,6 +150,9 @@ func trick(name: String, swipes: Array, running: bool, hold: String) -> void:
 		joystick(true)
 		await frames(50)
 	var speed_before := player.speed()
+	phases = {}; kinds = {}
+	max_tuck = 0.0; max_lead = 0.0; max_split = 0.0; max_scissor = 0.0
+	sampling = true
 	var jc := touch._jump_center()
 	_touch(1, jc, true)                                   # pulsa SALTO
 	await frames(1)
@@ -174,6 +202,7 @@ func trick(name: String, swipes: Array, running: bool, hold: String) -> void:
 			break
 	if not released:
 		_touch(1, pos, false)
+	sampling = false
 	var landed: Dictionary = landings[-1] if landings.size() > 0 else {}
 	var q: String = landed.get("quality", "none")
 	# Recupera el control y sigue corriendo
@@ -190,6 +219,25 @@ func trick(name: String, swipes: Array, running: bool, hold: String) -> void:
 		check(tag + "cuerpo en horizontal visible", horizontal, "")
 	else:
 		check(tag + "pasa boca abajo (visible)", inverted, "")
+	var need_phases := ["impulso", "apertura"]
+	var ph_ok := need_phases.all(func(x): return phases.has(x)) and (phases.has("agrupado") or phases.has("agrupando"))
+	check(tag + "fases visibles: impulso, agrupación, apertura", ph_ok, str(phases.keys()))
+	var shape_ok := false
+	var shape_txt := ""
+	match name:
+		"Aerial":
+			shape_ok = max_split > 1.5; shape_txt = "piernas abiertas en rueda %.2f" % max_split
+		"Butterfly Kick":
+			shape_ok = max_scissor > 1.2; shape_txt = "patada de tijera %.2f" % max_scissor
+		"Gainer":
+			shape_ok = max_lead > 2.2 and max_tuck > 1.5; shape_txt = "agrupado a una pierna %.2f/%.2f" % [max_lead, max_tuck]
+		"Webster":
+			shape_ok = max_lead > 2.2 and max_scissor > 1.0; shape_txt = "agrupado en tijera %.2f/%.2f" % [max_lead, max_scissor]
+		"Cork", "Cork 720", "Double Cork", "Cheat Gainer":
+			shape_ok = max_tuck > 0.9; shape_txt = "semiagrupado con brazos cerrados %.2f" % max_tuck
+		_:
+			shape_ok = max_tuck > 1.8; shape_txt = "agrupado real (cadera %.2f rad)" % max_tuck
+	check(tag + "forma corporal: " + shape_txt.split(" %")[0].split(" (")[0], shape_ok, shape_txt + " " + str(kinds.keys()))
 	check(tag + "aterriza limpio y orientado", q in ["perfect", "clean"], "%s error %.0f°" % [q, landed.get("error", -1.0)])
 	check(tag + "reconocido como " + name, name in moves, str(moves))
 	check(tag + "recupera el control y sigue corriendo", recovered, "%s %.1f m/s" % [PlayerController.STATE_NAMES[player.state], player.speed()])

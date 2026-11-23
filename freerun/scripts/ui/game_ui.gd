@@ -355,6 +355,7 @@ func _build_settings() -> void:
 	_slider(box, "Sensibilidad cámara", "camera_sensitivity", 0.3, 2.5, 0.05)
 	_slider(box, "Sensibilidad gestos", "gesture_sensitivity", 0.4, 2.0, 0.05)
 	_slider(box, "Tamaño controles", "control_scale", 0.7, 1.4, 0.05)
+	_slider(box, "Distancia cámara", "camera_distance", 0.75, 1.4, 0.05)
 	_slider(box, "Opacidad controles", "control_opacity", 0.2, 1.0, 0.05)
 	_check(box, "Modo zurdo (joystick a la derecha)", "left_handed")
 	_check(box, "Invertir eje Y de cámara", "invert_camera_y")
