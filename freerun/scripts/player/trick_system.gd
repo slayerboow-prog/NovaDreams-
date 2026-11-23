@@ -44,7 +44,9 @@ var drive := 0.0                     # -1 frenar/abrir · 0 neutro · +1 empujar
 ## (hasta ×tuck_mult, de forma progresiva) termina antes y queda tiempo para abrirse.
 ## Cada truco tiene su ritmo: el backflip es explosivo, el butterfly es amplio y lento.
 const COMPLETE_AT := {"back": 0.66, "front": 0.7, "side": 0.66, "aerial": 0.72, "cork": 0.72,
-	"butterfly": 0.72, "kick": 0.64}
+	"butterfly": 0.72, "kick": 0.64,
+	# Suelo: el giro dura casi todo el vuelo (apoyo de manos, sin agrupar)
+	"cartwheel": 0.8, "roundoff": 0.78, "bhs": 0.72, "fhs": 0.74}
 
 # Compatibilidad con el resto del código
 var pitch_rate: float:
@@ -170,6 +172,24 @@ func apply_flick(d: Vector2) -> void:
 					goal[ax] += 1
 					if not _recal.has(ax):
 						_recal.append(ax)
+	flicks += 1
+	active = true
+
+## Movimientos de suelo (joystick derecho sin SALTO): rueda, rondada, flic-flac, paloma.
+func start_ground(kind: String, side: int) -> void:
+	match kind:
+		"cartwheel":
+			_start_axis("roll", side)
+		"roundoff":
+			_start_axis("roll", side)
+			_start_axis("twist", side)
+			twist_period = PI
+			goal.twist = 1                    # media vuelta: cae mirando hacia atrás
+		"bhs":
+			_start_axis("pitch", 1)
+		"fhs":
+			_start_axis("pitch", -1)
+	style = kind
 	flicks += 1
 	active = true
 
@@ -319,6 +339,15 @@ static func trick_name(pn: int, rn: int, sn: int, th: int, back: bool, moving: b
 		st := "", kind := "", detail := "") -> String:
 	var cork := st == "cork"
 	var vaulted := kind == "vault"
+	match st:
+		"cartwheel":
+			if rn >= 1: return "Cartwheel" if th == 0 else "Cartwheel Twist"
+		"roundoff":
+			if rn >= 1: return "Round-off"
+		"bhs":
+			if pn >= 1: return "Back Handspring" if th < 2 else "Back Handspring Full"
+		"fhs":
+			if pn >= 1: return "Front Handspring"
 	if pn >= 1:
 		if back:
 			if th == 0:
@@ -398,6 +427,11 @@ func evaluate() -> Dictionary:
 		difficulty = 0.9 + (c.rn + c.sn - 1) * 1.6 + c.th * 0.6
 	if style == "kick":
 		difficulty = 0.6 + (c.th - 2) * 0.55
+	var ground_diff := {"cartwheel": 0.5, "roundoff": 0.7, "fhs": 0.8, "bhs": 0.9}
+	if ground_diff.has(style):
+		difficulty = ground_diff[style]
+	if takeoff_detail == "roundoff":
+		difficulty += 0.5                    # enlace rondada → mortal
 	if takeoff_kind == "vault":
 		difficulty += 0.5
 	if takeoff_speed > 4.0:
@@ -417,6 +451,10 @@ func live_name() -> String:
 		"front": return "Webster" if takeoff_speed > 4.0 else "Frontflip"
 		"side": return "Sideflip"
 		"aerial": return "Aerial"
+		"cartwheel": return "Cartwheel"
+		"roundoff": return "Round-off"
+		"bhs": return "Back Handspring"
+		"fhs": return "Front Handspring"
 		"cork": return "Cork"
 		"butterfly": return "Butterfly Kick"
 		"kick": return "Tornado Kick" if takeoff_speed > 4.0 else "360 Kick"

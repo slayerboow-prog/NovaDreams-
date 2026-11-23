@@ -16,19 +16,20 @@ Atajos: `godot --path freerun -- --mode=freerun` salta el menú (`tricking`, `wa
 
 ## Controles
 
-**Móvil (iPhone / Android) — Doble joystick (por defecto)**
-- **Joystick izquierdo** (pulgar izquierdo): moverse de forma analógica en 8+ direcciones; cuanto más lo inclinas, más rápido; a fondo = sprint.
-- **SALTO** (abajo a la derecha): pulsa para saltar.
-- **Joystick derecho** (esquina inferior derecha): rotación del cuerpo.
-  - Inclinarlo arranca la acrobacia: ↓ Backflip · ↑ Frontflip · ← → Sideflip (siempre encogido) · ↙ ↘ mortal atrás + tirabuzón (Cork) · ↗ mortal adelante + tirabuzón (Front Full) · ↖ adelante + giro lateral: Aerial (parado) o Butterfly Kick (con carrera). Con carrera ↓/↑ = Gainer / Webster.
-  - Es analógico: cuanto más lo inclinas hacia el giro, más se agrupa el cuerpo y más rápido gira (poco a poco, no de golpe). Soltarlo abre el cuerpo; tirar en sentido contrario frena el giro y prepara el aterrizaje.
-  - Mantenerlo inclinado no repite el truco. **Volver al centro e inclinar otra vez** = otra vuelta (Double Backflip, Double Cork). Llevarlo a un lado durante un mortal = tirabuzón (Cork 720, Back Full...).
-  - Inclinarlo antes de saltar: el mortal sale en el despegue. **Tocarlo sin inclinar** = GIRO (360 Kick, o tirabuzón completo durante un mortal).
-- **AGRUPAR** (pulgar izquierdo, encima del joystick): agrupado total mientras lo mantienes (rodillas al pecho, gira más rápido). Funciona a la vez que el joystick derecho.
-- **RODAR**: pulsar justo antes de caer desde alto (Safety Roll). **↻**: reaparecer.
-- Arrastrar fuera de los controles = cámara (en este modo nunca lanza trucos).
-- También funcionan los gestos sobre SALTO: sin levantar el dedo, deslízalo en una dirección.
-- Indicador en el aire: nombre del truco, grados y dial (zona verde = vertical para aterrizar).
+**Móvil (iPhone / Android) — Doble joystick (por defecto)**: dos joysticks y solo cuatro botones (SALTO, VAULT, AGARRAR, RODAR). No hay un botón por truco: los trucos salen del joystick derecho según el contexto.
+- **Joystick izquierdo** (abajo a la izquierda): moverse de forma analógica; cuanto más lo inclinas, más rápido; a fondo = sprint.
+- **SALTO** (grande, encima del joystick derecho): saltar e impulsarse. Mantenerlo junto a una pared = Wall Run; en el aire junto a una pared = Tic Tac.
+- **VAULT**: supera el obstáculo con la técnica viable según velocidad, ángulo y forma (Step, Speed, Lazy, Kong, Dash, Step Up). Con el joystick derecho inclinado elige variante: ← → Reverse Vault, ↑ Double Kong, ↓ Kash Vault. Ante una pared alta, trepa.
+- **AGARRAR**: junto a una pared alta, trepar; en el aire, agarrar el borde (aunque vengas de un giro, si ya estás casi vertical); colgado se convierte en **SOLTAR**.
+- **RODAR**: Parkour Roll corriendo; justo antes de caer desde alto, Safety Roll.
+- **Joystick derecho** (abajo, a la derecha del centro):
+  - **En el aire** (tras SALTO): ↓ Backflip · ↑ Frontflip · ← → Sideflip (siempre encogido) · ↙ ↘ Cork · ↗ Front Full · ↖ Aerial (parado) o Butterfly Kick (con carrera). Con carrera ↓/↑ = Gainer / Webster. Es analógico: más inclinado hacia el giro = más agrupado y más rápido; soltarlo abre el cuerpo; en contra frena. Volver al centro e inclinar otra vez = otra vuelta; a un lado durante un mortal = tirabuzón; tocarlo sin inclinar = GIRO.
+  - **En el suelo** (sin SALTO, mantenlo inclinado un instante): ← → **Cartwheel** · ↙ ↘ **Round-off** (cae mirando atrás y deja un rebote: el siguiente salto sale un 15 % más alto, ideal para Round-off → Backflip) · ↓ **Back Handspring** (también rebota) · ↑ **Front Handspring** · ↗ 360 Kick / Tornado · ↖ Aerial / Butterfly Kick.
+  - **Ante un obstáculo** el joystick elige la variante del vault en vez de hacer un movimiento de suelo.
+  - **En la pared** (wall run, wall climb o colgado): ↓ Wall Flip / Wall Gainer · ↑ Wall Front · lateral = con giro.
+- **Tras una caída**: SALTO = **Kip-up** (te levantas al momento).
+- Arrastrar fuera de los controles = cámara.
+- **Menú de pausa**: Reaparecer, **Movimientos** (biblioteca con más de 100 técnicas por categoría, su entrada y su estado) y **Tutorial de controles** (10 pasos que avanzan al hacer cada movimiento de verdad).
 
 **Otros modos (Ajustes → Controles de trucos)**: *Solo gestos*, *Solo cruceta* y *Gestos + cruceta*.
 - Gestos: pulsa SALTO y, sin levantar el dedo, deslízalo (mismas direcciones que el joystick derecho). Deslizar dos veces igual = doble. En el aire, la zona derecha también acepta gestos.
@@ -36,7 +37,7 @@ Atajos: `godot --path freerun -- --mode=freerun` salta el menú (`tricking`, `wa
 - Volver a pulsar SALTO en el aire: sin mortal = patada giratoria (360 Kick / Tornado Kick, cada toque suma media vuelta: 540, 720 / Cheat 720, 900, 1080); durante un mortal = tirabuzón completo.
 - Gesto justo antes de un vault: lateral = Reverse Vault; en caja de kong ↑ = Double Kong, ↓ = Kash Vault. Gesto durante el vault = mortal al salir (Kong Gainer, Dash Bomb, Kong Front...).
 
-**Teclado**: WASD + Shift · Espacio salto (mantener: wall run; otra vez en el aire = giro) · Flechas = acrobacias (mantener = agruparse) · Ctrl rodar · R reaparecer.
+**Teclado**: WASD + Shift · Espacio salto (mantener: wall run; otra vez en el aire = giro) · Flechas = joystick derecho (acrobacias en el aire, tricking de suelo si las mantienes sin saltar) · V vault · G agarrar · Ctrl rodar · R reaparecer.
 
 Ajustes: ayuda de rotación (Alta / Media / Pro), controles de trucos (doble joystick / solo gestos / solo cruceta / gestos + cruceta), tamaño de controles, distancia de cámara, opacidad, sensibilidad de cámara y del joystick derecho / gestos, y modo zurdo.
 
@@ -77,6 +78,13 @@ El `InputIntent` es la frontera entre dispositivos y personaje: replays, ghosts 
 - **Android**: Godot → Editor → Manage Export Templates; configura el SDK de Android y JDK 17 en Editor Settings; Project → Export → Android.
 - **Web**: preset "Web" sin hilos (compatible con Safari/iOS y GitHub Pages). Se publica sola al subir cambios a `main`.
 - **iOS**: requiere macOS con Xcode. Project → Export → iOS genera un proyecto Xcode que se firma y compila en el Mac.
+
+## Biblioteca de movimientos
+
+`scripts/core/move_library.gd` (en el juego: Pausa → Movimientos) cataloga 102 técnicas en 17 categorías: vaults, precision, paredes, escalada, barras, rolls, mortales, laterales, aerials y websters, gainers, corks, butterfly y patadas, handsprings, ruedas y rondadas, suelo, combos y avanzados.
+
+- **Estado**: 61 hechas (impulso, trayectoria y postura propias, con prueba), 14 parciales (se reconocen y rotan bien, pero comparten postura con su familia) y 27 pendientes (cada una con el motivo; las de barra necesitan barras en el mapa).
+- **Fuentes**: nombres, variantes y niveles de [pkfr.world/tutorials](https://pkfr.world/tutorials/) y [trickipedia.app](https://www.trickipedia.app/). Ninguna describe la técnica en texto y sus vídeos no se han podido ver, así que la biomecánica del juego se basa en la técnica deportiva estándar.
 
 ## Trucos reconocidos
 

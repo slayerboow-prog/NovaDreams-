@@ -6,7 +6,9 @@ extends Control
 ##   en esa dirección; cuanto más se inclina hacia el giro, más se agrupa y más rápido gira;
 ##   soltarlo abre el cuerpo; tirar en contra frena y prepara el aterrizaje. Tocar sin
 ##   inclinar = GIRO (360 / tirabuzón). Volver a inclinar = otra vuelta o tirabuzón añadido.
-## - AGRUPAR (pulgar izquierdo, en el aire): agrupado total mientras se mantiene.
+## - Botones: SALTO, VAULT (superar obstáculos), AGARRAR (bordes y paredes; SOLTAR colgado)
+##   y RODAR. En el suelo, el joystick derecho hace tricking de suelo (rueda, rondada,
+##   flic-flac...). El reinicio está en el menú de pausa.
 ## Otros modos (Ajustes): gestos sobre SALTO y cruceta de trucos.
 ## - Joystick dinámico a la izquierda (aparece donde apoyas el pulgar; a fondo = sprint).
 ## - SALTO: pulsa para saltar. Sin levantar el dedo, DESLÍZALO para hacer una acrobacia:
@@ -29,7 +31,11 @@ class TouchFrame:
 	var respawn_pressed := false
 	var kick := false
 	var rot := Vector2.ZERO
+	var vault_pressed := false
+	var grab_pressed := false
+	var grab_held := false
 
+var grab_label := "AGARRAR"           # SOLTAR cuando está colgado
 var context_label := "RODAR"
 var air_mode := false                 # lo actualiza el juego: el jugador está en el aire
 
@@ -89,13 +95,13 @@ const JOY_R := 118.0
 # Doble joystick: joystick de rotación en la esquina inferior derecha, SALTO grande a su
 # izquierda (abajo, donde el pulgar llega sin estirarse), RODAR encima, AGRUPAR a la izquierda.
 const ROT_R := 138.0
-const STICK_JUMP_R := 112.0
-const TUCK_R := 76.0
+const STICK_JUMP_R := 106.0
+const SMALL_R := 62.0                 # VAULT, AGARRAR, RODAR
 
 func _jump_center() -> Vector2:
 	var s := _s()
 	if stick_enabled():
-		return Vector2(_mirror(size.x - (500.0 if _narrow() else 540.0) * s), size.y - 140.0 * s)
+		return Vector2(_mirror(size.x - 280.0 * s), maxf(size.y - 430.0 * s, _jump_radius() * 1.12 + 8.0))
 	return Vector2(_mirror(size.x - 158.0 * s), size.y - 158.0 * s)
 
 func _jump_radius() -> float:
@@ -103,7 +109,7 @@ func _jump_radius() -> float:
 
 func _rot_center() -> Vector2:
 	var s := _s()
-	return Vector2(_mirror(size.x - 205.0 * s), size.y - 215.0 * s)
+	return Vector2(_mirror(size.x - 480.0 * s), size.y - 195.0 * s)
 
 func _rot_radius() -> float:
 	return ROT_R * _s()
@@ -112,12 +118,27 @@ func _rot_radius() -> float:
 func _rot_travel() -> float:
 	return ROT_R * 0.62 * _s() / maxf(Settings.gesture_sensitivity, 0.2)
 
-func _tuck_center() -> Vector2:
+## Columna derecha (doble joystick): VAULT arriba, AGARRAR en medio, RODAR abajo.
+## Se compacta con tamaños grandes para no invadir el botón de pausa ni salir de pantalla.
+func _column_y(i: int) -> float:
 	var s := _s()
-	return Vector2(_mirror(400.0 * s), maxf(size.y - 430.0 * s, _tuck_radius() * 1.25 + 8.0))
+	var hit := _small_radius() * 1.15
+	var bottom := size.y - maxf(100.0 * s, hit + 8.0)
+	var top_min := 80.0 + hit
+	var step := minf(230.0 * s, (bottom - top_min) / 2.0)
+	return bottom - step * (2 - i)
 
-func _tuck_radius() -> float:
-	return TUCK_R * _s()
+func _column_x() -> float:
+	return _mirror(size.x - 82.0 * _s())
+
+func _small_radius() -> float:
+	return SMALL_R * _s()
+
+func _vault_center() -> Vector2:
+	return Vector2(_column_x(), _column_y(0))
+
+func _grab_center() -> Vector2:
+	return Vector2(_column_x(), _column_y(1))
 
 ## Pantallas menos panorámicas que un móvil actual (16:9, tablets): la cruceta sube encima
 ## del SALTO para no tapar al personaje, y RODAR pasa a su izquierda.
@@ -127,14 +148,14 @@ func _narrow() -> bool:
 func _action_center() -> Vector2:
 	var s := _s()
 	if stick_enabled():
-		return Vector2(_mirror(size.x - 470.0 * s), size.y - 420.0 * s)
+		return Vector2(_column_x(), _column_y(2))
 	if _narrow():
 		return Vector2(_mirror(size.x - 392.0 * s), size.y - 130.0 * s)
 	# Encima del SALTO, ligeramente hacia dentro (a 234 unidades de su centro)
 	return Vector2(_mirror(size.x - 216.0 * s), size.y - 385.0 * s)
 
 func _action_radius() -> float:
-	return ACTION_R * _s()
+	return (SMALL_R if stick_enabled() else ACTION_R) * _s()
 
 func _pad_center() -> Vector2:
 	var s := _s()
@@ -150,26 +171,21 @@ func _pad_radius() -> float:
 		return minf(PAD_R * _s(), free * 0.5 / 1.08)
 	return PAD_R * _s()
 
-## Reinicio arriba, a la izquierda del botón de pausa (no se escala con el tamaño de
-## controles: es un botón de uso ocasional y así nunca invade a los demás).
-func _respawn_center() -> Vector2:
-	var k := _s() / maxf(Settings.control_scale, 0.01)
-	return Vector2(_mirror(size.x - (470.0 if _narrow() else 180.0) * k), 52.0 * k)
-
 ## Radios de pulsación (algo mayores que el dibujo para acertar con el pulgar sin mirar).
 func hit_radii() -> Dictionary:
-	return {"jump": _jump_radius() * 1.12, "action": _action_radius() * 1.2, "pad": _pad_radius() * 1.08,
-		"respawn": 44.0 * _s() / maxf(Settings.control_scale, 0.01), "rot": _rot_radius() * 1.2,
-		"tuck": _tuck_radius() * 1.25}
+	var small := 1.15 if stick_enabled() else 1.2
+	return {"jump": _jump_radius() * 1.12, "action": _action_radius() * small, "pad": _pad_radius() * 1.08,
+		"rot": _rot_radius() * 1.12, "vault": _small_radius() * 1.15, "grab": _small_radius() * 1.15}
 
 ## Zonas táctiles activas en el modo actual (las pruebas comprueban que no se solapan).
 func zones() -> Dictionary:
-	var z := {"jump": _jump_center(), "action": _action_center(), "respawn": _respawn_center()}
+	var z := {"jump": _jump_center(), "action": _action_center()}
 	if pad_enabled():
 		z["pad"] = _pad_center()
 	if stick_enabled():
 		z["rot"] = _rot_center()
-		z["tuck"] = _tuck_center()
+		z["vault"] = _vault_center()
+		z["grab"] = _grab_center()
 	return z
 
 func _is_move_side(p: Vector2) -> bool:
@@ -180,6 +196,7 @@ func collect() -> TouchFrame:
 	f.move = _joy_vec
 	f.jump_held = false
 	f.action_held = false
+	f.grab_held = false
 	f.tuck = false
 	for fd in _fingers.values():
 		match fd.role:
@@ -190,8 +207,8 @@ func collect() -> TouchFrame:
 				f.action_held = true
 			"pad":
 				f.tuck = true
-			"tuck":
-				f.tuck = true
+			"grab":
+				f.grab_held = true
 			"gesture":
 				f.tuck = f.tuck or fd.flicked
 	f.rot = _rot_vec
@@ -252,12 +269,14 @@ func _on_touch(e: InputEventScreenTouch) -> void:
 			role = "action"
 			_pending.action_pressed = true
 			_flash["action"] = 0.15
-		elif p.distance_to(_respawn_center()) < hr.respawn:
-			role = "respawn"
-			_pending.respawn_pressed = true
-		elif stick_enabled() and p.distance_to(_tuck_center()) < hr.tuck:
-			role = "tuck"
-			_flash["tuck"] = 0.15
+		elif stick_enabled() and p.distance_to(_vault_center()) < hr.vault:
+			role = "vault"
+			_pending.vault_pressed = true
+			_flash["vault"] = 0.15
+		elif stick_enabled() and p.distance_to(_grab_center()) < hr.grab:
+			role = "grab"
+			_pending.grab_pressed = true
+			_flash["grab"] = 0.15
 		elif stick_enabled() and p.distance_to(_rot_center()) < hr.rot:
 			# Joystick flotante: el origen es donde se apoya el pulgar (sin giro accidental al tocar)
 			role = "rot"
@@ -441,40 +460,38 @@ func _draw() -> void:
 	_label(font, jc + Vector2(0, -10 * s), "SALTO", 40 * s, white)
 	if gestures_enabled():
 		_label(font, jc + Vector2(0, 36 * s), "desliza = truco", 19 * s, Color(1, 1, 1, a + 0.15))
-	# Acción contextual
+	# RODAR (y, en los modos clásicos, acción contextual)
 	var ac := _action_center()
+	var roll_ring := Color(0.35, 0.95, 0.45, white.a) if stick_enabled() else white
 	draw_circle(ac, _action_radius(), accent if _flash.has("action") else dark)
-	draw_arc(ac, _action_radius(), 0, TAU, 48, white, 3.0 * s, true)
-	_label(font, ac, context_label if context_label != "" else "RODAR", 24 * s, white)
-	# Reinicio
-	var rc := _respawn_center()
-	var rs := s / maxf(Settings.control_scale, 0.01)
-	draw_circle(rc, 38.0 * rs, dark)
-	var r := 16.0 * rs
-	draw_arc(rc, r, -PI * 0.35, PI * 1.45, 24, white, 3.5 * s, true)
-	var tip := rc + Vector2(cos(-PI * 0.35), sin(-PI * 0.35)) * r
-	draw_colored_polygon(PackedVector2Array([tip + Vector2(-8, -6) * rs, tip + Vector2(7, -7) * rs, tip + Vector2(1, 7) * rs]), white)
+	draw_arc(ac, _action_radius(), 0, TAU, 48, roll_ring, 4.0 * s, true)
+	var alabel := "RODAR" if stick_enabled() else (context_label if context_label != "" else "RODAR")
+	_label(font, ac, alabel, 22 * s, white)
+	if stick_enabled():
+		var held := {}
+		for f in _fingers.values():
+			held[f.role] = true
+		var vc := _vault_center()
+		draw_circle(vc, _small_radius(), accent if (held.has("vault") or _flash.has("vault")) else dark)
+		draw_arc(vc, _small_radius(), 0, TAU, 48, Color(0.35, 0.65, 1.0, white.a), 4.0 * s, true)
+		_label(font, vc, "VAULT", 22 * s, white)
+		var gc := _grab_center()
+		draw_circle(gc, _small_radius(), accent if (held.has("grab") or _flash.has("grab")) else dark)
+		draw_arc(gc, _small_radius(), 0, TAU, 48, white, 4.0 * s, true)
+		_label(font, gc, grab_label, 20 * s, white)
 	# Cruceta de acrobacias
 	if pad_enabled():
 		_draw_pad(font, s, a, white, dark, accent)
 	if stick_enabled():
 		_draw_rot_stick(font, s, a, white, dark, accent)
-		var tc := _tuck_center()
-		var tuck_on := _flash.has("tuck")
-		for f in _fingers.values():
-			if f.role == "tuck":
-				tuck_on = true
-		draw_circle(tc, _tuck_radius(), accent if tuck_on else dark)
-		draw_arc(tc, _tuck_radius(), 0, TAU, 48, white, 3.0 * s, true)
-		_label(font, tc, "AGRUPAR", 21 * s, white)
 	# Pista de gestos al principio
 	if _hint_time < 9.0 and gestures_enabled():
 		var hc := Vector2(size.x * 0.5, size.y * 0.16)
 		var ha := clampf(1.0 - (_hint_time - 7.0) / 2.0, 0.0, 1.0)
 		if stick_enabled():
-			_label(font, hc, "SALTO y luego joystick derecho: abajo back, arriba front, lados sideflip", 24 * s, Color(1, 1, 1, ha))
-			_label(font, hc + Vector2(0, 36 * s), "Más inclinado = más agrupado y más rápido; suelta para abrir; en contra frena", 24 * s, Color(1, 1, 1, ha))
-			_label(font, hc + Vector2(0, 72 * s), "Inclina otra vez = otra vuelta · lado durante un mortal = tirabuzón · toque = GIRO", 24 * s, Color(1, 1, 1, ha))
+			_label(font, hc, "SALTO + joystick derecho = mortales (más inclinado = más agrupado y rápido)", 24 * s, Color(1, 1, 1, ha))
+			_label(font, hc + Vector2(0, 36 * s), "Joystick derecho en el suelo = rueda, rondada, flic-flac · VAULT · AGARRAR · RODAR", 24 * s, Color(1, 1, 1, ha))
+			_label(font, hc + Vector2(0, 72 * s), "Biblioteca de movimientos y tutorial: menú de pausa", 24 * s, Color(1, 1, 1, ha))
 			return
 		_label(font, hc, "Pulsa SALTO y desliza: abajo back, arriba front, lados lateral", 24 * s, Color(1, 1, 1, ha))
 		_label(font, hc + Vector2(0, 36 * s), "Desliza dos veces igual = doble mortal; en la cruceta, toca dos veces", 24 * s, Color(1, 1, 1, ha))
