@@ -160,13 +160,32 @@ func _process(dt: float) -> void:
 				target.spine.x = -0.5
 				target.hip_l.x = 0.9; target.hip_r.x = 0.7
 				target.knee_l.x = -1.4; target.knee_r.x = -1.2
+			if player.jump_load > 0.0:
+				drop = _load_pose(target)
+				blend_speed = 34.0
 			var c := player.land_impact
 			if c > 0.0:
-				drop += 0.28 * c
-				target.hip_l.x += 1.0 * c; target.hip_r.x += 1.0 * c
-				target.knee_l.x -= 1.8 * c; target.knee_r.x -= 1.8 * c
-				target.spine.x -= 0.5 * c
-				target.shoulder_l.z -= 0.6 * c; target.shoulder_r.z += 0.6 * c
+				# Recepción: piernas y tronco absorben el impacto (más profunda cuanto más fuerte).
+				drop += 0.34 * c
+				target.hip_l.x += 1.15 * c; target.hip_r.x += 1.1 * c
+				target.knee_l.x -= 2.0 * c; target.knee_r.x -= 1.95 * c
+				target.spine.x -= 0.6 * c
+				target.neck.x += 0.25 * c
+				match player.land_quality:
+					"perfect":
+						# Clavada: brazos delante, quieto y firme
+						target.shoulder_l.x += 1.3 * c; target.shoulder_r.x += 1.3 * c
+						target.shoulder_l.z -= 0.25 * c; target.shoulder_r.z += 0.25 * c
+					"clean":
+						target.shoulder_l.x += 0.9 * c; target.shoulder_r.x += 0.9 * c
+						target.shoulder_l.z -= 0.7 * c; target.shoulder_r.z += 0.7 * c
+					_:
+						# Torcida o dura: brazos buscando el equilibrio y tronco desplazado
+						var w := sin(player.land_timer * 22.0)
+						target.shoulder_l.x += (1.6 + 0.8 * w) * c; target.shoulder_r.x += (0.4 - 0.8 * w) * c
+						target.shoulder_l.z -= 1.1 * c; target.shoulder_r.z += 1.1 * c
+						target.spine.z = 0.25 * w * c
+						target.spine.x -= 0.3 * c
 		PlayerController.State.AIR:
 			_air_pose(target)
 			blend_speed = 22.0
@@ -282,6 +301,8 @@ func _air_pose(p: Dictionary) -> void:
 		return
 	var vy := player.velocity.y
 	var rising := clampf(vy / 8.0, -1.0, 1.0)
+	# Despegue sin truco: extensión explosiva y brazos arriba; después piernas preparadas.
+	var imp := clampf(1.0 - tr.air_time / 0.14, 0.0, 1.0)
 	p.hip_l.x = 0.7 + 0.3 * rising
 	p.hip_r.x = 0.15
 	p.knee_l.x = -1.1
@@ -291,87 +312,249 @@ func _air_pose(p: Dictionary) -> void:
 	p.shoulder_l.z = -0.7; p.shoulder_r.z = 0.7
 	p.elbow_l.x = 0.5; p.elbow_r.x = 0.5
 	p.spine.x = -0.15
+	if imp > 0.0:
+		_apply(p, {"hip_l": Vector3(-0.1, 0, 0), "hip_r": Vector3(0.2, 0, 0), "knee_l": Vector3(-0.1, 0, 0),
+			"knee_r": Vector3(-0.3, 0, 0), "shoulder_l": Vector3(2.4, 0, -0.3), "shoulder_r": Vector3(2.4, 0, 0.3),
+			"spine": Vector3(0.1, 0, 0)}, imp)
+	var ttg := player.time_to_ground()
+	if vy < 0.0 and ttg < 0.25:
+		_apply(p, RECEPTION, clampf(1.0 - ttg / 0.25, 0.0, 1.0) * 0.8)
 
-## Pose de acrobacia en tres fases: preparación (despegue), ejecución y recepción.
-func _trick_pose(p: Dictionary, tr: TrickSystem) -> void:
-	var prep := clampf(1.0 - tr.air_time / 0.16, 0.0, 1.0)      # 1 al despegar → 0
-	var landing_prep := tr.spotting or tr.all_settled()
-	var tuck := tr.tuck_amount
-	# Agrupado natural a mitad de cada vuelta (como un practicante real), aunque no se mantenga
-	var ax := tr.primary_axis()
-	if not landing_prep and tr.style in ["back", "front", "cork"]:
-		var frac := fmod(absf(tr.total.get(ax, 0.0)), TAU) / TAU
-		var natural := clampf(sin(PI * clampf(frac / 0.85, 0.0, 1.0)) * 1.4, 0.0, 1.0) * 0.85
-		tuck = maxf(tuck, natural)
+## Variante visual de la acrobacia en curso (cada truco tiene su propia ejecución).
+func trick_kind(tr: TrickSystem) -> String:
+	var moving := tr.takeoff_speed > 4.0
+	var twisting: bool = tr.dir.get("twist", 0) != 0
 	match tr.style:
+		"back":
+			if twisting:
+				return "twist"
+			return "gainer" if moving else "back"
+		"front":
+			if twisting:
+				return "twist"
+			return "webster" if moving else "front"
 		"side":
-			# Lateral / aerial: piernas abiertas en tijera, brazos fuera
-			var aerial := tr.takeoff_speed > 4.0
-			p.shoulder_l.z = -1.7; p.shoulder_r.z = 1.7
-			p.shoulder_l.x = 0.3; p.shoulder_r.x = 0.3
-			p.hip_l.z = -0.75 if aerial else -0.45; p.hip_r.z = 0.55 if aerial else 0.45
-			p.hip_l.x = 0.5 * tuck; p.hip_r.x = 0.5 * tuck
-			p.knee_l.x = -0.25 - 1.3 * tuck; p.knee_r.x = -0.25 - 1.3 * tuck
-			p.spine.x = -0.25 * tuck
+			if twisting:
+				return "twist"
+			return "aerial" if moving else "side"
+		"cork":
+			return "cork"
 		"butterfly":
-			# Butterfly kick: cuerpo tumbado, patada de tijera, brazos extendidos
-			var ph := absf(tr.total_spin) * 2.0
-			p.shoulder_l.z = -1.5; p.shoulder_r.z = 1.5
-			p.shoulder_l.x = 0.4; p.shoulder_r.x = 0.4
-			p.hip_l.x = -0.3 + 0.9 * sin(ph); p.hip_r.x = -0.3 - 0.9 * sin(ph)
-			p.hip_l.z = -0.35; p.hip_r.z = 0.35
-			p.knee_l.x = -0.25; p.knee_r.x = -0.25
-			p.spine.x = 0.25
-			p.neck.x = 0.35
-		_:
-			# Mortales atrás/adelante y corks: agrupado al mantener, carpado al soltar
-			_tuck_pose(p, maxf(tuck, 0.0))
-			var open := 1.0 - tuck
-			if open > 0.0:
-				p.hip_l.x = lerpf(p.hip_l.x, 1.35, open); p.hip_r.x = lerpf(p.hip_r.x, 1.35, open)
-				p.knee_l.x = lerpf(p.knee_l.x, -0.4, open); p.knee_r.x = lerpf(p.knee_r.x, -0.4, open)
-				p.shoulder_l.x = lerpf(p.shoulder_l.x, 1.6, open); p.shoulder_r.x = lerpf(p.shoulder_r.x, 1.6, open)
-				p.elbow_l.x = lerpf(p.elbow_l.x, 0.3, open); p.elbow_r.x = lerpf(p.elbow_r.x, 0.3, open)
-				p.spine.x = lerpf(p.spine.x, -0.35, open)
-			if tr.dir.get("twist", 0) != 0 and not tr.settled.get("twist", false):
-				# Tirabuzón: brazos cerrados al pecho, piernas juntas y rectas
-				p.shoulder_l.x = 0.5; p.shoulder_r.x = 0.5
-				p.shoulder_l.z = 0.45; p.shoulder_r.z = -0.45
-				p.elbow_l.x = 2.3; p.elbow_r.x = 2.3
-				p.hip_l.x = lerpf(p.hip_l.x, 0.2, 0.6); p.hip_r.x = lerpf(p.hip_r.x, 0.2, 0.6)
-				p.knee_l.x = lerpf(p.knee_l.x, -0.15, 0.6); p.knee_r.x = lerpf(p.knee_r.x, -0.15, 0.6)
-				p.hip_l.z = 0.08; p.hip_r.z = -0.08
-	# Preparación: impulso de brazos y extensión de piernas al despegar
-	if prep > 0.0:
-		var arms := 2.9
-		var spine := 0.25
-		var neck := 0.3
-		match tr.style:
-			"front":
-				arms = 2.6; spine = -0.3; neck = -0.35
-			"side", "butterfly":
-				arms = 1.4; spine = 0.0; neck = 0.0
-		for k in ["shoulder_l", "shoulder_r"]:
-			p[k].x = lerpf(p[k].x, arms, prep)
-		p.elbow_l.x = lerpf(p.elbow_l.x, 0.15, prep); p.elbow_r.x = lerpf(p.elbow_r.x, 0.15, prep)
-		p.spine.x = lerpf(p.spine.x, spine, prep)
-		p.neck.x = lerpf(p.neck.x, neck, prep)
-		for k in ["hip_l", "hip_r"]:
-			p[k].x = lerpf(p[k].x, 0.05, prep)
-		for k in ["knee_l", "knee_r"]:
-			p[k].x = lerpf(p[k].x, -0.1, prep)
-	# Recepción: piernas preparadas, brazos delante para equilibrar
-	if landing_prep and tuck < 0.5:
-		var k := 0.85
-		p.hip_l.x = lerpf(p.hip_l.x, 0.55, k); p.hip_r.x = lerpf(p.hip_r.x, 0.45, k)
-		p.knee_l.x = lerpf(p.knee_l.x, -0.75, k); p.knee_r.x = lerpf(p.knee_r.x, -0.65, k)
-		p.hip_l.z = lerpf(p.hip_l.z, -0.08, k); p.hip_r.z = lerpf(p.hip_r.z, 0.08, k)
-		p.shoulder_l.x = lerpf(p.shoulder_l.x, 1.1, k); p.shoulder_r.x = lerpf(p.shoulder_r.x, 1.1, k)
-		p.shoulder_l.z = lerpf(p.shoulder_l.z, -0.7, k); p.shoulder_r.z = lerpf(p.shoulder_r.z, 0.7, k)
-		p.elbow_l.x = lerpf(p.elbow_l.x, 0.4, k); p.elbow_r.x = lerpf(p.elbow_r.x, 0.4, k)
-		p.spine.x = lerpf(p.spine.x, -0.2, k)
-		p.neck.x = lerpf(p.neck.x, 0.1, k)
+			return "butterfly"
+	return "back"
 
+const V0 := Vector3.ZERO
+
+## Fase 2 · IMPULSO: extensión explosiva al despegar (distinta en cada truco).
+func _impulse_pose(kind: String, rs: float) -> Dictionary:
+	match kind:
+		"front":
+			return {"spine": Vector3(-0.35, 0, 0), "neck": Vector3(-0.35, 0, 0),
+				"shoulder_l": Vector3(2.75, 0, -0.2), "shoulder_r": Vector3(2.75, 0, 0.2),
+				"elbow_l": Vector3(0.15, 0, 0), "elbow_r": Vector3(0.15, 0, 0),
+				"hip_l": Vector3(0.1, 0, 0), "hip_r": Vector3(0.1, 0, 0), "knee_l": Vector3(-0.1, 0, 0), "knee_r": Vector3(-0.1, 0, 0)}
+		"webster":
+			return {"spine": Vector3(-0.75, 0, 0), "neck": Vector3(-0.3, 0, 0),
+				"shoulder_l": Vector3(0.5, 0, -0.35), "shoulder_r": Vector3(0.5, 0, 0.35),
+				"elbow_l": Vector3(0.3, 0, 0), "elbow_r": Vector3(0.3, 0, 0),
+				"hip_l": Vector3(-0.95, 0, 0), "knee_l": Vector3(-0.25, 0, 0),      # pierna de atrás patea arriba
+				"hip_r": Vector3(0.55, 0, 0), "knee_r": Vector3(-0.4, 0, 0)}
+		"side":
+			return {"spine": Vector3(0.1, 0, 0.25 * rs), "neck": Vector3(0.1, 0, 0.2 * rs),
+				"shoulder_l": Vector3(2.5, 0, -0.25 + 0.35 * rs), "shoulder_r": Vector3(2.5, 0, 0.25 + 0.35 * rs),
+				"elbow_l": Vector3(0.2, 0, 0), "elbow_r": Vector3(0.2, 0, 0),
+				"hip_l": Vector3(-0.05, 0, 0), "hip_r": Vector3(-0.05, 0, 0), "knee_l": Vector3(-0.1, 0, 0), "knee_r": Vector3(-0.1, 0, 0)}
+		"aerial":
+			# Tronco tumbado hacia delante, brazos lanzados abajo y atrás, pierna de atrás arriba
+			return {"spine": Vector3(-1.05, 0.35 * rs, 0), "neck": Vector3(0.45, 0, 0),
+				"shoulder_l": Vector3(-0.5, 0, -0.5), "shoulder_r": Vector3(-0.5, 0, 0.5),
+				"elbow_l": Vector3(0.4, 0, 0), "elbow_r": Vector3(0.4, 0, 0),
+				"hip_l": Vector3(-0.9, 0, -0.3), "knee_l": Vector3(-0.15, 0, 0),
+				"hip_r": Vector3(0.35, 0, 0.1), "knee_r": Vector3(-0.2, 0, 0)}
+		"gainer":
+			return {"spine": Vector3(0.3, 0, 0), "neck": Vector3(0.4, 0, 0),
+				"shoulder_l": Vector3(2.9, 0, -0.25), "shoulder_r": Vector3(2.9, 0, 0.25),
+				"elbow_l": Vector3(0.1, 0, 0), "elbow_r": Vector3(0.1, 0, 0),
+				"hip_r": Vector3(1.6, 0, 0), "knee_r": Vector3(-0.35, 0, 0),         # pierna libre lanzada arriba
+				"hip_l": Vector3(-0.2, 0, 0), "knee_l": Vector3(-0.05, 0, 0)}
+		"cork", "twist":
+			return {"spine": Vector3(0.2, 0.55 * rs, 0), "neck": Vector3(0.3, 0.3 * rs, 0),
+				"shoulder_l": Vector3(2.5, 0, -0.7), "shoulder_r": Vector3(1.7, 0, 0.9),
+				"elbow_l": Vector3(0.2, 0, 0), "elbow_r": Vector3(0.6, 0, 0),
+				"hip_l": Vector3(-0.1, 0, 0), "hip_r": Vector3(0.4, 0, 0), "knee_l": Vector3(-0.1, 0, 0), "knee_r": Vector3(-0.5, 0, 0)}
+		"butterfly":
+			return {"spine": Vector3(-0.75, 0.6 * rs, 0), "neck": Vector3(0.4, 0, 0),
+				"shoulder_l": Vector3(1.5, 0, -1.0), "shoulder_r": Vector3(1.5, 0, 1.0),
+				"elbow_l": Vector3(0.5, 0, 0), "elbow_r": Vector3(0.5, 0, 0),
+				"hip_l": Vector3(-0.85, 0, -0.2), "knee_l": Vector3(-0.15, 0, 0),
+				"hip_r": Vector3(0.3, 0, 0), "knee_r": Vector3(-0.3, 0, 0)}
+	# Backflip: brazos arriba, pecho y cabeza atrás, piernas estiradas empujando el suelo
+	return {"spine": Vector3(0.3, 0, 0), "neck": Vector3(0.45, 0, 0),
+		"shoulder_l": Vector3(2.95, 0, -0.25), "shoulder_r": Vector3(2.95, 0, 0.25),
+		"elbow_l": Vector3(0.1, 0, 0), "elbow_r": Vector3(0.1, 0, 0),
+		"hip_l": Vector3(-0.15, 0, 0), "hip_r": Vector3(-0.15, 0, 0), "knee_l": Vector3(-0.05, 0, 0), "knee_r": Vector3(-0.05, 0, 0)}
+
+## Fases 3-4 · AGRUPACIÓN y ROTACIÓN: forma del cuerpo durante el giro.
+func _gather_pose(kind: String, rs: float, ph: float) -> Dictionary:
+	match kind:
+		"front":
+			# Agrupado cerrado, cabeza metida, manos abrazando las espinillas
+			return {"spine": Vector3(-1.0, 0, 0), "neck": Vector3(-0.65, 0, 0),
+				"hip_l": Vector3(2.55, 0, -0.08), "hip_r": Vector3(2.5, 0, 0.08), "knee_l": Vector3(-2.65, 0, 0), "knee_r": Vector3(-2.6, 0, 0),
+				"shoulder_l": Vector3(0.75, 0, 0.12), "shoulder_r": Vector3(0.75, 0, -0.12),
+				"elbow_l": Vector3(1.75, 0, 0), "elbow_r": Vector3(1.75, 0, 0)}
+		"webster":
+			# Mortal adelante a una pierna: tijera, la pierna de atrás llega tarde
+			return {"spine": Vector3(-0.9, 0, 0), "neck": Vector3(-0.5, 0, 0),
+				"hip_r": Vector3(2.45, 0, 0.05), "knee_r": Vector3(-2.55, 0, 0),
+				"hip_l": Vector3(0.6, 0, -0.05), "knee_l": Vector3(-1.9, 0, 0),
+				"shoulder_l": Vector3(0.9, 0, 0.1), "shoulder_r": Vector3(0.9, 0, -0.1),
+				"elbow_l": Vector3(1.5, 0, 0), "elbow_r": Vector3(1.5, 0, 0)}
+		"side":
+			# Lateral agrupado: rodillas al pecho girando hacia el lado, brazos recogidos (no estrella)
+			return {"spine": Vector3(-0.5, 0, 0.2 * rs), "neck": Vector3(0.0, 0, 0.25 * rs),
+				"hip_l": Vector3(2.25, 0, 0.12 * rs), "hip_r": Vector3(2.25, 0, 0.12 * rs),
+				"knee_l": Vector3(-2.45, 0, 0), "knee_r": Vector3(-2.45, 0, 0),
+				"shoulder_l": Vector3(0.85, 0, 0.35), "shoulder_r": Vector3(0.85, 0, -0.35),
+				"elbow_l": Vector3(2.0, 0, 0), "elbow_r": Vector3(2.0, 0, 0)}
+		"aerial":
+			# Rueda sin manos: tronco carpado, piernas abiertas en el plano del giro, brazos pegados
+			return {"spine": Vector3(-1.1, 0, 0), "neck": Vector3(0.45, 0, 0),
+				"hip_l": Vector3(0.15, 0, -1.05), "hip_r": Vector3(0.3, 0, 0.9),
+				"knee_l": Vector3(-0.2, 0, 0), "knee_r": Vector3(-0.35, 0, 0),
+				"shoulder_l": Vector3(0.45, 0, 0.45), "shoulder_r": Vector3(0.45, 0, -0.45),
+				"elbow_l": Vector3(1.95, 0, 0), "elbow_r": Vector3(1.95, 0, 0)}
+		"gainer":
+			# Mortal atrás a una pierna: la pierna libre agrupa primero, la de impulso llega después
+			return {"spine": Vector3(-0.5, 0, 0), "neck": Vector3(0.2, 0, 0),
+				"hip_r": Vector3(2.5, 0, 0.08), "knee_r": Vector3(-2.6, 0, 0),
+				"hip_l": Vector3(1.7, 0, -0.1), "knee_l": Vector3(-2.0, 0, 0),
+				"shoulder_l": Vector3(1.1, 0, -0.15), "shoulder_r": Vector3(1.1, 0, 0.15),
+				"elbow_l": Vector3(1.2, 0, 0), "elbow_r": Vector3(1.2, 0, 0)}
+		"cork":
+			# Tirabuzón fuera de eje: brazos cruzados al pecho, piernas juntas semiagrupadas
+			return {"spine": Vector3(-0.3, 0, 0), "neck": Vector3(0.2, 0, 0),
+				"hip_l": Vector3(1.45, 0, 0.06), "hip_r": Vector3(1.55, 0, -0.06),
+				"knee_l": Vector3(-1.75, 0, 0), "knee_r": Vector3(-1.85, 0, 0),
+				"shoulder_l": Vector3(0.6, 0, 0.6), "shoulder_r": Vector3(0.6, 0, -0.6),
+				"elbow_l": Vector3(2.35, 0, 0), "elbow_r": Vector3(2.35, 0, 0)}
+		"twist":
+			# Mortal con tirabuzón añadido: cuerpo más largo, brazos cerrados para girar rápido
+			return {"spine": Vector3(-0.2, 0, 0), "neck": Vector3(0.1, 0, 0),
+				"hip_l": Vector3(1.15, 0, 0.06), "hip_r": Vector3(1.2, 0, -0.06),
+				"knee_l": Vector3(-1.35, 0, 0), "knee_r": Vector3(-1.4, 0, 0),
+				"shoulder_l": Vector3(0.55, 0, 0.6), "shoulder_r": Vector3(0.55, 0, -0.6),
+				"elbow_l": Vector3(2.35, 0, 0), "elbow_r": Vector3(2.35, 0, 0)}
+		"butterfly":
+			# Cuerpo tumbado, patada de tijera continua, brazos a la altura del hombro y flexionados
+			var k := sin(ph)
+			return {"spine": Vector3(0.15, 0.25 * k, 0), "neck": Vector3(0.4, 0, 0),
+				"hip_l": Vector3(-0.15 + 1.05 * k, 0, -0.3), "hip_r": Vector3(-0.15 - 1.05 * k, 0, 0.3),
+				"knee_l": Vector3(-0.15 - 0.3 * maxf(0.0, -k), 0, 0), "knee_r": Vector3(-0.15 - 0.3 * maxf(0.0, k), 0, 0),
+				"shoulder_l": Vector3(1.35 + 0.35 * k, 0, -0.75), "shoulder_r": Vector3(1.35 - 0.35 * k, 0, 0.75),
+				"elbow_l": Vector3(1.1, 0, 0), "elbow_r": Vector3(1.1, 0, 0)}
+	# Backflip: rodillas al pecho, manos a las espinillas, cabeza neutra mirando atrás
+	return {"spine": Vector3(-0.6, 0, 0), "neck": Vector3(0.15, 0, 0),
+		"hip_l": Vector3(2.5, 0, -0.1), "hip_r": Vector3(2.45, 0, 0.1), "knee_l": Vector3(-2.6, 0, 0), "knee_r": Vector3(-2.55, 0, 0),
+		"shoulder_l": Vector3(1.0, 0, -0.12), "shoulder_r": Vector3(1.0, 0, 0.12),
+		"elbow_l": Vector3(1.35, 0, 0), "elbow_r": Vector3(1.35, 0, 0)}
+
+## Fase 5 · APERTURA: el cuerpo se alarga (frena el giro) y las piernas buscan el suelo.
+const OPEN_POSE := {"spine": Vector3(-0.12, 0, 0), "neck": Vector3(0.12, 0, 0),
+	"hip_l": Vector3(0.45, 0, -0.06), "hip_r": Vector3(0.4, 0, 0.06), "knee_l": Vector3(-0.45, 0, 0), "knee_r": Vector3(-0.4, 0, 0),
+	"shoulder_l": Vector3(1.75, 0, -0.45), "shoulder_r": Vector3(1.75, 0, 0.45),
+	"elbow_l": Vector3(0.35, 0, 0), "elbow_r": Vector3(0.35, 0, 0)}
+
+## Fase 6 · RECEPCIÓN: piernas flexionadas listas para absorber, brazos delante para equilibrar.
+const RECEPTION := {"spine": Vector3(-0.3, 0, 0), "neck": Vector3(0.15, 0, 0),
+	"hip_l": Vector3(0.8, 0, -0.08), "hip_r": Vector3(0.7, 0, 0.08), "knee_l": Vector3(-1.1, 0, 0), "knee_r": Vector3(-1.0, 0, 0),
+	"shoulder_l": Vector3(1.3, 0, -0.55), "shoulder_r": Vector3(1.3, 0, 0.55),
+	"elbow_l": Vector3(0.5, 0, 0), "elbow_r": Vector3(0.5, 0, 0)}
+
+func _apply(p: Dictionary, vals: Dictionary, w: float) -> void:
+	if w <= 0.0:
+		return
+	w = minf(w, 1.0)
+	for k in vals.keys():
+		p[k] = (p[k] as Vector3).lerp(vals[k], w)
+
+func _smooth(x: float) -> float:
+	x = clampf(x, 0.0, 1.0)
+	return x * x * (3.0 - 2.0 * x)
+
+## Pose de acrobacia por fases: impulso → agrupación → rotación → apertura → recepción.
+## Las fases salen del estado físico real del giro (no de una animación fija).
+var last_phase := ""          # para pruebas/depuración: fase visible actual
+var last_kind := ""
+
+func _trick_pose(p: Dictionary, tr: TrickSystem) -> void:
+	var kind := trick_kind(tr)
+	var ax := tr.primary_axis()
+	var s: int = tr.dir.get(ax, 1)
+	var rs := float(tr.dir.get("roll", 0)) if kind in ["side", "aerial"] else float(tr.dir.get("twist", 0))
+	if rs == 0.0:
+		rs = float(tr.dir.get("spin", 1))
+	var period := tr.twist_period if ax == "twist" else TAU
+	var prog: float = absf(tr.total.get(ax, 0.0))
+	var goal_turns := maxi(int(tr.goal.get(ax, 1)), 1)
+	# Agrupación: empieza en cuanto termina el impulso; manteniendo el dedo es inmediata y más cerrada.
+	var gather := _smooth((tr.air_time - 0.06) / (0.07 if tr.tucked else 0.1))
+	# Apertura: al acercarse la última vuelta pedida (sin mantener) el cuerpo se alarga y frena.
+	var open := 0.0
+	if tr.all_settled():
+		open = 1.0
+	elif tr.spotting or not tr.tucked:
+		var next_stop := (floorf(prog / period + 0.0001) + 1.0) * period
+		if next_stop >= goal_turns * period - 0.001 or tr.spotting:
+			# Se abre en el último tramo de la vuelta (~250°-310°): agrupado durante el giro principal
+			open = _smooth((period * 0.3 - (next_stop - prog)) / (period * 0.14))
+	var imp := _smooth(1.0 - tr.air_time / 0.13)
+	var ttg := player.time_to_ground()
+	var rec := 0.0
+	if open >= 0.99 and player.velocity.y < 0.0:
+		rec = _smooth(1.0 - ttg / 0.24)
+
+	var ph := absf(tr.total_spin) * 2.0 + tr.air_time * 9.0
+	var g := _gather_pose(kind, rs, ph)
+	# Base abierta → agrupado → impulso (inicio) → recepción (final)
+	_apply(p, OPEN_POSE, 1.0)
+	if kind == "butterfly":
+		_apply(p, g, 1.0 - open * 0.6)       # la tijera sigue hasta casi aterrizar
+	else:
+		_apply(p, g, gather * (1.0 - open))
+	_apply(p, _impulse_pose(kind, rs), imp)
+	_apply(p, RECEPTION, rec)
+	last_kind = kind
+	if imp > 0.5:
+		last_phase = "impulso"
+	elif rec > 0.3:
+		last_phase = "recepcion"
+	elif open > 0.5:
+		last_phase = "apertura"
+	elif gather > 0.6:
+		last_phase = "agrupado"
+	else:
+		last_phase = "agrupando"
+
+## Fase 1 · PREPARACIÓN (en el suelo, antes de despegar): flexión de piernas, brazos atrás.
+func _load_pose(p: Dictionary) -> float:
+	var f := player.flick_buffer if player.flick_timer > 0.0 else Vector2.ZERO
+	var sec := TouchControls.sector_of(f) if f != Vector2.ZERO else 99
+	var vals := {"spine": Vector3(-0.45, 0, 0), "neck": Vector3(0.2, 0, 0),
+		"hip_l": Vector3(1.05, 0, -0.06), "hip_r": Vector3(1.0, 0, 0.06), "knee_l": Vector3(-1.75, 0, 0), "knee_r": Vector3(-1.7, 0, 0),
+		"shoulder_l": Vector3(-0.95, 0, -0.15), "shoulder_r": Vector3(-0.95, 0, 0.15),
+		"elbow_l": Vector3(0.35, 0, 0), "elbow_r": Vector3(0.35, 0, 0)}
+	match sec:
+		0, 4, 1, 3, -1, -3:
+			# Laterales, butterfly y corks: el tronco se carga girado hacia el lado
+			var side := 1.0 if sec in [0, 1, -1] else -1.0
+			vals.spine = Vector3(-0.55, 0.5 * side, 0)
+			vals.shoulder_l = Vector3(-0.4, 0, -0.9)
+			vals.shoulder_r = Vector3(0.9, 0, 0.4)
+		2:
+			vals.spine = Vector3(-0.65, 0, 0)       # frontflip: pecho delante
+	_apply(p, vals, 1.0)
+	return 0.24
 func _vault_pose(p: Dictionary) -> Basis:
 	var s := player.vault_progress()
 	var kind: String = player.vault.get("kind", "Speed Vault")

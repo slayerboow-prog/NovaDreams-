@@ -30,7 +30,9 @@ Atajos: `godot --path freerun -- --mode=freerun` salta el menú (`tricking`, `wa
 
 **Teclado**: WASD + Shift · Espacio salto (mantener: wall run) · Flechas = acrobacias (mantener = agruparse) · Ctrl rodar · R reaparecer.
 
-Ajustes: ayuda de rotación (Alta / Media / Pro), controles de trucos (gestos + cruceta / solo gestos / solo cruceta), tamaño, opacidad, sensibilidad y modo zurdo.
+Ajustes: ayuda de rotación (Alta / Media / Pro), controles de trucos (gestos + cruceta / solo gestos / solo cruceta), tamaño de controles, distancia de cámara, opacidad, sensibilidad de cámara y de gestos, y modo zurdo.
+
+Cada acrobacia se anima por fases a partir del giro real: preparación (flexión antes de despegar), impulso, agrupación, rotación, apertura y recepción, con una forma corporal propia para Backflip, Frontflip, Sideflip, Aerial, Gainer, Webster, Butterfly Kick, Cork y tirabuzones.
 
 ## Pruebas
 

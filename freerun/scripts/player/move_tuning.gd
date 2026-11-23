@@ -7,7 +7,8 @@ extends Resource
 @export var walk_speed := 2.6
 @export var run_speed := 6.4
 @export var sprint_speed := 9.4
-@export var accel := 22.0
+@export var accel := 18.0              # aceleración cerca de la velocidad máxima
+@export var accel_start := 38.0        # aceleración al arrancar (explosiva)
 @export var overspeed_decel := 6.0      # pierde exceso de velocidad suavemente (conserva momentum)
 @export var decel := 26.0
 @export var skid_decel := 34.0
@@ -24,6 +25,7 @@ extends Resource
 @export var air_accel := 7.0
 @export var coyote_time := 0.12
 @export var jump_buffer_time := 0.14
+@export var jump_load_time := 0.07     # flexión previa al despegue (anticipación visible)
 
 # Aterrizajes
 @export var perfect_angle := 14.0       # grados de error permitidos

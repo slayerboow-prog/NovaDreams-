@@ -96,6 +96,8 @@ func _run_all() -> void:
 	await t_precision()
 	await t_water()
 	await t_touch()
+	await t_touch_layout()
+	await t_landing_feel()
 	await t_combo_logic()
 	await t_respawn_repeat()
 	await t_modes()
@@ -188,7 +190,7 @@ func t_ground_flick_buffer() -> void:
 		i.flick = Vector2(0, -1) if f == 0 else Vector2.ZERO
 		i.jump_pressed = f == 8
 		i.jump_held = f >= 8, 120,
-		func(): return _f > 10 and player.state == PlayerController.State.GROUND)
+		func(): return _f > 20 and player.state == PlayerController.State.GROUND)
 	check("Gesto y salto en <0,25 s: backflip desde el despegue", "Backflip" in moves, str(moves))
 	var fb: Feedback = game.get_node("Feedback")
 	check("Audio: efectos sintetizados", fb.sounds.size() >= 9 and fb.sounds.step.data.size() > 1000, str(fb.sounds.keys()))
@@ -287,10 +289,11 @@ func t_precision() -> void:
 	var st := {"jumped": false}
 	await run(func(i, f):
 		i.move = Vector2.ZERO if st.jumped else Vector2(0, 0.47)
-		i.jump_pressed = not st.jumped and player.global_position.z <= -46.3
+		i.jump_pressed = not st.jumped and player.global_position.z <= -45.95
 		st.jumped = st.jumped or i.jump_pressed
+		st.air = st.get("air", false) or player.state == PlayerController.State.AIR
 		i.jump_held = st.jumped, 200,
-		func(): return st.jumped and player.state != PlayerController.State.AIR and _f > 3)
+		func(): return st.get("air", false) and player.state != PlayerController.State.AIR)
 	check("Precisión: aterriza en la viga", player.global_position.y > 2.6 and absf(player.global_position.z + 49.6) < 0.3,
 		"pos %s" % str(player.global_position))
 	check("Precisión: Precision Jump reconocido", "Precision Jump" in moves, str(moves))
@@ -349,7 +352,7 @@ func t_touch() -> void:
 	j.index = 2; j.position = Vector2(200, 500); j.pressed = true
 	touch._on_touch(j)
 	var jd := InputEventScreenDrag.new()
-	jd.index = 2; jd.position = Vector2(200, 430); jd.relative = Vector2(0, -70)
+	jd.index = 2; jd.position = Vector2(200, 400); jd.relative = Vector2(0, -100)
 	touch._on_drag(jd)
 	fr = touch.collect()
 	check("Táctil: joystick adelante", fr.move.y > 0.9, "move %s" % fr.move)
@@ -421,3 +424,57 @@ func t_modes() -> void:
 	player.velocity = Vector3(0, 0, -3)
 	await frames(3)
 	check("Challenge: detecta checkpoint", ch.next >= 1, "next %d" % ch.next)
+
+## Distribución táctil: botones grandes, sin solapes entre zonas y dentro de pantalla
+## (iPhone 19,5:9, Android 16:9 y tablet 4:3, con tamaño normal y máximo).
+func t_touch_layout() -> void:
+	var touch: TouchControls = game.ui.touch
+	var old_scale := Settings.control_scale
+	var problems: Array[String] = []
+	for sz in [Vector2(1560, 720), Vector2(1280, 720), Vector2(960, 720)]:
+		for sc in [1.0, 1.4]:
+			Settings.control_scale = sc
+			touch.size = sz
+			var hr := touch.hit_radii()
+			var zones := {"jump": touch._jump_center(), "action": touch._action_center(),
+				"pad": touch._pad_center(), "respawn": touch._respawn_center()}
+			var names := zones.keys()
+			for i in names.size():
+				var c: Vector2 = zones[names[i]]
+				var r: float = hr[names[i]]
+				if c.x - r < -4 or c.y - r < -4 or c.x + r > sz.x + 4 or c.y + r > sz.y + 4:
+					problems.append("%s fuera %s x%.1f" % [names[i], sz, sc])
+				for j in range(i + 1, names.size()):
+					var c2: Vector2 = zones[names[j]]
+					if c.distance_to(c2) < r + hr[names[j]]:
+						problems.append("%s/%s solapan %s x%.1f" % [names[i], names[j], sz, sc])
+	Settings.control_scale = 1.0
+	touch.size = Vector2(1560, 720)
+	var big: bool = touch._jump_radius() >= 120.0 and touch._pad_radius() >= 140.0
+	Settings.control_scale = old_scale
+	check("Táctil: zonas sin solapes y dentro de pantalla", problems.is_empty(), str(problems))
+	check("Táctil: SALTO y cruceta grandes (>=1/3 y >=2/5 de la altura)", big, "")
+
+## Sensación de aterrizaje: perfecto conserva el impulso, torcido lo pierde y tropieza.
+func t_landing_feel() -> void:
+	await place(Vector3(-35, 0.1, 35), Vector3.FORWARD)
+	await run(func(i, f): i.move = Vector2(0, 1.0), 70)
+	var v0 := player.speed()
+	await run(func(i, f):
+		i.move = Vector2(0, 1.0)
+		i.jump_pressed = f == 0
+		i.jump_held = true, 120,
+		func(): return _f > 6 and player.state == PlayerController.State.GROUND)
+	var q: String = landings[-1].quality if landings.size() > 0 else "none"
+	check("Aterrizaje limpio: conserva la carrera", q in ["perfect", "clean"] and player.speed() > v0 * 0.85 and player.stun <= 0.0,
+		"%s %.1f -> %.1f" % [q, v0, player.speed()])
+	check("Aterrizaje: flexión de recepción visible", player.land_impact > 0.2, "%.2f" % player.land_impact)
+	# Anticipación: el salto pasa por la flexión antes de despegar
+	await place(Vector3(-35, 0.1, 35), Vector3.FORWARD)
+	var st := {"load": false}
+	await run(func(i, f):
+		i.jump_pressed = f == 0
+		i.jump_held = true
+		st.load = st.load or player.jump_load > 0.0, 30,
+		func(): return player.state == PlayerController.State.AIR)
+	check("Salto con flexión previa (anticipación) y despegue", st.load and player.state == PlayerController.State.AIR, "")
