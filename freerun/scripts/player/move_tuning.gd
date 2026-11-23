@@ -18,7 +18,7 @@ extends Resource
 
 # Salto y aire
 @export var gravity := 22.0
-@export var trick_gravity_mult := 0.8  # en acrobacia: más tiempo de vuelo (~0,9 s en vez de 0,77 s)
+@export var trick_gravity_mult := 0.66 # en acrobacia: ~1,1 s de vuelo (giro pausado y tiempo para encadenar)
 @export var jump_velocity := 8.4
 @export var jump_speed_bonus := 0.06    # salto ligeramente más alto cuanto más rápido
 @export var low_jump_mult := 2.2        # soltar salto pronto = salto corto

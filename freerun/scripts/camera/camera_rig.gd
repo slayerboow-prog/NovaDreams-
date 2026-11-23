@@ -101,13 +101,15 @@ func _process(dt: float) -> void:
 	var big: bool = tricking and (tr.goal.get(tr.primary_axis(), 0) >= 2 or tr.dir.get("twist", 0) != 0 or (tr.tucked and tr.air_time > 0.25))
 	# Mortales (eje de cabeceo): la cámara se abre un poco hacia el lado para ver el perfil del giro.
 	var want_orbit := 0.0
+	# Desde justo detrás el agrupado de un mortal adelante/atrás no se distingue: ~35-40° de lado
+	# se ve el perfil (rodillas al pecho). Gira rápido al despegar y vuelve despacio al caer.
 	if tricking and tr.dir.get("pitch", 0) != 0:
-		want_orbit = 0.42 if big else 0.3
-	_orbit = lerpf(_orbit, want_orbit, 1.0 - exp(-(1.8 if want_orbit > 0.0 else 0.9) * dt))
+		want_orbit = 0.7 if big else 0.62
+	_orbit = lerpf(_orbit, want_orbit, 1.0 - exp(-(3.2 if want_orbit > 0.0 else 0.9) * dt))
 	var fov_want := BASE_FOV + 8.0 * speed_t - (5.0 if big else 0.0)
 	_fov = lerpf(_fov, fov_want, 1.0 - exp(-3.0 * dt))
 	cam.fov = _fov
-	var want_len := (BASE_LEN + 0.5 * speed_t + (0.35 if tricking else 0.0)) * Settings.camera_distance
+	var want_len := (BASE_LEN + 0.5 * speed_t - (0.35 if tricking else 0.0)) * Settings.camera_distance   # en acrobacia, más cerca: se ve el cuerpo
 	_len = lerpf(_len, want_len, 1.0 - exp(-3.0 * dt))
 	spring.spring_length = _len
 	var want_roll := 0.0
