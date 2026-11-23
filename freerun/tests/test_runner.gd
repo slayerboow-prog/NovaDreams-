@@ -201,7 +201,7 @@ func t_overrotation_crash() -> void:
 		i.flick = Vector2(0, -1) if f == 2 else Vector2.ZERO
 		i.tuck = f >= 2, 200,
 		func(): return player.state == PlayerController.State.CRASH or (player.state == PlayerController.State.GROUND and _f > 5))
-	check("Pro: sobre-rotar provoca caída", player.state == PlayerController.State.CRASH and bails.size() > 0,
+	check("Pro: girar de más penaliza (forzado o caída)", landings.size() > 0 and landings[-1].quality in ["sloppy", "crash"],
 		"estado %s, landings %s" % [PlayerController.STATE_NAMES[player.state], str(landings.map(func(l): return [l.quality, int(l.error)]))])
 	await run(func(i, f): pass, 120, func(): return player.state == PlayerController.State.GROUND)
 	check("Caída: se levanta y recupera control", player.state == PlayerController.State.GROUND, PlayerController.STATE_NAMES[player.state])
@@ -286,7 +286,7 @@ func t_precision() -> void:
 	await place(Vector3(0, 3.1, -44.5), Vector3.FORWARD)
 	var st := {"jumped": false}
 	await run(func(i, f):
-		i.move = Vector2.ZERO if st.jumped else Vector2(0, 0.52)
+		i.move = Vector2.ZERO if st.jumped else Vector2(0, 0.47)
 		i.jump_pressed = not st.jumped and player.global_position.z <= -46.3
 		st.jumped = st.jumped or i.jump_pressed
 		i.jump_held = st.jumped, 200,

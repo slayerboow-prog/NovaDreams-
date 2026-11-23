@@ -15,7 +15,7 @@ var manual_timer := 10.0
 var _pos := Vector3.ZERO
 var _fov := 70.0
 var _roll := 0.0
-var _len := 4.4
+var _len := 3.9
 
 const BASE_PITCH := -0.32
 const BASE_FOV := 70.0
@@ -86,7 +86,7 @@ func _process(dt: float) -> void:
 	var speed_t := clampf(spd / player.t.sprint_speed, 0.0, 1.3)
 	_fov = lerpf(_fov, BASE_FOV + 12.0 * speed_t, 1.0 - exp(-3.0 * dt))
 	cam.fov = _fov
-	var want_len := 4.4 + 0.8 * speed_t + (0.6 if player.state == S.AIR and player.tricks.active else 0.0)
+	var want_len := 3.9 + 0.7 * speed_t + (0.5 if player.state == S.AIR and player.tricks.active else 0.0)
 	_len = lerpf(_len, want_len, 1.0 - exp(-3.0 * dt))
 	spring.spring_length = _len
 	var want_roll := 0.0

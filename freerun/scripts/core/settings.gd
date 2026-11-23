@@ -13,6 +13,8 @@ var control_opacity := 0.55
 var left_handed := false          # intercambia joystick y botones
 var force_touch_ui := false       # mostrar controles táctiles en escritorio
 var invert_camera_y := false
+## Acrobacias: 0 = gestos + cruceta, 1 = solo gestos, 2 = solo cruceta de botones
+var trick_controls := 0
 
 # Jugabilidad
 ## 0 = Pro (sin ayudas), 1 = Media, 2 = Alta. Afecta a la calibración de rotaciones y al "spotting".
@@ -41,7 +43,7 @@ func save_settings() -> void:
 
 func _keys() -> Array:
 	return ["camera_sensitivity", "gesture_sensitivity", "control_scale", "control_opacity",
-		"left_handed", "force_touch_ui", "invert_camera_y", "rotation_assist", "graphics_preset", "show_fps"]
+		"left_handed", "force_touch_ui", "invert_camera_y", "trick_controls", "rotation_assist", "graphics_preset", "show_fps"]
 
 func assist_strength() -> float:
 	return [0.0, 0.5, 1.0][clampi(rotation_assist, 0, 2)]

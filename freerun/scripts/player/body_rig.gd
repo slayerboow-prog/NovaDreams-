@@ -169,7 +169,7 @@ func _process(dt: float) -> void:
 				target.shoulder_l.z -= 0.6 * c; target.shoulder_r.z += 0.6 * c
 		PlayerController.State.AIR:
 			_air_pose(target)
-			blend_speed = 16.0
+			blend_speed = 22.0
 		PlayerController.State.VAULT:
 			tilt = _vault_pose(target)
 			blend_speed = 20.0
@@ -277,25 +277,8 @@ func _tuck_pose(p: Dictionary, amount: float) -> void:
 
 func _air_pose(p: Dictionary) -> void:
 	var tr := player.tricks
-	if tr.active and tr.has_rotation() or tr.active and tr.tucked:
-		var spinning := absf(tr.pitch_rate) + absf(tr.roll_rate) > 2.0
-		if absf(tr.total_roll) > absf(tr.total_pitch) and spinning:
-			# Mortal lateral / aerial: cuerpo extendido, brazos y piernas abiertos
-			p.shoulder_l.z = -1.6; p.shoulder_r.z = 1.6
-			p.hip_l.z = -0.5; p.hip_r.z = 0.5
-			p.knee_l.x = -0.3; p.knee_r.x = -0.3
-		elif spinning or tr.tucked:
-			_tuck_pose(p, 1.0 if tr.tucked else 0.9)
-		else:
-			# Abierto: preparando la recepción
-			p.shoulder_l.x = 1.2; p.shoulder_r.x = 1.2
-			p.shoulder_l.z = -0.5; p.shoulder_r.z = 0.5
-			p.hip_l.x = 0.5; p.hip_r.x = 0.5
-			p.knee_l.x = -0.6; p.knee_r.x = -0.6
-		if absf(tr.twist_rate) > 3.0:
-			p.shoulder_l.x = 0.3; p.shoulder_r.x = 0.3
-			p.elbow_l.x = 2.0; p.elbow_r.x = 2.0
-			p.shoulder_l.z = 0.3; p.shoulder_r.z = -0.3
+	if tr.active:
+		_trick_pose(p, tr)
 		return
 	var vy := player.velocity.y
 	var rising := clampf(vy / 8.0, -1.0, 1.0)
@@ -308,6 +291,86 @@ func _air_pose(p: Dictionary) -> void:
 	p.shoulder_l.z = -0.7; p.shoulder_r.z = 0.7
 	p.elbow_l.x = 0.5; p.elbow_r.x = 0.5
 	p.spine.x = -0.15
+
+## Pose de acrobacia en tres fases: preparación (despegue), ejecución y recepción.
+func _trick_pose(p: Dictionary, tr: TrickSystem) -> void:
+	var prep := clampf(1.0 - tr.air_time / 0.16, 0.0, 1.0)      # 1 al despegar → 0
+	var landing_prep := tr.spotting or tr.all_settled()
+	var tuck := tr.tuck_amount
+	# Agrupado natural a mitad de cada vuelta (como un practicante real), aunque no se mantenga
+	var ax := tr.primary_axis()
+	if not landing_prep and tr.style in ["back", "front", "cork"]:
+		var frac := fmod(absf(tr.total.get(ax, 0.0)), TAU) / TAU
+		var natural := clampf(sin(PI * clampf(frac / 0.85, 0.0, 1.0)) * 1.4, 0.0, 1.0) * 0.85
+		tuck = maxf(tuck, natural)
+	match tr.style:
+		"side":
+			# Lateral / aerial: piernas abiertas en tijera, brazos fuera
+			var aerial := tr.takeoff_speed > 4.0
+			p.shoulder_l.z = -1.7; p.shoulder_r.z = 1.7
+			p.shoulder_l.x = 0.3; p.shoulder_r.x = 0.3
+			p.hip_l.z = -0.75 if aerial else -0.45; p.hip_r.z = 0.55 if aerial else 0.45
+			p.hip_l.x = 0.5 * tuck; p.hip_r.x = 0.5 * tuck
+			p.knee_l.x = -0.25 - 1.3 * tuck; p.knee_r.x = -0.25 - 1.3 * tuck
+			p.spine.x = -0.25 * tuck
+		"butterfly":
+			# Butterfly kick: cuerpo tumbado, patada de tijera, brazos extendidos
+			var ph := absf(tr.total_spin) * 2.0
+			p.shoulder_l.z = -1.5; p.shoulder_r.z = 1.5
+			p.shoulder_l.x = 0.4; p.shoulder_r.x = 0.4
+			p.hip_l.x = -0.3 + 0.9 * sin(ph); p.hip_r.x = -0.3 - 0.9 * sin(ph)
+			p.hip_l.z = -0.35; p.hip_r.z = 0.35
+			p.knee_l.x = -0.25; p.knee_r.x = -0.25
+			p.spine.x = 0.25
+			p.neck.x = 0.35
+		_:
+			# Mortales atrás/adelante y corks: agrupado al mantener, carpado al soltar
+			_tuck_pose(p, maxf(tuck, 0.0))
+			var open := 1.0 - tuck
+			if open > 0.0:
+				p.hip_l.x = lerpf(p.hip_l.x, 1.35, open); p.hip_r.x = lerpf(p.hip_r.x, 1.35, open)
+				p.knee_l.x = lerpf(p.knee_l.x, -0.4, open); p.knee_r.x = lerpf(p.knee_r.x, -0.4, open)
+				p.shoulder_l.x = lerpf(p.shoulder_l.x, 1.6, open); p.shoulder_r.x = lerpf(p.shoulder_r.x, 1.6, open)
+				p.elbow_l.x = lerpf(p.elbow_l.x, 0.3, open); p.elbow_r.x = lerpf(p.elbow_r.x, 0.3, open)
+				p.spine.x = lerpf(p.spine.x, -0.35, open)
+			if tr.dir.get("twist", 0) != 0 and not tr.settled.get("twist", false):
+				# Tirabuzón: brazos cerrados al pecho, piernas juntas y rectas
+				p.shoulder_l.x = 0.5; p.shoulder_r.x = 0.5
+				p.shoulder_l.z = 0.45; p.shoulder_r.z = -0.45
+				p.elbow_l.x = 2.3; p.elbow_r.x = 2.3
+				p.hip_l.x = lerpf(p.hip_l.x, 0.2, 0.6); p.hip_r.x = lerpf(p.hip_r.x, 0.2, 0.6)
+				p.knee_l.x = lerpf(p.knee_l.x, -0.15, 0.6); p.knee_r.x = lerpf(p.knee_r.x, -0.15, 0.6)
+				p.hip_l.z = 0.08; p.hip_r.z = -0.08
+	# Preparación: impulso de brazos y extensión de piernas al despegar
+	if prep > 0.0:
+		var arms := 2.9
+		var spine := 0.25
+		var neck := 0.3
+		match tr.style:
+			"front":
+				arms = 2.6; spine = -0.3; neck = -0.35
+			"side", "butterfly":
+				arms = 1.4; spine = 0.0; neck = 0.0
+		for k in ["shoulder_l", "shoulder_r"]:
+			p[k].x = lerpf(p[k].x, arms, prep)
+		p.elbow_l.x = lerpf(p.elbow_l.x, 0.15, prep); p.elbow_r.x = lerpf(p.elbow_r.x, 0.15, prep)
+		p.spine.x = lerpf(p.spine.x, spine, prep)
+		p.neck.x = lerpf(p.neck.x, neck, prep)
+		for k in ["hip_l", "hip_r"]:
+			p[k].x = lerpf(p[k].x, 0.05, prep)
+		for k in ["knee_l", "knee_r"]:
+			p[k].x = lerpf(p[k].x, -0.1, prep)
+	# Recepción: piernas preparadas, brazos delante para equilibrar
+	if landing_prep and tuck < 0.5:
+		var k := 0.85
+		p.hip_l.x = lerpf(p.hip_l.x, 0.55, k); p.hip_r.x = lerpf(p.hip_r.x, 0.45, k)
+		p.knee_l.x = lerpf(p.knee_l.x, -0.75, k); p.knee_r.x = lerpf(p.knee_r.x, -0.65, k)
+		p.hip_l.z = lerpf(p.hip_l.z, -0.08, k); p.hip_r.z = lerpf(p.hip_r.z, 0.08, k)
+		p.shoulder_l.x = lerpf(p.shoulder_l.x, 1.1, k); p.shoulder_r.x = lerpf(p.shoulder_r.x, 1.1, k)
+		p.shoulder_l.z = lerpf(p.shoulder_l.z, -0.7, k); p.shoulder_r.z = lerpf(p.shoulder_r.z, 0.7, k)
+		p.elbow_l.x = lerpf(p.elbow_l.x, 0.4, k); p.elbow_r.x = lerpf(p.elbow_r.x, 0.4, k)
+		p.spine.x = lerpf(p.spine.x, -0.2, k)
+		p.neck.x = lerpf(p.neck.x, 0.1, k)
 
 func _vault_pose(p: Dictionary) -> Basis:
 	var s := player.vault_progress()

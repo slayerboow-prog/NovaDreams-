@@ -26,6 +26,7 @@ var pause_btn: Button
 var extra_btn: Button
 var help_label: Label
 var rotate_overlay: Control
+var trick_indicator: TrickIndicator
 
 var main_menu: Control
 var pause_menu: Control
@@ -104,7 +105,9 @@ func _make_theme() -> Theme:
 func _label(text: String, size: int, color := Color.WHITE, align := HORIZONTAL_ALIGNMENT_LEFT) -> Label:
 	var l := Label.new()
 	l.text = text
-	l.add_theme_font_size_override("font_size", size)
+	# En móvil los textos se ven mucho más pequeños: se agrandan.
+	var k := 1.3 if (DisplayServer.is_touchscreen_available() or OS.has_feature("mobile") or OS.has_feature("web_ios") or OS.has_feature("web_android")) else 1.0
+	l.add_theme_font_size_override("font_size", int(size * k))
 	l.add_theme_color_override("font_color", color)
 	l.horizontal_alignment = align
 	l.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -195,6 +198,9 @@ func _build_hud() -> void:
 	extra_btn.pressed.connect(func(): extra_pressed.emit())
 	extra_btn.visible = false
 	hud.add_child(extra_btn)
+	trick_indicator = TrickIndicator.new()
+	trick_indicator.name = "TrickIndicator"
+	hud.add_child(trick_indicator)
 	hud.visible = false
 
 func show_hud(v: bool) -> void:
@@ -344,6 +350,7 @@ func _build_settings() -> void:
 	var box: VBoxContainer = r[1]
 	box.add_child(_label("AJUSTES", 40, ACCENT, HORIZONTAL_ALIGNMENT_CENTER))
 	_option(box, "Ayuda de rotación", "rotation_assist", ["Pro (sin ayudas)", "Media", "Alta"])
+	_option(box, "Controles de trucos", "trick_controls", ["Gestos + cruceta", "Solo gestos", "Solo cruceta"])
 	_option(box, "Gráficos", "graphics_preset", ["Bajo", "Medio", "Alto"])
 	_slider(box, "Sensibilidad cámara", "camera_sensitivity", 0.3, 2.5, 0.05)
 	_slider(box, "Sensibilidad gestos", "gesture_sensitivity", 0.4, 2.0, 0.05)
