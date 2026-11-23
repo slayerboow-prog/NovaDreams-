@@ -1,0 +1,117 @@
+# Project Freerun: pasa las pruebas automáticas de gameplay, genera el APK de Android y la
+# versión web. En main publica la versión web en GitHub Pages (jugable desde iPhone/Android).
+# El APK queda en la pestaña Actions → ejecución → Artifacts → ProjectFreerun-android.
+# Requisito único para la web: Settings → Pages → Source: "GitHub Actions".
+# Opcional: secretos FREERUN_KEYSTORE_BASE64 / FREERUN_KEYSTORE_USER / FREERUN_KEYSTORE_PASS para
+# firmar siempre con la misma clave (así el APK se actualiza sin desinstalar).
+name: Freerun · tests, APK Android y web
+
+on:
+  push:
+    branches: [main, claude/freerun-parkour-game-mx2bz1]
+    paths: ["freerun/**", ".github/workflows/freerun-android.yml"]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: freerun-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      GODOT_VERSION: "4.4.1"
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - name: Instalar Godot y plantillas de Android
+        run: |
+          curl -sSfL -o godot.zip "https://github.com/godotengine/godot/releases/download/${GODOT_VERSION}-stable/Godot_v${GODOT_VERSION}-stable_linux.x86_64.zip"
+          unzip -q godot.zip
+          mv "Godot_v${GODOT_VERSION}-stable_linux.x86_64" "$HOME/godot"
+          curl -sSfL -o tpl.tpz "https://github.com/godotengine/godot/releases/download/${GODOT_VERSION}-stable/Godot_v${GODOT_VERSION}-stable_export_templates.tpz"
+          TPL="$HOME/.local/share/godot/export_templates/${GODOT_VERSION}.stable"
+          mkdir -p "$TPL"
+          unzip -q -j tpl.tpz 'templates/android_debug.apk' 'templates/android_release.apk' 'templates/web_nothreads_release.zip' 'templates/web_nothreads_debug.zip' 'templates/version.txt' -d "$TPL"
+          rm tpl.tpz godot.zip
+          mkdir -p "$HOME/.config/godot"
+          printf '[gd_resource type="EditorSettings" format=3]\n\n[resource]\nexport/android/android_sdk_path = "%s"\nexport/android/java_sdk_path = "%s"\n' \
+            "$ANDROID_HOME" "$JAVA_HOME" > "$HOME/.config/godot/editor_settings-4.4.tres"
+
+      - name: Importar proyecto
+        working-directory: freerun
+        run: timeout 300 "$HOME/godot" --headless --import
+
+      - name: Pruebas de gameplay
+        working-directory: freerun
+        run: timeout 600 "$HOME/godot" --headless --fixed-fps 60 res://tests/test_runner.tscn
+
+      - name: Clave de firma
+        env:
+          KS_B64: ${{ secrets.FREERUN_KEYSTORE_BASE64 }}
+          KS_USER: ${{ secrets.FREERUN_KEYSTORE_USER }}
+          KS_PASS: ${{ secrets.FREERUN_KEYSTORE_PASS }}
+        run: |
+          if [ -n "$KS_B64" ]; then
+            echo "$KS_B64" | base64 -d > "$HOME/freerun.keystore"
+            echo "KS_USER=$KS_USER" >> "$GITHUB_ENV"
+            echo "KS_PASS=$KS_PASS" >> "$GITHUB_ENV"
+          else
+            keytool -genkeypair -keyalg RSA -alias androiddebugkey -keypass android -storepass android \
+              -keystore "$HOME/freerun.keystore" -dname "CN=Android Debug,O=Android,C=US" -validity 9999 -deststoretype pkcs12
+            echo "KS_USER=androiddebugkey" >> "$GITHUB_ENV"
+            echo "KS_PASS=android" >> "$GITHUB_ENV"
+          fi
+
+      - name: Exportar APK
+        working-directory: freerun
+        run: |
+          mkdir -p export
+          export GODOT_ANDROID_KEYSTORE_RELEASE_PATH="$HOME/freerun.keystore"
+          export GODOT_ANDROID_KEYSTORE_RELEASE_USER="$KS_USER"
+          export GODOT_ANDROID_KEYSTORE_RELEASE_PASSWORD="$KS_PASS"
+          timeout 600 "$HOME/godot" --headless --export-release "Android" export/ProjectFreerun.apk
+          test -s export/ProjectFreerun.apk
+          ls -la export
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ProjectFreerun-android
+          path: freerun/export/ProjectFreerun.apk
+          retention-days: 30
+
+      - name: Exportar versión web
+        working-directory: freerun
+        run: |
+          mkdir -p export/web
+          timeout 600 "$HOME/godot" --headless --export-release "Web" export/web/index.html
+          test -s export/web/index.wasm
+          touch export/web/.nojekyll
+          ls -la export/web
+
+      - uses: actions/upload-pages-artifact@v3
+        if: github.ref == 'refs/heads/main'
+        with:
+          path: freerun/export/web
+
+  deploy-web:
+    if: github.ref == 'refs/heads/main'
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4
