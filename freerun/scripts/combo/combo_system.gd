@@ -14,7 +14,7 @@ signal combo_bailed(lost_points: int)
 ## Puntos base y dificultad de cada movimiento (los trucos aéreos usan su propia dificultad).
 const MOVES := {
 	"Speed Vault": [150, 1.0], "Lazy Vault": [130, 0.9], "Step Vault": [90, 0.6],
-	"Kong Vault": [260, 1.4], "Dash Vault": [240, 1.3], "Step Up": [40, 0.3], "Climb Up": [120, 0.6],
+	"Kong Vault": [260, 1.4], "Thief Vault": [170, 1.0], "Turn Vault": [150, 0.9], "Dash Vault": [240, 1.3], "Step Up": [40, 0.3], "Climb Up": [120, 0.6],
 	"Mantle": [80, 0.5], "Wall Run": [200, 1.2], "Wall Jump": [120, 0.8], "Wall Climb": [140, 0.8],
 	"Wall Kick": [120, 0.8], "Tic Tac": [180, 1.1], "Cat Leap": [220, 1.2], "Ledge Grab": [90, 0.5],
 	"Precision Jump": [250, 1.3], "Drop Landing": [120, 0.7], "Safety Roll": [180, 0.9],

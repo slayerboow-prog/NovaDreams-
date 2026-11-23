@@ -10,7 +10,7 @@ extends RefCounted
 signal flow_changed(value: float)
 
 const ENVIRONMENT := ["Speed Vault", "Lazy Vault", "Step Vault", "Kong Vault", "Dash Vault", "Double Kong",
-	"Kash Vault", "Reverse Vault", "Wall Run", "Wall Jump", "Wall Climb", "Wall Kick", "Tic Tac", "Cat Leap",
+	"Kash Vault", "Reverse Vault", "Thief Vault", "Turn Vault", "Wall Run", "Wall Jump", "Wall Climb", "Wall Kick", "Tic Tac", "Cat Leap",
 	"Ledge Grab", "Climb Up", "Precision Jump", "Safety Roll", "Wall Flip", "Wall Gainer", "Step Up", "Mantle"]
 const BOOST_FROM := 60.0
 

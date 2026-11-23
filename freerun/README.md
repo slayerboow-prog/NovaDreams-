@@ -16,17 +16,15 @@ Atajos: `godot --path freerun -- --mode=freerun` salta el menú (`tricking`, `wa
 
 ## Controles
 
-**Móvil (iPhone / Android) — Doble joystick (por defecto)**: dos joysticks y solo cuatro botones (SALTO, VAULT, AGARRAR, RODAR). No hay un botón por truco: los trucos salen del joystick derecho según el contexto.
-- **Joystick izquierdo** (abajo a la izquierda): moverse de forma analógica; cuanto más lo inclinas, más rápido; a fondo = sprint.
-- **SALTO** (grande, encima del joystick derecho): saltar e impulsarse. Mantenerlo junto a una pared = Wall Run; en el aire junto a una pared = Tic Tac.
-- **VAULT**: supera el obstáculo con la técnica viable según velocidad, ángulo y forma (Step, Speed, Lazy, Kong, Dash, Step Up). Con el joystick derecho inclinado elige variante: ← → Reverse Vault, ↑ Double Kong, ↓ Kash Vault. Ante una pared alta, trepa.
-- **AGARRAR**: junto a una pared alta, trepar; en el aire, agarrar el borde (aunque vengas de un giro, si ya estás casi vertical); colgado se convierte en **SOLTAR**.
+**Móvil (iPhone / Android) — Doble joystick (por defecto)**: joystick izquierdo, **rueda de SALTO/MORTALES**, **joystick GIRO** y VAULT, AGARRAR, RODAR.
+- **Joystick izquierdo** (abajo a la izquierda): moverse de forma analógica; a fondo = sprint (se acumula corriendo recto).
+- **Rueda de SALTO** (encima del joystick derecho): el **centro** es SALTO (mantener junto a una pared = Wall Run; en el aire junto a una pared = Tic Tac). Las cuatro zonas de alrededor saltan y hacen su mortal: **ATRÁS** (Backflip; corriendo, Gainer), **ADELANTE** (Frontflip; corriendo, Webster) y **LATERAL ← →** (Sideflip, siempre encogido; **corriendo, el atleta se pone de lado antes de despegar y avanza girando, mirando al lado**). Mantener el dedo en la zona = agruparse (gira más rápido); soltarlo = abrirse y preparar el aterrizaje. Pulsar otra zona igual en el aire = otra vuelta (doble).
+- **Joystick GIRO** (derecho): controla el tirabuzón de **todos** los mortales. Inclinado a un lado gira (más inclinado = más rápido); al soltarlo termina en el cuarto de vuelta más cercano: **¼ = Híper** (aterriza de lado), **½** (Back Half, Árabe, Raiz…), **1** (Back Full, Front Full…), 1½, 2… Corriendo, **ATRÁS + una vuelta de GIRO = Cork**; dos vueltas = Cork 720. Sin mortal, en el aire = pirueta / patada giratoria; tocarlo sin inclinar = un giro completo.
+  - **En el suelo** (sin saltar, mantenlo inclinado un instante): ← → **Cartwheel** · ↙ ↘ **Round-off** (cae mirando atrás y deja un rebote: el siguiente salto sale un 15 % más alto) · ↓ **Back Handspring** · ↑ **Front Handspring** · ↗ 360 Kick / Tornado · ↖ Aerial (parado) / Butterfly Kick (con carrera). Después de un movimiento de suelo el joystick no gira hasta que lo sueltes.
+- **VAULT**: supera el obstáculo con la técnica viable según velocidad, ángulo y forma (Step, Speed, Lazy, Kong, Dash, Step Up). Con el joystick derecho inclinado elige variante: ← → Reverse Vault, ↑ Double Kong, ↓ Kash Vault, ↖ ↗ Thief Vault (obstáculo estrecho y con carrera), ↙ ↘ Turn Vault (cae frenado de cara al obstáculo). Si el obstáculo no permite la variante, hace la técnica normal. Ante una pared alta, trepa.
+- **AGARRAR**: junto a una pared alta, trepar; en el aire, agarrar el borde (si ya estás casi vertical); colgado se convierte en **SOLTAR**.
 - **RODAR**: Parkour Roll corriendo; justo antes de caer desde alto, Safety Roll.
-- **Joystick derecho** (abajo, a la derecha del centro):
-  - **En el aire** (tras SALTO): ↓ Backflip · ↑ Frontflip · ← → Sideflip (siempre encogido) · ↙ ↘ Cork · ↗ Front Full · ↖ Aerial (parado) o Butterfly Kick (con carrera). Con carrera ↓/↑ = Gainer / Webster. Es analógico: más inclinado hacia el giro = más agrupado y más rápido; soltarlo abre el cuerpo; en contra frena. Volver al centro e inclinar otra vez = otra vuelta; a un lado durante un mortal = tirabuzón; tocarlo sin inclinar = GIRO.
-  - **En el suelo** (sin SALTO, mantenlo inclinado un instante): ← → **Cartwheel** · ↙ ↘ **Round-off** (cae mirando atrás y deja un rebote: el siguiente salto sale un 15 % más alto, ideal para Round-off → Backflip) · ↓ **Back Handspring** (también rebota) · ↑ **Front Handspring** · ↗ 360 Kick / Tornado · ↖ Aerial / Butterfly Kick.
-  - **Ante un obstáculo** el joystick elige la variante del vault en vez de hacer un movimiento de suelo.
-  - **En la pared** (wall run, wall climb o colgado): ↓ Wall Flip / Wall Gainer · ↑ Wall Front · lateral = con giro.
+- **En la pared** (wall run, wall climb o colgado): rueda ATRÁS = Wall Flip / Wall Gainer · ADELANTE = Wall Front · LATERAL = Wall Sideflip.
 - **Tras una caída**: SALTO = **Kip-up** (te levantas al momento).
 - **Cámara**: arrastra en cualquier zona libre de la pantalla (arriba, entre el centro y SALTO, donde pone CÁMARA, o la franja superior izquierda) para girarla mientras corres con el otro pulgar. **Doble toque** en esa zona = cámara detrás del atleta. Es híbrida: sigue al atleta y se alinea detrás del movimiento, pero respeta durante 2,5 s lo que hayas movido a mano; tras un tirabuzón vuelve sola detrás. Mando: stick derecho y clic del stick izquierdo para recentrar; teclado: Q/E y T.
 - **FLOW** (barra arriba en el centro): sube con movimientos distintos, dificultad, uso del entorno (vaults, paredes, agarres, precisión), aterrizajes limpios y continuidad; baja al repetir el mismo truco, aterrizar forzado o duro, pararse o caerse. Por encima de 60 (EN FLOW) da un extra pequeño: velocidad punta +6 %, salto +4 % y recuperación más rápida.
@@ -39,7 +37,7 @@ Atajos: `godot --path freerun -- --mode=freerun` salta el menú (`tricking`, `wa
 - Volver a pulsar SALTO en el aire: sin mortal = patada giratoria (360 Kick / Tornado Kick, cada toque suma media vuelta: 540, 720 / Cheat 720, 900, 1080); durante un mortal = tirabuzón completo.
 - Gesto justo antes de un vault: lateral = Reverse Vault; en caja de kong ↑ = Double Kong, ↓ = Kash Vault. Gesto durante el vault = mortal al salir (Kong Gainer, Dash Bomb, Kong Front...).
 
-**Teclado**: WASD + Shift · Espacio salto (mantener: wall run; otra vez en el aire = giro) · Flechas = joystick derecho (acrobacias en el aire, tricking de suelo si las mantienes sin saltar) · V vault · G agarrar · Ctrl rodar · R reaparecer.
+**Teclado**: WASD + Shift · Espacio salto (mantener: wall run; otra vez en el aire = giro) · Flechas = mortales (mantener = agrupado; tricking de suelo si las mantienes sin saltar) · U / O = GIRO izquierda / derecha · V vault · G agarrar · Ctrl rodar · R reaparecer. Mando: gatillos = GIRO.
 
 Ajustes: ayuda de rotación (Alta / Media / Pro), controles de trucos (doble joystick / solo gestos / solo cruceta / gestos + cruceta), tamaño de controles, cámara (híbrida / manual / automática), distancia y altura de cámara, opacidad, sensibilidad de cámara y del joystick derecho / gestos, y modo zurdo.
 
@@ -88,7 +86,7 @@ En el juego los nombres se muestran en español (Mortal atrás, Rondada, Flic-fl
 
 `scripts/core/move_library.gd` (en el juego: Pausa → Movimientos) cataloga 102 técnicas en 17 categorías: vaults, precision, paredes, escalada, barras, rolls, mortales, laterales, aerials y websters, gainers, corks, butterfly y patadas, handsprings, ruedas y rondadas, suelo, combos y avanzados.
 
-- **Estado**: 61 hechas (impulso, trayectoria y postura propias, con prueba), 14 parciales (se reconocen y rotan bien, pero comparten postura con su familia) y 27 pendientes (cada una con el motivo; las de barra necesitan barras en el mapa).
+- **Estado**: 63 hechas (impulso, trayectoria y postura propias, con prueba), 14 parciales (se reconocen y rotan bien, pero comparten postura con su familia) y 25 pendientes (cada una con el motivo; las de barra necesitan barras en el mapa).
 - **Validación en 5 niveles** (no se confunden): 1 documentado · 2 implementado · 3 probado técnicamente · 4 inspeccionado visualmente · 5 validado en móvil. Ninguno está en 5 hasta que se confirme en un iPhone.
 - **Fuentes**: nombres, variantes y niveles de [pkfr.world/tutorials](https://pkfr.world/tutorials/) y [trickipedia.app](https://www.trickipedia.app/). Ninguna describe la técnica en texto y sus vídeos no se han podido ver, así que la biomecánica del juego se basa en la técnica deportiva estándar.
 

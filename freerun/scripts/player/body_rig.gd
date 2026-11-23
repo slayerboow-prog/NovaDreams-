@@ -672,6 +672,27 @@ func _vault_pose(p: Dictionary) -> Basis:
 			p.shoulder_l.z = -1.0 * arc
 			p.spine.x = -0.3 * arc
 			return Basis(Vector3.UP, -TAU * _ease_in_out(s)) * Basis(Vector3.BACK, 0.35 * arc)
+		"Thief Vault":
+			arc = clampf(sin(s * PI) * 1.7, 0.0, 1.0)    # la postura se forma ya al despegar
+			# Piernas primero, juntas y rasantes; una mano atrás sobre el obstáculo, la otra delante
+			# para equilibrar; tronco algo girado hacia la mano de apoyo
+			p.hip_l.x = 1.35 * arc; p.hip_r.x = 1.2 * arc
+			p.knee_l.x = -0.35 * arc; p.knee_r.x = -0.5 * arc
+			p.shoulder_r.x = -0.9 * arc; p.shoulder_r.z = 0.35 * arc
+			p.shoulder_l.x = 1.3 * arc; p.shoulder_l.z = -0.4 * arc
+			p.spine.x = 0.2 * arc
+			return Basis(Vector3.UP, 0.45 * arc) * Basis(Vector3.RIGHT, 0.32 * arc)
+		"Turn Vault":
+			# Dos manos sobre el obstáculo, cadera arriba y piernas recogidas a un lado mientras el
+			# cuerpo gira media vuelta; cae mirando al obstáculo
+			arc = clampf(sin(s * PI) * 1.7, 0.0, 1.0)
+			var turn := _ease_in_out(clampf((s - 0.15) / 0.7, 0.0, 1.0))
+			p.shoulder_l.x = 1.25; p.shoulder_r.x = 1.25
+			p.elbow_l.x = 0.15; p.elbow_r.x = 0.15
+			p.hip_l.x = 1.3 * arc; p.hip_r.x = 1.15 * arc
+			p.knee_l.x = -1.5 * arc; p.knee_r.x = -1.3 * arc
+			p.spine.x = -0.35 * arc
+			return Basis(Vector3.UP, PI * turn) * Basis(Vector3.RIGHT, -0.55 * arc) * Basis(Vector3.BACK, 0.35 * arc)
 		"Dash Vault":
 			p.hip_l.x = 1.5 * arc; p.hip_r.x = 1.4 * arc
 			p.knee_l.x = -0.2; p.knee_r.x = -0.3
