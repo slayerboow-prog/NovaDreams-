@@ -58,6 +58,7 @@ func _setup_actions() -> void:
 	_add_key("respawn", [KEY_R], [JOY_BUTTON_BACK])
 	_add_key("vault", [KEY_V], [JOY_BUTTON_RIGHT_STICK])
 	_add_key("grab", [KEY_G], [JOY_BUTTON_DPAD_UP])
+	_add_key("cam_recenter", [KEY_T], [JOY_BUTTON_LEFT_STICK])
 	_add_axis("cam_left", JOY_AXIS_RIGHT_X, -1.0)
 	_add_axis("cam_right", JOY_AXIS_RIGHT_X, 1.0)
 	_add_key("cam_up", [])
@@ -77,7 +78,24 @@ func _unhandled_input(event: InputEvent) -> void:
 func _touch_active() -> bool:
 	return touch != null and touch.visible
 
-func _physics_process(_dt: float) -> void:
+## Giro de cámara acumulado entre fotogramas. La física puede ejecutar varios pasos por
+## fotograma (móvil a 30-40 FPS): sin acumular, el segundo paso borraba el arrastre del
+## primero y la cámara no giraba. La cámara lo consume en su _process.
+var _cam_accum := Vector2.ZERO
+var _cam_recenter := false
+
+func take_camera() -> Dictionary:
+	var out := {"delta": _cam_accum, "recenter": _cam_recenter}
+	_cam_accum = Vector2.ZERO
+	_cam_recenter = false
+	return out
+
+func _physics_process(dt: float) -> void:
+	_read_intent(dt)
+	_cam_accum += intent.camera_delta
+	_cam_recenter = _cam_recenter or intent.camera_recenter
+
+func _read_intent(_dt: float) -> void:
 	frame += 1
 	intent.clear_edges()
 	if scripted.is_valid():
@@ -122,6 +140,7 @@ func _physics_process(_dt: float) -> void:
 		Input.get_action_strength("cam_down") - Input.get_action_strength("cam_up"))
 	cam += pad_cam * 0.045 * sens
 	intent.camera_delta = cam
+	intent.camera_recenter = Input.is_action_just_pressed("cam_recenter")
 
 	# --- Táctil ---
 	if touch and touch.visible:
@@ -136,6 +155,7 @@ func _physics_process(_dt: float) -> void:
 			intent.flick = t.flick
 		intent.tuck = intent.tuck or t.tuck
 		intent.camera_delta += t.camera_delta
+		intent.camera_recenter = intent.camera_recenter or t.camera_recenter
 		intent.respawn_pressed = intent.respawn_pressed or t.respawn_pressed
 		intent.kick = intent.kick or t.kick
 		intent.vault_pressed = intent.vault_pressed or t.vault_pressed

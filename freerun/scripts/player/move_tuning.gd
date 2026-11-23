@@ -15,6 +15,8 @@ extends Resource
 @export var turn_rate_slow := 13.0      # rad/s a baja velocidad
 @export var turn_rate_fast := 3.6       # rad/s a sprint: más inercia
 @export var facing_turn := 14.0
+@export var momentum_build := 1.1       # s corriendo recto para pasar de carrera a sprint completo
+@export var flow_speed_bonus := 0.06    # en flow máximo, +6 % de velocidad punta (nada imposible)
 
 # Salto y aire
 @export var gravity := 22.0

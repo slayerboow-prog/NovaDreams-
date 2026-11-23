@@ -103,16 +103,20 @@ func _run_all() -> void:
 	await t_new_tricks()
 	await t_vault_variants()
 	await t_combo_logic()
+	await t_flow()
+	await t_camera()
 	await t_respawn_repeat()
 	await t_modes()
 
 func t_locomotion() -> void:
 	await place(Vector3(-35, 0.1, 35), Vector3.FORWARD)
-	var st := {"max": 0.0}
+	var st := {"max": 0.0, "early": 0.0}
 	await run(func(i, f):
 		i.move = Vector2(0, 1); i.sprint = true
-		st.max = maxf(st.max, player.speed()), 60)
-	check("Carrera: alcanza sprint", st.max > 9.0, "vel max %.2f" % st.max)
+		if f == 30: st.early = player.speed()
+		st.max = maxf(st.max, player.speed()), 110)
+	check("Carrera: velocidad acumulada (a 0,5 s aún no es sprint completo)", st.early > 5.5 and st.early < 8.6, "vel 0,5 s %.2f" % st.early)
+	check("Carrera: alcanza sprint corriendo recto", st.max > 9.0 and player.momentum > 0.95, "vel max %.2f momentum %.2f" % [st.max, player.momentum])
 	check("Carrera: sigue en el suelo", player.state == PlayerController.State.GROUND, PlayerController.STATE_NAMES[player.state])
 	await run(func(i, f): i.move = Vector2(0, 0.6), 40)
 	check("Carrera: desacelera a trote", player.speed() < 6.0 and player.speed() > 3.5, "vel %.2f" % player.speed())
@@ -121,6 +125,16 @@ func t_locomotion() -> void:
 	check("Giro: cambia orientación", f0.angle_to(player.facing) > 1.0, "ángulo %.2f" % f0.angle_to(player.facing))
 	await run(func(i, f): pass, 40)
 	check("Frenado: se detiene", player.speed() < 0.2, "vel %.2f" % player.speed())
+	check("Frenado: pierde la carrera acumulada", player.momentum < 0.3, "momentum %.2f" % player.momentum)
+	# Desde parado hacia atrás: gira sobre sí mismo antes de acelerar (no sale disparado de espaldas)
+	await place(Vector3(-35, 0.1, 35), Vector3.FORWARD)
+	var pv := {"spd": 0.0, "ang": 0.0}
+	await run(func(i, f):
+		i.move = Vector2(0, -1)
+		if f == 7:
+			pv.spd = player.speed(); pv.ang = player.facing.angle_to(Vector3.BACK), 30)
+	check("Giro sobre sí mismo: primero se orienta y luego acelera", pv.spd < 2.0 and player.facing.angle_to(Vector3.BACK) < 0.3 and player.speed() > 4.0,
+		"a 0,12 s vel %.2f ang %.2f · final vel %.2f" % [pv.spd, pv.ang, player.speed()])
 
 func t_jump() -> void:
 	await place(Vector3(-35, 0.1, 35), Vector3.FORWARD)
@@ -628,6 +642,141 @@ func t_combo_logic() -> void:
 	await _run_at_obstacle(Vector3(0, 0.1, 2), 0.8, false, -4.85)
 	await run(func(i, f): pass, 160, func(): return not g.active)
 	check("Combo en juego: el vault suma puntos al cerrarse", g.total_score > 0, "total %d" % g.total_score)
+
+func t_flow() -> void:
+	var fl := FlowSystem.new()
+	for m in ["Speed Vault", "Wall Run", "Kong Vault", "Backflip", "Precision Jump"]:
+		fl.on_move(m, 1.0, {"difficulty": 1.2})
+		fl.on_land("clean", m == "Backflip", false)
+	var varied := fl.value
+	var sp := FlowSystem.new()
+	for k in 8:
+		sp.on_move("Backflip", 1.0, {"difficulty": 1.0})
+		sp.on_land("clean", true, false)
+	check("Flow: una línea variada sube mucho más que repetir el mismo mortal", varied > 55.0 and sp.value < 25.0, "variado %.0f · spam %.0f" % [varied, sp.value])
+	var env := FlowSystem.new().on_move("Kong Vault", 1.0, {})
+	var flat := FlowSystem.new().on_move("Sideflip", 1.0, {"difficulty": 1.0})
+	check("Flow: aprovechar el entorno suma más que un truco en plano de dificultad parecida", env > flat, "kong %.1f · sideflip %.1f" % [env, flat])
+	var c := FlowSystem.new()
+	c.value = 80.0
+	c.on_land("sloppy", true, false)
+	var after_sloppy := c.value
+	c.on_land("crash", true, false)
+	check("Flow: forzado resta y caída lo pierde casi todo", after_sloppy < 70.0 and c.value < 15.0, "forzado %.0f · caída %.0f" % [after_sloppy, c.value])
+	var d := FlowSystem.new()
+	d.value = 70.0
+	for k in 60: d.tick(1.0 / 60.0, true)
+	var moving := d.value
+	for k in 120: d.tick(1.0 / 60.0, false)
+	check("Flow: se mantiene en movimiento y se apaga parado", moving > 68.0 and d.value < 50.0, "1 s moviéndose %.1f · 2 s parado %.1f" % [moving, d.value])
+	var b := FlowSystem.new()
+	b.value = 100.0
+	check("Flow: extra pequeño y solo por encima de 60", b.boost() == 1.0 and FlowSystem.new().boost() == 0.0, "")
+	# En juego: con flow lleno el sprint es algo más rápido, nunca exagerado
+	await place(Vector3(-35, 0.1, 35), Vector3.FORWARD)
+	var st := {"max": 0.0}
+	await run(func(i, f):
+		player.flow_boost = 1.0
+		i.move = Vector2(0, 1); i.sprint = true
+		st.max = maxf(st.max, player.speed()), 120)
+	player.flow_boost = 0.0
+	check("Flow en juego: sprint +6 % como máximo", st.max > player.t.sprint_speed * 1.03 and st.max < player.t.sprint_speed * 1.08, "vel %.2f" % st.max)
+	# El juego conecta el flow: un vault real lo sube
+	game.flow.reset()
+	await _run_at_obstacle(Vector3(0, 0.1, 2), 0.8, false, -4.85)
+	check("Flow en juego: el vault real lo sube y aparece en el HUD", game.flow.value > 5.0 and game.ui.flow_label.text.begins_with("FLOW"), "flow %.1f · %s" % [game.flow.value, game.ui.flow_label.text])
+
+func t_camera() -> void:
+	var touch: TouchControls = game.ui.touch
+	var old_mode := Settings.trick_controls
+	Settings.trick_controls = 0
+	touch.visible = true
+	touch.size = Vector2(1560, 720)
+	touch.collect()
+	var tch := func(idx: int, pos: Vector2, pressed: bool) -> void:
+		var e := InputEventScreenTouch.new()
+		e.index = idx; e.position = pos; e.pressed = pressed
+		touch._on_touch(e)
+	var drg := func(idx: int, pos: Vector2, rel: Vector2) -> void:
+		var e := InputEventScreenDrag.new()
+		e.index = idx; e.position = pos; e.relative = rel
+		touch._on_drag(e)
+	var hp := touch.camera_hint_pos()
+	var free_spot := true
+	for k in touch.zones():
+		var r: float = touch.hit_radii()[k]
+		if hp.distance_to(touch.zones()[k]) < r + 30.0:
+			free_spot = false
+	check("Cámara táctil: la indicación está en zona libre (no encima de botones)", free_spot and not touch._is_move_side(hp), "pos %s" % hp)
+	# Correr con el pulgar izquierdo y girar la cámara con otro dedo a la vez
+	tch.call(0, Vector2(200, 560), true)
+	drg.call(0, Vector2(200, 460), Vector2(0, -100))
+	tch.call(1, hp, true)
+	drg.call(1, hp + Vector2(60, 0), Vector2(60, 0))
+	var fr := touch.collect()
+	check("Cámara táctil: arrastrar en zona libre gira la cámara mientras se corre", fr.camera_delta.x > 0.2 and fr.move.y > 0.9 and fr.flick == Vector2.ZERO, "cam %s move %s" % [fr.camera_delta, fr.move])
+	tch.call(1, hp + Vector2(60, 0), false)
+	tch.call(0, Vector2(200, 460), false)
+	# Franja superior izquierda: también cámara (no arranca el joystick de movimiento)
+	tch.call(2, Vector2(250, 80), true)
+	drg.call(2, Vector2(300, 80), Vector2(50, 0))
+	fr = touch.collect()
+	check("Cámara táctil: franja superior izquierda = cámara", fr.camera_delta.x > 0.1 and fr.move == Vector2.ZERO, "cam %s move %s" % [fr.camera_delta, fr.move])
+	tch.call(2, Vector2(300, 80), false)
+	touch._time += 1.0
+	tch.call(3, hp, true); tch.call(3, hp, false)
+	touch._time += 0.15
+	tch.call(3, hp + Vector2(10, 5), true); tch.call(3, hp, false)
+	fr = touch.collect()
+	check("Cámara táctil: doble toque = recentrar", fr.camera_recenter, "")
+	touch.collect()
+	Settings.trick_controls = old_mode
+	touch.visible = false
+	# Comportamiento de la cámara en juego
+	var cam: CameraRig = game.camera
+	game.router.take_camera()
+	# Varios pasos de física sin fotograma entre medias (móvil con FPS bajos): nada se pierde
+	await run(func(i, f): i.camera_delta = Vector2(0.1, 0) if f < 3 else Vector2.ZERO, 6)
+	var acc: Dictionary = game.router.take_camera()
+	check("Cámara: no pierde arrastres aunque la física dé varios pasos por fotograma", absf(acc.delta.x - 0.3) < 0.001, "acumulado %s (esperado 0.3)" % acc.delta)
+	cam.set_process(true)
+	await place(Vector3(-35, 0.1, 35), Vector3.FORWARD)
+	cam.snap()
+	var behind := cam.yaw
+	# El atleta corre siempre hacia el mismo punto del mundo (−Z), gire como gire la cámara.
+	var north := func(i, f):
+		var y := player.camera_yaw
+		i.move = Vector2(sin(y), cos(y))
+	await run(func(i, f): if f < 10: i.camera_delta = Vector2(0.15, 0), 20)
+	var turned := absf(angle_difference(cam.yaw, behind))
+	Settings.camera_mode = 0
+	await run(north, 60)
+	var held := absf(angle_difference(cam.yaw, behind))
+	check("Cámara híbrida: el giro manual se respeta al correr (no lucha contra el jugador)", turned > 1.2 and held > 1.0, "girada %.2f · tras 1 s corriendo %.2f" % [turned, held])
+	await run(north, 300)
+	var follow := absf(angle_difference(cam.yaw, behind))
+	check("Cámara híbrida: después vuelve sola detrás del movimiento", follow < 0.35, "desvío %.2f" % follow)
+	await run(func(i, f): if f < 10: i.camera_delta = Vector2(0.15, 0), 20)
+	await run(func(i, f): i.camera_recenter = f == 0, 40)
+	var rec := absf(angle_difference(cam.yaw, atan2(-player.facing.x, -player.facing.z)))
+	check("Cámara: recentrar la coloca detrás del atleta", rec < 0.1, "desvío %.2f" % rec)
+	Settings.camera_mode = 1
+	await run(func(i, f): if f < 10: i.camera_delta = Vector2(0.15, 0), 20)
+	var m0 := cam.yaw
+	await run(north, 240)
+	check("Cámara manual: no se realinea sola", absf(angle_difference(cam.yaw, m0)) < 0.05 and absf(angle_difference(m0, behind)) > 1.0, "cambio %.3f" % absf(angle_difference(cam.yaw, m0)))
+	Settings.camera_mode = 0
+	var old_h := Settings.camera_height
+	Settings.camera_height = 1.5
+	await run(func(i, f): pass, 120)
+	var high_y := cam.cam.global_position.y - player.global_position.y
+	Settings.camera_height = 0.7
+	await run(func(i, f): pass, 160)
+	var low_y := cam.cam.global_position.y - player.global_position.y
+	Settings.camera_height = old_h
+	check("Cámara: la altura se puede ajustar", high_y > low_y + 0.6, "alta %.2f · baja %.2f" % [high_y, low_y])
+	cam.set_process(false)
+	player.camera_yaw = 0.0
 
 func t_respawn_repeat() -> void:
 	await place(Vector3(0, 0.1, 6), Vector3.FORWARD)

@@ -34,6 +34,7 @@ class TouchFrame:
 	var vault_pressed := false
 	var grab_pressed := false
 	var grab_held := false
+	var camera_recenter := false
 
 var grab_label := "AGARRAR"           # SOLTAR cuando está colgado
 var context_label := "RODAR"
@@ -48,6 +49,9 @@ var _hint_time := 0.0
 var _time := 0.0
 var _last_flick := Vector2.ZERO
 var _rot_vec := Vector2.ZERO          # joystick derecho (x derecha, y arriba)
+var _cam_tap_t := -9.0                # último toque en la zona de cámara (doble toque = recentrar)
+var _cam_tap_p := Vector2.ZERO
+var cam_used := false                 # ya se ha movido la cámara: la indicación se atenúa
 
 const FLICK_TIME := 0.22              # en el suelo: un gesto rápido es acrobacia, lento es cámara
 const FLICK_PX := 48.0
@@ -188,8 +192,15 @@ func zones() -> Dictionary:
 		z["grab"] = _grab_center()
 	return z
 
+## Joystick izquierdo: mitad izquierda salvo la franja superior (que mueve la cámara).
 func _is_move_side(p: Vector2) -> bool:
+	if p.y < size.y * 0.3 and stick_enabled():
+		return false
 	return p.x < size.x * 0.42 if not Settings.left_handed else p.x > size.x * 0.58
+
+## Zona libre (arriba, entre el centro y SALTO) donde se indica que arrastrar mueve la cámara.
+func camera_hint_pos() -> Vector2:
+	return Vector2(_mirror(size.x * 0.62), size.y * 0.3)
 
 func collect() -> TouchFrame:
 	var f := _pending
@@ -304,6 +315,15 @@ func _on_touch(e: InputEventScreenTouch) -> void:
 		else:
 			role = "camera" if stick_enabled() else "gesture"
 			_hint_time = 99.0
+			if role == "camera":
+				# Doble toque rápido en el mismo sitio = cámara detrás del atleta
+				if _time - _cam_tap_t < 0.32 and p.distance_to(_cam_tap_p) < 70.0 * _s():
+					_pending.camera_recenter = true
+					_flash["recenter"] = 0.6
+					_cam_tap_t = -9.0
+				else:
+					_cam_tap_t = _time
+					_cam_tap_p = p
 		info["role"] = role
 		_fingers[e.index] = info
 	else:
@@ -362,6 +382,8 @@ func _on_drag(e: InputEventScreenDrag) -> void:
 				_swipe(f, e.position)
 		"camera":
 			_pending.camera_delta += e.relative * 0.006 * Settings.camera_sensitivity
+			if e.position.distance_to(f.start) > 20.0:
+				cam_used = true
 	queue_redraw()
 
 ## Joystick derecho: vector analógico + eventos de truco al inclinarlo (umbral 0,55) o al
@@ -484,6 +506,7 @@ func _draw() -> void:
 		_draw_pad(font, s, a, white, dark, accent)
 	if stick_enabled():
 		_draw_rot_stick(font, s, a, white, dark, accent)
+		_draw_camera_hint(font, s, a)
 	# Pista de gestos al principio
 	if _hint_time < 9.0 and gestures_enabled():
 		var hc := Vector2(size.x * 0.5, size.y * 0.16)
@@ -501,6 +524,31 @@ func _draw() -> void:
 		for f in _fingers.values():
 			if f.role in ["gesture", "jump"]:
 				draw_circle(f.pos, 40.0 * s, Color(accent, 0.45))
+
+## Cámara: cualquier zona libre de la pantalla se arrastra para girarla. Se indica con un
+## rótulo tenue (más visible hasta que se usa) y un anillo bajo el dedo mientras se arrastra.
+func _draw_camera_hint(font: Font, s: float, a: float) -> void:
+	var cam_finger := {}
+	for f in _fingers.values():
+		if f.role == "camera":
+			cam_finger = f
+	if not cam_finger.is_empty():
+		draw_arc(cam_finger.pos, 46.0 * s, 0, TAU, 40, Color(1, 1, 1, 0.5), 3.0 * s, true)
+		draw_line(cam_finger.start, cam_finger.pos, Color(1, 1, 1, 0.25), 3.0 * s, true)
+	if _flash.has("recenter"):
+		_label(font, camera_hint_pos(), "CÁMARA DETRÁS", 24 * s, Color(0.4, 1, 0.9, minf(1.0, _flash.recenter * 2.0)))
+		return
+	if _hint_time < 9.0 and gestures_enabled():
+		return                         # no se superpone a la ayuda inicial
+	var ha := (minf(a + 0.35, 1.0) if not cam_used else a * 0.45)
+	var c := camera_hint_pos()
+	var col := Color(1, 1, 1, ha)
+	if not cam_used:
+		# Fondo oscuro suave para que se lea sobre cielo o paredes claras
+		var box := Rect2(c + Vector2(-175, -24) * s, Vector2(350, 62) * s)
+		draw_rect(box, Color(0.05, 0.07, 0.1, 0.35 * ha))
+	_label(font, c, "<   CÁMARA   >", 22 * s, col)
+	_label(font, c + Vector2(0, 26 * s), "arrastra aquí · doble toque = detrás", 15 * s, col)
 
 ## Joystick derecho de rotación: base con las 8 direcciones rotuladas y mando analógico.
 func _draw_rot_stick(font: Font, s: float, a: float, white: Color, dark: Color, accent: Color) -> void:
