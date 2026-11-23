@@ -13,6 +13,7 @@ var action_held := false
 var flick := Vector2.ZERO       # gesto rápido este frame (x derecha, y arriba). Cero si no hay
 var tuck := false               # dedo/tecla de truco mantenido = agruparse (girar más rápido)
 var camera_delta := Vector2.ZERO
+var camera_recenter := false        # doble toque en la zona de cámara: detrás del atleta
 var respawn_pressed := false
 var kick := false               # giro sobre el eje largo (360/540/720) o tirabuzón añadido
 var vault_pressed := false      # botón VAULT (flanco)
@@ -25,6 +26,7 @@ func clear_edges() -> void:
 	action_pressed = false
 	flick = Vector2.ZERO
 	camera_delta = Vector2.ZERO
+	camera_recenter = false
 	respawn_pressed = false
 	kick = false
 	vault_pressed = false
@@ -33,5 +35,5 @@ func clear_edges() -> void:
 func copy_from(o: InputIntent) -> void:
 	move = o.move; sprint = o.sprint; jump_pressed = o.jump_pressed; jump_held = o.jump_held
 	action_pressed = o.action_pressed; action_held = o.action_held; flick = o.flick; tuck = o.tuck
-	camera_delta = o.camera_delta; respawn_pressed = o.respawn_pressed; kick = o.kick; rot = o.rot
+	camera_delta = o.camera_delta; camera_recenter = o.camera_recenter; respawn_pressed = o.respawn_pressed; kick = o.kick; rot = o.rot
 	vault_pressed = o.vault_pressed; grab_pressed = o.grab_pressed; grab_held = o.grab_held

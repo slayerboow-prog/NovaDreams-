@@ -12,6 +12,7 @@ var rig: BodyRig
 var camera: CameraRig
 var router: InputRouter
 var combo := ComboSystem.new()
+var flow := FlowSystem.new()
 var ui: GameUI
 var mode: GameModes.Base
 var sun: DirectionalLight3D
@@ -155,6 +156,7 @@ func show_menu() -> void:
 		mode = null
 	in_menu = true
 	combo.reset_all()
+	flow.reset()
 	ui.show_main_menu(true)
 	ui.show_hud(false)
 	router.enabled = false
@@ -171,6 +173,7 @@ func start_mode(id: String) -> void:
 	ui.show_hud(true)
 	router.enabled = true
 	combo.reset_all()
+	flow.reset()
 	_place_player(mode.spawn_key())
 	mode.start()
 	ui.popup(GameModes.info(id).get("title", id), Color(0.6, 1, 0.9))
@@ -218,18 +221,23 @@ func _physics_process(dt: float) -> void:
 	var busy := player.state in [PlayerController.State.AIR, PlayerController.State.VAULT, PlayerController.State.WALLRUN,
 		PlayerController.State.WALLCLIMB, PlayerController.State.HANG, PlayerController.State.CLIMB_UP, PlayerController.State.ROLL]
 	combo.tick(dt, busy, player.speed())
+	flow.tick(dt, busy or player.speed() > 2.5)
+	player.flow_boost = flow.boost()
+	ui.update_flow(flow.value, flow.is_flowing())
 
 # ------------------------------------------------------------------ eventos
 
 func _on_move(name: String, quality: float, info: Dictionary) -> void:
 	SaveData.add_stat("move_" + name)
 	combo.add_move(name, quality, info)
+	flow.on_move(name, quality, info)
 	if mode:
 		mode.on_move(name, quality, info)
 
 func _on_landed(result: Dictionary) -> void:
 	var q: String = result.quality
 	var trick: Dictionary = result.trick
+	flow.on_land(q, not trick.is_empty(), result.hard)
 	if not trick.is_empty() or q == "crash" or result.hard:
 		match q:
 			"perfect": ui.show_landing("PERFECTO", Color(0.4, 1, 0.7))
@@ -245,6 +253,7 @@ func _on_landed(result: Dictionary) -> void:
 
 func _on_bailed(_reason: String) -> void:
 	combo.bail()
+	flow.on_land("crash", false, false)
 	SaveData.add_stat("bails")
 
 func _on_water(result: Dictionary) -> void:

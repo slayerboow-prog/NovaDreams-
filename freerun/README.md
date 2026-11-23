@@ -28,7 +28,9 @@ Atajos: `godot --path freerun -- --mode=freerun` salta el menú (`tricking`, `wa
   - **Ante un obstáculo** el joystick elige la variante del vault en vez de hacer un movimiento de suelo.
   - **En la pared** (wall run, wall climb o colgado): ↓ Wall Flip / Wall Gainer · ↑ Wall Front · lateral = con giro.
 - **Tras una caída**: SALTO = **Kip-up** (te levantas al momento).
-- Arrastrar fuera de los controles = cámara.
+- **Cámara**: arrastra en cualquier zona libre de la pantalla (arriba, entre el centro y SALTO, donde pone CÁMARA, o la franja superior izquierda) para girarla mientras corres con el otro pulgar. **Doble toque** en esa zona = cámara detrás del atleta. Es híbrida: sigue al atleta y se alinea detrás del movimiento, pero respeta durante 2,5 s lo que hayas movido a mano; tras un tirabuzón vuelve sola detrás. Mando: stick derecho y clic del stick izquierdo para recentrar; teclado: Q/E y T.
+- **FLOW** (barra arriba en el centro): sube con movimientos distintos, dificultad, uso del entorno (vaults, paredes, agarres, precisión), aterrizajes limpios y continuidad; baja al repetir el mismo truco, aterrizar forzado o duro, pararse o caerse. Por encima de 60 (EN FLOW) da un extra pequeño: velocidad punta +6 %, salto +4 % y recuperación más rápida.
+- **Carrera acumulada**: el sprint completo se gana corriendo recto (~1 s); un giro cerrado, frenar o una mala recepción lo reducen. Desde parado hacia atrás, el atleta gira sobre sí mismo antes de acelerar.
 - **Menú de pausa**: Reaparecer, **Movimientos** (biblioteca con más de 100 técnicas por categoría, su entrada y su estado) y **Tutorial de controles** (10 pasos que avanzan al hacer cada movimiento de verdad).
 
 **Otros modos (Ajustes → Controles de trucos)**: *Solo gestos*, *Solo cruceta* y *Gestos + cruceta*.
@@ -39,7 +41,7 @@ Atajos: `godot --path freerun -- --mode=freerun` salta el menú (`tricking`, `wa
 
 **Teclado**: WASD + Shift · Espacio salto (mantener: wall run; otra vez en el aire = giro) · Flechas = joystick derecho (acrobacias en el aire, tricking de suelo si las mantienes sin saltar) · V vault · G agarrar · Ctrl rodar · R reaparecer.
 
-Ajustes: ayuda de rotación (Alta / Media / Pro), controles de trucos (doble joystick / solo gestos / solo cruceta / gestos + cruceta), tamaño de controles, distancia de cámara, opacidad, sensibilidad de cámara y del joystick derecho / gestos, y modo zurdo.
+Ajustes: ayuda de rotación (Alta / Media / Pro), controles de trucos (doble joystick / solo gestos / solo cruceta / gestos + cruceta), tamaño de controles, cámara (híbrida / manual / automática), distancia y altura de cámara, opacidad, sensibilidad de cámara y del joystick derecho / gestos, y modo zurdo.
 
 Cada acrobacia tiene su propio ritmo de giro (backflip explosivo; aerial y butterfly más amplios), el doble mortal gira más rápido que el simple, y se anima por fases a partir del giro real: preparación (flexión antes de despegar), impulso, agrupación, rotación, apertura y recepción, con una forma corporal propia para Backflip, Frontflip, Sideflip, Gainer, Webster, Butterfly Kick, Cork y tirabuzones.
 
@@ -66,7 +68,8 @@ scripts/
   player/    PlayerController (núcleo único de movimiento), MoveTuning, ObstacleSensor,
              TrickSystem (rotaciones aéreas), BodyRig (personaje y animación procedural)
   camera/    CameraRig
-  combo/     ComboSystem (multiplicador, variedad, repetición, velocidad, continuidad)
+  combo/     ComboSystem (puntuación: multiplicador, variedad, repetición, velocidad, continuidad)
+             FlowSystem (medidor FLOW 0-100 y su pequeño extra al atleta)
   modes/     GameModes: Freerun, Tricking, Water, Challenge (con ghost), Freestyle
   level/     LevelBuilder (escenario de pruebas) + shaders/world_grid
   ui/        GameUI (HUD, menús, ajustes), TouchControls
@@ -81,10 +84,19 @@ El `InputIntent` es la frontera entre dispositivos y personaje: replays, ghosts 
 
 ## Biblioteca de movimientos
 
+En el juego los nombres se muestran en español (Mortal atrás, Rondada, Flic-flac, Salto de gato…); `scripts/core/move_names.gd` guarda la traducción y por dentro se usa el nombre original.
+
 `scripts/core/move_library.gd` (en el juego: Pausa → Movimientos) cataloga 102 técnicas en 17 categorías: vaults, precision, paredes, escalada, barras, rolls, mortales, laterales, aerials y websters, gainers, corks, butterfly y patadas, handsprings, ruedas y rondadas, suelo, combos y avanzados.
 
 - **Estado**: 61 hechas (impulso, trayectoria y postura propias, con prueba), 14 parciales (se reconocen y rotan bien, pero comparten postura con su familia) y 27 pendientes (cada una con el motivo; las de barra necesitan barras en el mapa).
+- **Validación en 5 niveles** (no se confunden): 1 documentado · 2 implementado · 3 probado técnicamente · 4 inspeccionado visualmente · 5 validado en móvil. Ninguno está en 5 hasta que se confirme en un iPhone.
 - **Fuentes**: nombres, variantes y niveles de [pkfr.world/tutorials](https://pkfr.world/tutorials/) y [trickipedia.app](https://www.trickipedia.app/). Ninguna describe la técnica en texto y sus vídeos no se han podido ver, así que la biomecánica del juego se basa en la técnica deportiva estándar.
+
+## Referencia de diseño: STORROR Parkour PRO
+
+Se usa como referencia de filosofía (control del cuerpo, timing, continuidad, flow), no de código ni recursos.
+- **Comprobado públicamente**: la página de Steam (capturas de movimiento combinadas con movimiento por físicas, libertad para elegir qué y cuándo) y las notas de parche visibles en Steam (existe un estado *flow*, dive roll, detección de bordes, retícula de escalada/dyno, físicas del balanceo). Esas notas no explican cómo se construye el flow, la cámara ni los controles en detalle.
+- **No comprobado**: los vídeos de YouTube y las notas de parche más antiguas no se han podido ver desde este entorno. Lo que aquí se implementa (flow, cámara híbrida, carrera acumulada) es diseño propio inspirado en esos principios.
 
 ## Trucos reconocidos
 

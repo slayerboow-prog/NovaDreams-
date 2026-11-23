@@ -20,6 +20,9 @@ var combo_mult: Label
 var status: Label
 var mode_title: Label
 var speed_label: Label
+var flow_bg: ColorRect
+var flow_fill: ColorRect
+var flow_label: Label
 var fps_label: Label
 var landing_label: Label
 var popups: VBoxContainer
@@ -39,12 +42,13 @@ var theme_res: Theme
 # Tutorial opcional (menú de pausa): cada paso avanza al detectar el movimiento real.
 const TUTORIAL := [
 	["Corre: inclina el joystick izquierdo (a fondo = sprint)", ["@run"]],
+	["Mueve la cámara: arrastra en una zona libre (doble toque = detrás del atleta)", ["@camera"]],
 	["Pulsa SALTO", ["@air"]],
-	["SALTO y joystick derecho ↓ = Backflip (más inclinado = más agrupado)", ["Backflip", "Gainer"]],
-	["SALTO y joystick derecho ↑ = Frontflip", ["Frontflip", "Webster"]],
-	["Joystick derecho ← o → en el suelo, sin SALTO = Cartwheel", ["Cartwheel"]],
-	["Joystick derecho ↓ en el suelo = Back Handspring", ["Back Handspring"]],
-	["Joystick derecho ↙ en el suelo y al caer SALTO + ↓ = Round-off → Backflip", ["@roundoff_back"]],
+	["SALTO y joystick derecho ↓ = Mortal atrás (más inclinado = más agrupado)", ["Backflip", "Gainer"]],
+	["SALTO y joystick derecho ↑ = Mortal adelante", ["Frontflip", "Webster"]],
+	["Joystick derecho ← o → en el suelo, sin SALTO = Rueda", ["Cartwheel"]],
+	["Joystick derecho ↓ en el suelo = Flic-flac", ["Back Handspring"]],
+	["Joystick derecho ↙ en el suelo y al caer SALTO + ↓ = Rondada → Mortal atrás", ["@roundoff_back"]],
 	["Corre hacia un obstáculo y pulsa VAULT", ["@vault"]],
 	["Salta hacia un borde alto y pulsa AGARRAR", ["Ledge Grab", "Cat Leap", "Mantle"]],
 	["Pulsa RODAR justo antes de caer desde alto (o corriendo)", ["Safety Roll", "Roll"]],
@@ -200,6 +204,25 @@ func _build_hud() -> void:
 	speed_label.position.y -= 34
 	hud.add_child(speed_label)
 
+	# Medidor FLOW (arriba al centro, fino para no tapar la acción)
+	flow_bg = ColorRect.new()
+	flow_bg.color = Color(0, 0, 0, 0.35)
+	flow_bg.set_anchors_preset(Control.PRESET_CENTER_TOP)
+	flow_bg.size = Vector2(220, 8)
+	flow_bg.position = Vector2(-110, 14)
+	flow_bg.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	hud.add_child(flow_bg)
+	flow_fill = ColorRect.new()
+	flow_fill.color = Color(0.2, 0.85, 0.78)
+	flow_fill.size = Vector2(0, 8)
+	flow_fill.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	flow_bg.add_child(flow_fill)
+	flow_label = _label("FLOW", 13, Color(1, 1, 1, 0.75), HORIZONTAL_ALIGNMENT_CENTER)
+	flow_label.set_anchors_preset(Control.PRESET_CENTER_TOP)
+	flow_label.grow_horizontal = Control.GROW_DIRECTION_BOTH
+	flow_label.position.y = 22
+	hud.add_child(flow_label)
+
 	fps_label = _label("", 14, Color(0.7, 1, 0.7))
 	fps_label.set_anchors_preset(Control.PRESET_TOP_RIGHT)
 	fps_label.position = Vector2(-200, 76)
@@ -239,13 +262,22 @@ func show_hud(v: bool) -> void:
 func _touch_wanted() -> bool:
 	return Settings.force_touch_ui or DisplayServer.is_touchscreen_available() or OS.has_feature("mobile")
 
+func update_flow(v: float, flowing: bool) -> void:
+	if flow_bg == null:
+		return
+	flow_fill.size.x = 220.0 * v / 100.0
+	flow_fill.color = Color(1.0, 0.82, 0.3) if flowing else Color(0.2, 0.85, 0.78)
+	flow_label.text = ("FLOW %d" % int(v)) + ("  ·  EN FLOW" if flowing else "")
+	flow_bg.modulate.a = 1.0 if v > 0.5 else 0.45
+	flow_label.modulate.a = 1.0 if v > 0.5 else 0.45
+
 func update_hud(combo: ComboSystem, player: PlayerController, mode_status: String, mode_name: String, extra: String) -> void:
 	mode_title.text = mode_name
 	status.text = mode_status
 	if combo.active:
 		combo_value.text = str(combo.current_value())
 		combo_mult.text = "x%.1f" % combo.multiplier + ("   +%d%% velocidad" % int(combo.speed_bonus() * 100) if combo.speed_bonus() > 0.01 else "")
-		var tail := combo.chain.slice(maxi(0, combo.chain.size() - 5))
+		var tail: Array = combo.chain.slice(maxi(0, combo.chain.size() - 5)).map(func(n): return MoveNames.es(n))
 		combo_chain.text = ("… › " if combo.chain.size() > 5 else "") + " › ".join(tail)
 	else:
 		combo_value.text = ""
@@ -363,6 +395,7 @@ func open_library() -> void:
 
 func start_tutorial() -> void:
 	tutorial_step = 0
+	touch.cam_used = false
 	var p: PlayerController = game.player
 	if not p.move_performed.is_connected(_on_tutorial_move):
 		p.move_performed.connect(_on_tutorial_move)
@@ -405,6 +438,9 @@ func _tutorial_tick(player: PlayerController) -> void:
 	if tutorial_step < 0:
 		return
 	var want: Array = TUTORIAL[tutorial_step][1]
+	if want.has("@camera") and (touch.cam_used or not touch.visible):
+		_tutorial_advance()
+		return
 	if (want.has("@run") and player.speed() > 5.0) or (want.has("@air") and player.state == PlayerController.State.AIR):
 		_tutorial_advance()
 
@@ -460,7 +496,9 @@ func _build_settings() -> void:
 	_slider(box, "Sensibilidad cámara", "camera_sensitivity", 0.3, 2.5, 0.05)
 	_slider(box, "Sensibilidad joystick/gestos", "gesture_sensitivity", 0.4, 2.0, 0.05)
 	_slider(box, "Tamaño controles", "control_scale", 0.7, 1.4, 0.05)
+	_option(box, "Cámara", "camera_mode", ["Híbrida (sigue y respeta lo que muevas)", "Manual", "Automática"])
 	_slider(box, "Distancia cámara", "camera_distance", 0.75, 1.4, 0.05)
+	_slider(box, "Altura cámara", "camera_height", 0.7, 1.5, 0.05)
 	_slider(box, "Opacidad controles", "control_opacity", 0.2, 1.0, 0.05)
 	_check(box, "Modo zurdo (joystick a la derecha)", "left_handed")
 	_check(box, "Invertir eje Y de cámara", "invert_camera_y")

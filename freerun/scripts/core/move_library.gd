@@ -10,6 +10,11 @@ extends RefCounted
 ##          "parcial"   se reconoce y rota bien, pero comparte postura con su familia
 ##          "pendiente" aún no está en el juego (motivo en la nota)
 ##
+## Validación (5 niveles, no se confunden):
+##   1 Documentado · 2 Implementado · 3 Probado técnicamente (pruebas automáticas)
+##   4 Inspeccionado visualmente (capturas/vídeo revisados) · 5 Validado en móvil (por el jugador)
+## Ningún movimiento está en el nivel 5 hasta que se confirme en un iPhone real.
+##
 ## Entrada: SALTO, VAULT, AGARRAR, RODAR · JD = joystick derecho · JI = joystick izquierdo.
 
 const CATEGORIES := ["Vaults", "Precision", "Paredes", "Escalada", "Barras", "Rolls y recepciones",
@@ -138,6 +143,29 @@ const MOVES := [
 	{"name": "Palm Spin Gainer · Cast Gainer", "cat": "Avanzados", "lvl": 3, "input": "-", "status": "pendiente"},
 ]
 
+const CATEGORY_ES := {"Vaults": "Pasavallas (vaults)", "Precision": "Precisión",
+	"Rolls y recepciones": "Volteretas y recepciones", "Aerials y Websters": "Ruedas sin manos y websters",
+	"Gainers": "Mortales atrás en carrera (gainers)", "Corks": "Sacacorchos (corks)",
+	"Butterfly y patadas": "Mariposas y patadas", "Handsprings": "Flic-flacs y palomas"}
+const LEVELS := ["", "Documentado", "Implementado", "Probado técnicamente", "Inspeccionado visualmente", "Validado en móvil"]
+## Revisados en capturas/vídeo de la partida (fotogramas de las fases del movimiento).
+const VISUALLY_INSPECTED := ["Backflip / Back Tuck", "Frontflip / Front Tuck", "Double Backflip", "Sideflip",
+	"Gainer (backflip avanzando)", "Back Handspring (flic-flac)", "Front Handspring (paloma)",
+	"Cartwheel (rueda)", "Round-off (rondada)"]
+## Confirmados por el jugador en su móvil (vacío hasta tener esa confirmación).
+const MOBILE_VALIDATED: Array[String] = []
+
+static func validation(m: Dictionary) -> int:
+	if m.status == "pendiente":
+		return 1
+	if m.status == "parcial":
+		return 2
+	if m.name in MOBILE_VALIDATED:
+		return 5
+	if m.name in VISUALLY_INSPECTED:
+		return 4
+	return 3
+
 static func by_category() -> Dictionary:
 	var out := {}
 	for c in CATEGORIES:
@@ -156,15 +184,18 @@ static func counts() -> Dictionary:
 static func bbcode() -> String:
 	var n := counts()
 	var t := "[b]%d movimientos[/b]  ·  [color=#5fe08a]%d hechos[/color]  ·  [color=#f2c14e]%d parciales[/color]  ·  [color=#999999]%d pendientes[/color]\n" % [MOVES.size(), n.ok, n.parcial, n.pendiente]
+	t += "[color=#aaaaaa]Validación: 1 documentado · 2 implementado · 3 probado técnicamente · 4 inspeccionado visualmente · 5 validado en móvil[/color]\n"
 	t += "[color=#aaaaaa]SALTO · VAULT · AGARRAR · RODAR · JD = joystick derecho · JI = joystick izquierdo[/color]\n"
 	var groups := by_category()
 	for c in CATEGORIES:
-		t += "\n[b][color=#2fd9c6]%s[/color][/b]\n" % c
+		t += "\n[b][color=#2fd9c6]%s[/color][/b]\n" % CATEGORY_ES.get(c, c)
 		for m in groups[c]:
 			var col: String = {"ok": "#5fe08a", "parcial": "#f2c14e", "pendiente": "#999999"}[m.status]
-			var line := "[color=%s]●[/color] [b]%s[/b]  [color=#888888]nivel %d[/color]" % [col, m.name, m.lvl]
+			var es_name := MoveNames.es_text(m.name)
+			var orig := ("  [color=#777777](%s)[/color]" % m.name) if es_name != m.name else ""
+			var line := "[color=%s]●[/color] [b]%s[/b]%s  [color=#888888]nivel %d · %d/5 %s[/color]" % [col, es_name, orig, m.lvl, validation(m), LEVELS[validation(m)]]
 			if m.status != "pendiente":
-				line += "\n     " + m.input
+				line += "\n     " + MoveNames.es_phrase(m.input)
 			elif m.has("note"):
 				line += "  [color=#888888](%s)[/color]" % m.note
 			t += line + "\n"

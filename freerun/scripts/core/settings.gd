@@ -10,6 +10,9 @@ var camera_sensitivity := 1.0
 var gesture_sensitivity := 1.0
 var control_scale := 1.0
 var camera_distance := 1.0       # 0,75 cerca … 1,4 lejos
+var camera_height := 1.0         # 0,7 baja … 1,5 alta (más cenital)
+## Cámara: 0 híbrida (sigue al atleta, respeta lo que muevas), 1 manual, 2 automática
+var camera_mode := 0
 var control_opacity := 0.55
 var left_handed := false          # intercambia joystick y botones
 var force_touch_ui := false       # mostrar controles táctiles en escritorio
@@ -43,7 +46,7 @@ func save_settings() -> void:
 	changed.emit()
 
 func _keys() -> Array:
-	return ["camera_sensitivity", "gesture_sensitivity", "control_scale", "camera_distance", "control_opacity",
+	return ["camera_sensitivity", "gesture_sensitivity", "control_scale", "camera_distance", "camera_height", "camera_mode", "control_opacity",
 		"left_handed", "force_touch_ui", "invert_camera_y", "trick_controls", "rotation_assist", "graphics_preset", "show_fps"]
 
 func assist_strength() -> float:

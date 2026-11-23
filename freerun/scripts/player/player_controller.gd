@@ -58,6 +58,8 @@ var grab_buffer := 0.0                  # botón AGARRAR pulsado hace poco
 var ground_pending := 0.12              # espera breve: joystick derecho en el suelo sin SALTO
 var ground_wait := 0.0                  # = movimiento de suelo (rueda, rondada, flic-flac...)
 var roundoff_timer := 0.0               # rebote tras una rondada: el siguiente salto sale más alto
+var momentum := 0.0                     # carrera acumulada 0..1: el sprint completo se gana corriendo
+var flow_boost := 0.0                   # 0..1 lo fija el FlowSystem (algo más de velocidad y recuperación)
 
 # Datos de la acción en curso
 var vault := {}
@@ -108,6 +110,7 @@ func respawn() -> void:
 	jump_load = 0.0
 	ground_wait = 0.0
 	roundoff_timer = 0.0
+	momentum = 0.0
 	_set_state(State.AIR)
 	air_kind = "fall"
 	reset_physics_interpolation()
@@ -212,13 +215,23 @@ func _state_ground(dt: float) -> void:
 	var spd := hv.length()
 	if mag > 0.08:
 		var target_speed := lerpf(t.walk_speed, t.run_speed, clampf((mag - 0.3) / 0.5, 0.0, 1.0))
-		if intent.sprint or mag > 0.93:
-			target_speed = t.sprint_speed
+		var running := intent.sprint or mag > 0.93
+		if running:
+			# El sprint no es instantáneo: se acumula corriendo recto (y en flow se va algo más rápido).
+			target_speed = lerpf(t.run_speed + 0.6, t.sprint_speed, momentum) * (1.0 + t.flow_speed_bonus * flow_boost)
 		if stun > 0.0:
 			target_speed *= 0.35
 		var desired := wish.normalized()
 		var heading := hv / spd if spd > 0.4 else desired
 		var ang := heading.signed_angle_to(desired, Vector3.UP)
+		# Arrancar hacia atrás desde parado: primero gira sobre sí mismo, luego acelera.
+		var pivot := spd < 1.2 and absf(facing.signed_angle_to(desired, Vector3.UP)) > 1.7
+		if running and absf(ang) < 0.6 and stun <= 0.0 and spd > t.run_speed * 0.8:
+			momentum = minf(1.0, momentum + dt / t.momentum_build)
+		elif absf(ang) > 1.2:
+			momentum = maxf(0.0, momentum - dt * 1.6)    # giro cerrado: se pierde la carrera
+		elif not running:
+			momentum = maxf(0.0, momentum - dt * 0.5)
 		var turn_rate := lerpf(t.turn_rate_slow, t.turn_rate_fast, clampf(spd / t.sprint_speed, 0.0, 1.0))
 		if absf(ang) > 2.3 and spd > t.run_speed * 0.75:
 			spd = move_toward(spd, 0.0, t.skid_decel * dt)    # derrape antes de girar
@@ -230,10 +243,13 @@ func _state_ground(dt: float) -> void:
 			var acc := t.overspeed_decel
 			if spd < target_speed:
 				acc = lerpf(t.accel_start, t.accel, clampf(spd / t.sprint_speed, 0.0, 1.0))
+				if pivot:
+					acc *= 0.25
 			spd = move_toward(spd, target_speed, acc * dt)
 		hv = heading * spd
 	elif jump_load <= 0.0:          # durante la flexión del salto se conserva el impulso
 		hv = hv.move_toward(Vector3.ZERO, t.decel * dt)
+		momentum = maxf(0.0, momentum - dt * 2.5)
 	velocity.x = hv.x
 	velocity.z = hv.z
 	velocity.y = -1.0
@@ -331,6 +347,9 @@ func _kick_dir() -> int:
 func _do_jump(kind: String) -> void:
 	var spd := speed()
 	velocity.y = t.jump_velocity + spd * t.jump_speed_bonus
+	if flow_boost > 0.0:
+		velocity.x *= 1.0 + 0.04 * flow_boost     # en flow el salto llega un poco más lejos
+		velocity.z *= 1.0 + 0.04 * flow_boost
 	var rebound := roundoff_timer > 0.0
 	if rebound:
 		velocity.y *= 1.15                 # rebote de la rondada: más altura para el mortal
@@ -444,6 +463,7 @@ func _land() -> void:
 		"drop": takeoff_y - global_position.y}
 	last_landing = result
 	if quality == "crash":
+		momentum = 0.0
 		landed.emit(result)
 		_crash("landing")
 		return
@@ -468,13 +488,15 @@ func _land() -> void:
 		return
 	_set_state(State.GROUND)
 	if hard:
-		stun = t.stun_time + 0.25
+		stun = (t.stun_time + 0.25) * (1.0 - 0.3 * flow_boost)
+		momentum *= 0.2
 		velocity.x *= 0.3
 		velocity.z *= 0.3
 		_emit_move("Hard Landing", 0.0, {"penalty": true})
 	elif quality == "sloppy":
 		# Recepción torcida: tropieza, pierde velocidad y tarda en recuperar el control.
-		stun = t.stun_time
+		stun = t.stun_time * (1.0 - 0.3 * flow_boost)
+		momentum *= 0.5
 		velocity.x *= 0.5
 		velocity.z *= 0.5
 	else:
