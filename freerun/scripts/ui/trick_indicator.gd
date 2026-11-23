@@ -26,7 +26,7 @@ func _draw() -> void:
 	var font := get_theme_default_font()
 	var cx := size.x * 0.17
 	var top := size.y * 0.2
-	var name := _last_name.to_upper()
+	var name := MoveNames.es(_last_name).to_upper()
 	_text(font, Vector2(cx, top), name, 44, Color(1, 1, 1, _alpha))
 	# Vueltas del eje principal
 	var ax := tr.primary_axis()

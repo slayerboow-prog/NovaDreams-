@@ -105,6 +105,7 @@ func _run_all() -> void:
 	await t_combo_logic()
 	await t_flow()
 	await t_camera()
+	await t_spanish_names()
 	await t_respawn_repeat()
 	await t_modes()
 
@@ -685,6 +686,27 @@ func t_flow() -> void:
 	game.flow.reset()
 	await _run_at_obstacle(Vector3(0, 0.1, 2), 0.8, false, -4.85)
 	check("Flow en juego: el vault real lo sube y aparece en el HUD", game.flow.value > 5.0 and game.ui.flow_label.text.begins_with("FLOW"), "flow %.1f · %s" % [game.flow.value, game.ui.flow_label.text])
+
+func t_spanish_names() -> void:
+	var missing := []
+	for pn in 4:
+		for rn in 3:
+			for sn in 3:
+				for th in 7:
+					for back in [true, false]:
+						for mv in [true, false]:
+							for wall in [true, false]:
+								for st in ["", "cork", "aerial", "kick", "cartwheel", "roundoff", "bhs", "fhs"]:
+									for kind in ["", "vault", "ledge"]:
+										var n: String = TrickSystem.trick_name(pn, rn, sn, th, back, mv, wall, st, kind, "Kong Vault" if kind == "vault" else "")
+										if n != "" and MoveNames.es(n) == n and not n in missing:
+											missing.append(n)
+	for n in ["Speed Vault", "Lazy Vault", "Step Vault", "Kong Vault", "Dash Vault", "Wall Run", "Tic Tac", "Cat Leap",
+			"Ledge Grab", "Precision Jump", "Safety Roll", "Roll", "Wall Jump", "Wall Climb", "Climb Up", "Mantle", "Step Up"]:
+		if MoveNames.es(n) == n:
+			missing.append(n)
+	check("Nombres en español: todos los trucos y movimientos tienen traducción", missing.is_empty(), str(missing))
+	check("Nombres en español: ejemplos", MoveNames.es("Backflip") == "Mortal atrás" and MoveNames.es("Round-off") == "Rondada" and MoveNames.es("Back Handspring") == "Flic-flac", "")
 
 func t_camera() -> void:
 	var touch: TouchControls = game.ui.touch

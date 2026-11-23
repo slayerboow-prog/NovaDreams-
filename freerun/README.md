@@ -84,6 +84,8 @@ El `InputIntent` es la frontera entre dispositivos y personaje: replays, ghosts 
 
 ## Biblioteca de movimientos
 
+En el juego los nombres se muestran en español (Mortal atrás, Rondada, Flic-flac, Salto de gato…); `scripts/core/move_names.gd` guarda la traducción y por dentro se usa el nombre original.
+
 `scripts/core/move_library.gd` (en el juego: Pausa → Movimientos) cataloga 102 técnicas en 17 categorías: vaults, precision, paredes, escalada, barras, rolls, mortales, laterales, aerials y websters, gainers, corks, butterfly y patadas, handsprings, ruedas y rondadas, suelo, combos y avanzados.
 
 - **Estado**: 61 hechas (impulso, trayectoria y postura propias, con prueba), 14 parciales (se reconocen y rotan bien, pero comparten postura con su familia) y 27 pendientes (cada una con el motivo; las de barra necesitan barras en el mapa).

@@ -44,11 +44,11 @@ const TUTORIAL := [
 	["Corre: inclina el joystick izquierdo (a fondo = sprint)", ["@run"]],
 	["Mueve la cámara: arrastra en una zona libre (doble toque = detrás del atleta)", ["@camera"]],
 	["Pulsa SALTO", ["@air"]],
-	["SALTO y joystick derecho ↓ = Backflip (más inclinado = más agrupado)", ["Backflip", "Gainer"]],
-	["SALTO y joystick derecho ↑ = Frontflip", ["Frontflip", "Webster"]],
-	["Joystick derecho ← o → en el suelo, sin SALTO = Cartwheel", ["Cartwheel"]],
-	["Joystick derecho ↓ en el suelo = Back Handspring", ["Back Handspring"]],
-	["Joystick derecho ↙ en el suelo y al caer SALTO + ↓ = Round-off → Backflip", ["@roundoff_back"]],
+	["SALTO y joystick derecho ↓ = Mortal atrás (más inclinado = más agrupado)", ["Backflip", "Gainer"]],
+	["SALTO y joystick derecho ↑ = Mortal adelante", ["Frontflip", "Webster"]],
+	["Joystick derecho ← o → en el suelo, sin SALTO = Rueda", ["Cartwheel"]],
+	["Joystick derecho ↓ en el suelo = Flic-flac", ["Back Handspring"]],
+	["Joystick derecho ↙ en el suelo y al caer SALTO + ↓ = Rondada → Mortal atrás", ["@roundoff_back"]],
 	["Corre hacia un obstáculo y pulsa VAULT", ["@vault"]],
 	["Salta hacia un borde alto y pulsa AGARRAR", ["Ledge Grab", "Cat Leap", "Mantle"]],
 	["Pulsa RODAR justo antes de caer desde alto (o corriendo)", ["Safety Roll", "Roll"]],
@@ -277,7 +277,7 @@ func update_hud(combo: ComboSystem, player: PlayerController, mode_status: Strin
 	if combo.active:
 		combo_value.text = str(combo.current_value())
 		combo_mult.text = "x%.1f" % combo.multiplier + ("   +%d%% velocidad" % int(combo.speed_bonus() * 100) if combo.speed_bonus() > 0.01 else "")
-		var tail := combo.chain.slice(maxi(0, combo.chain.size() - 5))
+		var tail: Array = combo.chain.slice(maxi(0, combo.chain.size() - 5)).map(func(n): return MoveNames.es(n))
 		combo_chain.text = ("… › " if combo.chain.size() > 5 else "") + " › ".join(tail)
 	else:
 		combo_value.text = ""

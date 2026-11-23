@@ -55,8 +55,8 @@ var cam_used := false                 # ya se ha movido la cámara: la indicaci�
 
 const FLICK_TIME := 0.22              # en el suelo: un gesto rápido es acrobacia, lento es cámara
 const FLICK_PX := 48.0
-const PAD_LABELS := {0: "LATERAL", 1: "FRONT FULL", 2: "FRONT", 3: "AERIAL", 4: "LATERAL",
-	-1: "CORK", -2: "BACK", -3: "CORK"}
+const PAD_LABELS := {0: "LATERAL", 1: "ADEL.+GIRO", 2: "ADELANTE", 3: "RUEDA AÉREA", 4: "LATERAL",
+	-1: "SACACORCHOS", -2: "ATRÁS", -3: "SACACORCHOS"}
 
 func _ready() -> void:
 	set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
@@ -516,7 +516,7 @@ func _draw() -> void:
 			_label(font, hc + Vector2(0, 36 * s), "Joystick derecho en el suelo = rueda, rondada, flic-flac · VAULT · AGARRAR · RODAR", 24 * s, Color(1, 1, 1, ha))
 			_label(font, hc + Vector2(0, 72 * s), "Biblioteca de movimientos y tutorial: menú de pausa", 24 * s, Color(1, 1, 1, ha))
 			return
-		_label(font, hc, "Pulsa SALTO y desliza: abajo back, arriba front, lados lateral", 24 * s, Color(1, 1, 1, ha))
+		_label(font, hc, "Pulsa SALTO y desliza: abajo mortal atrás, arriba adelante, lados lateral", 24 * s, Color(1, 1, 1, ha))
 		_label(font, hc + Vector2(0, 36 * s), "Desliza dos veces igual = doble mortal; en la cruceta, toca dos veces", 24 * s, Color(1, 1, 1, ha))
 		_label(font, hc + Vector2(0, 72 * s), "SALTO otra vez en el aire = giro 360 (o tirabuzón durante un mortal)", 24 * s, Color(1, 1, 1, ha))
 	# Rastro del gesto
@@ -582,7 +582,9 @@ func _draw_rot_stick(font: Font, s: float, a: float, white: Color, dark: Color, 
 		var d := sector_dir(sec)
 		var lbl: String = PAD_LABELS[sec]
 		var fs := (13.0 if sec % 2 != 0 else 17.0)
-		_label(font, base + Vector2(d.x, -d.y) * rr * 0.845, lbl, fs * s, white)
+		if lbl.length() > 9:
+			fs = 11.0                     # nombres largos en español (SACACORCHOS, RUEDA AÉREA)
+		_label(font, base + Vector2(d.x, -d.y) * rr * 0.83, lbl, fs * s, white)
 	draw_arc(base, rr, 0, TAU, 64, Color(white, white.a * 0.8), 3.0 * s, true)
 	# Mando
 	var knob := base + Vector2(_rot_vec.x, -_rot_vec.y) * _rot_travel()

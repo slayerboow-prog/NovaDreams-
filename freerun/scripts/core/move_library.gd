@@ -143,6 +143,10 @@ const MOVES := [
 	{"name": "Palm Spin Gainer · Cast Gainer", "cat": "Avanzados", "lvl": 3, "input": "-", "status": "pendiente"},
 ]
 
+const CATEGORY_ES := {"Vaults": "Pasavallas (vaults)", "Precision": "Precisión",
+	"Rolls y recepciones": "Volteretas y recepciones", "Aerials y Websters": "Ruedas sin manos y websters",
+	"Gainers": "Mortales atrás en carrera (gainers)", "Corks": "Sacacorchos (corks)",
+	"Butterfly y patadas": "Mariposas y patadas", "Handsprings": "Flic-flacs y palomas"}
 const LEVELS := ["", "Documentado", "Implementado", "Probado técnicamente", "Inspeccionado visualmente", "Validado en móvil"]
 ## Revisados en capturas/vídeo de la partida (fotogramas de las fases del movimiento).
 const VISUALLY_INSPECTED := ["Backflip / Back Tuck", "Frontflip / Front Tuck", "Double Backflip", "Sideflip",
@@ -184,12 +188,14 @@ static func bbcode() -> String:
 	t += "[color=#aaaaaa]SALTO · VAULT · AGARRAR · RODAR · JD = joystick derecho · JI = joystick izquierdo[/color]\n"
 	var groups := by_category()
 	for c in CATEGORIES:
-		t += "\n[b][color=#2fd9c6]%s[/color][/b]\n" % c
+		t += "\n[b][color=#2fd9c6]%s[/color][/b]\n" % CATEGORY_ES.get(c, c)
 		for m in groups[c]:
 			var col: String = {"ok": "#5fe08a", "parcial": "#f2c14e", "pendiente": "#999999"}[m.status]
-			var line := "[color=%s]●[/color] [b]%s[/b]  [color=#888888]nivel %d · %d/5 %s[/color]" % [col, m.name, m.lvl, validation(m), LEVELS[validation(m)]]
+			var es_name := MoveNames.es_text(m.name)
+			var orig := ("  [color=#777777](%s)[/color]" % m.name) if es_name != m.name else ""
+			var line := "[color=%s]●[/color] [b]%s[/b]%s  [color=#888888]nivel %d · %d/5 %s[/color]" % [col, es_name, orig, m.lvl, validation(m), LEVELS[validation(m)]]
 			if m.status != "pendiente":
-				line += "\n     " + m.input
+				line += "\n     " + MoveNames.es_phrase(m.input)
 			elif m.has("note"):
 				line += "  [color=#888888](%s)[/color]" % m.note
 			t += line + "\n"
