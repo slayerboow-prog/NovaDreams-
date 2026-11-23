@@ -58,6 +58,10 @@ func _ready() -> void:
 	await trick("Cork 720", [Vector2(-0.7, -0.7), Vector2(-1, 0)], true, "tap")
 	await trick("Double Backflip", [Vector2(0, -1)], false, "double")
 	await trick("Double Cork", [Vector2(0.7, -0.7)], true, "double")
+	# Nuevos: SALTO otra vez en el aire (Vector2.ZERO) = giro / tirabuzón completo
+	await trick("360 Kick", [Vector2.ZERO], false, "tap")
+	await trick("Back Full", [Vector2(0, -1), Vector2.ZERO], false, "tap")
+	await trick("Gainer Full", [Vector2(0, -1), Vector2.ZERO], true, "tap")
 
 	var failed := 0
 	print("\n========== ACEPTACIÓN DE ACROBACIAS (ruta táctil real) ==========")
@@ -160,15 +164,27 @@ func trick(name: String, swipes: Array, running: bool, hold: String) -> void:
 	var pos := jc
 	# Desliza el mismo dedo (primer gesto)
 	var d0: Vector2 = swipes[0]
-	for k in 4:
-		var step := Vector2(d0.x, -d0.y).normalized() * 18.0 * touch._s()
-		pos += step
-		_drag(1, pos, step)
+	if d0 == Vector2.ZERO:
+		_touch(1, pos, false)                             # salto sin truco; el giro llega con otro toque
+		await frames(8)
+		_touch(3, jc, true)
 		await frames(1)
+		_touch(3, jc, false)
+	else:
+		for k in 4:
+			var step := Vector2(d0.x, -d0.y).normalized() * 18.0 * touch._s()
+			pos += step
+			_drag(1, pos, step)
+			await frames(1)
 	# Gestos adicionales con el mismo dedo (tirabuzón)
 	for si in range(1, swipes.size()):
 		await frames(6)
 		var dv: Vector2 = swipes[si]
+		if dv == Vector2.ZERO:
+			_touch(3, jc, true)                           # segundo toque de SALTO (otro dedo)
+			await frames(1)
+			_touch(3, jc, false)
+			continue
 		for k in 4:
 			var step := Vector2(dv.x, -dv.y).normalized() * 20.0 * touch._s()
 			pos += step
@@ -192,6 +208,8 @@ func trick(name: String, swipes: Array, running: bool, hold: String) -> void:
 		if absf(up.dot(Vector3.UP)) < 0.45:
 			horizontal = true
 		max_rot = maxf(max_rot, maxf(absf(tr.total_pitch), maxf(absf(tr.total_roll), absf(tr.total_spin))))
+		if name.ends_with("Kick") and not name.begins_with("Butterfly"):
+			max_rot = maxf(max_rot, absf(tr.total_twist))
 		peak = maxf(peak, player.global_position.y)
 		if player.state == PlayerController.State.AIR:
 			left_ground = true
@@ -215,11 +233,15 @@ func trick(name: String, swipes: Array, running: bool, hold: String) -> void:
 	var tag := "[%s] " % name
 	check(tag + "despega con impulso (sube > 1 m)", left_ground and peak - y0 > 1.0, "altura %.2f" % (peak - y0))
 	check(tag + "rotación completa (%d°)" % int(rad_to_deg(need_rot) + 10), max_rot >= need_rot, "%d°" % int(rad_to_deg(max_rot)))
-	if name.begins_with("Butterfly"):
+	if name == "360 Kick":
+		check(tag + "gira en vertical (sin ponerse boca abajo)", not inverted, "")
+	elif name.begins_with("Butterfly"):
 		check(tag + "cuerpo en horizontal visible", horizontal, "")
 	else:
 		check(tag + "pasa boca abajo (visible)", inverted, "")
 	var need_phases := ["impulso", "apertura"]
+	if name == "360 Kick":
+		need_phases = ["apertura"]
 	var ph_ok := need_phases.all(func(x): return phases.has(x)) and (phases.has("agrupado") or phases.has("agrupando"))
 	check(tag + "fases visibles: impulso, agrupación, apertura", ph_ok, str(phases.keys()))
 	var shape_ok := false
@@ -229,6 +251,12 @@ func trick(name: String, swipes: Array, running: bool, hold: String) -> void:
 			shape_ok = max_split > 1.5; shape_txt = "piernas abiertas en rueda %.2f" % max_split
 		"Butterfly Kick":
 			shape_ok = max_scissor > 1.2; shape_txt = "patada de tijera %.2f" % max_scissor
+		"Sideflip":
+			shape_ok = max_tuck > 2.4; shape_txt = "bola cerrada (cadera %.2f rad)" % max_tuck
+		"360 Kick":
+			shape_ok = max_split > 0.7 and kinds.has("kick"); shape_txt = "patada abierta en el giro %.2f" % max_split
+		"Back Full", "Gainer Full":
+			shape_ok = max_tuck > 0.9; shape_txt = "semiagrupado con brazos cerrados %.2f" % max_tuck
 		"Gainer":
 			shape_ok = max_lead > 2.2 and max_tuck > 1.5; shape_txt = "agrupado a una pierna %.2f/%.2f" % [max_lead, max_tuck]
 		"Webster":

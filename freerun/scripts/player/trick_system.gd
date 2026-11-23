@@ -32,10 +32,12 @@ var spotting := false                # preparando el aterrizaje
 var style := ""                      # back, front, side, cork, butterfly
 var twist_period := TAU              # cork: vueltas completas; tirabuzón añadido: medias vueltas
 var takeoff_kind := "run"            # run, stand, wall, vault, ledge
+var takeoff_detail := ""             # vault concreto (Kong Vault...) o pared (wallrun, wallclimb, tictac)
 var takeoff_speed := 0.0
 var air_time := 0.0
 var max_height := 0.0
 var _new_axes: Array[String] = []
+var _recal: Array[String] = []       # ejes con más vueltas pedidas: recalibrar velocidad
 
 # Compatibilidad con el resto del código
 var pitch_rate: float:
@@ -73,10 +75,12 @@ func reset(kind := "run", speed := 0.0) -> void:
 	style = ""
 	twist_period = TAU
 	takeoff_kind = kind
+	takeoff_detail = ""
 	takeoff_speed = speed
 	air_time = 0.0
 	max_height = 0.0
 	_new_axes.clear()
+	_recal.clear()
 
 func has_rotation() -> bool:
 	if not active:
@@ -152,6 +156,31 @@ func apply_flick(d: Vector2) -> void:
 	flicks += 1
 	active = true
 
+## Giro sobre el eje largo con el cuerpo vertical (patadas giratorias 360/540/720...).
+## Sin acrobacia en curso: empieza un giro de 360 (cada toque más suma media vuelta).
+## Durante un mortal: añade un tirabuzón completo (Back Full, Front Full, Gainer Full...).
+func apply_kick(d := 1) -> void:
+	var any := false
+	for ax in AXES:
+		if dir[ax] != 0:
+			any = true
+	if not any:
+		style = "kick"
+		twist_period = PI
+		_start_axis("twist", d)
+		goal.twist = 2
+	elif dir.twist == 0:
+		twist_period = PI
+		_start_axis("twist", d)
+		goal.twist = 2
+	else:
+		goal.twist += 1
+		settled.twist = false
+		if not _recal.has("twist"):
+			_recal.append("twist")
+	flicks += 1
+	active = true
+
 func step(dt: float, held: bool, time_left: float, assist: float, t: MoveTuning) -> void:
 	air_time += dt
 	tucked = held and active
@@ -172,6 +201,15 @@ func step(dt: float, held: bool, time_left: float, assist: float, t: MoveTuning)
 		base[ax] = lerpf(pro, cal, assist)
 		rate[ax] = dir[ax] * base[ax] * 0.7         # impulso inicial
 	_new_axes.clear()
+	# Más vueltas pedidas en el aire: acelera lo justo para completarlas antes de aterrizar
+	for ax in _recal:
+		var per := twist_period if ax == "twist" else TAU
+		var left: float = goal[ax] * per - absf(total[ax])
+		var need := left / maxf(time_left * 0.75, 0.05)
+		var cap := (t.twist_rate_max if ax == "twist" else t.flip_rate_max) * 1.6
+		base[ax] = clampf(maxf(base[ax], need), 0.0, cap)
+		rate[ax] = dir[ax] * maxf(absf(rate[ax]), base[ax] * 0.9)
+	_recal.clear()
 
 	var hold_mult := t.tuck_mult
 	var open_mult := lerpf(t.open_mult_pro, 0.92, assist)
@@ -251,48 +289,89 @@ func counts() -> Dictionary:
 		"th": int(floor((absf(total.twist) + deg_to_rad(40.0)) / PI)),
 	}
 
-static func trick_name(pn: int, rn: int, sn: int, th: int, back: bool, moving: bool, wall: bool) -> String:
+static func trick_name(pn: int, rn: int, sn: int, th: int, back: bool, moving: bool, wall: bool,
+		st := "", kind := "", detail := "") -> String:
+	var cork := st == "cork"
+	var vaulted := kind == "vault"
 	if pn >= 1:
 		if back:
 			if th == 0:
 				if pn == 1:
-					if wall: return "Wall Flip"
+					if wall:
+						return "Wall Flip" if detail in ["wallclimb", ""] else "Wall Gainer"
+					if vaulted:
+						if detail.begins_with("Kong") or detail in ["Double Kong", "Kash Vault"]:
+							return "Kong Gainer"
+						if detail == "Dash Vault": return "Dash Gainer"
+						return "Vault Gainer"
+					if kind == "ledge": return "Ledge Backflip"
 					return "Gainer" if moving else "Backflip"
 				if pn == 2:
 					return "Double Gainer" if moving else "Double Backflip"
 				return "Triple Backflip"
-			if th == 1:
-				return "Cheat Gainer" if moving else "Back Half"
+			if cork:
+				if pn >= 3: return "Triple Cork"
+				if pn == 2: return "Double Cork"
+				if th >= 6: return "Cork 1080"
+				if th >= 4: return "Cork 720"
+				return "Cork" if th <= 2 else "Cork 540"
+			if wall:
+				return "Wall Full" if th >= 2 else "Wall Half"
 			if pn >= 2:
-				return "Double Cork"
-			if th >= 4:
-				return "Cork 720"
-			return "Cork" if th == 2 else "Cork 540"
+				return "Double Full" if th >= 4 else "Full In"
+			match th:
+				1: return "Cheat Gainer" if moving else "Back Half"
+				2: return "Gainer Full" if moving else "Back Full"
+				3: return "Back 1.5"
+				_: return "Double Full"
 		if th == 0:
 			if pn == 1:
+				if wall: return "Wall Front"
+				if vaulted:
+					return "Dash Bomb" if detail == "Dash Vault" else "Kong Front"
 				return "Webster" if moving else "Frontflip"
-			return "Double Front"
-		return "Arabian" if th == 1 else "Front Full"
+			return "Double Front" if pn == 2 else "Triple Front"
+		if pn >= 2: return "Double Arabian"
+		match th:
+			1: return "Arabian"
+			2: return "Front Full"
+			3: return "Rudi"
+			_: return "Front Double Full"
 	if rn >= 1:
+		if th >= 4: return "Aerial Double Twist"
 		if th >= 2: return "Aerial Twist"
 		if th == 1: return "Raiz"
 		if rn >= 2: return "Double Aerial" if moving else "Double Sideflip"
+		if wall: return "Wall Sideflip"
 		return "Aerial" if moving else "Sideflip"
 	if sn >= 1:
 		if th >= 4: return "Butterfly Twist 720"
 		if th >= 2: return "Butterfly Twist"
 		return "Butterfly Kick" if sn == 1 else "Double Butterfly"
+	if st == "kick":
+		match th:
+			0, 1: return ""
+			2: return "Tornado Kick" if moving else "360 Kick"
+			3: return "540 Kick"
+			4: return "Cheat 720" if moving else "720 Kick"
+			5: return "900 Kick"
+			_: return "1080 Kick"
 	return ""
 
 ## Identifica el truco realizado a partir de las rotaciones acumuladas.
 func evaluate() -> Dictionary:
 	var c := counts()
-	var name := trick_name(c.pn, c.rn, c.sn, c.th, total.pitch > 0.0, takeoff_speed > 4.0, takeoff_kind == "wall")
+	var name := trick_name(c.pn, c.rn, c.sn, c.th, total.pitch > 0.0, takeoff_speed > 4.0, takeoff_kind == "wall",
+		style, takeoff_kind, takeoff_detail)
 	if name == "":
 		return {}
 	var difficulty: float = 1.0 + (c.pn - 1) * 1.8 + c.th * 0.6
 	if c.pn == 0:
 		difficulty = 0.9 + (c.rn + c.sn - 1) * 1.6 + c.th * 0.6
+	if style == "kick":
+		difficulty = 0.6 + (c.th - 2) * 0.55
+	if takeoff_kind == "vault":
+		difficulty += 0.5
 	if takeoff_speed > 4.0:
 		difficulty += 0.15
 	if takeoff_kind == "wall":
@@ -311,4 +390,5 @@ func live_name() -> String:
 		"side": return "Aerial" if takeoff_speed > 4.0 else "Sideflip"
 		"cork": return "Cork"
 		"butterfly": return "Butterfly Kick"
+		"kick": return "Tornado Kick" if takeoff_speed > 4.0 else "360 Kick"
 	return ""

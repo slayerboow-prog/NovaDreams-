@@ -20,6 +20,7 @@ class TouchFrame:
 	var tuck := false
 	var camera_delta := Vector2.ZERO
 	var respawn_pressed := false
+	var kick := false
 
 var context_label := "RODAR"
 var air_mode := false                 # lo actualiza el juego: el jugador está en el aire
@@ -184,9 +185,14 @@ func _on_touch(e: InputEventScreenTouch) -> void:
 		elif pad_enabled() and p.distance_to(_pad_center()) < hr.pad:
 			role = "pad"
 			var v := p - _pad_center()
-			var sec := sector_of(Vector2(v.x, -v.y)) if v.length() > _pad_radius() * 0.18 else -2
-			info.sector = sec
-			_emit_flick(sector_dir(sec))
+			if v.length() < _pad_radius() * 0.3:
+				# Centro = GIRO: patada giratoria 360/540/720, o tirabuzón completo durante un mortal
+				_pending.kick = true
+				_flash["kick"] = 0.35
+			else:
+				var sec := sector_of(Vector2(v.x, -v.y))
+				info.sector = sec
+				_emit_flick(sector_dir(sec))
 		elif _is_move_side(p):
 			role = "move"
 			_joy_base = p
@@ -335,6 +341,7 @@ func _draw() -> void:
 		var ha := clampf(1.0 - (_hint_time - 7.0) / 2.0, 0.0, 1.0)
 		_label(font, hc, "Pulsa SALTO y desliza: abajo back, arriba front, lados lateral", 24 * s, Color(1, 1, 1, ha))
 		_label(font, hc + Vector2(0, 36 * s), "Mantén el dedo para agruparte y girar más; suelta para abrir y aterrizar", 24 * s, Color(1, 1, 1, ha))
+		_label(font, hc + Vector2(0, 72 * s), "SALTO otra vez en el aire = giro 360 (o tirabuzón durante un mortal)", 24 * s, Color(1, 1, 1, ha))
 	# Rastro del gesto
 	if _flash.has("flick"):
 		for f in _fingers.values():
@@ -369,7 +376,8 @@ func _draw_pad(font: Font, s: float, a: float, white: Color, dark: Color, accent
 		var fs := 15.0 if lbl.length() > 5 else 18.0
 		_label(font, pc + Vector2(d.x, -d.y) * pr * 0.68, lbl, fs * s, white)
 	draw_arc(pc, pr, 0, TAU, 64, Color(white, white.a * 0.8), 3.0 * s, true)
-	_label(font, pc, "TRUCOS", 17 * s, Color(1, 1, 1, a + 0.15))
+	draw_circle(pc, pr * 0.28, accent if _flash.has("kick") else Color(1, 1, 1, a * 0.22))
+	_label(font, pc, "GIRO", 19 * s, Color(1, 1, 1, a + 0.25))
 
 func _label(font: Font, center: Vector2, text: String, fsize: float, color: Color) -> void:
 	var fs := int(fsize)

@@ -129,4 +129,5 @@ func _physics_process(_dt: float) -> void:
 		intent.tuck = intent.tuck or t.tuck
 		intent.camera_delta += t.camera_delta
 		intent.respawn_pressed = intent.respawn_pressed or t.respawn_pressed
+		intent.kick = intent.kick or t.kick
 	intent.move = mv.limit_length(1.0)

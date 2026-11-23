@@ -23,12 +23,14 @@ Atajos: `godot --path freerun -- --mode=freerun` salta el menú (`tricking`, `wa
   Con carrera: Gainer, Webster y Aerial.
 - **Mantén el dedo** = agruparse y girar más rápido (dobles). **Suelta** = abrirse y preparar el aterrizaje.
 - Durante el mortal, **otro deslizamiento lateral** añade tirabuzón (Backflip → Cheat Gainer, Cork → Cork 720).
-- **Cruceta TRUCOS**: lo mismo con botones (pulsar = truco, mantener = agruparse, arrastrar a un lado = tirabuzón).
+- **Vuelve a pulsar SALTO en el aire** (o el centro **GIRO** de la cruceta): sin mortal = patada giratoria (360 Kick / Tornado Kick, cada toque suma media vuelta: 540 Kick, 720 Kick / Cheat 720, 900, 1080); durante un mortal = tirabuzón completo (Back Full, Gainer Full, Front Full, Double Full, Full In...).
+- **Gesto justo antes de un vault**: lateral = Reverse Vault; en caja de kong ↑ = Double Kong, ↓ = Kash Vault. Gesto durante el vault = mortal al salir (Kong Gainer, Dash Bomb, Kong Front...).
+- **Cruceta TRUCOS**: lo mismo con botones (pulsar = truco, mantener = agruparse, arrastrar a un lado = tirabuzón, centro = GIRO).
 - **Zona derecha**: en el suelo mueve la cámara; en el aire controla el cuerpo.
 - **RODAR**: pulsar justo antes de caer desde alto (Safety Roll). **↻**: reaparecer.
 - Indicador en el aire: nombre del truco, grados y dial (zona verde = vertical para aterrizar).
 
-**Teclado**: WASD + Shift · Espacio salto (mantener: wall run) · Flechas = acrobacias (mantener = agruparse) · Ctrl rodar · R reaparecer.
+**Teclado**: WASD + Shift · Espacio salto (mantener: wall run; otra vez en el aire = giro) · Flechas = acrobacias (mantener = agruparse) · Ctrl rodar · R reaparecer.
 
 Ajustes: ayuda de rotación (Alta / Media / Pro), controles de trucos (gestos + cruceta / solo gestos / solo cruceta), tamaño de controles, distancia de cámara, opacidad, sensibilidad de cámara y de gestos, y modo zurdo.
 
@@ -69,3 +71,13 @@ El `InputIntent` es la frontera entre dispositivos y personaje: replays, ghosts 
 - **Android**: Godot → Editor → Manage Export Templates; configura el SDK de Android y JDK 17 en Editor Settings; Project → Export → Android.
 - **Web**: preset "Web" sin hilos (compatible con Safari/iOS y GitHub Pages). Se publica sola al subir cambios a `main`.
 - **iOS**: requiere macOS con Xcode. Project → Export → iOS genera un proyecto Xcode que se firma y compila en el Mac.
+
+## Trucos reconocidos
+
+- **Mortales atrás**: Backflip, Gainer, Double Backflip/Gainer, Triple Backflip, Back Half, Cheat Gainer, Back Full, Gainer Full, Back 1.5, Double Full, Full In, Cork, Cork 540, Cork 720, Cork 1080, Double Cork, Triple Cork.
+- **Mortales adelante**: Frontflip, Webster, Double/Triple Front, Arabian, Front Full, Rudi, Front Double Full, Double Arabian.
+- **Laterales**: Sideflip (bola cerrada), Aerial, Double Sideflip/Aerial, Raiz, Aerial Twist, Aerial Double Twist.
+- **Butterfly**: Butterfly Kick, Double Butterfly, Butterfly Twist, Butterfly Twist 720.
+- **Patadas giratorias**: 360 Kick, Tornado Kick, 540 Kick, 720 Kick, Cheat 720, 900 Kick, 1080 Kick.
+- **Desde pared y vault**: Wall Flip, Wall Gainer, Wall Front, Wall Full, Wall Half, Wall Sideflip, Kong Gainer, Dash Gainer, Vault Gainer, Dash Bomb, Kong Front, Ledge Backflip.
+- **Parkour**: Speed, Kong, Double Kong, Kash, Dash, Lazy, Reverse, Step Vault, Step Up, Climb Up, Wall Run, Tic Tac, Wall Climb, Cat Leap, Mantle, Shimmy, Precision Jump, Drop Landing, Safety Roll.
