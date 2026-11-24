@@ -1498,13 +1498,13 @@ func _draw_rot_stick(font: Font, s: float, a: float, white: Color, dark: Color, 
 		_pill(font, base + Vector2(rr + 30 * s, 0), "RUEDA", 13 * s, Neon.PURPLE, la)
 		if not salto_pages_enabled():
 			_pill(font, base + Vector2(rr * 0.78, -rr * 0.86), "MACACO arco", 11 * s, Neon.PURPLE, la)
-	else:
+	elif not salto_pages_enabled():
 		_label(font, base + Vector2(0, -rr * 0.82), "¼ · ½ · 1", 14 * s, Color(1, 1, 1, white.a * 0.8))
 	if not ring_enabled():
 		_label(font, base + Vector2(0, rr + 18 * s), "suelo: soltar · mantener · arco", 13 * s, Color(1, 1, 1, white.a * 0.75))
 	if salto_pages_enabled():
 		var la2 := clampf(a + 0.35, 0.5, 1.0)
-		_label(font, base + Vector2(0, -rr - (40.0 if not air_mode else 14.0) * s), "TIRABUZONES: dibuja círculos", 13 * s, Color(Neon.PURPLE.lightened(0.35), la2))
+		_label(font, base + Vector2(0, rr + (38.0 if not air_mode else 16.0) * s), "TIRABUZONES: dibuja círculos", 13 * s, Color(Neon.PURPLE.lightened(0.35), la2))
 	draw_arc(base, rr, 0, TAU, 64, Color(Neon.PURPLE, al) if neon else Color(white, white.a * 0.8), (rr * 0.05) if neon else 3.0 * s, true)
 	# Mando (modo gestos: sigue al dedo dentro del joystick)
 	var knob := base + Vector2(_rot_vec.x, -_rot_vec.y) * _rot_travel()
