@@ -380,7 +380,7 @@ func _process(dt: float) -> void:
 
 ## Punto de agarre en la espinilla (delante del hueso, algo por debajo de la rodilla).
 func shin_grip(side: String) -> Vector3:
-	return (joints["knee_" + side] as Node3D).global_transform * Vector3(0.0, -0.15, -0.1)
+	return (joints["knee_" + side] as Node3D).global_transform * Vector3(0.0, -0.25, -0.095)
 
 ## Las manos rodean y agarran las espinillas (IK de brazo); los codos se abren hacia fuera.
 func _grab_shins(w: float) -> void:
@@ -743,8 +743,8 @@ func _gather_pose(kind: String, rs: float, ph: float) -> Dictionary:
 	match kind:
 		"front":
 			# Agrupado cerrado, cabeza metida, manos abrazando las espinillas
-			return {"spine": Vector3(-1.0, 0, 0), "neck": Vector3(-0.65, 0, 0),
-				"hip_l": Vector3(2.55, 0, -0.08), "hip_r": Vector3(2.5, 0, 0.08), "knee_l": Vector3(-2.65, 0, 0), "knee_r": Vector3(-2.6, 0, 0),
+			return {"spine": Vector3(-1.1, 0, 0), "neck": Vector3(-0.75, 0, 0),
+				"hip_l": Vector3(2.8, 0, -0.06), "hip_r": Vector3(2.78, 0, 0.06), "knee_l": Vector3(-2.85, 0, 0), "knee_r": Vector3(-2.82, 0, 0),
 				"shoulder_l": Vector3(0.75, 0, 0.12), "shoulder_r": Vector3(0.75, 0, -0.12),
 				"elbow_l": Vector3(1.75, 0, 0), "elbow_r": Vector3(1.75, 0, 0)}
 		"webster":
@@ -757,9 +757,9 @@ func _gather_pose(kind: String, rs: float, ph: float) -> Dictionary:
 		"side":
 			# Sideflip real: bola cerrada. Rodillas al pecho, talones a los glúteos, manos
 			# agarrando las rodillas y cabeza metida; la pierna de atrás sube primero.
-			return {"spine": Vector3(-0.85, 0, 0.15 * rs), "neck": Vector3(-0.4, 0, 0.2 * rs),
-				"hip_l": Vector3(2.7, 0, 0.1 * rs), "hip_r": Vector3(2.65, 0, 0.1 * rs),
-				"knee_l": Vector3(-2.75, 0, 0), "knee_r": Vector3(-2.75, 0, 0),
+			return {"spine": Vector3(-0.95, 0, 0.15 * rs), "neck": Vector3(-0.55, 0, 0.2 * rs),
+				"hip_l": Vector3(2.8, 0, 0.08 * rs), "hip_r": Vector3(2.78, 0, 0.08 * rs),
+				"knee_l": Vector3(-2.85, 0, 0), "knee_r": Vector3(-2.85, 0, 0),
 				"shoulder_l": Vector3(1.15, 0, 0.18), "shoulder_r": Vector3(1.15, 0, -0.18),
 				"elbow_l": Vector3(1.05, 0, 0), "elbow_r": Vector3(1.05, 0, 0)}
 		"aerial":
@@ -837,8 +837,8 @@ func _gather_pose(kind: String, rs: float, ph: float) -> Dictionary:
 				"hip_l": Vector3(-0.5, 0, 0), "hip_r": Vector3(-0.15, 0, 0),
 				"knee_l": Vector3(-0.1, 0, 0), "knee_r": Vector3(-0.15, 0, 0)}
 	# Backflip: rodillas al pecho, talones a los glúteos, manos a las espinillas, espalda redonda
-	return {"spine": Vector3(-0.78, 0, 0), "neck": Vector3(0.1, 0, 0),
-		"hip_l": Vector3(2.6, 0, -0.1), "hip_r": Vector3(2.55, 0, 0.1), "knee_l": Vector3(-2.7, 0, 0), "knee_r": Vector3(-2.65, 0, 0),
+	return {"spine": Vector3(-0.92, 0, 0), "neck": Vector3(-0.25, 0, 0),
+		"hip_l": Vector3(2.8, 0, -0.07), "hip_r": Vector3(2.76, 0, 0.07), "knee_l": Vector3(-2.85, 0, 0), "knee_r": Vector3(-2.82, 0, 0),
 		"shoulder_l": Vector3(1.0, 0, -0.12), "shoulder_r": Vector3(1.0, 0, 0.12),
 		"elbow_l": Vector3(1.35, 0, 0), "elbow_r": Vector3(1.35, 0, 0)}
 
