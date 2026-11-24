@@ -47,9 +47,10 @@ const TUTORIAL := [
 	["Botón ATRÁS = Mortal atrás (mantén el botón = agrupado)", ["Backflip", "Gainer"]],
 	["Botón ADELANTE = Mortal adelante", ["Frontflip", "Webster"]],
 	["Botón LATERAL corriendo = Mortal lateral (se pone de lado y avanza girando)", ["Sideflip"]],
-	["Botón DOBLE ATRÁS = Doble mortal atrás", ["Double Backflip", "Double Gainer"]],
+	["Mantén ATRÁS pulsado: sigue girando = Doble mortal atrás", ["Double Backflip", "Double Gainer"]],
 	["En un mortal, joystick GIRO a un lado: suéltalo en ¼ (híper), ½ o 1 giro", ["@twist"]],
-	["Corre, botón ATRÁS y GIRO una vuelta = Sacacorchos", ["Cork", "Cork 540", "Cork 720"]],
+	["Botón ATRÁS y GIRO una vuelta = Piru (mortal atrás con tirabuzón)", ["Piru", "Piru 540", "Piru 720"]],
+	["Botón CORK: 3 pasos en C y patada al balón = Sacacorchos", ["Cork", "Cork 540", "Cork 720"]],
 	["Botón RUEDA = Rueda con apoyo de manos", ["Cartwheel"]],
 	["Botón FLIC-FLAC = Flic-flac: apoyo de manos", ["Back Handspring"]],
 	["Botón RONDADA y, al recibir (¡ENLAZA!), botón ATRÁS = Mortal atrás con rebote", ["@roundoff_back"]],
@@ -235,7 +236,7 @@ func _build_hud() -> void:
 	hud.add_child(fps_label)
 
 	help_label = _label("WASD mover · Shift sprint · Espacio saltar (mantener: wall run) · Ctrl rodar\n" +
-		"Flechas: acrobacias (↓ back · ↑ front · ←→ lateral · diagonal = tirabuzón; mantener = agruparse)\n" +
+		"Flechas: acrobacias (abajo back · arriba front · lados lateral · diagonal = tirabuzón; mantener = agruparse)\n" +
 		"Ratón: cámara (clic para capturar) · R reaparecer · Esc pausa", 15, Color(1, 1, 1, 0.75))
 	help_label.set_anchors_preset(Control.PRESET_BOTTOM_LEFT)
 	help_label.position = Vector2(20, -80)
@@ -309,7 +310,7 @@ func show_landing(text: String, color: Color) -> void:
 	_landing_time = 1.1
 
 func popup(text: String, color := Color.WHITE) -> void:
-	var l := _label(text, 28, color, HORIZONTAL_ALIGNMENT_CENTER)
+	var l := _label(MoveNames.safe(text), 28, color, HORIZONTAL_ALIGNMENT_CENTER)
 	popups.add_child(l)
 	while popups.get_child_count() > 4:
 		popups.get_child(0).queue_free()
@@ -391,7 +392,7 @@ func _build_library() -> void:
 	text.custom_minimum_size = Vector2(980, 0)
 	text.add_theme_font_size_override("normal_font_size", 19)
 	text.add_theme_font_size_override("bold_font_size", 20)
-	text.text = MoveLibrary.bbcode()
+	text.text = MoveNames.safe(MoveLibrary.bbcode())
 	scroll.add_child(text)
 	box.add_child(_button("Volver", func(): library_panel.visible = false))
 	library_panel.visible = false
@@ -413,13 +414,13 @@ func _refresh_tutorial() -> void:
 		return
 	tutorial_label.visible = tutorial_step >= 0
 	if tutorial_step >= 0:
-		tutorial_label.text = "TUTORIAL %d/%d   %s" % [tutorial_step + 1, TUTORIAL.size(), TUTORIAL[tutorial_step][0]]
+		tutorial_label.text = MoveNames.safe("TUTORIAL %d/%d   %s" % [tutorial_step + 1, TUTORIAL.size(), TUTORIAL[tutorial_step][0]])
 
 func _tutorial_advance() -> void:
 	tutorial_step += 1
 	if tutorial_step >= TUTORIAL.size():
 		tutorial_step = -1
-		popup("¡Tutorial completado! Biblioteca completa en Pausa → Movimientos", ACCENT)
+		popup("¡Tutorial completado! Biblioteca completa en Pausa › Movimientos", ACCENT)
 	else:
 		popup("¡Bien!", ACCENT)
 	_refresh_tutorial()

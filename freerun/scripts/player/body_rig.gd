@@ -21,6 +21,9 @@ var _tilt := Basis()
 var _yaw := 0.0
 var _serial := -1
 var _prev_spd := 0.0
+var grab_w := 0.0                 # agrupado: cuánto se agarran las manos a las espinillas (IK)
+var wrap_w := 0.0                 # tirabuzón: brazos cruzados pegados al pecho (IK)
+const GRAB_KINDS := ["back", "front", "side", "gainer"]
 var _accel := 0.0                 # aceleración suavizada (inclinación al arrancar/frenar)
 # Apoyos (IK): punto del suelo donde está plantada cada mano/pie y peso del apoyo
 var plants := {}
@@ -38,8 +41,13 @@ const SOLE := 0.05
 const COL_HOODIE := Color(0.12, 0.72, 0.68)
 const COL_HOODIE_DARK := Color(0.08, 0.5, 0.48)
 const COL_PANTS := Color(0.16, 0.17, 0.21)
+const COL_PANTS_DARK := Color(0.11, 0.12, 0.15)
 const COL_SKIN := Color(0.86, 0.66, 0.52)
+const COL_SKIN_DARK := Color(0.74, 0.54, 0.42)
+const COL_HAIR := Color(0.16, 0.11, 0.08)
+const COL_EYE := Color(0.08, 0.07, 0.07)
 const COL_SHOES := Color(1.0, 0.45, 0.15)
+const COL_SOLE := Color(0.95, 0.95, 0.92)
 const COL_CAP := Color(0.95, 0.95, 0.92)
 
 func setup(p: PlayerController) -> void:
@@ -52,10 +60,15 @@ func setup(p: PlayerController) -> void:
 	pivot.add_child(body)
 	_build()
 
+var _mats := {}
 func _mat(c: Color, rough := 0.7) -> StandardMaterial3D:
+	var key := "%s_%.2f" % [c.to_html(), rough]
+	if _mats.has(key):
+		return _mats[key]
 	var m := StandardMaterial3D.new()
 	m.albedo_color = c
 	m.roughness = rough
+	_mats[key] = m
 	return m
 
 func _joint(name: String, parent: Node3D, pos: Vector3) -> Node3D:
@@ -67,77 +80,119 @@ func _joint(name: String, parent: Node3D, pos: Vector3) -> Node3D:
 	pose[name] = Vector3.ZERO
 	return j
 
-func _capsule(parent: Node3D, radius: float, length: float, color: Color, offset := Vector3.ZERO) -> MeshInstance3D:
+func _capsule(parent: Node3D, radius: float, length: float, color: Color, offset := Vector3.ZERO, scl := Vector3.ONE, rot := Vector3.ZERO, rough := 0.75) -> MeshInstance3D:
 	var mi := MeshInstance3D.new()
 	var m := CapsuleMesh.new()
 	m.radius = radius
 	m.height = maxf(length, radius * 2.0)
-	m.radial_segments = 10
-	m.rings = 3
+	m.radial_segments = 12
+	m.rings = 4
 	mi.mesh = m
-	mi.material_override = _mat(color)
+	mi.material_override = _mat(color, rough)
 	mi.position = offset
+	mi.rotation = rot
+	mi.scale = scl
 	parent.add_child(mi)
 	return mi
 
-func _box(parent: Node3D, size: Vector3, color: Color, offset := Vector3.ZERO) -> MeshInstance3D:
+func _box(parent: Node3D, size: Vector3, color: Color, offset := Vector3.ZERO, rot := Vector3.ZERO, rough := 0.75) -> MeshInstance3D:
 	var mi := MeshInstance3D.new()
 	var m := BoxMesh.new()
 	m.size = size
 	mi.mesh = m
-	mi.material_override = _mat(color)
+	mi.material_override = _mat(color, rough)
 	mi.position = offset
+	mi.rotation = rot
 	parent.add_child(mi)
 	return mi
 
+## Elipsoide (esfera escalada): cabeza, pecho, glúteos, músculos...
+func _ellipsoid(parent: Node3D, radii: Vector3, color: Color, offset := Vector3.ZERO, rot := Vector3.ZERO, rough := 0.75, seg := 14) -> MeshInstance3D:
+	var mi := MeshInstance3D.new()
+	var m := SphereMesh.new()
+	m.radius = 1.0
+	m.height = 2.0
+	m.radial_segments = seg
+	m.rings = maxi(6, seg / 2)
+	mi.mesh = m
+	mi.material_override = _mat(color, rough)
+	mi.position = offset
+	mi.rotation = rot
+	mi.scale = radii
+	parent.add_child(mi)
+	return mi
+
+## Personaje con proporciones humanas (~1,78 m): cabeza con cara, cuello, tronco con pecho y
+## hombros, brazos con bíceps y antebrazo afinado, manos con dedos, muslos, gemelos y zapatillas
+## con suela. Mismo esqueleto (articulaciones y longitudes) que usan las animaciones y la IK.
 func _build() -> void:
+	var details: Array[MeshInstance3D] = []       # piezas pequeñas: sin sombra (rendimiento móvil)
 	var pelvis := _joint("pelvis", body, Vector3(0, 0.95, 0))
-	_box(pelvis, Vector3(0.32, 0.16, 0.2), COL_PANTS)
+	# Cadera y glúteos
+	_ellipsoid(pelvis, Vector3(0.17, 0.11, 0.115), COL_PANTS, Vector3(0, -0.01, 0.005))
+	_ellipsoid(pelvis, Vector3(0.085, 0.085, 0.07), COL_PANTS, Vector3(-0.065, -0.05, 0.05))
+	_ellipsoid(pelvis, Vector3(0.085, 0.085, 0.07), COL_PANTS, Vector3(0.065, -0.05, 0.05))
+	details.append(_box(pelvis, Vector3(0.33, 0.035, 0.22), COL_PANTS_DARK, Vector3(0, 0.06, 0)))   # cintura
 	var spine := _joint("spine", pelvis, Vector3(0, 0.06, 0))
-	_capsule(spine, 0.18, 0.56, COL_HOODIE, Vector3(0, 0.26, 0))
-	_box(spine, Vector3(0.3, 0.12, 0.16), COL_HOODIE_DARK, Vector3(0, 0.06, 0.0))      # bolsillo/cintura
-	_box(spine, Vector3(0.22, 0.26, 0.08), COL_HOODIE_DARK, Vector3(0, 0.34, 0.14))    # capucha a la espalda
+	# Abdomen, pecho (más ancho) y hombros redondeados (deltoides)
+	_ellipsoid(spine, Vector3(0.15, 0.17, 0.11), COL_HOODIE, Vector3(0, 0.12, 0.0))
+	_ellipsoid(spine, Vector3(0.18, 0.17, 0.12), COL_HOODIE, Vector3(0, 0.34, -0.005))
+	_ellipsoid(spine, Vector3(0.062, 0.058, 0.064), COL_HOODIE, Vector3(-0.205, 0.455, 0))
+	_ellipsoid(spine, Vector3(0.062, 0.058, 0.064), COL_HOODIE, Vector3(0.205, 0.455, 0))
+	_ellipsoid(spine, Vector3(0.12, 0.05, 0.1), COL_HOODIE, Vector3(0, 0.5, 0))              # trapecios
+	# Sudadera: bolsillo canguro, capucha a la espalda, cordones y bajo
+	details.append(_box(spine, Vector3(0.2, 0.1, 0.02), COL_HOODIE_DARK, Vector3(0, 0.1, -0.105)))
+	_ellipsoid(spine, Vector3(0.13, 0.08, 0.07), COL_HOODIE_DARK, Vector3(0, 0.49, 0.1))
+	details.append(_capsule(spine, 0.007, 0.12, COL_SOLE, Vector3(-0.035, 0.39, -0.122)))
+	details.append(_capsule(spine, 0.007, 0.12, COL_SOLE, Vector3(0.035, 0.39, -0.122)))
+	details.append(_ellipsoid(spine, Vector3(0.155, 0.03, 0.115), COL_HOODIE_DARK, Vector3(0, -0.005, 0)))
 	var neck := _joint("neck", spine, Vector3(0, 0.54, 0))
-	var head := MeshInstance3D.new()
-	var hm := SphereMesh.new()
-	hm.radius = 0.13
-	hm.height = 0.27
-	hm.radial_segments = 14
-	hm.rings = 8
-	head.mesh = hm
-	head.material_override = _mat(COL_SKIN, 0.6)
-	head.position = Vector3(0, 0.14, 0)
-	neck.add_child(head)
-	# Gorra con visera hacia delante (lectura clara de la orientación)
-	_box(neck, Vector3(0.27, 0.08, 0.27), COL_CAP, Vector3(0, 0.235, 0.0))
-	_box(neck, Vector3(0.22, 0.025, 0.14), COL_CAP, Vector3(0, 0.2, -0.17))
-	# Brazos
+	_capsule(neck, 0.052, 0.13, COL_SKIN, Vector3(0, 0.04, 0.005), Vector3.ONE, Vector3.ZERO, 0.6)
+	# Cabeza: cráneo ovalado, mandíbula, nariz, ojos, cejas, orejas y pelo corto
+	_ellipsoid(neck, Vector3(0.098, 0.118, 0.11), COL_SKIN, Vector3(0, 0.175, -0.005), Vector3.ZERO, 0.6, 18)
+	_ellipsoid(neck, Vector3(0.078, 0.06, 0.08), COL_SKIN, Vector3(0, 0.11, -0.03), Vector3.ZERO, 0.6)
+	details.append(_capsule(neck, 0.017, 0.05, COL_SKIN_DARK, Vector3(0, 0.165, -0.118), Vector3.ONE, Vector3(0.35, 0, 0), 0.6))
+	for x in [-1.0, 1.0]:
+		details.append(_ellipsoid(neck, Vector3(0.016, 0.012, 0.01), COL_EYE, Vector3(0.037 * x, 0.195, -0.1), Vector3.ZERO, 0.3, 8))
+		details.append(_box(neck, Vector3(0.034, 0.008, 0.012), COL_HAIR, Vector3(0.038 * x, 0.217, -0.103), Vector3(0, 0, -0.12 * x)))
+		details.append(_ellipsoid(neck, Vector3(0.018, 0.033, 0.012), COL_SKIN_DARK, Vector3(0.1 * x, 0.175, 0.005), Vector3.ZERO, 0.6, 8))
+	details.append(_box(neck, Vector3(0.04, 0.008, 0.01), COL_SKIN_DARK, Vector3(0, 0.122, -0.104)))   # boca
+	_ellipsoid(neck, Vector3(0.104, 0.08, 0.115), COL_HAIR, Vector3(0, 0.235, 0.005), Vector3(-0.15, 0, 0), 0.9, 16)
+	_ellipsoid(neck, Vector3(0.1, 0.06, 0.05), COL_HAIR, Vector3(0, 0.2, 0.075), Vector3.ZERO, 0.9)     # nuca
+	# Brazos: manga con bíceps, antebrazo que se afina, muñeca y mano con dedos y pulgar
 	for side in [["l", -1.0], ["r", 1.0]]:
-		var s: String = side[0]
+		var sd: String = side[0]
 		var x: float = side[1]
-		var sh := _joint("shoulder_" + s, spine, Vector3(0.23 * x, 0.47, 0))
-		_capsule(sh, 0.065, 0.32, COL_HOODIE, Vector3(0, -0.15, 0))
-		var el := _joint("elbow_" + s, sh, Vector3(0, -0.29, 0))
-		_capsule(el, 0.055, 0.28, COL_HOODIE, Vector3(0, -0.12, 0))
-		var hand := MeshInstance3D.new()
-		var sm := SphereMesh.new()
-		sm.radius = 0.055
-		sm.height = 0.11
-		hand.mesh = sm
-		hand.material_override = _mat(COL_SKIN, 0.6)
-		hand.position = Vector3(0, -0.28, 0)
-		el.add_child(hand)
-	# Piernas
+		var sh := _joint("shoulder_" + sd, spine, Vector3(0.23 * x, 0.47, 0))
+		_capsule(sh, 0.052, 0.3, COL_HOODIE, Vector3(0, -0.14, 0))
+		_ellipsoid(sh, Vector3(0.05, 0.085, 0.054), COL_HOODIE, Vector3(0, -0.15, -0.01))          # bíceps
+		var el := _joint("elbow_" + sd, sh, Vector3(0, -0.29, 0))
+		_capsule(el, 0.05, 0.2, COL_HOODIE, Vector3(0, -0.08, 0))
+		details.append(_ellipsoid(el, Vector3(0.047, 0.02, 0.047), COL_HOODIE_DARK, Vector3(0, -0.175, 0)))   # puño de la manga
+		_capsule(el, 0.032, 0.09, COL_SKIN, Vector3(0, -0.21, 0), Vector3.ONE, Vector3.ZERO, 0.6)   # muñeca
+		_box(el, Vector3(0.075, 0.085, 0.032), COL_SKIN, Vector3(0, -0.285, 0), Vector3.ZERO, 0.6)    # palma
+		_box(el, Vector3(0.07, 0.06, 0.026), COL_SKIN, Vector3(0, -0.345, -0.006), Vector3(0.25, 0, 0), 0.6)   # dedos
+		details.append(_capsule(el, 0.013, 0.055, COL_SKIN, Vector3(-0.042 * x, -0.27, -0.016), Vector3.ONE, Vector3(0.3, 0, 0.5 * x), 0.6))   # pulgar
+	# Piernas: muslo, rodilla, gemelo, tobillo y zapatilla (talón, puntera, suela y cordones)
 	for side in [["l", -1.0], ["r", 1.0]]:
-		var s: String = side[0]
+		var sd: String = side[0]
 		var x: float = side[1]
-		var hip := _joint("hip_" + s, pelvis, Vector3(0.1 * x, -0.02, 0))
-		_capsule(hip, 0.085, 0.45, COL_PANTS, Vector3(0, -0.21, 0))
-		var knee := _joint("knee_" + s, hip, Vector3(0, -0.43, 0))
-		_capsule(knee, 0.07, 0.42, COL_PANTS, Vector3(0, -0.2, 0))
-		_box(knee, Vector3(0.12, 0.09, 0.27), COL_SHOES, Vector3(0, -0.45, -0.05))
+		var hip := _joint("hip_" + sd, pelvis, Vector3(0.1 * x, -0.02, 0))
+		_capsule(hip, 0.085, 0.46, COL_PANTS, Vector3(0, -0.2, 0))
+		_ellipsoid(hip, Vector3(0.08, 0.14, 0.085), COL_PANTS, Vector3(0, -0.13, -0.01))           # cuádriceps
+		var knee := _joint("knee_" + sd, hip, Vector3(0, -0.43, 0))
+		_ellipsoid(knee, Vector3(0.068, 0.06, 0.07), COL_PANTS, Vector3(0, 0.0, -0.01))
+		_capsule(knee, 0.062, 0.4, COL_PANTS, Vector3(0, -0.19, 0))
+		_ellipsoid(knee, Vector3(0.062, 0.1, 0.066), COL_PANTS, Vector3(0, -0.12, 0.015))          # gemelo
+		details.append(_ellipsoid(knee, Vector3(0.064, 0.022, 0.064), COL_PANTS_DARK, Vector3(0, -0.36, 0)))   # bajo del pantalón
+		_box(knee, Vector3(0.1, 0.085, 0.11), COL_SHOES, Vector3(0, -0.435, 0.035))                   # talón
+		_box(knee, Vector3(0.105, 0.065, 0.17), COL_SHOES, Vector3(0, -0.45, -0.1))                   # puntera
+		_box(knee, Vector3(0.115, 0.025, 0.29), COL_SOLE, Vector3(0, -0.483, -0.045))                 # suela
+		details.append(_box(knee, Vector3(0.06, 0.012, 0.09), COL_SOLE, Vector3(0, -0.415, -0.08), Vector3(-0.25, 0, 0)))   # cordones
 	for mi in find_children("*", "MeshInstance3D", true, false):
 		(mi as MeshInstance3D).cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_ON
+	for mi in details:
+		mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 
 # ------------------------------------------------------------------ animación
 
@@ -152,6 +207,8 @@ func _process(dt: float) -> void:
 		return
 	var st := player.state
 	var spd := player.speed()
+	grab_w = 0.0
+	wrap_w = 0.0
 	if dt > 0.0:
 		_accel = lerpf(_accel, (spd - _prev_spd) / dt, 1.0 - exp(-8.0 * dt))
 	_prev_spd = spd
@@ -173,6 +230,7 @@ func _process(dt: float) -> void:
 	_yaw = lerp_angle(_yaw, yaw_target, 1.0 - exp(-20.0 * dt))
 	rotation.y = _yaw
 	var smp := {}
+	var ground_contacts := {}
 
 	match st:
 		PlayerController.State.GROUND:
@@ -194,6 +252,21 @@ func _process(dt: float) -> void:
 				drop = _load_pose(target)
 				blend_speed = 34.0
 			var c := player.land_impact
+			var big := float(player.last_landing.get("impact", 0.0)) > 9.0 and player.land_timer < 0.7 \
+				and player.land_quality in ["perfect", "clean"]
+			if c > 0.0 and big:
+				# Caída grande: recepción a cuatro apoyos (como en el vídeo de referencia). Cuclillas
+				# profundas, tronco adelante, mirada al frente y las dos manos clavadas en el suelo.
+				var k4 := _smooth(c / 0.35)
+				drop += 0.66 * k4
+				_apply(target, {"spine": Vector3(-1.15, 0, 0), "neck": Vector3(0.7, 0, 0),
+					"hip_l": Vector3(1.75, 0, -0.18), "hip_r": Vector3(1.7, 0, 0.18),
+					"knee_l": Vector3(-2.3, 0, 0), "knee_r": Vector3(-2.25, 0, 0),
+					"shoulder_l": Vector3(1.0, 0, -0.2), "shoulder_r": Vector3(1.0, 0, 0.2),
+					"elbow_l": Vector3(0.25, 0, 0), "elbow_r": Vector3(0.25, 0, 0)}, k4)
+				var hw := _smooth((c - 0.15) / 0.25)
+				ground_contacts = {"hl": hw, "hr": hw}
+				c = 0.0
 			if c > 0.0:
 				# Recepción: piernas y tronco absorben el impacto (más profunda cuanto más fuerte).
 				drop += 0.34 * c
@@ -216,6 +289,14 @@ func _process(dt: float) -> void:
 						target.shoulder_l.z -= 1.1 * c; target.shoulder_r.z += 1.1 * c
 						target.spine.z = 0.25 * w * c
 						target.spine.x -= 0.3 * c
+			# Tras recibir: brazos abiertos a los lados buscando el equilibrio (oscilan y se recogen)
+			var lt := player.land_timer
+			if lt > 0.08 and lt < 1.1 and spd < 4.0 and player.jump_load <= 0.0:
+				var wb := _smooth((lt - 0.08) / 0.18) * _smooth((1.1 - lt) / 0.45)
+				var wob := sin(lt * 9.0) * 0.18 * (1.1 - lt)
+				_apply(target, {"shoulder_l": Vector3(0.35 + wob, 0, -1.2 - wob), "shoulder_r": Vector3(0.3 - wob, 0, 1.2 - wob),
+					"elbow_l": Vector3(0.25, 0, 0), "elbow_r": Vector3(0.25, 0, 0)}, wb)
+				target.spine.z += wob * 0.4 * wb
 		PlayerController.State.AIR:
 			_air_pose(target)
 			blend_speed = 22.0
@@ -295,7 +376,36 @@ func _process(dt: float) -> void:
 	if st == PlayerController.State.VAULT:
 		_vault_support()
 	else:
-		_solve_contacts(smp.get("contacts", {}), dt)
+		_solve_contacts(smp.get("contacts", ground_contacts), dt)
+	if st == PlayerController.State.AIR and grab_w > 0.01:
+		_grab_shins(grab_w)
+	if st == PlayerController.State.AIR and wrap_w > 0.01:
+		_wrap_chest(wrap_w)
+
+## Punto de agarre en la espinilla (delante del hueso, algo por debajo de la rodilla).
+func shin_grip(side: String) -> Vector3:
+	return (joints["knee_" + side] as Node3D).global_transform * Vector3(0.0, -0.25, -0.095)
+
+## Puntos de las manos con los brazos cruzados: la izquierda al pecho derecho y la derecha al
+## izquierdo (una algo más alta que la otra).
+func chest_grip(side: String) -> Vector3:
+	var spine: Node3D = joints.spine
+	return spine.global_transform * (Vector3(0.07, 0.37, -0.175) if side == "l" else Vector3(-0.07, 0.3, -0.18))
+
+func _wrap_chest(w: float) -> void:
+	var spine: Node3D = joints.spine
+	for sd in ["l", "r"]:
+		var sign := -1.0 if sd == "l" else 1.0
+		var pole := (spine.global_basis.x * sign * 0.6 - spine.global_basis.y * 0.8).normalized()   # codos abajo y fuera
+		_ik(joints["shoulder_" + sd], joints["elbow_" + sd], chest_grip(sd), ARM_L1, ARM_L2, pole, 1.0, w)
+
+## Las manos rodean y agarran las espinillas (IK de brazo); los codos se abren hacia fuera.
+func _grab_shins(w: float) -> void:
+	var spine: Node3D = joints.spine
+	for sd in ["l", "r"]:
+		var sign := -1.0 if sd == "l" else 1.0
+		var pole := (spine.global_basis.x * sign * 0.8 + spine.global_basis.z * 0.4).normalized()
+		_ik(joints["shoulder_" + sd], joints["elbow_" + sd], shin_grip(sd), ARM_L1, ARM_L2, pole, 1.0, w)
 
 ## Apoyos de manos de cada vault sobre el obstáculo: [mano, desde, hasta, avance sobre el
 ## obstáculo (0 = borde de delante, 1 = borde de detrás), lateral]. La mano se clava en la
@@ -460,13 +570,21 @@ func _ik(upper: Node3D, lower: Node3D, target: Vector3, l1: float, l2: float, po
 func _ease_in_out(s: float) -> float:
 	return s * s * (3.0 - 2.0 * s)
 
+## De pie relajado: respiración, peso algo más en una pierna, brazos sueltos con los codos
+## ligeramente flexionados y un leve balanceo.
 func _idle_pose(p: Dictionary) -> void:
-	var b := sin(Time.get_ticks_msec() * 0.0025)
-	p.spine.x = 0.02 * b
-	p.shoulder_l.z = -0.12; p.shoulder_r.z = 0.12
-	p.elbow_l.x = 0.15; p.elbow_r.x = 0.15
-	p.hip_l.x = 0.05; p.hip_r.x = 0.05
-	p.knee_l.x = -0.08; p.knee_r.x = -0.08
+	var tm := Time.get_ticks_msec() * 0.001
+	var b := sin(tm * 2.5)
+	var sway := sin(tm * 0.7)
+	p.spine.x = 0.02 * b - 0.03
+	p.spine.z = 0.025 * sway
+	p.neck.x = 0.04 - 0.015 * b
+	p.shoulder_l.x = 0.08 + 0.02 * b; p.shoulder_r.x = 0.06 + 0.02 * b
+	p.shoulder_l.z = -0.1; p.shoulder_r.z = 0.1
+	p.elbow_l.x = 0.28; p.elbow_r.x = 0.24
+	p.hip_l.x = 0.04; p.hip_r.x = 0.08
+	p.hip_l.z = -0.05; p.hip_r.z = 0.04 + 0.02 * sway
+	p.knee_l.x = -0.05; p.knee_r.x = -0.16
 
 func _run_pose(p: Dictionary, spd: float, dt: float) -> void:
 	var step_len := 0.55 + 0.085 * spd
@@ -486,7 +604,11 @@ func _run_pose(p: Dictionary, spd: float, dt: float) -> void:
 	p.shoulder_l.z = -0.12; p.shoulder_r.z = 0.12
 	p.elbow_l.x = 0.6 + 0.9 * amt; p.elbow_r.x = 0.6 + 0.9 * amt
 	p.spine.x = -0.06 - 0.3 * amt
-	p.spine.y = s * 0.12 * amt
+	# Cadera y hombros giran en sentidos opuestos en cada zancada; la cabeza compensa y mira al frente
+	p.pelvis.y = -s * 0.16 * amt
+	p.spine.y = s * 0.26 * amt
+	p.pelvis.z = 0.04 * cos(phase) * amt
+	p.neck.y = -s * 0.12 * amt
 	p.neck.x = 0.15 * amt
 
 func _tuck_pose(p: Dictionary, amount: float) -> void:
@@ -638,8 +760,8 @@ func _gather_pose(kind: String, rs: float, ph: float) -> Dictionary:
 	match kind:
 		"front":
 			# Agrupado cerrado, cabeza metida, manos abrazando las espinillas
-			return {"spine": Vector3(-1.0, 0, 0), "neck": Vector3(-0.65, 0, 0),
-				"hip_l": Vector3(2.55, 0, -0.08), "hip_r": Vector3(2.5, 0, 0.08), "knee_l": Vector3(-2.65, 0, 0), "knee_r": Vector3(-2.6, 0, 0),
+			return {"spine": Vector3(-1.1, 0, 0), "neck": Vector3(-0.75, 0, 0),
+				"hip_l": Vector3(2.8, 0, -0.06), "hip_r": Vector3(2.78, 0, 0.06), "knee_l": Vector3(-2.85, 0, 0), "knee_r": Vector3(-2.82, 0, 0),
 				"shoulder_l": Vector3(0.75, 0, 0.12), "shoulder_r": Vector3(0.75, 0, -0.12),
 				"elbow_l": Vector3(1.75, 0, 0), "elbow_r": Vector3(1.75, 0, 0)}
 		"webster":
@@ -652,9 +774,9 @@ func _gather_pose(kind: String, rs: float, ph: float) -> Dictionary:
 		"side":
 			# Sideflip real: bola cerrada. Rodillas al pecho, talones a los glúteos, manos
 			# agarrando las rodillas y cabeza metida; la pierna de atrás sube primero.
-			return {"spine": Vector3(-0.85, 0, 0.15 * rs), "neck": Vector3(-0.4, 0, 0.2 * rs),
-				"hip_l": Vector3(2.7, 0, 0.1 * rs), "hip_r": Vector3(2.65, 0, 0.1 * rs),
-				"knee_l": Vector3(-2.75, 0, 0), "knee_r": Vector3(-2.75, 0, 0),
+			return {"spine": Vector3(-0.95, 0, 0.15 * rs), "neck": Vector3(-0.55, 0, 0.2 * rs),
+				"hip_l": Vector3(2.8, 0, 0.08 * rs), "hip_r": Vector3(2.78, 0, 0.08 * rs),
+				"knee_l": Vector3(-2.85, 0, 0), "knee_r": Vector3(-2.85, 0, 0),
 				"shoulder_l": Vector3(1.15, 0, 0.18), "shoulder_r": Vector3(1.15, 0, -0.18),
 				"elbow_l": Vector3(1.05, 0, 0), "elbow_r": Vector3(1.05, 0, 0)}
 		"aerial":
@@ -680,9 +802,9 @@ func _gather_pose(kind: String, rs: float, ph: float) -> Dictionary:
 				"elbow_l": Vector3(2.35, 0, 0), "elbow_r": Vector3(2.35, 0, 0)}
 		"twist":
 			# Mortal con tirabuzón añadido: cuerpo más largo, brazos cerrados para girar rápido
-			return {"spine": Vector3(-0.2, 0, 0), "neck": Vector3(0.1, 0, 0),
-				"hip_l": Vector3(1.15, 0, 0.06), "hip_r": Vector3(1.2, 0, -0.06),
-				"knee_l": Vector3(-1.35, 0, 0), "knee_r": Vector3(-1.4, 0, 0),
+			return {"spine": Vector3(-0.15, 0, 0), "neck": Vector3(0.1, 0, 0),
+				"hip_l": Vector3(1.0, 0, 0.03), "hip_r": Vector3(1.02, 0, -0.03),
+				"knee_l": Vector3(-1.1, 0, 0), "knee_r": Vector3(-1.12, 0, 0),
 				"shoulder_l": Vector3(0.55, 0, 0.6), "shoulder_r": Vector3(0.55, 0, -0.6),
 				"elbow_l": Vector3(2.35, 0, 0), "elbow_r": Vector3(2.35, 0, 0)}
 		"kick":
@@ -731,9 +853,9 @@ func _gather_pose(kind: String, rs: float, ph: float) -> Dictionary:
 				"elbow_l": Vector3(0.05, 0, 0), "elbow_r": Vector3(0.05, 0, 0),
 				"hip_l": Vector3(-0.5, 0, 0), "hip_r": Vector3(-0.15, 0, 0),
 				"knee_l": Vector3(-0.1, 0, 0), "knee_r": Vector3(-0.15, 0, 0)}
-	# Backflip: rodillas al pecho, manos a las espinillas, cabeza neutra mirando atrás
-	return {"spine": Vector3(-0.6, 0, 0), "neck": Vector3(0.15, 0, 0),
-		"hip_l": Vector3(2.5, 0, -0.1), "hip_r": Vector3(2.45, 0, 0.1), "knee_l": Vector3(-2.6, 0, 0), "knee_r": Vector3(-2.55, 0, 0),
+	# Backflip: rodillas al pecho, talones a los glúteos, manos a las espinillas, espalda redonda
+	return {"spine": Vector3(-0.92, 0, 0), "neck": Vector3(-0.25, 0, 0),
+		"hip_l": Vector3(2.8, 0, -0.07), "hip_r": Vector3(2.76, 0, 0.07), "knee_l": Vector3(-2.85, 0, 0), "knee_r": Vector3(-2.82, 0, 0),
 		"shoulder_l": Vector3(1.0, 0, -0.12), "shoulder_r": Vector3(1.0, 0, 0.12),
 		"elbow_l": Vector3(1.35, 0, 0), "elbow_r": Vector3(1.35, 0, 0)}
 
@@ -810,6 +932,14 @@ func _trick_pose(p: Dictionary, tr: TrickSystem) -> void:
 			_apply(p, g, gather * open * 0.55 * compact)
 	_apply(p, _impulse_pose(kind, rs), imp)
 	_apply(p, RECEPTION, rec)
+	# Agrupado de verdad: las manos agarran las espinillas mientras el cuerpo está cerrado
+	if kind in GRAB_KINDS:
+		grab_w = clampf(gather * (1.0 - open) * (1.0 - imp) * (1.0 - rec), 0.0, 1.0)
+	elif kind in ["twist", "cork"] and tr.dir.get("twist", 0) != 0:
+		# Mientras gira el tirabuzón los brazos se cierran cruzados sobre el pecho (gira más rápido);
+		# se abren al terminar el giro para aterrizar
+		var twisting := 0.0 if tr.settled.get("twist", true) else 1.0
+		wrap_w = clampf(gather * (1.0 - imp) * (1.0 - rec) * maxf(twisting, 1.0 - open), 0.0, 1.0)
 	last_kind = kind
 	if imp > 0.5:
 		last_phase = "impulso"

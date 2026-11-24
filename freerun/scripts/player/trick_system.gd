@@ -45,6 +45,10 @@ var tuck_time := 0.0                 # tiempo agrupado (lateral agrupado = sidef
 var travel_speed := 0.0              # velocidad horizontal total al despegar (takeoff_speed = hacia delante)
 var twist_boost := 1.0               # giro heredado de un enlace (hook, raiz, scoot → cork / b-twist)
 var linked := false                  # sale de un enlace (rondada, flic-flac, hook...)
+## Botonera / rueda: mientras se mantiene el botón del mortal el cuerpo sigue agrupado y
+## girando (doble, triple... lo que permita la altura). Con ayuda se abre solo si ya no queda
+## altura para otra vuelta completa.
+var keep_spinning := false
 const QUARTER := PI * 0.5
 
 ## Fracción del vuelo en la que cada acrobacia completa su vuelta SIN agruparse. Agrupado
@@ -246,7 +250,9 @@ func twist_input(x: float, dt: float, t: MoveTuning) -> void:
 	var s := 1 if x > 0.0 else -1
 	if not twist_manual:
 		if dir.twist != 0 and not settled.twist:
-			return                       # ya hay un giro automático en curso (rondada, patada)
+			if s != dir.twist or style != "cork":
+				return                   # ya hay un giro automático en curso (rondada, patada)
+			# Cork: el GIRO en el mismo sentido toma el control del tirabuzón de la patada (540, 720...)
 		twist_manual = true
 		dir.twist = s
 		settled.twist = false
@@ -256,8 +262,9 @@ func twist_input(x: float, dt: float, t: MoveTuning) -> void:
 	elif s != dir.twist and absf(total.twist) < 0.3:
 		dir.twist = s                    # cambio de idea al principio: cambia el sentido
 	# Mortal atrás con carrera + tirabuzón = Cork (eje inclinado)
-	# (o enlazado tras una rondada, flic-flac, hook, raiz...: la potencia del enlace lo permite)
-	if style == "back" and (travel_speed > 4.0 or linked) and takeoff_kind in ["run", "stand"]:
+	# Mortal atrás + tirabuzón: suelto es un PIRU; dentro de un combo (tras TD Raiz, raiz, hook,
+	# scoot, rondada/flic-flac... o la entrada de cork) es un CORK.
+	if style == "back" and linked and takeoff_kind in ["run", "stand"]:
 		style = "cork"
 	twist_hold = true
 	settled.twist = false
@@ -327,7 +334,18 @@ func step(dt: float, push: float, time_left: float, assist: float, t: MoveTuning
 		# Ayuda alta: al completar las vueltas pedidas el cuerpo se abre aunque sigas agrupado
 		# (más vueltas se piden de forma explícita: volver a inclinar / deslizar otra vez).
 		# Sin ayuda completa (pro/media) agruparse sigue girando: abrirse a tiempo es cosa tuya.
-		var force_spot := held and assist > 0.75
+		var force_spot := held and assist > 0.75 and not keep_spinning
+		if keep_spinning and held and ax != "twist":
+			# ¿Cabe otra vuelta entera después de esta (agrupándose al máximo)? Si cabe, se pide
+			# al acercarse al final de la vuelta; si no, con ayuda se abre ya para aterrizar.
+			var cap := t.flip_rate_max * 1.6
+			var can_more := time_left > (rem + period) / cap + 0.16
+			if can_more and next_stop >= goal[ax] * period - 0.001 and rem < deg_to_rad(40.0):
+				goal[ax] += 1
+				if not _recal.has(ax):
+					_recal.append(ax)
+			elif not can_more and assist > 0.25:
+				force_spot = true
 		if settled[ax]:
 			if held and not force_spot:
 				settled[ax] = false
@@ -452,9 +470,10 @@ static func trick_name(pn: int, rn: int, sn: int, th: int, back: bool, moving: b
 				return "Double Full" if th >= 4 else "Full In"
 			match th:
 				1: return "Cheat Gainer" if moving else "Back Half"
-				2: return "Gainer Full" if moving else "Back Full"
-				3: return "Back 1.5"
-				_: return "Double Full"
+				2: return "Piru"                 # mortal atrás con tirabuzón de 360
+				3: return "Piru 540"
+				4, 5: return "Piru 720"
+				_: return "Piru 1080"
 		if th == 0:
 			if pn == 1:
 				if wall: return "Wall Front"

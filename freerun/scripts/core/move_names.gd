@@ -88,6 +88,9 @@ const ES := {
 	"Cartwheel Rebound": "Rebote de rueda", "Back Extension Roll Rebound": "Rebote de voltereta al pino",
 	"Valdez Rebound": "Rebote de valdez", "Handstand (pino)": "Pino", "Handstand Push-off (snap down)": "Bajada del pino con rebote (snap down)",
 	"Butterfly Twist / B-Twist": "Mariposa con tirabuzón (B-Twist)",
+	"Piru": "Piru (mortal atrás con tirabuzón)", "Piru 540": "Piru 540 (tirabuzón y medio)",
+	"Piru 720": "Piru 720 (doble tirabuzón)", "Piru 1080": "Piru 1080 (triple tirabuzón)",
+	"ST": "ST (recepción a un pie)",
 }
 
 ## Nombre en español de un movimiento (si no está en la lista, se deja tal cual).
@@ -98,6 +101,17 @@ static func es(name: String) -> String:
 	if name.ends_with(" +¼"):
 		return es(name.trim_suffix(" +¼")) + " y ¼ de giro"
 	return ES.get(name, name)
+
+## La fuente del juego (también en el navegador del móvil) no tiene flechas: se escriben con
+## palabras para que no salgan cuadrados. " → " entre movimientos pasa a " › ".
+const ARROWS := [[" → ", " › "], ["← →", "izq./der."], ["←→", "izq./der."], ["↙ ↘", "abajo-izq./abajo-der."],
+	["↖ ↗", "arriba-izq./arriba-der."], ["↙", "abajo-izq."], ["↘", "abajo-der."], ["↖", "arriba-izq."],
+	["↗", "arriba-der."], ["↑", "arriba"], ["↓", "abajo"], ["←", "izq."], ["→", "der."], ["◀", "izq."], ["▶", "der."]]
+
+static func safe(text: String) -> String:
+	for a in ARROWS:
+		text = text.replace(a[0], a[1])
+	return text
 
 ## Sustituye nombres sueltos dentro de una frase (instrucciones de la biblioteca).
 const WORDS := [["Back Full", "mortal atrás con tirabuzón"], ["Front Full", "mortal adelante con tirabuzón"],

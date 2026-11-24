@@ -64,8 +64,8 @@ func _ready() -> void:
 	await trick("Double Cork", [Vector2(0.7, -0.7), Vector2(0.7, -0.7)], true, "double")
 	# Nuevos: SALTO otra vez en el aire (Vector2.ZERO) = giro / tirabuzón completo
 	await trick("360 Kick", [Vector2.ZERO], false, "tap")
-	await trick("Back Full", [Vector2(0, -1), Vector2.ZERO], false, "tap")
-	await trick("Gainer Full", [Vector2(0, -1), Vector2.ZERO], true, "tap")
+	await trick("Piru", [Vector2(0, -1), Vector2.ZERO], false, "tap")
+	await trick("Piru", [Vector2(0, -1), Vector2.ZERO], true, "tap")
 	# DOBLE JOYSTICK: rueda SALTO/MORTALES (zona = salto + mortal, mantener = agrupado) y
 	# joystick GIRO para el tirabuzón (toques reales, multitáctil). Vector2 = zona de la rueda
 	# (la primera en el suelo, las siguientes en el aire); int = fotogramas de GIRO (+ derecha).
@@ -75,8 +75,8 @@ func _ready() -> void:
 	await trick("Sideflip", [Vector2(-1, 0)], false, "stick")
 	await trick("Gainer", [Vector2(0, -1)], true, "stick")
 	await trick("Webster", [Vector2(0, 1)], true, "stick")
-	await trick("Cork", [Vector2(0, -1), 26], true, "stick")
-	await trick("Cork 720", [Vector2(0, -1), 52], true, "stick")
+	await trick("Piru", [Vector2(0, -1), 26], true, "stick")
+	await trick("Piru 720", [Vector2(0, -1), 52], true, "stick")
 	await trick("Front Full", [Vector2(0, 1), -26], false, "stick")
 	await trick("Back Half", [Vector2(0, -1), 13], false, "stick")
 	await trick("Backflip Hyper", [Vector2(0, -1), 5], false, "stick")
@@ -92,9 +92,9 @@ func _ready() -> void:
 	await seq("Round-off → Backflip", [["stick", Vector2(0.7, -0.7), 22], ["rebound"], ["jumpwheel", Vector2(0, -1)], ["land"]], ["Round-off", "@back"])
 	await seq("Round-off → Back Handspring → Backflip", [["stick", Vector2(0.7, -0.7), 22], ["rebound"], ["stick", Vector2(0, -1), 18], ["rebound"], ["jumpwheel", Vector2(0, -1)], ["land"]], ["Round-off", "Back Handspring", "@back"])
 	await seq("Aerial → Butterfly Kick", [["stick", Vector2(-0.7, 0.7), 22], ["land"], ["run", true], ["wait", 30], ["stick", Vector2(-0.7, 0.7), 22], ["land"]], ["Aerial", "Butterfly Kick"])
-	await seq("Gainer → Cork", [["run", true], ["wait", 45], ["jumpwheel", Vector2(0, -1)], ["land"], ["wait", 6], ["jumpwheel", Vector2(0, -1), 26], ["land"]], ["Gainer", "Cork"])
-	await seq("Backflip + giro adicional (Back Full)", [["jumpwheel", Vector2(0, -1)], ["wait", 8], ["tapstick"], ["land"]], ["Back Full"])
-	await seq("Cork 720 + aterrizaje controlado", [["run", true], ["wait", 45], ["jumpwheel", Vector2(0, -1), -52], ["land"]], ["Cork 720"])
+	await seq("Gainer → Piru", [["run", true], ["wait", 45], ["jumpwheel", Vector2(0, -1)], ["land"], ["wait", 6], ["jumpwheel", Vector2(0, -1), 26], ["land"]], ["Gainer", "Piru"])
+	await seq("Backflip + giro adicional (Piru)", [["jumpwheel", Vector2(0, -1)], ["wait", 8], ["tapstick"], ["land"]], ["Piru"])
+	await seq("Piru 720 + aterrizaje controlado", [["run", true], ["wait", 45], ["jumpwheel", Vector2(0, -1), -52], ["land"]], ["Piru 720"])
 
 	Settings.trick_controls = 0
 	var failed := 0
@@ -270,14 +270,26 @@ func seq(name: String, steps: Array, expect: Array) -> void:
 				var wd: Vector2 = st[1]
 				var wp := jc2 + Vector2(wd.x, -wd.y).normalized() * touch._jump_radius() * 0.7
 				_touch(1, wp, true)
-				await frames(8)
-				if st.size() > 2:
-					var tf: int = st[2]
-					await _stick_push(Vector2(signf(tf), 0))
-					await frames(absi(tf) - 3)
+				# Mantener la zona = sigue girando: se suelta al completar la primera vuelta (simple)
+				var wheel_on := true
+				var tfr: int = absi(int(st[2])) if st.size() > 2 else 0
+				for k in 20 + tfr:
+					if st.size() > 2 and k == 8:
+						var rc2 := touch._rot_center()
+						var tg2 := rc2 + Vector2(signf(int(st[2])), 0) * touch._rot_travel()
+						_touch(2, rc2, true)
+						_drag(2, tg2, tg2 - rc2)
+						stick_pos = tg2
+					if st.size() > 2 and k == 8 + tfr:
+						_stick_release()
+					await frames(1)
+					if wheel_on and absf(player.tricks.total_pitch) > TAU - deg_to_rad(110):
+						_touch(1, wp, false)
+						wheel_on = false
+				if stick_pos != Vector2.ZERO:
 					_stick_release()
-				await frames(12)
-				_touch(1, wp, false)
+				if wheel_on:
+					_touch(1, wp, false)
 			"jumpstick":
 				var jc := touch._jump_center()
 				_touch(1, jc, true)
@@ -508,13 +520,13 @@ func trick(name: String, swipes: Array, running: bool, hold: String) -> void:
 			shape_ok = max_tuck > 2.4; shape_txt = "bola cerrada (cadera %.2f rad)" % max_tuck
 		"360 Kick":
 			shape_ok = max_split > 0.7 and kinds.has("kick"); shape_txt = "patada abierta en el giro %.2f" % max_split
-		"Back Full", "Gainer Full":
+		"Piru":
 			shape_ok = max_tuck > 0.9; shape_txt = "semiagrupado con brazos cerrados %.2f" % max_tuck
 		"Gainer":
 			shape_ok = max_lead > 2.2 and max_tuck > 1.5; shape_txt = "agrupado a una pierna %.2f/%.2f" % [max_lead, max_tuck]
 		"Webster":
 			shape_ok = max_lead > 2.2 and max_scissor > 1.0; shape_txt = "agrupado en tijera %.2f/%.2f" % [max_lead, max_scissor]
-		"Cork", "Cork 720", "Double Cork", "Cheat Gainer", "Front Full", "Back Half", "Backflip Hyper":
+		"Cork", "Cork 720", "Piru 720", "Double Cork", "Cheat Gainer", "Front Full", "Back Half", "Backflip Hyper":
 			shape_ok = max_tuck > 0.9; shape_txt = "semiagrupado con brazos cerrados %.2f" % max_tuck
 		_:
 			shape_ok = max_tuck > 1.8; shape_txt = "agrupado real (cadera %.2f rad)" % max_tuck
