@@ -28,6 +28,9 @@ var rotation_assist := 2
 
 # Gráficos: 0 bajo, 1 medio, 2 alto
 var graphics_preset := 1
+## Estilo del backflip: 0 clásico (por defecto) · 1 captura real (desbloqueable)
+var backflip_style := 0
+const BACKFLIP_REAL_UNLOCK := 20         # backflips hechos para desbloquear el de captura real
 var show_fps := false
 
 func _ready() -> void:
@@ -52,7 +55,17 @@ func save_settings() -> void:
 
 func _keys() -> Array:
 	return ["camera_sensitivity", "gesture_sensitivity", "control_scale", "camera_distance", "camera_height", "camera_mode", "control_opacity",
-		"left_handed", "force_touch_ui", "invert_camera_y", "trick_controls", "controls_version", "rotation_assist", "graphics_preset", "show_fps"]
+		"left_handed", "force_touch_ui", "invert_camera_y", "trick_controls", "controls_version", "rotation_assist", "graphics_preset", "show_fps", "backflip_style"]
+
+func backflips_done() -> int:
+	return int(SaveData.stats.get("move_Backflip", 0)) + int(SaveData.stats.get("move_Gainer", 0))
+
+func backflip_real_unlocked() -> bool:
+	return backflips_done() >= BACKFLIP_REAL_UNLOCK
+
+## Backflip de captura real activo (elegido y desbloqueado).
+func backflip_real() -> bool:
+	return backflip_style == 1 and backflip_real_unlocked()
 
 func assist_strength() -> float:
 	return [0.0, 0.5, 1.0][clampi(rotation_assist, 0, 2)]

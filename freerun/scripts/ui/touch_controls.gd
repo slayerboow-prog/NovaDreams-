@@ -976,7 +976,7 @@ func _twist_release(f: Dictionary, p: Vector2) -> void:
 	gesture_recognized.emit({"id": "g_" + id, "name": res.name, "joystick": "purple"})
 
 ## Tricking de suelo desactivado mientras se rehacen sus animaciones (vuelven más adelante).
-const GIRO_DISABLED := ["macaco", "td_raiz", "scoot", "scoot_power", "scoot_macaco", "spin_lateral"]
+const GIRO_DISABLED := ["macaco", "td_raiz", "scoot", "scoot_power"]
 
 func _train_twist(events: Array) -> void:
 	if events.is_empty():

@@ -248,6 +248,8 @@ func _physics_process(dt: float) -> void:
 
 func _on_move(name: String, quality: float, info: Dictionary) -> void:
 	SaveData.add_stat("move_" + name)
+	if name in ["Backflip", "Gainer"] and Settings.backflips_done() == Settings.BACKFLIP_REAL_UNLOCK:
+		ui.popup("¡Desbloqueado: backflip de captura real! Actívalo en Ajustes", Color(1, 0.85, 0.3))
 	if info.get("dive", false):
 		# Dive Kong: distancia del despegue al muro y récord personal (para ir alargándola)
 		var dist := float(info.distance)

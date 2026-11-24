@@ -115,6 +115,7 @@ func _run_all() -> void:
 	await t_human_model()
 	await t_air_control()
 	await t_one_foot_replay_cameras()
+	await t_mocap_backflip()
 	await t_landing_feel()
 	await t_new_tricks()
 	await t_gestures()
@@ -1733,7 +1734,8 @@ func t_cork_piru() -> void:
 		func(): return hc.pressed and player.state != PlayerController.State.AIR)
 	check("Cork desde una altura: se decide en el aire, en el punto que quieras (%.1f m)" % hc.y,
 		"Cork" in moves, "%s %s" % [moves, landings.map(func(l): return [l.quality, int(l.error)])])
-	# ST: CORK pulsado durante el cork = cae a un pie y enlaza otro cork
+	# ST: CORK pulsado durante el cork = cae a un pie; el siguiente cork lo enlaza el jugador
+	# (CORK + SALTO en la recepción). Nada se encadena solo.
 	await place(Vector3(-35, 0.1, 40), Vector3.FORWARD)
 	var st := {"pressed": false}
 	await run(func(i, f):
@@ -1742,10 +1744,27 @@ func t_cork_piru() -> void:
 		i.cork_request = f == 0
 		if not st.pressed and player.state == PlayerController.State.AIR and player.tricks.air_time > 0.3:
 			i.cork_request = true
-			st.pressed = true, 400,
-		func(): return st.pressed and moves.count("Cork") >= 2 and player.state == PlayerController.State.GROUND)
-	var order_ok := moves.size() >= 3 and moves[0] == "Cork" and moves[1] == "ST" and moves[2] == "Cork"
-	check("ST: cae a un pie y enlaza otro cork (Cork › ST › Cork)", order_ok and landings.all(func(l): return l.quality in ["perfect", "clean"]),
+			st.pressed = true
+		if "ST" in moves and not st.get("solo", false):
+			st.solo = true
+			st.skill = player.skill.get("id", "") if player.state == PlayerController.State.SKILL else ""
+			st.moves_at_st = moves.size()
+		# Sin tocar nada tras el ST: no debe salir otro cork solo
+		if st.get("solo", false) and not st.get("waited", false):
+			st.wait = int(st.get("wait", 0)) + 1
+			if st.wait > 20:
+				st.waited = true
+				st.alone = moves.count("Cork") == 1
+		# Ahora el jugador enlaza otro cork a mano: CORK + SALTO en la ventana de la recepción
+		if st.get("waited", false) and not st.get("linked", false):
+			st.linked = true
+			i.cork_request = true; i.jump_pressed = true; i.flick = Vector2(0, -1)
+		, 520,
+		func(): return st.get("linked", false) and moves.count("Cork") >= 2 and player.state == PlayerController.State.GROUND)
+	check("ST: cae a un pie (One-Foot) y no lanza otro cork solo", st.get("alone", false) and st.get("skill", "") == "one_foot",
+		"%s %s" % [moves, st])
+	var order_ok := moves.size() >= 3 and moves[0] == "Cork" and moves[1] == "ST" and moves.count("Cork") >= 2
+	check("ST: el siguiente cork se enlaza a mano (Cork › ST › Cork)", order_ok and landings.all(func(l): return l.quality in ["perfect", "clean"]),
 		"%s %s" % [moves, landings.map(func(l): return l.quality)])
 
 ## Botonera: SALTO es un joystick de mortales básicos (deslizar ↑ adelante · ← → lateral ·
@@ -1872,6 +1891,28 @@ func t_salto_giro_sticks() -> void:
 			func(): return _f > 20 and g[2] in moves)
 		check("GIRO %s = %s" % [g[0], g[2]], g[2] in moves, str(moves))
 	Settings.trick_controls = old_mode
+
+## Backflip de captura real (CMU): versión desbloqueable; por defecto se usa el clásico.
+func t_mocap_backflip() -> void:
+	var rig: BodyRig = game.rig
+	check("Captura real del backflip cargada (%d fotogramas)" % (rig.mocap["back"].frame_count() if rig.mocap.has("back") else 0), rig.mocap.has("back"), "")
+	var old_stats: int = int(SaveData.stats.get("move_Backflip", 0))
+	var old_style := Settings.backflip_style
+	for case in [["bloqueado: sale el clásico", 0, 1], ["desbloqueado y elegido: sale la captura real", 999, 1], ["desbloqueado pero clásico elegido", 999, 0]]:
+		SaveData.stats["move_Backflip"] = int(case[1])
+		Settings.backflip_style = int(case[2])
+		await place(Vector3(-35, 0.1, 35), Vector3.FORWARD)
+		var used := {"v": false}
+		await run(func(i, f):
+			i.jump_pressed = f == 0; i.flick = Vector2(0, -1) if f == 0 else Vector2.ZERO
+			i.tuck = f > 3 and f < 26; i.jump_held = i.tuck
+			used.v = used.v or rig.mocap_active == "back", 140,
+			func(): return _f > 20 and player.state == PlayerController.State.GROUND and landings.size() > 0)
+		var want: bool = int(case[1]) >= Settings.BACKFLIP_REAL_UNLOCK and int(case[2]) == 1
+		check("Backflip %s" % case[0], used.v == want and "Backflip" in moves and landings[-1].quality in ["perfect", "clean"],
+			"captura %s %s %s" % [used.v, moves, landings.map(func(l): return l.quality)])
+	SaveData.stats["move_Backflip"] = old_stats
+	Settings.backflip_style = old_style
 
 ## Botón 1 PIE (recepción a un pie y combos a un pie), repetición con cámara libre y cámaras.
 func t_one_foot_replay_cameras() -> void:

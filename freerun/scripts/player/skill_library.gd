@@ -329,16 +329,6 @@ const SKILLS := {
 			[0.74, 0.12, 0, 0, 0, 0.93, "cork_swing", 0.3, "patada arriba en diagonal y brazos arriba"],
 			[1.0, 0.22, 0, 0, 0, 1.0, "cork_swing", 0.3, "bloqueo de cadera y despegue vertical"]],
 		"contacts": {"fl": [[0.0, 1.0]], "fr": [[0.0, 0.6]]}},
-	# ST: recepción a un pie tras un cork y patada inmediata para el siguiente cork (swing-through)
-	"st_entry": {"name": "ST", "dur": 0.36, "travel": Vector2(0, 1), "keep": 1.0, "leg": 1.0, "arm": 0.0,
-		"vmin": 3.5, "vmax": 8.5, "conv": 0.0, "rebound": 0.0, "land_drop": 0.0, "stability": 1.0,
-		"exit_yaw": 1.2, "curve": 0.6, "link_at": 2.0, "window": 0.0, "difficulty": 0.0, "chain_start": 0.0,
-		"cork_takeoff": true, "rot": "recepción a un pie y patada",
-		"keys": [[0.0, 0, 0, 0, 0, 0.8, "land_one", 0.7, "ST: recepción a un pie"],
-			[0.45, -0.1, 0, 0.4, 0, 0.82, "kick_load", 0.8, "carga"],
-			[0.85, 0.2, 0, 1.0, 0, 0.9, "football_kick", 0.9, "patada"],
-			[1.0, 0.3, 0, 1.2, 0, 0.96, "football_kick", 0.9, "despegue"]],
-		"contacts": {"fl": [[0.0, 1.0]]}},
 	# Recepción a un pie (botón 1 PIE): cae sobre una pierna con la otra libre y abre una ventana
 	# para enlazar el siguiente movimiento sin apoyar el segundo pie (combos a un pie)
 	"one_foot": {"name": "One-Foot Landing", "dur": 0.46, "travel": Vector2(0, 1), "keep": 0.85, "leg": 0.0, "arm": 0.0,

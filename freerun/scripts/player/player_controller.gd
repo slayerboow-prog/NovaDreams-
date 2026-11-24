@@ -97,7 +97,7 @@ var skill := {}                         # habilidad de suelo en curso (SkillLibr
 var skill_serial := 0                   # cambia con cada habilidad (el rig reorienta sin giros raros)
 var last_skill := {}                    # datos de la última habilidad (pruebas/HUD)
 var double_buffer := 0.0                # botonera: se pidió doble mortal hace poco
-var st_queued := false                  # CORK pulsado durante un cork: caer a un pie (ST) y enlazar otro
+var st_queued := false                  # CORK pulsado durante un cork: caer a un pie (ST); lo siguiente lo enlaza el jugador
 var cork_buffer := 0.0                  # botón CORK pulsado hace poco (se aplica en el despegue)
 var butterfly_buffer := 0.0             # botón MARIPOSA pulsado hace poco
 var cork_side := 1
@@ -673,7 +673,7 @@ func _state_air(dt: float) -> void:
 	peak_y = maxf(peak_y, global_position.y)
 
 	if intent.cork_request:
-		# Botón CORK en el aire: durante un cork = ST (caer a un pie y enlazar otro); si no hay
+		# Botón CORK en el aire: durante un cork = ST (caer a un pie, sin enlazar nada solo); si no hay
 		# mortal (cayendo de una altura, desde el borde) empieza el cork justo en ese punto; durante
 		# un mortal atrás le añade el tirabuzón del cork.
 		if tricks.style == "cork":
@@ -800,10 +800,12 @@ func _land() -> void:
 	land_impact = clampf(impact / 12.0, 0.3, 1.0)
 	landed.emit(result)
 	if do_st:
-		# ST: cae a un pie y, con la inercia del giro, la pierna libre patea para el siguiente cork
+		# ST: cae a un pie tras el cork. El siguiente movimiento (otro cork, un mortal...) lo
+		# enlaza el jugador en la ventana de la recepción: cada botón hace un único movimiento.
 		_emit_move("ST", 1.0, {"difficulty": 0.8, "chain": true})
 		_set_state(State.GROUND)
-		_start_skill("st_entry", cork_side)
+		one_foot_side = cork_side
+		_start_skill("one_foot", cork_side)
 		return
 	if do_one:
 		# Botón 1 PIE: cae sobre una pierna (alternando) y enlaza lo siguiente sin apoyar la otra
@@ -995,15 +997,9 @@ func _apply_giro(g: Dictionary) -> void:
 	if id == "rondada":
 		sd = -1 if intent.move.x < -0.3 else 1
 	var skill_id := String(GIRO_SKILLS.get(id, ""))
-	var strong := false
-	var next := ""
-	match id:
-		"scoot_power":
-			skill_id = "scoot"; strong = true
-		"scoot_macaco":
-			skill_id = "scoot"; strong = true; next = "macaco"
-		"spin_lateral":
-			skill_id = "spin_entry"; strong = true; next = "cartwheel"
+	var strong := id == "scoot_power"
+	if strong:
+		skill_id = "scoot"
 	if skill_id == "":
 		return
 	if state == State.SKILL and not strong:
@@ -1011,7 +1007,7 @@ func _apply_giro(g: Dictionary) -> void:
 		chain_event_t = 0.45
 	elif state in [State.GROUND, State.CRASH] and jump_load <= 0.0:
 		gestures.cancel()
-		_start_skill(skill_id, sd, -1.0, strong, next)
+		_start_skill(skill_id, sd, -1.0, strong)
 
 ## Ejecuta un patrón reconocido en el joystick dorado (GestureRecognizer) con las mismas
 ## mecánicas que los botones: el jugador solo hace lo que es físicamente posible ahora.
@@ -1414,12 +1410,12 @@ func _ground_flick(sec: int) -> bool:
 
 # ---------------------------------------------------------------- habilidades de suelo
 
-## strong: entrada de potencia (scoot fuerte, 360 + rueda...): más recorrido y más rebote para lo
-## que se enlace después. next: habilidad que sigue sola al terminar (scoot → macaco, 360 → rueda).
+## strong: entrada de potencia (scoot fuerte): más recorrido y más rebote para lo que el jugador
+## enlace después. Ninguna habilidad encadena otra sola: los combos se hacen movimiento a movimiento.
 ## Tricking de suelo desactivado mientras se rehacen sus animaciones (vuelven más adelante).
 const DISABLED_SKILLS := ["macaco", "td_raiz", "scoot", "spin_entry", "handstand", "pushoff"]
 
-func _start_skill(id: String, side: int, start_s := -1.0, strong := false, next := "") -> void:
+func _start_skill(id: String, side: int, start_s := -1.0, strong := false) -> void:
 	if id in DISABLED_SKILLS:
 		return
 	var d := SkillLibrary.get_def(id)
@@ -1443,7 +1439,7 @@ func _start_skill(id: String, side: int, start_s := -1.0, strong := false, next 
 	if s0 < 0.0:
 		s0 = float(d.chain_start) if not lp.is_empty() else 0.0
 	skill = {"id": id, "side": side, "s": s0, "dur": float(d.dur) * (0.92 if not lp.is_empty() else 1.0),
-		"power": pw, "link": lp, "facing0": facing, "linked": false, "air": 0.0, "hold_t": 0.0, "strong": strong, "next": next}
+		"power": pw, "link": lp, "facing0": facing, "linked": false, "air": 0.0, "hold_t": 0.0, "strong": strong}
 	skill_serial += 1
 	last_skill = {"id": id, "power": pw, "linked_from": String(lp.get("from", "")), "timing": quality}
 	_set_state(State.SKILL)
@@ -1540,14 +1536,6 @@ func _state_skill(dt: float) -> void:
 			if _ground_gesture(ev):
 				return
 	if skill.s >= 1.0 and not hold:
-		if String(skill.get("next", "")) != "":
-			# Entrada de potencia encadenada: sigue sola con la siguiente habilidad
-			var nx := String(skill.next)
-			var nsd := int(skill.side)
-			var nst: bool = skill.get("strong", false)
-			_finish_skill(true)
-			_start_skill(nx, nsd, -1.0, nst)
-			return
 		if d.get("cork_takeoff", false):
 			var side := int(skill.side)
 			var via := String(skill.id)
