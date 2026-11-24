@@ -443,7 +443,7 @@ func _process(dt: float) -> void:
 
 ## Punto de agarre en la espinilla (delante del hueso, algo por debajo de la rodilla).
 func shin_grip(side: String) -> Vector3:
-	return (joints["knee_" + side] as Node3D).global_transform * Vector3(0.0, -0.25, -0.095)
+	return (joints["knee_" + side] as Node3D).global_transform * Vector3(0.0, -0.1, -0.09)   # manos sobre las rodillas
 
 ## Puntos de las manos con los brazos cruzados: la izquierda al pecho derecho y la derecha al
 ## izquierdo (una algo más alta que la otra).
