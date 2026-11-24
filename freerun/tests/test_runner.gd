@@ -272,6 +272,71 @@ func t_kong_vault() -> void:
 	check("Kong Vault: reconocido", "Kong Vault" in moves, str(moves))
 	check("Kong Vault: supera la caja", player.global_position.z < -15.0, "z %.2f" % player.global_position.z)
 	check("Kong Vault: conserva sprint", player.speed() > 7.0, "vel %.2f" % player.speed())
+	check("Kong Vault: pasa el obstáculo (no se sube encima)", "Kong Vault" in moves and player.global_position.y < 0.3, "y %.2f %s" % [player.global_position.y, moves])
+	# Obstáculo muy largo (solo para la prueba): el kong termina de pie encima
+	var long_box := StaticBody3D.new()
+	var col := CollisionShape3D.new()
+	var bs := BoxShape3D.new(); bs.size = Vector3(2.0, 1.0, 4.0)
+	col.shape = bs
+	long_box.add_child(col)
+	long_box.position = Vector3(-35, 0.5, 20)
+	game.add_child(long_box)
+	await frames(2)
+	for mode in ["suelo", "plancha"]:
+		await place(Vector3(-35, 0.1, 32), Vector3.FORWARD)
+		var lb := {"p": false, "air": false, "kind": ""}
+		await run(func(i, f):
+			i.move = Vector2(0, 1.0); i.sprint = true
+			i.jump_pressed = not lb.p and player.global_position.z <= (22.9 if mode == "suelo" else 25.0)
+			lb.p = lb.p or i.jump_pressed
+			if player.state == PlayerController.State.VAULT:
+				lb.kind = player.vault.kind
+			lb.air = lb.air or player.state != PlayerController.State.GROUND
+			i.jump_held = true, 200,
+			func(): return lb.air and player.state == PlayerController.State.GROUND and player.land_timer > 0.1 or (lb.kind != "" and player.state == PlayerController.State.GROUND and _f > 60))
+		check("Obstáculo muy largo (%s): kong y queda de pie encima" % mode, lb.kind == "Kong Up" and player.global_position.y > 0.9,
+			"%s y %.2f %s" % [lb.kind, player.global_position.y, moves])
+	long_box.queue_free()
+	await frames(2)
+	# Kong → mortal atrás antes de caer: ATRÁS durante el kong = empuje de brazos y mortal
+	await place(Vector3(0, 0.1, -8), Vector3.FORWARD)
+	var kb := {"p": false}
+	await run(func(i, f):
+		i.move = Vector2(0, 1.0); i.sprint = true
+		i.jump_pressed = not kb.p and player.global_position.z <= -12.9
+		kb.p = kb.p or i.jump_pressed
+		i.flick = Vector2(0, -1) if player.state == PlayerController.State.VAULT and player.state_time > 0.1 and player.state_time < 0.13 else Vector2.ZERO
+		i.tuck = player.state == PlayerController.State.AIR and absf(player.tricks.total_pitch) < 4.5; i.jump_held = i.tuck, 240,
+		func(): return kb.p and _f > 30 and player.state == PlayerController.State.GROUND)
+	check("Kong → mortal atrás antes de caer", "Kong Vault" in moves and moves.size() >= 2 and landings.size() > 0 and landings[-1].quality in ["perfect", "clean"],
+		"%s %s" % [moves, landings.map(func(l): return l.quality)])
+	# Dive Kong: saltar lejos del obstáculo; las manos llegan si la distancia y la altura dan
+	var dives: Array[float] = []
+	for jz in [-10.3, -7.6]:
+		await place(Vector3(0, 0.1, -7.0), Vector3.FORWARD)
+		var dk := {"p": false}
+		await run(func(i, f):
+			i.move = Vector2(0, 1.0); i.sprint = true
+			i.jump_pressed = not dk.p and player.global_position.z <= jz
+			dk.p = dk.p or i.jump_pressed
+			dk.air = dk.get("air", false) or player.state != PlayerController.State.GROUND
+			i.jump_held = true, 240,
+			func(): return dk.get("air", false) and player.state == PlayerController.State.GROUND)
+		check("Dive Kong: salta lejos del obstáculo, llega y pasa (%.1f m del muro)" % player.last_dive_kong,
+			"Dive Kong" in moves and player.global_position.z < -15.0 and player.last_dive_kong > 2.0, "%s z %.2f d %.2f" % [moves, player.global_position.z, player.last_dive_kong])
+		dives.append(player.last_dive_kong)
+	check("Dive Kong: saltar desde más lejos = kong más largo (%.1f m → %.1f m)" % [dives[0], dives[1]], dives[1] > dives[0] + 2.0, str(dives))
+	# Demasiado lejos: no llega (no hay kong; choca o cae antes del obstáculo)
+	await place(Vector3(0, 0.1, -6.2), Vector3.FORWARD)
+	var far := {"p": false}
+	await run(func(i, f):
+		i.move = Vector2(0, 1.0) if not far.p or player.state != PlayerController.State.GROUND else Vector2.ZERO
+		i.sprint = true
+		i.jump_pressed = not far.p and player.global_position.z <= -6.45
+		far.p = far.p or i.jump_pressed
+		i.jump_held = true, 200,
+		func(): return far.p and _f > 30 and player.state != PlayerController.State.AIR)
+	check("Dive Kong demasiado lejos: el personaje no llega", not ("Dive Kong" in moves) and not ("Kong Vault" in moves) and player.global_position.z > -15.0, "%s z %.2f" % [moves, player.global_position.z])
 
 func t_wall_run() -> void:
 	await place(Vector3(11.0, 0.1, 3), Vector3.FORWARD)
@@ -1578,16 +1643,20 @@ func t_ring_buttons() -> void:
 	# Páginas de la rueda: CAMBIAR (tocar = siguiente; deslizar arriba/abajo) y botones nuevos
 	touch.ring_page = 0
 	var cam: int = find.call("CAMBIAR")
+	var cam_pos0 := touch.ring_button_center(cam)
 	press.call(cam, true); press.call(cam, false)
 	var p1 := touch.ring_page
-	var e2 := InputEventScreenTouch.new(); e2.index = 6; e2.position = touch.ring_button_center(cam); e2.pressed = true
+	var cam2 := touch.ring_buttons().size() - 1
+	check("Botonera: CAMBIAR queda en el mismo sitio en todas las páginas", touch.ring_button_center(cam2).distance_to(cam_pos0) < 1.0 and touch.ring_page == 1,
+		"%s %s" % [touch.ring_button_center(cam2), cam_pos0])
+	var e2 := InputEventScreenTouch.new(); e2.index = 6; e2.position = touch.ring_button_center(cam2); e2.pressed = true
 	touch._on_touch(e2)
 	var dr := InputEventScreenDrag.new(); dr.index = 6; dr.position = e2.position + Vector2(0, 80); dr.relative = Vector2(0, 80)
 	touch._on_drag(dr)
 	e2.pressed = false; e2.position = dr.position
 	touch._on_touch(e2)
 	check("Botonera: CAMBIAR gira la rueda (tocar = siguiente, deslizar abajo = anterior)", p1 == 1 and touch.ring_page == 0, "tras tocar %d, tras deslizar %d" % [p1, touch.ring_page])
-	for c in [[2, "HOOK", "Hook Kick"], [0, "PIRU", "Piru"], [0, "PATADA 360", "360 Kick"], [2, "MARIPOSA", "Butterfly Kick"],
+	for c in [[2, "HOOK", "Hook Kick"], [0, "PATADA 360", "360 Kick"], [2, "MARIPOSA", "Butterfly Kick"],
 			[3, "BACK WALKOVER", "Back Walkover"], [3, "VOLTERETA AL PINO", "Back Extension Roll"]]:
 		touch.ring_page = c[0]
 		player.set_spawn(Transform3D(Basis(), Vector3(-35, 0.1, 35)), Vector3.FORWARD)
@@ -1674,6 +1743,39 @@ func t_cork_piru() -> void:
 		func(): return _f > 16 and player.state == PlayerController.State.GROUND)
 	check("Cork: el botón CORK salta en cork al momento (sin pasos previos)", "Cork" in moves and landings.size() > 0 and landings[-1].quality in ["perfect", "clean"],
 		"%s %s" % [moves, landings.map(func(l): return l.quality)])
+	# Cork quieto por fases: carga + patada (un apoyo) → despegue vertical → inversión →
+	# tirabuzón con piernas juntas y brazos cerrados → apertura bajando la pierna de patada
+	var rig: BodyRig = game.rig
+	await place(Vector3(-35, 0.1, 35), Vector3.FORWARD)
+	var y0 := player.global_position.y
+	var ck := {"swing": false, "kick": 0.0, "early_twist": 0.0, "wrap": 0.0, "legs_gap": 9.0, "peak": 0.0, "pitch_at_twist": -1.0, "open_kick_first": false}
+	await run(func(i, f):
+		i.stick_twist = true
+		i.jump_pressed = f == 0; i.flick = Vector2(0, -1) if f == 0 else Vector2.ZERO
+		i.cork_request = f == 0
+		if player.state == PlayerController.State.SKILL and player.skill.id == "cork_swing":
+			ck.swing = true
+		if player.state == PlayerController.State.AIR and player.tricks.style == "cork":
+			var tr := player.tricks
+			ck.peak = maxf(ck.peak, player.global_position.y - y0)
+			var tw := absf(float(tr.total.twist))
+			var pg := absf(float(tr.total.pitch))
+			if pg < deg_to_rad(45.0):
+				ck.early_twist = maxf(ck.early_twist, tw)
+				ck.kick = maxf(ck.kick, (rig.pose.hip_r as Vector3).x)
+			if ck.pitch_at_twist < 0.0 and tw > 0.05:
+				ck.pitch_at_twist = rad_to_deg(pg)
+			if tw > deg_to_rad(90.0) and tw < deg_to_rad(270.0):
+				ck.wrap = maxf(ck.wrap, rig.wrap_w)
+				ck.legs_gap = minf(ck.legs_gap, absf((rig.pose.hip_l as Vector3).x - (rig.pose.hip_r as Vector3).x) + absf((rig.pose.knee_l as Vector3).x))
+			if tr.all_settled() and (rig.pose.hip_l as Vector3).x > (rig.pose.hip_r as Vector3).x + 0.2:
+				ck.open_kick_first = true, 200,
+		func(): return _f > 20 and player.state == PlayerController.State.GROUND)
+	check("Cork quieto: carga y patada de la pierna de atrás antes de despegar (un solo apoyo)", ck.swing and ck.kick > 1.0, str(ck))
+	check("Cork quieto: primero se invierte y luego gira (tirabuzón a partir de ~60°)", ck.early_twist < 0.05 and ck.pitch_at_twist > 50.0, str(ck))
+	check("Cork quieto: gira con piernas juntas y brazos cerrados al pecho", ck.wrap > 0.6 and ck.legs_gap < 0.6, str(ck))
+	check("Cork quieto: abre bajando primero la pierna de patada y recibe limpio", ck.open_kick_first and "Cork" in moves and landings[-1].quality in ["perfect", "clean"],
+		"%s %s %s" % [ck, moves, landings.map(func(l): return l.quality)])
 	# Cork desde una altura: cayendo del borde, CORK empieza el cork en ese punto
 	await place(Vector3(-24.25, 5.75, -10.5), Vector3.FORWARD)
 	var hc := {"pressed": false, "y": 0.0}

@@ -101,7 +101,8 @@ func stick_enabled() -> bool:
 func ring_enabled() -> bool:
 	return Settings.trick_controls == 4
 
-## [rótulo, tipo, valor]. Tipos: flip (sector de la acrobacia), cork, piru, kick (patada 360),
+## [rótulo, tipo, valor]. Tipos: flip (sector de la acrobacia), cork, kick (patada 360),
+## (sin botón PIRU: los tirabuzones se hacen solo con el joystick GIRO)
 ## butterfly, skill (habilidad de suelo), change (CAMBIAR de página).
 ## Arco de 270° alrededor de SALTO con 8 botones GRANDES por página y CAMBIAR al final (abajo a la
 ## derecha). VAULT, AGARRAR y RODAR van aparte, en una fila encima del joystick GIRO.
@@ -110,7 +111,7 @@ const RING_CHANGE := ["CAMBIAR", "change", ""]
 const RING_PAGES := [
 	{"name": "MORTALES", "buttons": [
 		["ATRÁS", "flip", -2], ["ADELANTE", "flip", 2], ["LATERAL\nIZQ.", "flip", 4], ["LATERAL\nDER.", "flip", 0],
-		["CORK", "cork", -2], ["PIRU", "piru", -2], ["AERIAL /\nMARIPOSA", "flip", 3], ["PATADA\n360", "kick", 0]]},
+		["CORK", "cork", -2], ["AERIAL /\nMARIPOSA", "flip", 3], ["PATADA\n360", "kick", 0]]},
 	{"name": "SUELO", "buttons": [
 		["RONDADA", "skill", "roundoff"], ["FLIC-FLAC", "skill", "bhs"], ["RUEDA", "skill", "cartwheel"],
 		["PALOMA", "skill", "fhs"], ["MACACO", "skill", "macaco"], ["PINO", "skill", "handstand"],
@@ -161,14 +162,20 @@ const RING_BTN_R := 44.0
 const RING_A0 := 225.0               # grados (matemáticos, y arriba): abajo a la izquierda
 const RING_SPAN := 270.0
 const PARK_R := 44.0                 # VAULT, AGARRAR, RODAR en la botonera
+const RING_SLOTS := 9                # 8 botones + CAMBIAR
 
 func _ring_center() -> Vector2:
 	var s := _s()
 	return Vector2(_mirror(size.x - 255.0 * s), size.y - 195.0 * s)
 
 func ring_button_center(i: int, animated := false) -> Vector2:
+	# CAMBIAR siempre en el último hueco (abajo a la derecha) aunque la página tenga menos
+	# botones: los de la página se reparten por el resto del arco.
 	var n := ring_buttons().size()
-	var a_deg := RING_A0 - RING_SPAN * float(i) / float(n - 1)
+	var frac := 1.0
+	if i < n - 1:
+		frac = float(i) / float(maxi(n - 2, 1)) * float(RING_SLOTS - 2) / float(RING_SLOTS - 1)
+	var a_deg := RING_A0 - RING_SPAN * frac
 	if animated and i < n - 1:
 		a_deg += _ring_anim * 40.0          # los botones de la página entran girando por el arco
 	var ang := deg_to_rad(a_deg)

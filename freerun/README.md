@@ -17,7 +17,7 @@ Atajos: `godot --path freerun -- --mode=freerun` salta el menú (`tricking`, `wa
 ## Controles
 
 **Móvil (iPhone / Android) — BOTONERA (por defecto)**: abajo a la derecha, **SALTO grande en el centro** y un **arco de 3/4 de círculo con 8 botones grandes por página y CAMBIAR**, que se puede girar. VAULT, AGARRAR y RODAR van en una fila abajo, entre el joystick de movimiento y el joystick GIRO (no tapan al atleta). Páginas:
-- **1 · MORTALES**: atrás, adelante, lateral izq. y der., cork, piru, aerial/mariposa, patada 360.
+- **1 · MORTALES**: atrás, adelante, lateral izq. y der., cork, aerial/mariposa, patada 360 (sin botón de piru: los tirabuzones van con el joystick GIRO).
 - **2 · SUELO**: rondada, flic-flac, rueda, paloma, macaco, pino (se sostiene mientras mantienes el botón), atrás, cork.
 - **3 · TRICKING**: hook, crescent, crescent inversa, raiz, TD raiz, scoot, mariposa, cork.
 - **4 · GIMNASIA**: back walkover, front walkover, valdez, voltereta al pino, pino, rondada, flic-flac, atrás.
@@ -28,7 +28,9 @@ Cómo se usan:
 - **Mantener pulsado el botón de un mortal = el atleta sigue agrupado y girando**: doble, triple o las vueltas que permita la altura. Al soltar se abre y aterriza en la siguiente vuelta completa; con ayuda Alta o Media se abre solo si ya no queda altura para otra vuelta.
 - Corriendo, ATRÁS es gainer y ADELANTE, webster.
 - **PIRU**: mortal atrás con tirabuzón de 360 suelto (ATRÁS + una vuelta de GIRO; con más GIRO, Piru 540 / 720).
-- **CORK**: el mismo giro dentro de un combo (tras TD Raiz, raiz, hook, scoot, rondada/flic-flac) o con el botón **CORK**: salta en cork al momento con tirabuzón de 360 (GIRO en el mismo sentido lo alarga a 540 / 720; el joystick izquierdo elige el sentido). Si ya estás en el aire —por ejemplo, saltando desde el borde de una altura— pulsar CORK empieza el cork justo en ese punto.
+- **CORK**: el mismo giro dentro de un combo (tras TD Raiz, raiz, hook, scoot, rondada/flic-flac) o con el botón **CORK**. En el suelo es un **cork quieto** (sin carrera): carga con la pierna de patada atrás y los brazos atrás, patada arriba en diagonal por delante del cuerpo con los brazos arriba, despegue vertical, primero la inversión hacia atrás y después el tirabuzón de 360 con piernas juntas y brazos cerrados al pecho; abre bajando primero la pierna de patada (GIRO en el mismo sentido lo alarga a 540 / 720; el joystick izquierdo elige el sentido). Si ya estás en el aire —por ejemplo, saltando desde el borde de una altura— pulsar CORK empieza el cork justo en ese punto.
+- **Parkour + mortal**: pulsa un botón de mortal (o CORK / PATADA 360) durante cualquier vault y, al salir del obstáculo, el empuje de brazos te lanza para hacerlo antes de caer (Kong → mortal atrás, Speed → lateral...).
+- **Dive Kong**: salta con carrera *lejos* del obstáculo. Las manos solo llegan si la trayectoria da: muy cerca es un kong normal, a media distancia el salto pasa por encima, demasiado lejos te quedas corto. Se mide la distancia del despegue al muro y se guarda tu récord para ir alargándola. El kong (y los demás vaults) **pasa el obstáculo**: los pies cruzan por encima de toda la caja y caes al otro lado. Si el obstáculo es **muy largo** (más de ~2,2 m), el kong termina **de pie encima** (Kong Up).
 - **ST**: pulsa CORK durante un cork y caerá **a un pie** y, con la pierna libre, patea directamente otro cork : Cork › ST › Cork…
 - La rueda, la rondada y el macaco van hacia el lado al que empuja el joystick izquierdo.
 - Pulsar un botón durante un movimiento lo deja en cola para la recepción. Por ejemplo, RONDADA → FLIC-FLAC → ATRÁS.

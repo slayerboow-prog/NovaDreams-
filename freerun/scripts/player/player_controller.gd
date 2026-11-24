@@ -41,6 +41,7 @@ var wall_cooldown := 0.0
 var last_wall_normal := Vector3.ZERO
 var air_kind := "fall"
 var takeoff_y := 0.0
+var takeoff_pos := Vector3.ZERO        # punto de despegue (distancia del Dive Kong)
 var peak_y := 0.0
 var prev_velocity := Vector3.ZERO
 var land_impact := 0.0                  # para la animación de recepción
@@ -380,6 +381,12 @@ func _state_ground(dt: float) -> void:
 				return
 			if _try_wall_climb():
 				return
+			if cork_buffer > 0.0 and not chain.active() and t.jump_load_time > 0.0:
+				# Cork quieto o con un paso: carga, patada de la pierna de atrás y despegue vertical
+				cork_buffer = 0.0
+				flick_timer = 0.0
+				_start_skill("cork_swing", cork_side)
+				return
 			var kind := "run" if spd > 3.0 else "stand"
 			_prepare_side_turn(spd)
 			if side_turn <= 0.0 and not chain.active() and (land_impact > 0.3 or t.jump_load_time <= 0.0):
@@ -560,6 +567,7 @@ func _link_for(target: String) -> Dictionary:
 func _enter_air(kind: String) -> void:
 	air_kind = kind
 	takeoff_y = global_position.y
+	takeoff_pos = global_position
 	peak_y = takeoff_y
 	# Velocidad de despegue hacia donde mira (gainer = mortal atrás avanzando) y total
 	tricks.reset(kind if kind != "fall" else "run", horizontal_velocity().dot(facing))
@@ -612,6 +620,10 @@ func _state_air(dt: float) -> void:
 	if not tricks.active and hv.length() > 1.0:
 		_turn_facing(hv, 4.0, dt)
 
+	# Dive Kong: saltando hacia un obstáculo desde lejos, las manos solo llegan si la trayectoria
+	# da para ello (distancia y altura). Si te quedas corto o bajo, no hay kong.
+	if _try_dive_kong():
+		return
 	# AGARRAR / VAULT en el aire: agarrar el borde (o subirlo) aunque vengas de un giro,
 	# si el cuerpo ya está casi vertical; si no hay borde, agarrarse a la pared.
 	if (grab_buffer > 0.0 or vault_buffer > 0.0) and tricks.upright_error() < deg_to_rad(70.0):
@@ -755,10 +767,18 @@ func _try_vault() -> bool:
 	var h: float = info.height
 	var d: float = info.dist
 	var depth: float = info.depth
+	if not info.mount and depth > LONG_TOP:
+		# Obstáculo muy largo: no se puede pasar entero por encima, se sube arriba
+		info.mount = true
+		depth = 0.9
 	var kind := "Speed Vault"
 	var ideal := Vector2(0.25, 1.3)
 	var speed_mult := 1.0
-	if info.mount:
+	if info.mount and spd > t.run_speed + 1.2 and h >= 0.55:
+		kind = "Kong Up"              # kong a precisión: cae de pie encima del obstáculo largo
+		ideal = Vector2(0.5, 1.9)
+		speed_mult = 0.8
+	elif info.mount:
 		kind = "Step Up" if h < 0.75 else "Climb Up"
 		ideal = Vector2(0.1, 1.2)
 		speed_mult = 0.75
@@ -809,9 +829,9 @@ func _try_vault() -> bool:
 		timing = 0.6
 		speed_mult *= 0.82
 	var top_y: float = info.top_y
-	var length := d + depth + 0.55
+	var length := d + depth + 0.85
 	if info.mount:
-		length = d + 0.55
+		length = d + (0.95 if kind == "Kong Up" else 0.55)
 	var exit_speed := maxf(spd * speed_mult, 3.5)
 	var duration := clampf(length / maxf(exit_speed, 4.0) * (1.25 if info.mount else 1.0), 0.28, 0.8)
 	if kind == "Turn Vault":
@@ -827,9 +847,12 @@ func _try_vault() -> bool:
 	elif kind == "Turn Vault":
 		peak = top_y + 0.32          # cadera alta sobre las manos para girar
 	if info.mount:
-		peak = top_y + 0.12
+		peak = top_y + (0.25 if kind == "Kong Up" else 0.12)
+	var ctrl := 2.0 * peak - 0.5 * (y0 + y1)
+	if not info.mount and kind not in ["Step Vault", "Turn Vault"]:
+		ctrl = _clear_ctrl(ctrl, y0, y1, top_y, d, depth, length)
 	vault = {"kind": kind, "p0": global_position, "dir": dir, "length": length, "duration": duration,
-		"y0": y0, "y1": y1, "ctrl": 2.0 * peak - 0.5 * (y0 + y1), "exit_speed": exit_speed,
+		"y0": y0, "y1": y1, "ctrl": ctrl, "exit_speed": exit_speed,
 		"mount": info.mount, "jump_queued": false, "flick": Vector2.ZERO, "top_y": top_y,
 		"front": d, "depth": depth}
 	facing = dir
@@ -837,6 +860,92 @@ func _try_vault() -> bool:
 	_set_state(State.VAULT)
 	_emit_move(kind, timing, {"timing": timing, "height": h})
 	return true
+
+## DIVE KONG: en el aire (salto con carrera, sin acrobacia), si el obstáculo queda al alcance de
+## los brazos (delante y con la parte de arriba entre los pies y la cabeza), se apoya en él en
+## plancha y pasa por encima. La distancia se mide desde el despegue hasta el muro: cuanto más
+## lejos, más puntos y récord personal. Si no llegas (caes antes o llegas demasiado bajo) no hay kong.
+const DIVE_REACH := 0.85            # alcance horizontal de los brazos estirados (m)
+const DIVE_MAX_ABOVE := 1.45        # la parte de arriba como mucho a la altura de las manos estiradas
+const DIVE_MIN_ABOVE := -0.7        # pasando por encima: las manos aún llegan abajo hasta ~0,7 m
+
+func _try_dive_kong() -> bool:
+	if state != State.AIR or tricks.has_rotation() or air_kind not in ["run", "stand"]:
+		return false
+	var hv := horizontal_velocity()
+	var spd := hv.length()
+	if spd < t.vault_min_speed:
+		return false
+	var dir := hv / spd
+	var pos := global_position
+	# Parte de arriba del obstáculo justo delante (mirando hacia abajo y adelante): sirve tanto
+	# subiendo (pies por debajo del borde) como bajando o pasando por encima (manos hacia abajo)
+	var top_y := -INF
+	for k in [0.35, 0.65, 0.95, 1.25]:
+		var c: Vector3 = pos + dir * float(k)
+		var hit := sensor.ray(c + Vector3.UP * (DIVE_MAX_ABOVE + 0.1), c - Vector3.UP * (DIVE_MIN_ABOVE * -1.0 + 0.1))
+		if not hit.is_empty() and (hit.normal as Vector3).y > 0.7 and float(hit.position.y) > takeoff_y + 0.4:
+			top_y = float(hit.position.y)
+			break
+	if top_y == -INF:
+		return false
+	var above := top_y - pos.y
+	if above > DIVE_MAX_ABOVE or above < DIVE_MIN_ABOVE:
+		return false              # demasiado bajo (no llegan las manos) o pasa muy por encima
+	# Cara del obstáculo, profundidad y caída al otro lado (con unos "pies" virtuales bajo el borde)
+	var info := sensor.probe_vault(Vector3(pos.x, top_y - 0.6, pos.z), dir, 3.0, 1.0, 0.3)
+	if info.is_empty():
+		return false
+	var d: float = info.dist
+	if d > DIVE_REACH:
+		return false
+	var mount: bool = info.mount
+	var depth: float = info.depth
+	if not mount and depth > LONG_TOP:
+		mount = true                 # obstáculo muy largo: kong y de pie encima
+		depth = 0.9
+	var dist := Vector3(global_position.x - takeoff_pos.x, 0.0, global_position.z - takeoff_pos.z).length() + d
+	if dist < 0.9:
+		return false
+	var kind := "Kong Up" if mount else "Dive Kong"
+	# Técnica: manos a la altura buena (ni rozando con los pies ni con los brazos al límite)
+	var timing := 1.0 if above > 0.25 and above < 1.15 else 0.7
+	var length := d + (0.95 if mount else depth + 0.85)
+	var exit_speed := maxf(spd * 1.04, 4.0)
+	var duration := clampf(length / maxf(exit_speed, 4.0) * (1.15 if mount else 1.0), 0.3, 0.75)
+	var y0 := global_position.y
+	var y1: float = top_y + 0.02 if mount else maxf(top_y - 0.35, float(info.land_y) + 0.02)
+	# La trayectoria sigue el vuelo que traía (misma velocidad vertical al apoyar las manos) y
+	# la cadera pasa por encima del borde
+	var ctrl := maxf(y0 + velocity.y * duration * 0.5, 2.0 * (top_y + 0.15 - 0.25 * (y0 + y1)))
+	if not mount:
+		ctrl = _clear_ctrl(ctrl, y0, y1, top_y, d, depth, length)
+	vault = {"kind": kind, "p0": global_position, "dir": dir, "length": length, "duration": duration,
+		"y0": y0, "y1": y1, "ctrl": ctrl, "exit_speed": exit_speed,
+		"mount": mount, "jump_queued": false, "flick": Vector2.ZERO, "top_y": top_y,
+		"front": d, "depth": depth, "distance": dist}
+	facing = dir
+	tricks.reset("vault", spd)
+	_set_state(State.VAULT)
+	last_dive_kong = dist
+	_emit_move(kind, timing, {"timing": timing, "height": above, "distance": dist, "dive": true,
+		"difficulty": 0.4 + 0.25 * dist})
+	return true
+
+var last_dive_kong := 0.0
+
+## Obstáculo más largo que esto (m): no se pasa entero por encima, el vault termina arriba.
+const LONG_TOP := 2.2
+
+## Trayectoria de un vault que PASA el obstáculo: los pies quedan por encima de la parte de
+## arriba desde que la cadera pasa el borde de delante hasta que superan el borde de atrás
+## (no "aterriza" encima). Devuelve el punto de control de la curva que lo cumple.
+func _clear_ctrl(ctrl: float, y0: float, y1: float, top_y: float, front: float, depth: float, length: float) -> float:
+	for pt in [[front + 0.3, top_y - 0.05], [front + depth + 0.25, top_y + 0.06]]:
+		var se := clampf(float(pt[0]) / maxf(length, 0.01), 0.05, 0.95)
+		var need := (float(pt[1]) - (1.0 - se) * (1.0 - se) * y0 - se * se * y1) / (2.0 * se * (1.0 - se))
+		ctrl = maxf(ctrl, need)
+	return ctrl
 
 ## Hay un obstáculo saltable justo delante: el joystick derecho elige la variante del vault
 ## en vez de hacer un movimiento de suelo.
@@ -1058,7 +1167,8 @@ func _make_cork() -> void:
 func _cork_takeoff(side: int, via: String) -> void:
 	cork_side = side
 	jump_load = 0.0
-	velocity.y = t.jump_velocity + 0.6 + speed() * t.jump_speed_bonus
+	# Sin carrera la patada es la fuente principal de elevación: despegue vertical más alto
+	velocity.y = t.jump_velocity + (1.0 if via == "cork_swing" else 0.6) + speed() * t.jump_speed_bonus
 	_enter_air("run")
 	tricks.takeoff_detail = via
 	tricks.linked = true
@@ -1102,6 +1212,10 @@ func _state_vault(dt: float) -> void:
 		jump_buffer = 0.0
 	if intent.flick != Vector2.ZERO:
 		vault.flick = intent.flick
+	if intent.cork_request:
+		vault.cork = true
+	if intent.kick:
+		vault.kick = true
 	var prev := global_position
 	var p := _vault_point(s)
 	global_position = p
@@ -1119,13 +1233,21 @@ func _state_vault(dt: float) -> void:
 				_enter_air("fall")
 			return
 		_enter_air("vault")
-		if vault.jump_queued or vault.flick != Vector2.ZERO:
-			velocity.y = t.jump_velocity * 0.95
+		var cork_q: bool = vault.get("cork", false)
+		var kick_q: bool = vault.get("kick", false)
+		if vault.jump_queued or vault.flick != Vector2.ZERO or cork_q or kick_q:
+			# Empuje de brazos al salir del obstáculo: vuelo para un mortal antes de caer
+			# (Kong → mortal atrás, Speed → lateral, Dive Kong → cork...)
+			velocity.y = t.jump_velocity * (1.05 if String(vault.kind).contains("Kong") else 0.95)
 			air_kind = "vault"
 			tricks.reset("vault", vault.exit_speed)
 			tricks.takeoff_detail = vault.kind
-			if vault.flick != Vector2.ZERO:
-				tricks.apply_flick(vault.flick)
+			if cork_q:
+				_make_cork()
+			elif vault.flick != Vector2.ZERO:
+				tricks.apply_flick(vault.flick, not intent.stick_twist)
+			if kick_q:
+				tricks.apply_kick(_kick_dir())
 
 # ---------------------------------------------------------------- paredes
 

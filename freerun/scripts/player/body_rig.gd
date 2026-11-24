@@ -196,6 +196,12 @@ func _build() -> void:
 
 # ------------------------------------------------------------------ animación
 
+## Muelle de la pose: frecuencia relativa a blend_speed y amortiguamiento (<1 = leve rebote).
+const SPRING_W := 1.9
+const SPRING_ZETA := 0.86
+const JOINT_LAG := {"elbow_l": 0.8, "elbow_r": 0.8, "knee_l": 0.85, "knee_r": 0.85, "neck": 0.75}
+var _pose_vel := {}
+
 func _base_pose() -> Dictionary:
 	var d := {}
 	for k in joints.keys():
@@ -362,11 +368,26 @@ func _process(dt: float) -> void:
 			target.hip_l.x = sin(phase * 1.3) * 0.4; target.hip_r.x = -sin(phase * 1.3) * 0.4
 			tilt = Basis(Vector3.RIGHT, -0.9 if player.speed() > 0.6 else -0.2)
 
-	# Mezcla suave hacia la pose objetivo
-	var k := 1.0 - exp(-blend_speed * dt)
+	# Mezcla hacia la pose objetivo con un muelle amortiguado por articulación: arranca y frena
+	# con suavidad (sin tirones de velocidad) y se pasa un pelín al final, como un cuerpo real.
+	# Codos, rodillas, cuello y muñecas van un instante por detrás del tronco (inercia de las
+	# extremidades): el movimiento "sigue" en vez de moverse todo a la vez.
 	for name in joints.keys():
-		pose[name] = (pose[name] as Vector3).lerp(target[name], k)
-		(joints[name] as Node3D).rotation = pose[name]
+		var cur: Vector3 = pose[name]
+		var vel: Vector3 = _pose_vel.get(name, Vector3.ZERO)
+		var tgt: Vector3 = target[name]
+		var wj: float = blend_speed * SPRING_W * float(JOINT_LAG.get(name, 1.0))
+		if dt <= 0.0:
+			continue
+		var steps := maxi(1, int(ceil(dt * wj / 0.45)))
+		var h := dt / float(steps)
+		for i in steps:
+			var acc := (tgt - cur) * (wj * wj) - vel * (2.0 * SPRING_ZETA * wj)
+			vel += acc * h
+			cur += vel * h
+		pose[name] = cur
+		_pose_vel[name] = vel
+		(joints[name] as Node3D).rotation = cur
 	var direct := st in [PlayerController.State.ROLL, PlayerController.State.VAULT, PlayerController.State.SKILL]
 	body_drop = drop if st == PlayerController.State.SKILL else lerpf(body_drop, drop, 1.0 - exp(-18.0 * dt))
 	_tilt = tilt if direct else _tilt.slerp(tilt, 1.0 - exp(-22.0 * dt))
@@ -414,6 +435,8 @@ const VAULT_HANDS := {
 	"Kong Vault": [["hl", 0.28, 0.55, 0.25, -0.17], ["hr", 0.28, 0.55, 0.25, 0.17]],
 	"Double Kong": [["hl", 0.18, 0.38, 0.15, -0.17], ["hr", 0.18, 0.38, 0.15, 0.17],
 		["hl", 0.55, 0.74, 0.85, -0.17], ["hr", 0.55, 0.74, 0.85, 0.17]],
+	"Dive Kong": [["hl", 0.12, 0.45, 0.2, -0.17], ["hr", 0.12, 0.45, 0.2, 0.17]],
+	"Kong Up": [["hl", 0.12, 0.5, 0.25, -0.17], ["hr", 0.12, 0.5, 0.25, 0.17]],
 	"Kash Vault": [["hl", 0.22, 0.45, 0.25, -0.17], ["hr", 0.22, 0.45, 0.25, 0.17]],
 	"Speed Vault": [["hl", 0.3, 0.58, 0.45, -0.12]],
 	"Lazy Vault": [["hl", 0.25, 0.52, 0.35, -0.15], ["hr", 0.48, 0.74, 0.7, 0.1]],
@@ -710,7 +733,9 @@ func _impulse_pose(kind: String, rs: float) -> Dictionary:
 				"elbow_l": Vector3(0.1, 0, 0), "elbow_r": Vector3(0.1, 0, 0),
 				"hip_r": Vector3(1.6, 0, 0), "knee_r": Vector3(-0.35, 0, 0),         # pierna libre lanzada arriba
 				"hip_l": Vector3(-0.2, 0, 0), "knee_l": Vector3(-0.05, 0, 0)}
-		"cork", "twist":
+		"cork":
+			return _cork_legs(CORK_KICK)
+		"twist":
 			return {"spine": Vector3(0.2, 0.55 * rs, 0), "neck": Vector3(0.3, 0.3 * rs, 0),
 				"shoulder_l": Vector3(2.5, 0, -0.7), "shoulder_r": Vector3(1.7, 0, 0.9),
 				"elbow_l": Vector3(0.2, 0, 0), "elbow_r": Vector3(0.6, 0, 0),
@@ -794,10 +819,11 @@ func _gather_pose(kind: String, rs: float, ph: float) -> Dictionary:
 				"shoulder_l": Vector3(1.1, 0, -0.15), "shoulder_r": Vector3(1.1, 0, 0.15),
 				"elbow_l": Vector3(1.2, 0, 0), "elbow_r": Vector3(1.2, 0, 0)}
 		"cork":
-			# Tirabuzón fuera de eje: brazos cruzados al pecho, piernas juntas semiagrupadas
-			return {"spine": Vector3(-0.3, 0, 0), "neck": Vector3(0.2, 0, 0),
-				"hip_l": Vector3(1.45, 0, 0.06), "hip_r": Vector3(1.55, 0, -0.06),
-				"knee_l": Vector3(-1.75, 0, 0), "knee_r": Vector3(-1.85, 0, 0),
+			# Tirabuzón: piernas juntas y casi rectas (eje recto y rápido), brazos cerrados al pecho
+			# y la cabeza mirando por encima del hombro hacia el giro
+			return {"spine": Vector3(-0.08, 0, 0), "neck": Vector3(0.15, 0.45 * rs, 0),
+				"hip_l": Vector3(0.28, 0, 0.07), "hip_r": Vector3(0.3, 0, -0.07),
+				"knee_l": Vector3(-0.22, 0, 0), "knee_r": Vector3(-0.25, 0, 0),
 				"shoulder_l": Vector3(0.6, 0, 0.6), "shoulder_r": Vector3(0.6, 0, -0.6),
 				"elbow_l": Vector3(2.35, 0, 0), "elbow_r": Vector3(2.35, 0, 0)}
 		"twist":
@@ -858,6 +884,31 @@ func _gather_pose(kind: String, rs: float, ph: float) -> Dictionary:
 		"hip_l": Vector3(2.8, 0, -0.07), "hip_r": Vector3(2.76, 0, 0.07), "knee_l": Vector3(-2.85, 0, 0), "knee_r": Vector3(-2.82, 0, 0),
 		"shoulder_l": Vector3(1.0, 0, -0.12), "shoulder_r": Vector3(1.0, 0, 0.12),
 		"elbow_l": Vector3(1.35, 0, 0), "elbow_r": Vector3(1.35, 0, 0)}
+
+## Cork: patada de la pierna de atrás (derecha si cork_side = 1) con los brazos arriba.
+const CORK_KICK := {"spine": Vector3(0.22, 0, 0), "neck": Vector3(0.35, 0, 0),
+	"shoulder_l": Vector3(2.85, 0, -0.3), "shoulder_r": Vector3(2.85, 0, 0.3),
+	"elbow_l": Vector3(0.1, 0, 0), "elbow_r": Vector3(0.1, 0, 0),
+	"hip_r": Vector3(2.0, 0, -0.25), "knee_r": Vector3(-0.1, 0, 0), "hip_l": Vector3(0.1, 0, 0), "knee_l": Vector3(-0.1, 0, 0)}
+## Cork: apertura, la pierna de patada baja primero (estirada al suelo), la otra llega después.
+const CORK_OPEN := {"hip_r": Vector3(0.05, 0, 0.04), "knee_r": Vector3(-0.08, 0, 0),
+	"hip_l": Vector3(0.65, 0, -0.04), "knee_l": Vector3(-0.75, 0, 0),
+	"shoulder_l": Vector3(1.4, 0, -0.9), "shoulder_r": Vector3(1.4, 0, 0.9)}
+
+## Intercambia izquierda/derecha según la pierna de patada del cork.
+func _cork_legs(v: Dictionary) -> Dictionary:
+	if player.cork_side >= 0:
+		return v
+	var o := {}
+	for k in v.keys():
+		var n: String = k
+		if n.ends_with("_l"):
+			n = n.trim_suffix("_l") + "_r"
+		elif n.ends_with("_r"):
+			n = n.trim_suffix("_r") + "_l"
+		var x: Vector3 = v[k]
+		o[n] = Vector3(x.x, -x.y, -x.z)
+	return o
 
 ## Fase 5 · APERTURA: el cuerpo se alarga (frena el giro) y las piernas buscan el suelo.
 const OPEN_POSE := {"spine": Vector3(-0.05, 0, 0), "neck": Vector3(0.1, 0, 0),
@@ -936,7 +987,14 @@ func _trick_pose(p: Dictionary, tr: TrickSystem) -> void:
 		# Mientras gira el tirabuzón los brazos se cierran cruzados sobre el pecho (gira más rápido);
 		# se abren al terminar el giro para aterrizar
 		var twisting := 0.0 if tr.settled.get("twist", true) else 1.0
-		wrap_w = clampf(gather * (1.0 - imp) * (1.0 - rec) * maxf(twisting, 1.0 - open), 0.0, 1.0)
+		var pre := 0.0
+		if kind == "cork":
+			# Antes de cerrar el giro: patada arriba, brazos arriba, cadera que sube (inversión)
+			pre = clampf(1.0 - absf(float(tr.total.get("twist", 0.0))) / 0.9, 0.0, 1.0) * twisting
+			_apply(p, _cork_legs(CORK_KICK), pre * (1.0 - rec))
+			# Apertura: se separan los brazos y baja primero la pierna de patada para frenar
+			_apply(p, _cork_legs(CORK_OPEN), open * (1.0 - rec))
+		wrap_w = clampf(gather * (1.0 - imp) * (1.0 - rec) * (1.0 - pre) * maxf(twisting, 1.0 - open), 0.0, 1.0)
 	last_kind = kind
 	if imp > 0.5:
 		last_phase = "impulso"
@@ -1006,6 +1064,10 @@ func _load_pose(p: Dictionary) -> float:
 				vals.spine.y = 0.35 * side * down       # cork: carga ligeramente girada
 	_apply(p, vals, 1.0)
 	return (0.24 * depth) * down
+## Salida del kong: las piernas pasan por delante recogidas, listas para recibir.
+const KONG_EXIT_LEGS := {"hip_l": Vector3(1.0, 0, -0.06), "hip_r": Vector3(0.9, 0, 0.06),
+	"knee_l": Vector3(-0.9, 0, 0), "knee_r": Vector3(-0.8, 0, 0), "spine": Vector3(-0.35, 0, 0)}
+
 func _vault_pose(p: Dictionary) -> Basis:
 	var s := player.vault_progress()
 	var kind: String = player.vault.get("kind", "Speed Vault")
@@ -1015,8 +1077,19 @@ func _vault_pose(p: Dictionary) -> Basis:
 			_tuck_pose(p, arc)
 			p.shoulder_l.x = lerpf(2.8, 0.3, s); p.shoulder_r.x = lerpf(2.8, 0.3, s)
 			p.elbow_l.x = 0.2; p.elbow_r.x = 0.2
+			_apply(p, KONG_EXIT_LEGS, _smooth((s - 0.5) / 0.3))
 			# Tronco casi horizontal: hombros sobre las manos, cadera alta y piernas pasando entre los brazos
 			return Basis(Vector3.RIGHT, -1.4 * arc)
+		"Dive Kong", "Kong Up":
+			# Llega en plancha con los brazos estirados por delante; recoge las piernas entre los
+			# brazos sobre el obstáculo y se endereza para caer (o quedar de pie arriba)
+			_tuck_pose(p, sin(clampf(s * 1.25, 0.0, 1.0) * PI) * 0.95)
+			p.shoulder_l.x = lerpf(3.0, 0.4, _smooth(s / 0.7)); p.shoulder_r.x = p.shoulder_l.x
+			p.elbow_l.x = 0.12; p.elbow_r.x = 0.12
+			p.neck.x = 0.45 * (1.0 - s)
+			_apply(p, KONG_EXIT_LEGS, _smooth((s - 0.55) / 0.3))
+			# Se tumba en plancha en el primer cuarto (sin saltos de orientación) y se endereza al final
+			return Basis(Vector3.RIGHT, -1.45 * minf(_smooth(s / 0.22), sin(PI * (0.3 + 0.7 * s))))
 		"Double Kong":
 			# Dos apoyos de manos: dos arcos de agrupado sobre el obstáculo
 			var a2 := absf(sin(s * TAU))
