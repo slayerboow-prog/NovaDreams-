@@ -91,6 +91,7 @@ func _run_all() -> void:
 	await t_backflip()
 	await t_frontflip_cork()
 	await t_tuck_grab()
+	await t_skin_body()
 	await t_twist_wrap()
 	await t_ground_flick_buffer()
 	await t_overrotation_crash()
@@ -109,6 +110,7 @@ func _run_all() -> void:
 	await t_wheel_no_twist()
 	await t_touch_layout()
 	await t_ring_buttons()
+	await t_salto_giro_sticks()
 	await t_landing_feel()
 	await t_new_tricks()
 	await t_gestures()
@@ -1804,6 +1806,62 @@ func t_cork_piru() -> void:
 	check("ST: cae a un pie y enlaza otro cork (Cork › ST › Cork)", order_ok and landings.all(func(l): return l.quality in ["perfect", "clean"]),
 		"%s %s" % [moves, landings.map(func(l): return l.quality)])
 
+## Botonera: SALTO es un joystick de mortales básicos (deslizar ↑ adelante · ← → lateral ·
+## ↓ atrás) y el joystick GIRO en el suelo hace ↑ rondada · ↓ flic-flac · ← → rueda ·
+## semicírculo desde abajo = scoot · desde arriba = macaco.
+func t_salto_giro_sticks() -> void:
+	var touch: TouchControls = game.ui.touch
+	var old_mode := Settings.trick_controls
+	Settings.trick_controls = 5
+	Settings.force_touch_ui = true
+	touch.visible = true
+	touch.size = Vector2(1542, 720)
+	check("Modo gestos: sin rueda de botones de movimientos (todo con SALTO y GIRO)", touch.ring_buttons().is_empty(), str(touch.ring_buttons().size()))
+	game.router.scripted = Callable()            # entrada real: el táctil
+	var no_twist := {"max": 0.0}
+	for c in [[Vector2(0, -1), "Frontflip"], [Vector2(0.71, -0.71), "Aerial"], [Vector2(-1, 0), "Sideflip"], [Vector2(1, 0), "Sideflip"],
+			[Vector2(0, 1), "Backflip"], [Vector2(0.71, 0.71), "Gainer"], [Vector2(-0.71, 0.71), "Gainer"]]:
+		await place(Vector3(-35, 0.1, 35), Vector3.FORWARD)
+		moves.clear(); landings.clear()
+		touch.air_mode = false
+		var jc := touch._jump_center()
+		var e := InputEventScreenTouch.new(); e.index = 7; e.position = jc; e.pressed = true
+		touch._on_touch(e)
+		var dr := InputEventScreenDrag.new(); dr.index = 7; dr.position = jc + (c[0] as Vector2) * 90.0
+		dr.relative = (c[0] as Vector2) * 90.0
+		touch._on_drag(dr)
+		var released := false
+		for k in 200:
+			await get_tree().physics_frame
+			var tp: float = maxf(absf(player.tricks.total_pitch), absf(player.tricks.total_roll))
+			no_twist.max = maxf(no_twist.max, absf(float(player.tricks.total.twist)))
+			if not released and (k > 40 or tp > TAU - deg_to_rad(110)):
+				e.pressed = false; e.position = dr.position
+				touch._on_touch(e)
+				released = true
+			if k > 30 and player.state == PlayerController.State.GROUND and not moves.is_empty():
+				break
+		if not released:
+			e.pressed = false; touch._on_touch(e)
+		check("SALTO deslizando %s = %s" % [str(c[0]), c[1]], c[1] in moves and landings.size() > 0 and landings[-1].quality in ["perfect", "clean"],
+			"%s %s" % [moves, landings.map(func(l): return l.quality)])
+	check("SALTO nunca añade tirabuzones (giro máximo %.2f rad)" % no_twist.max, no_twist.max < 0.05, "")
+	game.router.scripted = _drive
+	# Joystick GIRO en el suelo
+	for g in [["arriba", [Vector2(0, 1)], "Round-off"], ["abajo", [Vector2(0, -1)], "Back Handspring"], ["lado", [Vector2(1, 0)], "Cartwheel"],
+			["semicírculo desde abajo", [Vector2(0, -1), Vector2(0.7, -0.7), Vector2(1, 0), Vector2(0.7, 0.7), Vector2(0, 1)], "Scoot"],
+			["semicírculo desde arriba", [Vector2(0, 1), Vector2(0.7, 0.7), Vector2(1, 0), Vector2(0.7, -0.7), Vector2(0, -1)], "Macaco"]]:
+		await place(Vector3(-35, 0.1, 35), Vector3.FORWARD)
+		moves.clear()
+		var path: Array = g[1]
+		await run(func(i, f):
+			i.stick_twist = true
+			var idx: int = int(f) / 3
+			i.rot = path[idx] if idx < path.size() else Vector2.ZERO, 160,
+			func(): return _f > 20 and g[2] in moves)
+		check("GIRO %s = %s" % [g[0], g[2]], g[2] in moves, str(moves))
+	Settings.trick_controls = old_mode
+
 ## Como en el vídeo de referencia: una caída grande se recibe a cuatro apoyos (manos al suelo)
 ## y, tras recibir, los brazos se abren a los lados para equilibrarse.
 func t_reference_landings() -> void:
@@ -1821,6 +1879,26 @@ func t_reference_landings() -> void:
 	check("Caída grande (%.1f m/s): recepción a cuatro apoyos con las manos en el suelo" % r.imp,
 		r.imp > 9.0 and r.hands >= 5 and r.gap < 0.1 and landings[-1].quality in ["perfect", "clean"], "frames %d hueco %.2f %s" % [r.hands, r.gap, landings.map(func(l): return l.quality)])
 	check("Tras recibir, brazos abiertos a los lados para equilibrarse", r.arms_out > 0.8, "%.2f" % r.arms_out)
+
+## Cuerpo con piel: una sola malla continua (tronco, brazos y piernas) cuyo esqueleto sigue a las
+## articulaciones en todo momento (también en pleno mortal, con la IK de las manos).
+func t_skin_body() -> void:
+	var rig: BodyRig = game.rig
+	check("Personaje: cuerpo continuo con piel y esqueleto de 11 huesos", rig.skin_body != null and rig.skin_body.skeleton.get_bone_count() == 11
+		and rig.skin_body.mesh_instance.mesh.get_surface_count() == 1, "")
+	await place(Vector3(-35, 0.1, 35), Vector3.FORWARD)
+	var worst := {"d": 0.0}
+	await run(func(i, f):
+		i.jump_pressed = f == 0; i.flick = Vector2(0, -1) if f == 0 else Vector2.ZERO
+		i.tuck = f > 2 and f < 25; i.jump_held = i.tuck
+		var sk: Skeleton3D = rig.skin_body.skeleton
+		for n in ["shoulder_l", "elbow_l", "elbow_r", "knee_l", "knee_r", "neck"]:
+			var bi := sk.find_bone(n)
+			var bt: Transform3D = sk.global_transform * sk.get_bone_global_pose(bi)
+			var jt: Transform3D = (rig.joints[n] as Node3D).global_transform
+			worst.d = maxf(worst.d, bt.origin.distance_to(jt.origin) + (bt.basis.y - jt.basis.y).length()), 120,
+		func(): return _f > 20 and player.state == PlayerController.State.GROUND)
+	check("Personaje: la piel sigue a las articulaciones durante un mortal (desvío %.4f)" % worst.d, worst.d < 0.01, str(worst))
 
 ## Agrupado real: en los mortales agrupados las manos agarran las espinillas.
 func t_tuck_grab() -> void:

@@ -73,6 +73,7 @@ const TAKEOFF := {
 	"aerial": {"load": 0.16, "vy": -0.4, "fwd": 1.6},
 	"butterfly": {"load": 0.13, "vy": -0.3, "fwd": 0.4},
 	"cork": {"load": 0.12, "vy": 0.45, "fwd": 0.0},
+	"gainer": {"load": 0.14, "vy": 0.2, "fwd": 2.6},          # mortal atrás avanzando: empuje adelante
 }
 var land_quality := ""                  # último aterrizaje (para la animación de recepción)
 var land_timer := 9.0                   # tiempo desde el último aterrizaje
@@ -425,6 +426,16 @@ func _prepare_side_turn(spd: float) -> void:
 	side_target = Vector3.UP.cross(v) * hs
 	side_turn = 1.0
 
+## Modo gestos (dos joysticks): el joystick SALTO elige el mortal por ángulo y nunca añade giros.
+func gesture_sticks() -> bool:
+	return Settings.trick_controls == 5
+
+func _apply_jump_flick(d: Vector2, allow_twist := true) -> void:
+	if gesture_sticks():
+		tricks.apply_salto(d)
+	else:
+		tricks.apply_flick(d, allow_twist)
+
 ## Qué mortal sale con este salto (zona/botón pulsado) para elegir su despegue.
 func _flip_kind(spd: float) -> String:
 	if cork_buffer > 0.0:
@@ -432,6 +443,14 @@ func _flip_kind(spd: float) -> String:
 	if flick_timer <= 0.0:
 		return "jump"
 	var dbl := double_buffer > 0.0 or intent.double_flip
+	if gesture_sticks():
+		match TouchControls.sector_of(flick_buffer):
+			2: return "front"
+			1, 3: return "butterfly" if spd > 4.0 else "aerial"
+			0, 4: return "side"
+			-2: return "back"
+			-1, -3: return "gainer"
+		return "jump"
 	match TouchControls.sector_of(flick_buffer):
 		-2, -1, -3: return "double_back" if dbl else "back"
 		2, 1: return "double_front" if dbl else "front"
@@ -466,7 +485,7 @@ func _takeoff(kind: String) -> void:
 		butterfly_buffer = 0.0
 	# Gesto hecho justo antes de saltar (o durante la flexión): el mortal arranca en el despegue.
 	if flick_timer > 0.0:
-		tricks.apply_flick(flick_buffer)
+		_apply_jump_flick(flick_buffer)
 	elif intent.rot.length() > 0.55 and not intent.stick_twist:
 		# Joystick derecho ya inclinado al pulsar SALTO: el mortal sale en el despegue
 		tricks.apply_flick(TouchControls.sector_dir(TouchControls.sector_of(intent.rot)))
@@ -607,7 +626,7 @@ func _state_air(dt: float) -> void:
 	elif intent.flick != Vector2.ZERO:
 		if intent.butterfly_request and not tricks.active:
 			tricks.takeoff_speed = maxf(tricks.takeoff_speed, 4.5)
-		tricks.apply_flick(intent.flick, not intent.stick_twist)
+		_apply_jump_flick(intent.flick, not intent.stick_twist)
 		if intent.double_flip:
 			tricks.apply_flick(intent.flick, false)            # botón DOBLE en el aire: dos vueltas
 	if intent.kick:
@@ -975,6 +994,8 @@ func _ground_gesture(ev: Dictionary) -> bool:
 			_start_skill(String(ev.id), side)
 			return true
 		"flick", "double":
+			if Settings.trick_controls >= 4:
+				return _giro_flick(int(ev.sector))
 			return _ground_flick(int(ev.sector))
 		"hold":
 			var sec := int(ev.sector)
@@ -987,6 +1008,18 @@ func _ground_gesture(ev: Dictionary) -> bool:
 				_: return false
 			return true
 		"arc":
+			if Settings.trick_controls >= 4:
+				# Botonera, joystick GIRO: semicírculo empezando abajo = scoot; empezando arriba =
+				# macaco (el lado sale del sentido del giro del pulgar)
+				var from := int(ev.from)
+				var sd := 1 if int(ev.dir) > 0 else -1
+				if from in [-2, -1, -3]:
+					_start_skill("scoot", sd)
+					return true
+				if from in [2, 1, 3]:
+					_start_skill("macaco", -sd)
+					return true
+				return false
 			if String(ev.through) == "top":
 				_start_skill("crescent" if int(ev.dir) > 0 else "reverse_crescent", 1)
 			else:
@@ -997,6 +1030,20 @@ func _ground_gesture(ev: Dictionary) -> bool:
 			_start_skill("scoot", 1 if to in [0, 1, -1] else -1)
 			return true
 	return false
+
+## Botonera, joystick GIRO en el suelo: ↑ rondada · ↓ flic-flac · ← → rueda lateral.
+## (El lado de la rondada sale del joystick izquierdo.)
+func _giro_flick(sec: int) -> bool:
+	match sec:
+		2, 1, 3:
+			_start_skill("roundoff", -1 if intent.move.x < -0.3 else 1)
+		-2, -1, -3:
+			_start_skill("bhs", 1)
+		0, 4:
+			_start_skill("cartwheel", 1 if sec == 0 else -1)
+		_:
+			return false
+	return true
 
 func _ground_flick(sec: int) -> bool:
 	match sec:
@@ -1245,7 +1292,7 @@ func _state_vault(dt: float) -> void:
 			if cork_q:
 				_make_cork()
 			elif vault.flick != Vector2.ZERO:
-				tricks.apply_flick(vault.flick, not intent.stick_twist)
+				_apply_jump_flick(vault.flick, not intent.stick_twist)
 			if kick_q:
 				tricks.apply_kick(_kick_dir())
 

@@ -17,6 +17,9 @@ Atajos: `godot --path freerun -- --mode=freerun` salta el menú (`tricking`, `wa
 ## Controles
 
 **Móvil (iPhone / Android) — BOTONERA (por defecto)**: abajo a la derecha, **SALTO grande en el centro** y un **arco de 3/4 de círculo con 8 botones grandes por página y CAMBIAR**, que se puede girar. VAULT, AGARRAR y RODAR van en una fila abajo, entre el joystick de movimiento y el joystick GIRO (no tapan al atleta). Páginas:
+- **Modo por defecto: Gestos (SALTO + GIRO)**. No hay rueda de botones de movimientos: todo se hace con dos joysticks sin repetir movimientos entre ellos, para jugar mirando al personaje.
+- **SALTO es un joystick de mortales (nunca tirabuzones)**: tocar = salto; deslizar el dedo desde SALTO según el ángulo: **arriba = mortal adelante** (webster con carrera), **diagonal arriba = aerial** hacia ese lado (butterfly con carrera), **a un lado = mortal lateral**, **abajo = mortal atrás**, **diagonal abajo = gainer** (mortal atrás avanzando). Mantener el dedo después = agruparse y seguir girando (doble, triple...).
+- **Joystick GIRO en el suelo**: **arriba = rondada**, **abajo = flic-flac**, **a un lado = rueda lateral**, **semicírculo empezando abajo** (abajo → lado → arriba) **= scoot**, **empezando arriba = macaco**. En el aire sigue siendo el tirabuzón.
 - **1 · MORTALES**: atrás, adelante, lateral izq. y der., cork, aerial/mariposa, patada 360 (sin botón de piru: los tirabuzones van con el joystick GIRO).
 - **2 · SUELO**: rondada, flic-flac, rueda, paloma, macaco, pino (se sostiene mientras mantienes el botón), atrás, cork.
 - **3 · TRICKING**: hook, crescent, crescent inversa, raiz, TD raiz, scoot, mariposa, cork.
@@ -85,6 +88,8 @@ Al enlazar, el siguiente movimiento hereda:
 - **velocidad de salida**.
 
 El timing cuenta: el rebote completo solo existe al principio de la ventana. Una transición incoherente (rondada → paloma) no hereda nada.
+
+El personaje es una **malla continua con piel** (tronco, cuello, brazos y piernas) generada por código con un esqueleto que sigue a las articulaciones de la animación: hombros, codos, caderas y rodillas se doblan con volumen, sin piezas que se separen. La ropa usa colores por zona (sudadera, puños, pantalón, calcetín) y relieve de tejido. Las poses se mezclan con un muelle amortiguado por articulación (las extremidades llegan un instante después que el tronco), la carrera tiene la rodilla casi recta en el apoyo y muy doblada en el balanceo, y en los mortales la cabeza busca el suelo al final del giro.
 
 Cada acrobacia tiene su propio ritmo de giro (backflip explosivo; aerial y butterfly más amplios), el doble mortal gira más rápido que el simple, y se anima por fases a partir del giro real: preparación (flexión antes de despegar), impulso, agrupación, rotación, apertura y recepción, con una forma corporal propia para Backflip, Frontflip, Sideflip, Gainer, Webster, Butterfly Kick, Cork y tirabuzones.
 
