@@ -26,6 +26,7 @@ var _joint_names: Array = []
 var _live := {}
 var _drone_pos := Vector3.ZERO
 var _prev_cam: Camera3D
+var _was := {}                    # qué estaba activo antes de la repetición (se restaura igual)
 
 signal changed
 
@@ -88,6 +89,8 @@ func start() -> bool:
 	if playing or not can_start():
 		return false
 	_live = _capture()
+	_was = {"player": player.is_physics_processing(), "rig": rig.is_processing(), "router": game.router.enabled,
+		"camera": game.camera.is_processing()}
 	playing = true
 	paused = false
 	speed = 1.0
@@ -112,10 +115,10 @@ func stop() -> void:
 		return
 	playing = false
 	_apply(_live)
-	player.set_physics_process(true)
-	rig.set_process(true)
-	game.router.enabled = true
-	game.camera.set_process(true)
+	player.set_physics_process(_was.get("player", true))
+	rig.set_process(_was.get("rig", true))
+	game.router.enabled = _was.get("router", true)
+	game.camera.set_process(_was.get("camera", true))
 	if _prev_cam and is_instance_valid(_prev_cam):
 		_prev_cam.make_current()
 	changed.emit()
