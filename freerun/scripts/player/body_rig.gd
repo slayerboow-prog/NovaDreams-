@@ -38,8 +38,13 @@ const SOLE := 0.05
 const COL_HOODIE := Color(0.12, 0.72, 0.68)
 const COL_HOODIE_DARK := Color(0.08, 0.5, 0.48)
 const COL_PANTS := Color(0.16, 0.17, 0.21)
+const COL_PANTS_DARK := Color(0.11, 0.12, 0.15)
 const COL_SKIN := Color(0.86, 0.66, 0.52)
+const COL_SKIN_DARK := Color(0.74, 0.54, 0.42)
+const COL_HAIR := Color(0.16, 0.11, 0.08)
+const COL_EYE := Color(0.08, 0.07, 0.07)
 const COL_SHOES := Color(1.0, 0.45, 0.15)
+const COL_SOLE := Color(0.95, 0.95, 0.92)
 const COL_CAP := Color(0.95, 0.95, 0.92)
 
 func setup(p: PlayerController) -> void:
@@ -52,10 +57,15 @@ func setup(p: PlayerController) -> void:
 	pivot.add_child(body)
 	_build()
 
+var _mats := {}
 func _mat(c: Color, rough := 0.7) -> StandardMaterial3D:
+	var key := "%s_%.2f" % [c.to_html(), rough]
+	if _mats.has(key):
+		return _mats[key]
 	var m := StandardMaterial3D.new()
 	m.albedo_color = c
 	m.roughness = rough
+	_mats[key] = m
 	return m
 
 func _joint(name: String, parent: Node3D, pos: Vector3) -> Node3D:
@@ -67,77 +77,119 @@ func _joint(name: String, parent: Node3D, pos: Vector3) -> Node3D:
 	pose[name] = Vector3.ZERO
 	return j
 
-func _capsule(parent: Node3D, radius: float, length: float, color: Color, offset := Vector3.ZERO) -> MeshInstance3D:
+func _capsule(parent: Node3D, radius: float, length: float, color: Color, offset := Vector3.ZERO, scl := Vector3.ONE, rot := Vector3.ZERO, rough := 0.75) -> MeshInstance3D:
 	var mi := MeshInstance3D.new()
 	var m := CapsuleMesh.new()
 	m.radius = radius
 	m.height = maxf(length, radius * 2.0)
-	m.radial_segments = 10
-	m.rings = 3
+	m.radial_segments = 12
+	m.rings = 4
 	mi.mesh = m
-	mi.material_override = _mat(color)
+	mi.material_override = _mat(color, rough)
 	mi.position = offset
+	mi.rotation = rot
+	mi.scale = scl
 	parent.add_child(mi)
 	return mi
 
-func _box(parent: Node3D, size: Vector3, color: Color, offset := Vector3.ZERO) -> MeshInstance3D:
+func _box(parent: Node3D, size: Vector3, color: Color, offset := Vector3.ZERO, rot := Vector3.ZERO, rough := 0.75) -> MeshInstance3D:
 	var mi := MeshInstance3D.new()
 	var m := BoxMesh.new()
 	m.size = size
 	mi.mesh = m
-	mi.material_override = _mat(color)
+	mi.material_override = _mat(color, rough)
 	mi.position = offset
+	mi.rotation = rot
 	parent.add_child(mi)
 	return mi
 
+## Elipsoide (esfera escalada): cabeza, pecho, glúteos, músculos...
+func _ellipsoid(parent: Node3D, radii: Vector3, color: Color, offset := Vector3.ZERO, rot := Vector3.ZERO, rough := 0.75, seg := 14) -> MeshInstance3D:
+	var mi := MeshInstance3D.new()
+	var m := SphereMesh.new()
+	m.radius = 1.0
+	m.height = 2.0
+	m.radial_segments = seg
+	m.rings = maxi(6, seg / 2)
+	mi.mesh = m
+	mi.material_override = _mat(color, rough)
+	mi.position = offset
+	mi.rotation = rot
+	mi.scale = radii
+	parent.add_child(mi)
+	return mi
+
+## Personaje con proporciones humanas (~1,78 m): cabeza con cara, cuello, tronco con pecho y
+## hombros, brazos con bíceps y antebrazo afinado, manos con dedos, muslos, gemelos y zapatillas
+## con suela. Mismo esqueleto (articulaciones y longitudes) que usan las animaciones y la IK.
 func _build() -> void:
+	var details: Array[MeshInstance3D] = []       # piezas pequeñas: sin sombra (rendimiento móvil)
 	var pelvis := _joint("pelvis", body, Vector3(0, 0.95, 0))
-	_box(pelvis, Vector3(0.32, 0.16, 0.2), COL_PANTS)
+	# Cadera y glúteos
+	_ellipsoid(pelvis, Vector3(0.17, 0.11, 0.115), COL_PANTS, Vector3(0, -0.01, 0.005))
+	_ellipsoid(pelvis, Vector3(0.085, 0.085, 0.07), COL_PANTS, Vector3(-0.065, -0.05, 0.05))
+	_ellipsoid(pelvis, Vector3(0.085, 0.085, 0.07), COL_PANTS, Vector3(0.065, -0.05, 0.05))
+	details.append(_box(pelvis, Vector3(0.33, 0.035, 0.22), COL_PANTS_DARK, Vector3(0, 0.06, 0)))   # cintura
 	var spine := _joint("spine", pelvis, Vector3(0, 0.06, 0))
-	_capsule(spine, 0.18, 0.56, COL_HOODIE, Vector3(0, 0.26, 0))
-	_box(spine, Vector3(0.3, 0.12, 0.16), COL_HOODIE_DARK, Vector3(0, 0.06, 0.0))      # bolsillo/cintura
-	_box(spine, Vector3(0.22, 0.26, 0.08), COL_HOODIE_DARK, Vector3(0, 0.34, 0.14))    # capucha a la espalda
+	# Abdomen, pecho (más ancho) y hombros redondeados (deltoides)
+	_ellipsoid(spine, Vector3(0.15, 0.17, 0.11), COL_HOODIE, Vector3(0, 0.12, 0.0))
+	_ellipsoid(spine, Vector3(0.18, 0.17, 0.12), COL_HOODIE, Vector3(0, 0.34, -0.005))
+	_ellipsoid(spine, Vector3(0.062, 0.058, 0.064), COL_HOODIE, Vector3(-0.205, 0.455, 0))
+	_ellipsoid(spine, Vector3(0.062, 0.058, 0.064), COL_HOODIE, Vector3(0.205, 0.455, 0))
+	_ellipsoid(spine, Vector3(0.12, 0.05, 0.1), COL_HOODIE, Vector3(0, 0.5, 0))              # trapecios
+	# Sudadera: bolsillo canguro, capucha a la espalda, cordones y bajo
+	details.append(_box(spine, Vector3(0.2, 0.1, 0.02), COL_HOODIE_DARK, Vector3(0, 0.1, -0.105)))
+	_ellipsoid(spine, Vector3(0.13, 0.08, 0.07), COL_HOODIE_DARK, Vector3(0, 0.49, 0.1))
+	details.append(_capsule(spine, 0.007, 0.12, COL_SOLE, Vector3(-0.035, 0.39, -0.122)))
+	details.append(_capsule(spine, 0.007, 0.12, COL_SOLE, Vector3(0.035, 0.39, -0.122)))
+	details.append(_ellipsoid(spine, Vector3(0.155, 0.03, 0.115), COL_HOODIE_DARK, Vector3(0, -0.005, 0)))
 	var neck := _joint("neck", spine, Vector3(0, 0.54, 0))
-	var head := MeshInstance3D.new()
-	var hm := SphereMesh.new()
-	hm.radius = 0.13
-	hm.height = 0.27
-	hm.radial_segments = 14
-	hm.rings = 8
-	head.mesh = hm
-	head.material_override = _mat(COL_SKIN, 0.6)
-	head.position = Vector3(0, 0.14, 0)
-	neck.add_child(head)
-	# Gorra con visera hacia delante (lectura clara de la orientación)
-	_box(neck, Vector3(0.27, 0.08, 0.27), COL_CAP, Vector3(0, 0.235, 0.0))
-	_box(neck, Vector3(0.22, 0.025, 0.14), COL_CAP, Vector3(0, 0.2, -0.17))
-	# Brazos
+	_capsule(neck, 0.052, 0.13, COL_SKIN, Vector3(0, 0.04, 0.005), Vector3.ONE, Vector3.ZERO, 0.6)
+	# Cabeza: cráneo ovalado, mandíbula, nariz, ojos, cejas, orejas y pelo corto
+	_ellipsoid(neck, Vector3(0.098, 0.118, 0.11), COL_SKIN, Vector3(0, 0.175, -0.005), Vector3.ZERO, 0.6, 18)
+	_ellipsoid(neck, Vector3(0.078, 0.06, 0.08), COL_SKIN, Vector3(0, 0.11, -0.03), Vector3.ZERO, 0.6)
+	details.append(_capsule(neck, 0.017, 0.05, COL_SKIN_DARK, Vector3(0, 0.165, -0.118), Vector3.ONE, Vector3(0.35, 0, 0), 0.6))
+	for x in [-1.0, 1.0]:
+		details.append(_ellipsoid(neck, Vector3(0.016, 0.012, 0.01), COL_EYE, Vector3(0.037 * x, 0.195, -0.1), Vector3.ZERO, 0.3, 8))
+		details.append(_box(neck, Vector3(0.034, 0.008, 0.012), COL_HAIR, Vector3(0.038 * x, 0.217, -0.103), Vector3(0, 0, -0.12 * x)))
+		details.append(_ellipsoid(neck, Vector3(0.018, 0.033, 0.012), COL_SKIN_DARK, Vector3(0.1 * x, 0.175, 0.005), Vector3.ZERO, 0.6, 8))
+	details.append(_box(neck, Vector3(0.04, 0.008, 0.01), COL_SKIN_DARK, Vector3(0, 0.122, -0.104)))   # boca
+	_ellipsoid(neck, Vector3(0.104, 0.08, 0.115), COL_HAIR, Vector3(0, 0.235, 0.005), Vector3(-0.15, 0, 0), 0.9, 16)
+	_ellipsoid(neck, Vector3(0.1, 0.06, 0.05), COL_HAIR, Vector3(0, 0.2, 0.075), Vector3.ZERO, 0.9)     # nuca
+	# Brazos: manga con bíceps, antebrazo que se afina, muñeca y mano con dedos y pulgar
 	for side in [["l", -1.0], ["r", 1.0]]:
-		var s: String = side[0]
+		var sd: String = side[0]
 		var x: float = side[1]
-		var sh := _joint("shoulder_" + s, spine, Vector3(0.23 * x, 0.47, 0))
-		_capsule(sh, 0.065, 0.32, COL_HOODIE, Vector3(0, -0.15, 0))
-		var el := _joint("elbow_" + s, sh, Vector3(0, -0.29, 0))
-		_capsule(el, 0.055, 0.28, COL_HOODIE, Vector3(0, -0.12, 0))
-		var hand := MeshInstance3D.new()
-		var sm := SphereMesh.new()
-		sm.radius = 0.055
-		sm.height = 0.11
-		hand.mesh = sm
-		hand.material_override = _mat(COL_SKIN, 0.6)
-		hand.position = Vector3(0, -0.28, 0)
-		el.add_child(hand)
-	# Piernas
+		var sh := _joint("shoulder_" + sd, spine, Vector3(0.23 * x, 0.47, 0))
+		_capsule(sh, 0.052, 0.3, COL_HOODIE, Vector3(0, -0.14, 0))
+		_ellipsoid(sh, Vector3(0.05, 0.085, 0.054), COL_HOODIE, Vector3(0, -0.15, -0.01))          # bíceps
+		var el := _joint("elbow_" + sd, sh, Vector3(0, -0.29, 0))
+		_capsule(el, 0.05, 0.2, COL_HOODIE, Vector3(0, -0.08, 0))
+		details.append(_ellipsoid(el, Vector3(0.047, 0.02, 0.047), COL_HOODIE_DARK, Vector3(0, -0.175, 0)))   # puño de la manga
+		_capsule(el, 0.032, 0.09, COL_SKIN, Vector3(0, -0.21, 0), Vector3.ONE, Vector3.ZERO, 0.6)   # muñeca
+		_box(el, Vector3(0.075, 0.085, 0.032), COL_SKIN, Vector3(0, -0.285, 0), Vector3.ZERO, 0.6)    # palma
+		_box(el, Vector3(0.07, 0.06, 0.026), COL_SKIN, Vector3(0, -0.345, -0.006), Vector3(0.25, 0, 0), 0.6)   # dedos
+		details.append(_capsule(el, 0.013, 0.055, COL_SKIN, Vector3(-0.042 * x, -0.27, -0.016), Vector3.ONE, Vector3(0.3, 0, 0.5 * x), 0.6))   # pulgar
+	# Piernas: muslo, rodilla, gemelo, tobillo y zapatilla (talón, puntera, suela y cordones)
 	for side in [["l", -1.0], ["r", 1.0]]:
-		var s: String = side[0]
+		var sd: String = side[0]
 		var x: float = side[1]
-		var hip := _joint("hip_" + s, pelvis, Vector3(0.1 * x, -0.02, 0))
-		_capsule(hip, 0.085, 0.45, COL_PANTS, Vector3(0, -0.21, 0))
-		var knee := _joint("knee_" + s, hip, Vector3(0, -0.43, 0))
-		_capsule(knee, 0.07, 0.42, COL_PANTS, Vector3(0, -0.2, 0))
-		_box(knee, Vector3(0.12, 0.09, 0.27), COL_SHOES, Vector3(0, -0.45, -0.05))
+		var hip := _joint("hip_" + sd, pelvis, Vector3(0.1 * x, -0.02, 0))
+		_capsule(hip, 0.085, 0.46, COL_PANTS, Vector3(0, -0.2, 0))
+		_ellipsoid(hip, Vector3(0.08, 0.14, 0.085), COL_PANTS, Vector3(0, -0.13, -0.01))           # cuádriceps
+		var knee := _joint("knee_" + sd, hip, Vector3(0, -0.43, 0))
+		_ellipsoid(knee, Vector3(0.068, 0.06, 0.07), COL_PANTS, Vector3(0, 0.0, -0.01))
+		_capsule(knee, 0.062, 0.4, COL_PANTS, Vector3(0, -0.19, 0))
+		_ellipsoid(knee, Vector3(0.062, 0.1, 0.066), COL_PANTS, Vector3(0, -0.12, 0.015))          # gemelo
+		details.append(_ellipsoid(knee, Vector3(0.064, 0.022, 0.064), COL_PANTS_DARK, Vector3(0, -0.36, 0)))   # bajo del pantalón
+		_box(knee, Vector3(0.1, 0.085, 0.11), COL_SHOES, Vector3(0, -0.435, 0.035))                   # talón
+		_box(knee, Vector3(0.105, 0.065, 0.17), COL_SHOES, Vector3(0, -0.45, -0.1))                   # puntera
+		_box(knee, Vector3(0.115, 0.025, 0.29), COL_SOLE, Vector3(0, -0.483, -0.045))                 # suela
+		details.append(_box(knee, Vector3(0.06, 0.012, 0.09), COL_SOLE, Vector3(0, -0.415, -0.08), Vector3(-0.25, 0, 0)))   # cordones
 	for mi in find_children("*", "MeshInstance3D", true, false):
 		(mi as MeshInstance3D).cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_ON
+	for mi in details:
+		mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 
 # ------------------------------------------------------------------ animación
 
@@ -460,13 +512,21 @@ func _ik(upper: Node3D, lower: Node3D, target: Vector3, l1: float, l2: float, po
 func _ease_in_out(s: float) -> float:
 	return s * s * (3.0 - 2.0 * s)
 
+## De pie relajado: respiración, peso algo más en una pierna, brazos sueltos con los codos
+## ligeramente flexionados y un leve balanceo.
 func _idle_pose(p: Dictionary) -> void:
-	var b := sin(Time.get_ticks_msec() * 0.0025)
-	p.spine.x = 0.02 * b
-	p.shoulder_l.z = -0.12; p.shoulder_r.z = 0.12
-	p.elbow_l.x = 0.15; p.elbow_r.x = 0.15
-	p.hip_l.x = 0.05; p.hip_r.x = 0.05
-	p.knee_l.x = -0.08; p.knee_r.x = -0.08
+	var tm := Time.get_ticks_msec() * 0.001
+	var b := sin(tm * 2.5)
+	var sway := sin(tm * 0.7)
+	p.spine.x = 0.02 * b - 0.03
+	p.spine.z = 0.025 * sway
+	p.neck.x = 0.04 - 0.015 * b
+	p.shoulder_l.x = 0.08 + 0.02 * b; p.shoulder_r.x = 0.06 + 0.02 * b
+	p.shoulder_l.z = -0.1; p.shoulder_r.z = 0.1
+	p.elbow_l.x = 0.28; p.elbow_r.x = 0.24
+	p.hip_l.x = 0.04; p.hip_r.x = 0.08
+	p.hip_l.z = -0.05; p.hip_r.z = 0.04 + 0.02 * sway
+	p.knee_l.x = -0.05; p.knee_r.x = -0.16
 
 func _run_pose(p: Dictionary, spd: float, dt: float) -> void:
 	var step_len := 0.55 + 0.085 * spd
@@ -486,7 +546,11 @@ func _run_pose(p: Dictionary, spd: float, dt: float) -> void:
 	p.shoulder_l.z = -0.12; p.shoulder_r.z = 0.12
 	p.elbow_l.x = 0.6 + 0.9 * amt; p.elbow_r.x = 0.6 + 0.9 * amt
 	p.spine.x = -0.06 - 0.3 * amt
-	p.spine.y = s * 0.12 * amt
+	# Cadera y hombros giran en sentidos opuestos en cada zancada; la cabeza compensa y mira al frente
+	p.pelvis.y = -s * 0.16 * amt
+	p.spine.y = s * 0.26 * amt
+	p.pelvis.z = 0.04 * cos(phase) * amt
+	p.neck.y = -s * 0.12 * amt
 	p.neck.x = 0.15 * amt
 
 func _tuck_pose(p: Dictionary, amount: float) -> void:
