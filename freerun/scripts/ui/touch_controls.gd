@@ -1008,8 +1008,8 @@ const TRAIN := [
 	["twist_combo", "TIRABUZÓN COMBINADO", "purple", "Un círculo horario y luego uno antihorario"],
 	["g_raiz", "RAIZ", "purple", "Línea en diagonal hacia arriba (lado = hacia donde dibujas)"],
 	["g_td_raiz", "TOUCHDOWN RAIZ", "purple", "Línea en diagonal hacia abajo"],
-	["g_macaco", "MACACO", "purple", "Arco por arriba (∩)"],
-	["g_hook", "HOOK", "purple", "Arco por abajo (∪)"],
+	["g_macaco", "MACACO", "purple", "Arco por arriba (como un puente)"],
+	["g_hook", "HOOK", "purple", "Arco por abajo (como una sonrisa)"],
 	["g_scoot", "SCOOT", "purple", "Ida y vuelta lateral (<)"],
 	["g_pino", "PINO", "purple", "Línea hacia arriba y deja el dedo quieto"],
 	["g_scoot_power", "SCOOT FUERTE", "purple", "Hoja abajo y barrido largo hacia arriba"],
@@ -1541,8 +1541,8 @@ func _draw_rot_stick(font: Font, s: float, a: float, white: Color, dark: Color, 
 		if salto_pages_enabled():
 			_pill(font, base + Vector2(rr * 0.8, -rr * 0.8), "RAIZ", 11 * s, Neon.PURPLE, la)
 			_pill(font, base + Vector2(rr * 0.8, rr * 0.8), "TD RAIZ", 11 * s, Neon.PURPLE, la)
-			_pill(font, base + Vector2(-rr * 0.8, -rr * 0.8), "∩ MACACO", 11 * s, Neon.PURPLE, la)
-			_pill(font, base + Vector2(-rr * 0.8, rr * 0.8), "∪ HOOK", 11 * s, Neon.PURPLE, la)
+			_pill(font, base + Vector2(-rr * 0.8, -rr * 0.8), "MACACO arco", 11 * s, Neon.PURPLE, la)
+			_pill(font, base + Vector2(-rr * 0.8, rr * 0.8), "HOOK arco", 11 * s, Neon.PURPLE, la)
 		if not salto_pages_enabled():
 			_pill(font, base + Vector2(rr * 0.78, -rr * 0.86), "MACACO arco", 11 * s, Neon.PURPLE, la)
 	elif not salto_pages_enabled():

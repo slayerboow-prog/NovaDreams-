@@ -55,7 +55,7 @@ const TUTORIAL := [
 	["Morado en el suelo: línea a un lado = Rueda con apoyo de manos", ["Cartwheel"]],
 	["Morado en el suelo: línea hacia abajo = Flic-flac", ["Back Handspring"]],
 	["Morado: línea hacia arriba = Rondada y, al recibir (¡ENLAZA!), línea abajo en el dorado", ["@roundoff_back"]],
-	["Morado: arco por abajo (∪) = Hook · arco por arriba (∩) = Macaco", ["Hook Kick", "Macaco"]],
+	["Morado: arco por abajo = Hook · arco por arriba = Macaco", ["Hook Kick", "Macaco"]],
 	["Morado: círculo y en seguida línea abajo en el dorado = Piru", ["Piru", "Piru 540", "Piru 720"]],
 	["Morado: un círculo y diagonal arriba = 360 + rueda fuerte (entrada de potencia)", ["3-Step 360", "Cartwheel"]],
 	["Corre hacia un obstáculo y dibuja una U invertida en el dorado (o pulsa VAULT)", ["@vault"]],

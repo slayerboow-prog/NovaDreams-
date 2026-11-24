@@ -627,7 +627,7 @@ func t_wheel_twist() -> void:
 	check("GIRO: algo más = medio giro (Back Half)", "Back Half" in res[13], str(res[13]))
 	check("GIRO: mantenerlo = tirabuzón completo (Piru)", "Piru" in res[26], str(res[26]))
 	# El mismo joystick gira cualquier mortal: adelante y lateral
-	for fl in [[Vector2(0, 1), "Front Full"], [Vector2(1, 0), "Aerial Twist"]]:
+	for fl in [[Vector2(0, 1), "Front Full"], [Vector2(1, 0), "Sideflip Twist"]]:
 		await place(Vector3(-35, 0.1, 30), Vector3.FORWARD)
 		var flv: Vector2 = fl[0]
 		await run(func(i, f):
