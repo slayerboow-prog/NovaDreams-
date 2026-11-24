@@ -40,8 +40,8 @@ const SOLE := 0.05
 # Paleta de identidad propia: sudadera turquesa, pantalón carbón, zapatillas naranja.
 const COL_HOODIE := Color(0.12, 0.72, 0.68)
 const COL_HOODIE_DARK := Color(0.08, 0.5, 0.48)
-const COL_PANTS := Color(0.16, 0.17, 0.21)
-const COL_PANTS_DARK := Color(0.11, 0.12, 0.15)
+const COL_PANTS := Color(0.2, 0.21, 0.26)
+const COL_PANTS_DARK := Color(0.13, 0.14, 0.17)
 const COL_SKIN := Color(0.86, 0.66, 0.52)
 const COL_SKIN_DARK := Color(0.74, 0.54, 0.42)
 const COL_HAIR := Color(0.16, 0.11, 0.08)
@@ -128,71 +128,70 @@ func _ellipsoid(parent: Node3D, radii: Vector3, color: Color, offset := Vector3.
 func _build() -> void:
 	var details: Array[MeshInstance3D] = []       # piezas pequeñas: sin sombra (rendimiento móvil)
 	var pelvis := _joint("pelvis", body, Vector3(0, 0.95, 0))
-	# Cadera y glúteos
-	_ellipsoid(pelvis, Vector3(0.17, 0.11, 0.115), COL_PANTS, Vector3(0, -0.01, 0.005))
-	_ellipsoid(pelvis, Vector3(0.085, 0.085, 0.07), COL_PANTS, Vector3(-0.065, -0.05, 0.05))
-	_ellipsoid(pelvis, Vector3(0.085, 0.085, 0.07), COL_PANTS, Vector3(0.065, -0.05, 0.05))
-	details.append(_box(pelvis, Vector3(0.33, 0.035, 0.22), COL_PANTS_DARK, Vector3(0, 0.06, 0)))   # cintura
 	var spine := _joint("spine", pelvis, Vector3(0, 0.06, 0))
-	# Abdomen, pecho (más ancho) y hombros redondeados (deltoides)
-	_ellipsoid(spine, Vector3(0.15, 0.17, 0.11), COL_HOODIE, Vector3(0, 0.12, 0.0))
-	_ellipsoid(spine, Vector3(0.18, 0.17, 0.12), COL_HOODIE, Vector3(0, 0.34, -0.005))
-	_ellipsoid(spine, Vector3(0.062, 0.058, 0.064), COL_HOODIE, Vector3(-0.205, 0.455, 0))
-	_ellipsoid(spine, Vector3(0.062, 0.058, 0.064), COL_HOODIE, Vector3(0.205, 0.455, 0))
-	_ellipsoid(spine, Vector3(0.12, 0.05, 0.1), COL_HOODIE, Vector3(0, 0.5, 0))              # trapecios
-	# Sudadera: bolsillo canguro, capucha a la espalda, cordones y bajo
-	details.append(_box(spine, Vector3(0.2, 0.1, 0.02), COL_HOODIE_DARK, Vector3(0, 0.1, -0.105)))
-	_ellipsoid(spine, Vector3(0.13, 0.08, 0.07), COL_HOODIE_DARK, Vector3(0, 0.49, 0.1))
-	details.append(_capsule(spine, 0.007, 0.12, COL_SOLE, Vector3(-0.035, 0.39, -0.122)))
-	details.append(_capsule(spine, 0.007, 0.12, COL_SOLE, Vector3(0.035, 0.39, -0.122)))
-	details.append(_ellipsoid(spine, Vector3(0.155, 0.03, 0.115), COL_HOODIE_DARK, Vector3(0, -0.005, 0)))
+	# Sudadera: bolsillo canguro, capucha a la espalda y cordones (el tronco es la malla con piel)
+	details.append(_box(spine, Vector3(0.2, 0.085, 0.006), COL_HOODIE.lerp(COL_HOODIE_DARK, 0.45), Vector3(0, 0.085, -0.104), Vector3(-0.08, 0, 0), 0.9))
+	_ellipsoid(spine, Vector3(0.13, 0.085, 0.07), COL_HOODIE_DARK, Vector3(0, 0.47, 0.095), Vector3(0.35, 0, 0), 0.9)
+	details.append(_capsule(spine, 0.006, 0.12, COL_SOLE, Vector3(-0.035, 0.385, -0.118), Vector3.ONE, Vector3(0.1, 0, 0)))
+	details.append(_capsule(spine, 0.006, 0.12, COL_SOLE, Vector3(0.035, 0.385, -0.118), Vector3.ONE, Vector3(0.1, 0, 0)))
 	var neck := _joint("neck", spine, Vector3(0, 0.54, 0))
-	_capsule(neck, 0.052, 0.13, COL_SKIN, Vector3(0, 0.04, 0.005), Vector3.ONE, Vector3.ZERO, 0.6)
-	# Cabeza: cráneo ovalado, mandíbula, nariz, ojos, cejas, orejas y pelo corto
-	_ellipsoid(neck, Vector3(0.098, 0.118, 0.11), COL_SKIN, Vector3(0, 0.175, -0.005), Vector3.ZERO, 0.6, 18)
-	_ellipsoid(neck, Vector3(0.078, 0.06, 0.08), COL_SKIN, Vector3(0, 0.11, -0.03), Vector3.ZERO, 0.6)
-	details.append(_capsule(neck, 0.017, 0.05, COL_SKIN_DARK, Vector3(0, 0.165, -0.118), Vector3.ONE, Vector3(0.35, 0, 0), 0.6))
+	# Cabeza: cráneo, mandíbula y mentón, pómulos, nariz, ojos con blanco e iris, cejas, labios,
+	# orejas y pelo con volumen (corte corto con tupé)
+	var skin_mat_r := 0.55
+	_ellipsoid(neck, Vector3(0.094, 0.124, 0.106), COL_SKIN, Vector3(0, 0.168, -0.006), Vector3.ZERO, skin_mat_r, 24)
+	details.append(_ellipsoid(neck, Vector3(0.068, 0.05, 0.07), COL_SKIN, Vector3(0, 0.104, -0.03), Vector3.ZERO, skin_mat_r, 18))     # mandíbula
+	details.append(_ellipsoid(neck, Vector3(0.028, 0.02, 0.024), COL_SKIN, Vector3(0, 0.072, -0.072), Vector3.ZERO, skin_mat_r, 10))   # mentón
 	for x in [-1.0, 1.0]:
-		details.append(_ellipsoid(neck, Vector3(0.016, 0.012, 0.01), COL_EYE, Vector3(0.037 * x, 0.195, -0.1), Vector3.ZERO, 0.3, 8))
-		details.append(_box(neck, Vector3(0.034, 0.008, 0.012), COL_HAIR, Vector3(0.038 * x, 0.217, -0.103), Vector3(0, 0, -0.12 * x)))
-		details.append(_ellipsoid(neck, Vector3(0.018, 0.033, 0.012), COL_SKIN_DARK, Vector3(0.1 * x, 0.175, 0.005), Vector3.ZERO, 0.6, 8))
-	details.append(_box(neck, Vector3(0.04, 0.008, 0.01), COL_SKIN_DARK, Vector3(0, 0.122, -0.104)))   # boca
-	_ellipsoid(neck, Vector3(0.104, 0.08, 0.115), COL_HAIR, Vector3(0, 0.235, 0.005), Vector3(-0.15, 0, 0), 0.9, 16)
-	_ellipsoid(neck, Vector3(0.1, 0.06, 0.05), COL_HAIR, Vector3(0, 0.2, 0.075), Vector3.ZERO, 0.9)     # nuca
-	# Brazos: manga con bíceps, antebrazo que se afina, muñeca y mano con dedos y pulgar
+		details.append(_ellipsoid(neck, Vector3(0.017, 0.012, 0.008), Color(0.96, 0.95, 0.93), Vector3(0.036 * x, 0.193, -0.099), Vector3.ZERO, 0.3, 10))
+		details.append(_ellipsoid(neck, Vector3(0.0085, 0.0095, 0.006), COL_EYE, Vector3(0.036 * x, 0.193, -0.105), Vector3.ZERO, 0.2, 8))
+		details.append(_ellipsoid(neck, Vector3(0.02, 0.0055, 0.007), COL_HAIR, Vector3(0.037 * x, 0.214, -0.103), Vector3(0, 0, -0.15 * x), 0.9, 8))
+		details.append(_ellipsoid(neck, Vector3(0.012, 0.03, 0.02), COL_SKIN_DARK, Vector3(0.099 * x, 0.172, 0.006), Vector3(0, 0.25 * x, 0), skin_mat_r, 10))   # oreja
+	details.append(_ellipsoid(neck, Vector3(0.011, 0.024, 0.014), COL_SKIN, Vector3(0, 0.163, -0.108), Vector3(0.35, 0, 0), skin_mat_r, 10))   # nariz
+	details.append(_ellipsoid(neck, Vector3(0.017, 0.009, 0.011), COL_SKIN, Vector3(0, 0.146, -0.11), Vector3.ZERO, skin_mat_r, 8))     # punta y aletas
+	details.append(_ellipsoid(neck, Vector3(0.024, 0.0065, 0.01), Color(0.66, 0.4, 0.36), Vector3(0, 0.122, -0.1), Vector3.ZERO, 0.5, 10))   # labios
+	_ellipsoid(neck, Vector3(0.103, 0.075, 0.114), COL_HAIR, Vector3(0, 0.238, 0.004), Vector3(-0.12, 0, 0), 0.95, 18)
+	details.append(_ellipsoid(neck, Vector3(0.085, 0.03, 0.05), COL_HAIR, Vector3(0, 0.275, -0.062), Vector3(-0.45, 0, 0), 0.95, 12))   # flequillo hacia arriba
+	_ellipsoid(neck, Vector3(0.1, 0.065, 0.05), COL_HAIR, Vector3(0, 0.2, 0.072), Vector3.ZERO, 0.95, 12)              # nuca
+	for x in [-1.0, 1.0]:
+		details.append(_ellipsoid(neck, Vector3(0.012, 0.045, 0.04), COL_HAIR, Vector3(0.096 * x, 0.215, 0.02), Vector3.ZERO, 0.95, 8))   # patillas
+	# Brazos y manos (la manga y el antebrazo son la malla con piel; la mano va en el codo)
 	for side in [["l", -1.0], ["r", 1.0]]:
 		var sd: String = side[0]
 		var x: float = side[1]
 		var sh := _joint("shoulder_" + sd, spine, Vector3(0.23 * x, 0.47, 0))
-		_capsule(sh, 0.052, 0.3, COL_HOODIE, Vector3(0, -0.14, 0))
-		_ellipsoid(sh, Vector3(0.05, 0.085, 0.054), COL_HOODIE, Vector3(0, -0.15, -0.01))          # bíceps
 		var el := _joint("elbow_" + sd, sh, Vector3(0, -0.29, 0))
-		_capsule(el, 0.05, 0.2, COL_HOODIE, Vector3(0, -0.08, 0))
-		details.append(_ellipsoid(el, Vector3(0.047, 0.02, 0.047), COL_HOODIE_DARK, Vector3(0, -0.175, 0)))   # puño de la manga
-		_capsule(el, 0.032, 0.09, COL_SKIN, Vector3(0, -0.21, 0), Vector3.ONE, Vector3.ZERO, 0.6)   # muñeca
-		_box(el, Vector3(0.075, 0.085, 0.032), COL_SKIN, Vector3(0, -0.285, 0), Vector3.ZERO, 0.6)    # palma
-		_box(el, Vector3(0.07, 0.06, 0.026), COL_SKIN, Vector3(0, -0.345, -0.006), Vector3(0.25, 0, 0), 0.6)   # dedos
-		details.append(_capsule(el, 0.013, 0.055, COL_SKIN, Vector3(-0.042 * x, -0.27, -0.016), Vector3.ONE, Vector3(0.3, 0, 0.5 * x), 0.6))   # pulgar
-	# Piernas: muslo, rodilla, gemelo, tobillo y zapatilla (talón, puntera, suela y cordones)
+		_ellipsoid(el, Vector3(0.037, 0.048, 0.017), COL_SKIN, Vector3(0, -0.282, -0.002), Vector3.ZERO, skin_mat_r, 12)   # palma
+		for f in 4:
+			var fx := (-0.024 + 0.016 * f) * x
+			var fl := 0.05 if f in [1, 2] else 0.042
+			details.append(_capsule(el, 0.0085, fl, COL_SKIN, Vector3(fx, -0.335 - (0.004 if f in [1, 2] else 0.0), -0.01), Vector3.ONE, Vector3(0.35, 0, 0), skin_mat_r))
+		details.append(_capsule(el, 0.01, 0.05, COL_SKIN, Vector3(-0.038 * x, -0.275, -0.02), Vector3.ONE, Vector3(0.4, 0, 0.55 * x), skin_mat_r))   # pulgar
+	# Piernas y zapatillas (pantalón y piernas son la malla con piel; la zapatilla va en la rodilla)
 	for side in [["l", -1.0], ["r", 1.0]]:
 		var sd: String = side[0]
 		var x: float = side[1]
 		var hip := _joint("hip_" + sd, pelvis, Vector3(0.1 * x, -0.02, 0))
-		_capsule(hip, 0.085, 0.46, COL_PANTS, Vector3(0, -0.2, 0))
-		_ellipsoid(hip, Vector3(0.08, 0.14, 0.085), COL_PANTS, Vector3(0, -0.13, -0.01))           # cuádriceps
 		var knee := _joint("knee_" + sd, hip, Vector3(0, -0.43, 0))
-		_ellipsoid(knee, Vector3(0.068, 0.06, 0.07), COL_PANTS, Vector3(0, 0.0, -0.01))
-		_capsule(knee, 0.062, 0.4, COL_PANTS, Vector3(0, -0.19, 0))
-		_ellipsoid(knee, Vector3(0.062, 0.1, 0.066), COL_PANTS, Vector3(0, -0.12, 0.015))          # gemelo
-		details.append(_ellipsoid(knee, Vector3(0.064, 0.022, 0.064), COL_PANTS_DARK, Vector3(0, -0.36, 0)))   # bajo del pantalón
-		_box(knee, Vector3(0.1, 0.085, 0.11), COL_SHOES, Vector3(0, -0.435, 0.035))                   # talón
-		_box(knee, Vector3(0.105, 0.065, 0.17), COL_SHOES, Vector3(0, -0.45, -0.1))                   # puntera
-		_box(knee, Vector3(0.115, 0.025, 0.29), COL_SOLE, Vector3(0, -0.483, -0.045))                 # suela
-		details.append(_box(knee, Vector3(0.06, 0.012, 0.09), COL_SOLE, Vector3(0, -0.415, -0.08), Vector3(-0.25, 0, 0)))   # cordones
+		# Zapatilla redondeada: talón, empeine, puntera, suela con canto y cordones
+		_ellipsoid(knee, Vector3(0.05, 0.05, 0.065), COL_SHOES, Vector3(0, -0.425, 0.03), Vector3.ZERO, 0.6, 14)
+		_ellipsoid(knee, Vector3(0.052, 0.04, 0.11), COL_SHOES, Vector3(0, -0.445, -0.06), Vector3.ZERO, 0.6, 14)
+		_ellipsoid(knee, Vector3(0.05, 0.03, 0.05), COL_SHOES, Vector3(0, -0.455, -0.14), Vector3.ZERO, 0.6, 12)
+		_box(knee, Vector3(0.112, 0.026, 0.285), COL_SOLE, Vector3(0, -0.482, -0.045), Vector3.ZERO, 0.8)
+		details.append(_box(knee, Vector3(0.114, 0.006, 0.287), Color(0.25, 0.25, 0.27), Vector3(0, -0.495, -0.045)))   # canto de la suela
+		details.append(_box(knee, Vector3(0.045, 0.01, 0.085), COL_SOLE, Vector3(0, -0.41, -0.075), Vector3(-0.35, 0, 0)))  # cordones
+		details.append(_ellipsoid(knee, Vector3(0.052, 0.012, 0.045), COL_SOLE, Vector3(0, -0.385, 0.03), Vector3.ZERO, 0.7, 10))  # cuello acolchado
+	# Tronco, cuello, brazos y piernas: una malla continua con piel que se dobla en las articulaciones
+	skin_body = SkinBody.new()
+	skin_body.name = "SkinBody"
+	body.add_child(skin_body)
+	skin_body.build(joints, {"hoodie": COL_HOODIE, "hoodie_dark": COL_HOODIE_DARK, "pants": COL_PANTS,
+		"pants_dark": COL_PANTS_DARK, "skin": COL_SKIN, "sock": Color(0.92, 0.92, 0.9)})
 	for mi in find_children("*", "MeshInstance3D", true, false):
 		(mi as MeshInstance3D).cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_ON
 	for mi in details:
 		mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+
+var skin_body: SkinBody
 
 # ------------------------------------------------------------------ animación
 
@@ -246,7 +245,7 @@ func _process(dt: float) -> void:
 				# zancada sube y baja un poco el cuerpo (más cuanto más rápido)
 				var amt := clampf(spd / 9.0, 0.0, 1.0)
 				target.spine.x -= clampf(_accel * 0.035, -0.35, 0.4)
-				drop += 0.045 * amt * (0.5 - 0.5 * cos(phase * 2.0))
+				drop += 0.045 * amt * (0.5 + 0.5 * cos(phase * 2.0))      # más bajo a mitad del apoyo
 			else:
 				_idle_pose(target)
 			if player.stun > 0.0:
@@ -402,6 +401,8 @@ func _process(dt: float) -> void:
 		_grab_shins(grab_w)
 	if st == PlayerController.State.AIR and wrap_w > 0.01:
 		_wrap_chest(wrap_w)
+	if skin_body:
+		skin_body.sync()
 
 ## Punto de agarre en la espinilla (delante del hueso, algo por debajo de la rodilla).
 func shin_grip(side: String) -> Vector3:
@@ -620,8 +621,12 @@ func _run_pose(p: Dictionary, spd: float, dt: float) -> void:
 	var s := sin(phase)
 	p.hip_l.x = s * amp + 0.15 * amt
 	p.hip_r.x = -s * amp + 0.15 * amt
-	p.knee_l.x = -(0.25 + (0.6 + 0.9 * amt) * maxf(0.0, -cos(phase)))
-	p.knee_r.x = -(0.25 + (0.6 + 0.9 * amt) * maxf(0.0, cos(phase)))
+	# Rodilla: casi recta en el apoyo (pequeña flexión al recibir el peso) y muy doblada en el
+	# balanceo, justo después de despegar el pie (el talón sube hacia el glúteo al correr rápido)
+	var swing_l := pow(maxf(0.0, cos(phase + 0.35)), 1.3)
+	var swing_r := pow(maxf(0.0, cos(phase + 0.35 + PI)), 1.3)
+	p.knee_l.x = -(0.2 + (0.55 + 1.35 * amt) * swing_l + 0.22 * amt * maxf(0.0, -cos(phase)))
+	p.knee_r.x = -(0.2 + (0.55 + 1.35 * amt) * swing_r + 0.22 * amt * maxf(0.0, cos(phase)))
 	p.shoulder_l.x = -s * (0.4 + 0.7 * amt)
 	p.shoulder_r.x = s * (0.4 + 0.7 * amt)
 	p.shoulder_l.z = -0.12; p.shoulder_r.z = 0.12
@@ -979,6 +984,13 @@ func _trick_pose(p: Dictionary, tr: TrickSystem) -> void:
 		# Vuelta completada: se abre estirando las piernas hacia el suelo (no se queda "sentado"
 		# en el aire); las rodillas solo se flexionan justo antes de tocar el suelo (RECEPTION).
 	_apply(p, _impulse_pose(kind, rs), imp)
+	# Mirada: al final del giro la cabeza busca el suelo (atrás en los mortales hacia atrás, el
+	# mentón abajo en los de delante) y se endereza al recibir
+	var spot := open * (1.0 - rec)
+	if kind in ["back", "gainer", "cork", "twist", "bhs", "roundoff"]:
+		p.neck.x += 0.38 * spot
+	elif kind in ["front", "webster", "fhs", "aerial", "side"]:
+		p.neck.x -= 0.32 * spot
 	_apply(p, RECEPTION, rec)
 	# Agrupado de verdad: las manos agarran las espinillas mientras el cuerpo está cerrado
 	if kind in GRAB_KINDS:

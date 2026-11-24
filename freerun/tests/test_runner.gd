@@ -91,6 +91,7 @@ func _run_all() -> void:
 	await t_backflip()
 	await t_frontflip_cork()
 	await t_tuck_grab()
+	await t_skin_body()
 	await t_twist_wrap()
 	await t_ground_flick_buffer()
 	await t_overrotation_crash()
@@ -1821,6 +1822,26 @@ func t_reference_landings() -> void:
 	check("Caída grande (%.1f m/s): recepción a cuatro apoyos con las manos en el suelo" % r.imp,
 		r.imp > 9.0 and r.hands >= 5 and r.gap < 0.1 and landings[-1].quality in ["perfect", "clean"], "frames %d hueco %.2f %s" % [r.hands, r.gap, landings.map(func(l): return l.quality)])
 	check("Tras recibir, brazos abiertos a los lados para equilibrarse", r.arms_out > 0.8, "%.2f" % r.arms_out)
+
+## Cuerpo con piel: una sola malla continua (tronco, brazos y piernas) cuyo esqueleto sigue a las
+## articulaciones en todo momento (también en pleno mortal, con la IK de las manos).
+func t_skin_body() -> void:
+	var rig: BodyRig = game.rig
+	check("Personaje: cuerpo continuo con piel y esqueleto de 11 huesos", rig.skin_body != null and rig.skin_body.skeleton.get_bone_count() == 11
+		and rig.skin_body.mesh_instance.mesh.get_surface_count() == 1, "")
+	await place(Vector3(-35, 0.1, 35), Vector3.FORWARD)
+	var worst := {"d": 0.0}
+	await run(func(i, f):
+		i.jump_pressed = f == 0; i.flick = Vector2(0, -1) if f == 0 else Vector2.ZERO
+		i.tuck = f > 2 and f < 25; i.jump_held = i.tuck
+		var sk: Skeleton3D = rig.skin_body.skeleton
+		for n in ["shoulder_l", "elbow_l", "elbow_r", "knee_l", "knee_r", "neck"]:
+			var bi := sk.find_bone(n)
+			var bt: Transform3D = sk.global_transform * sk.get_bone_global_pose(bi)
+			var jt: Transform3D = (rig.joints[n] as Node3D).global_transform
+			worst.d = maxf(worst.d, bt.origin.distance_to(jt.origin) + (bt.basis.y - jt.basis.y).length()), 120,
+		func(): return _f > 20 and player.state == PlayerController.State.GROUND)
+	check("Personaje: la piel sigue a las articulaciones durante un mortal (desvío %.4f)" % worst.d, worst.d < 0.01, str(worst))
 
 ## Agrupado real: en los mortales agrupados las manos agarran las espinillas.
 func t_tuck_grab() -> void:

@@ -86,6 +86,8 @@ Al enlazar, el siguiente movimiento hereda:
 
 El timing cuenta: el rebote completo solo existe al principio de la ventana. Una transición incoherente (rondada → paloma) no hereda nada.
 
+El personaje es una **malla continua con piel** (tronco, cuello, brazos y piernas) generada por código con un esqueleto que sigue a las articulaciones de la animación: hombros, codos, caderas y rodillas se doblan con volumen, sin piezas que se separen. La ropa usa colores por zona (sudadera, puños, pantalón, calcetín) y relieve de tejido. Las poses se mezclan con un muelle amortiguado por articulación (las extremidades llegan un instante después que el tronco), la carrera tiene la rodilla casi recta en el apoyo y muy doblada en el balanceo, y en los mortales la cabeza busca el suelo al final del giro.
+
 Cada acrobacia tiene su propio ritmo de giro (backflip explosivo; aerial y butterfly más amplios), el doble mortal gira más rápido que el simple, y se anima por fases a partir del giro real: preparación (flexión antes de despegar), impulso, agrupación, rotación, apertura y recepción, con una forma corporal propia para Backflip, Frontflip, Sideflip, Gainer, Webster, Butterfly Kick, Cork y tirabuzones.
 
 ## Pruebas
