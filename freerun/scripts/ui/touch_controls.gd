@@ -105,12 +105,12 @@ const RING_BUTTONS := [
 	["RODAR", "action", ""], ["AGARRAR", "grab", ""], ["VAULT", "vault", ""],
 	["MACACO", "skill", "macaco"], ["RUEDA", "skill", "cartwheel"], ["RONDADA", "skill", "roundoff"],
 	["FLIC-FLAC", "skill", "bhs"], ["PALOMA", "skill", "fhs"],
-	["ATRÁS", "flip", -2], ["ADELANTE", "flip", 2],
+	["ATRÁS", "flip", -2], ["CORK", "skill", "cork_entry"], ["ADELANTE", "flip", 2],
 	["LATERAL\nIZQ.", "flip", 4], ["LATERAL\nDER.", "flip", 0], ["AERIAL /\nMARIPOSA", "flip", 3],
 ]
 const RING_JUMP_R := 86.0
 const RING_R := 212.0
-const RING_BTN_R := 37.0
+const RING_BTN_R := 35.0
 const RING_A0 := 225.0               # grados (matemáticos, y arriba): abajo a la izquierda
 const RING_SPAN := 270.0
 

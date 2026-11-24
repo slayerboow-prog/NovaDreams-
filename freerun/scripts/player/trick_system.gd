@@ -250,7 +250,9 @@ func twist_input(x: float, dt: float, t: MoveTuning) -> void:
 	var s := 1 if x > 0.0 else -1
 	if not twist_manual:
 		if dir.twist != 0 and not settled.twist:
-			return                       # ya hay un giro automático en curso (rondada, patada)
+			if s != dir.twist or style != "cork":
+				return                   # ya hay un giro automático en curso (rondada, patada)
+			# Cork: el GIRO en el mismo sentido toma el control del tirabuzón de la patada (540, 720...)
 		twist_manual = true
 		dir.twist = s
 		settled.twist = false
@@ -260,8 +262,9 @@ func twist_input(x: float, dt: float, t: MoveTuning) -> void:
 	elif s != dir.twist and absf(total.twist) < 0.3:
 		dir.twist = s                    # cambio de idea al principio: cambia el sentido
 	# Mortal atrás con carrera + tirabuzón = Cork (eje inclinado)
-	# (o enlazado tras una rondada, flic-flac, hook, raiz...: la potencia del enlace lo permite)
-	if style == "back" and (travel_speed > 4.0 or linked) and takeoff_kind in ["run", "stand"]:
+	# Mortal atrás + tirabuzón: suelto es un PIRU; dentro de un combo (tras TD Raiz, raiz, hook,
+	# scoot, rondada/flic-flac... o la entrada de cork) es un CORK.
+	if style == "back" and linked and takeoff_kind in ["run", "stand"]:
 		style = "cork"
 	twist_hold = true
 	settled.twist = false
@@ -467,9 +470,10 @@ static func trick_name(pn: int, rn: int, sn: int, th: int, back: bool, moving: b
 				return "Double Full" if th >= 4 else "Full In"
 			match th:
 				1: return "Cheat Gainer" if moving else "Back Half"
-				2: return "Gainer Full" if moving else "Back Full"
-				3: return "Back 1.5"
-				_: return "Double Full"
+				2: return "Piru"                 # mortal atrás con tirabuzón de 360
+				3: return "Piru 540"
+				4, 5: return "Piru 720"
+				_: return "Piru 1080"
 		if th == 0:
 			if pn == 1:
 				if wall: return "Wall Front"

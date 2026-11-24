@@ -94,6 +94,8 @@ var skill := {}                         # habilidad de suelo en curso (SkillLibr
 var skill_serial := 0                   # cambia con cada habilidad (el rig reorienta sin giros raros)
 var last_skill := {}                    # datos de la última habilidad (pruebas/HUD)
 var double_buffer := 0.0                # botonera: se pidió doble mortal hace poco
+var st_queued := false                  # CORK pulsado durante un cork: caer a un pie (ST) y enlazar otro
+var cork_side := 1
 
 # Datos de la acción en curso
 var vault := {}
@@ -244,6 +246,8 @@ func _physics_process(dt: float) -> void:
 			chain_event_t = 0.45
 		elif state == State.GROUND or state == State.CRASH:
 			gesture_event = bev
+		elif state == State.AIR and intent.skill_request == "cork_entry" and tricks.style == "cork":
+			st_queued = true                 # ST: recepción a un pie y otro cork
 	double_buffer = 0.25 if intent.double_flip else maxf(0.0, double_buffer - dt)
 	if intent.respawn_pressed:
 		respawn()
@@ -661,9 +665,17 @@ func _land() -> void:
 		var hvl := horizontal_velocity()
 		chain.open(tricks.style, String(trick.name), 0.42, {"rebound_vy": 0.5, "exit_speed": hvl.length(),
 			"dir": hvl.normalized() if hvl.length() > 0.3 else facing, "spin": 1.0})
+	var do_st := st_queued and quality in ["perfect", "clean"] and not hard and not trick.is_empty() and String(trick.name).contains("Cork")
+	st_queued = false
 	tricks.reset()
 	land_impact = clampf(impact / 12.0, 0.3, 1.0)
 	landed.emit(result)
+	if do_st:
+		# ST: cae a un pie y, con la inercia del giro, la pierna libre patea para el siguiente cork
+		_emit_move("ST", 1.0, {"difficulty": 0.8, "chain": true})
+		_set_state(State.GROUND)
+		_start_skill("st_entry", cork_side)
+		return
 	var hv := horizontal_velocity()
 	if rolled and (impact > 7.0 or hv.length() > 3.0):
 		if impact > t.hard_impact * 0.8:
@@ -820,6 +832,8 @@ func _ground_gesture(ev: Dictionary) -> bool:
 		"skill":
 			# Botón de la botonera. Lado (rueda, rondada, macaco): hacia donde empuja el joystick izquierdo
 			var side := -1 if intent.move.x < -0.3 else 1
+			if String(ev.id) == "cork_entry":
+				side = -1 if intent.move.x > 0.3 else 1      # la C se curva hacia donde empujas
 			_start_skill(String(ev.id), side)
 			return true
 		"flick", "double":
@@ -924,7 +938,12 @@ func _state_skill(dt: float) -> void:
 			return
 	var smp := skill_sample()
 	var pw: Dictionary = skill.power
-	var hv: Vector3 = pw.dir * float(pw.travel) * float(smp.vel)
+	var tdir: Vector3 = pw.dir
+	if d.has("curve"):
+		# Trayectoria curva (pasos en C de la entrada de cork)
+		var u := clampf(float(skill.s), 0.0, 1.0)
+		tdir = tdir.rotated(Vector3.UP, float(d.curve) * float(skill.side) * u * u * (3.0 - 2.0 * u))
+	var hv: Vector3 = tdir * float(pw.travel) * float(smp.vel)
 	var sw := float(smp.support)
 	if sw > 0.0:
 		# Manos apoyadas: el desplazamiento sale de pivotar sobre ellas
@@ -984,8 +1003,31 @@ func _state_skill(dt: float) -> void:
 			if _ground_gesture(ev):
 				return
 	if skill.s >= 1.0 and not hold:
+		if d.get("cork_takeoff", false):
+			var side := int(skill.side)
+			var via := String(skill.id)
+			_finish_skill(true)
+			_cork_takeoff(side, via)
+			return
 		_finish_skill(true)
 		_set_state(State.GROUND)
+
+## Despegue del CORK tras la entrada (tres pasos en C y patada al balón) o tras un ST: la patada
+## da la inercia (salto algo más alto y la carrera de la curva) y el tirabuzón de 360 arranca solo;
+## el joystick GIRO en el mismo sentido lo alarga (540, 720...).
+func _cork_takeoff(side: int, via: String) -> void:
+	cork_side = side
+	jump_load = 0.0
+	velocity.y = t.jump_velocity + 0.6 + speed() * t.jump_speed_bonus
+	_enter_air("run")
+	tricks.takeoff_detail = via
+	tricks.linked = true
+	tricks.twist_boost = 1.25
+	tricks.apply_flick(Vector2(0, -1))
+	tricks.style = "cork"
+	tricks.apply_kick(side)
+	st_queued = false
+	move_and_slide()
 
 ## Termina la habilidad: orientación de salida (media vuelta en rondada/raiz) y velocidad.
 func _finish_skill(keep_speed: bool) -> void:
@@ -995,7 +1037,10 @@ func _finish_skill(keep_speed: bool) -> void:
 	var pw: Dictionary = skill.power
 	facing = (skill.facing0 as Vector3).rotated(Vector3.UP, float(d.exit_yaw) * float(skill.side)).normalized()
 	if keep_speed:
-		var v: Vector3 = pw.dir * float(pw.exit_speed)
+		var edir: Vector3 = pw.dir
+		if d.has("curve"):
+			edir = edir.rotated(Vector3.UP, float(d.curve) * float(skill.side))
+		var v: Vector3 = edir * float(pw.exit_speed)
 		velocity = Vector3(v.x, -1.0, v.z)
 	last_skill.exit_speed = float(pw.exit_speed)
 	skill = {}

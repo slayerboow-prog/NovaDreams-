@@ -111,6 +111,7 @@ func _run_all() -> void:
 	await t_gestures()
 	await t_ground_skills()
 	await t_chains()
+	await t_cork_piru()
 	await t_vault_variants()
 	await t_vault_hands()
 	await t_combo_logic()
@@ -552,7 +553,7 @@ func t_wheel_twist() -> void:
 		res[hold] = moves.duplicate()
 	check("GIRO: un toque corto = ¼ de giro (Hyper)", "Backflip Hyper" in res[5], str(res[5]))
 	check("GIRO: algo más = medio giro (Back Half)", "Back Half" in res[13], str(res[13]))
-	check("GIRO: mantenerlo = tirabuzón completo (Back Full)", "Back Full" in res[26], str(res[26]))
+	check("GIRO: mantenerlo = tirabuzón completo (Piru)", "Piru" in res[26], str(res[26]))
 	# El mismo joystick gira cualquier mortal: adelante y lateral
 	for fl in [[Vector2(0, 1), "Front Full"], [Vector2(1, 0), "Aerial Twist"]]:
 		await place(Vector3(-35, 0.1, 30), Vector3.FORWARD)
@@ -566,7 +567,7 @@ func t_wheel_twist() -> void:
 			func(): return _f > 16 and player.state == PlayerController.State.GROUND)
 		check("GIRO: también en %s" % fl[1], fl[1] in moves, str(moves))
 	# Cork: mortal atrás corriendo + vuelta completa de GIRO; Cork 720 con dos vueltas
-	for c in [[26, "Cork"], [52, "Cork 720"]]:
+	for c in [[26, "Piru"], [52, "Piru 720"]]:
 		await place(Vector3(-35, 0.1, 40), Vector3.FORWARD)
 		var hold: int = c[0]
 		var st := {"t0": -1}
@@ -582,7 +583,7 @@ func t_wheel_twist() -> void:
 			i.twist = 1.0 if since >= 10 and since < 10 + hold else 0.0
 			if since > 20: i.move = Vector2.ZERO, 220,
 			func(): return st.t0 >= 0 and _f > st.t0 + 10 and player.state in [PlayerController.State.GROUND, PlayerController.State.ROLL, PlayerController.State.CRASH])
-		check("Cork con la rueda + GIRO: %s" % c[1], c[1] in moves, str(moves))
+		check("Rueda ATRÁS corriendo + GIRO (suelto) = %s" % c[1], c[1] in moves, str(moves))
 	# Cork y rondada ya no se confunden: GIRO inclinado antes de saltar no hace rondada
 	await place(Vector3(-35, 0.1, 40), Vector3.FORWARD)
 	await run(func(i, f):
@@ -596,7 +597,7 @@ func t_wheel_twist() -> void:
 		i.tuck = f >= 46 and f < 76; i.jump_held = i.tuck
 		if f > 92: i.rot = Vector2.ZERO; i.twist = 0.0, 220,
 		func(): return _f > 60 and player.state in [PlayerController.State.GROUND, PlayerController.State.ROLL, PlayerController.State.CRASH])
-	check("GIRO inclinado justo antes de ATRÁS: sale el cork, no la rondada", not "Round-off" in moves and moves.any(func(m): return m.begins_with("Cork")), str(moves))
+	check("GIRO inclinado justo antes de ATRÁS: sale el piru, no la rondada", not "Round-off" in moves and moves.any(func(m): return m.begins_with("Piru")), str(moves))
 	# Sideflip corriendo: se pone de lado antes de despegar y avanza girando, mirando al lado
 	await place(Vector3(-35, 0.1, 40), Vector3.FORWARD)
 	var sd := {"face": Vector3.ZERO, "vel": Vector3.ZERO, "z0": 0.0, "load_turned": false}
@@ -997,16 +998,16 @@ func t_new_tricks() -> void:
 		i.kick = f == 8, 120,
 		func(): return _f > 16 and player.state == PlayerController.State.GROUND)
 	q = landings[-1].quality if landings.size() > 0 else "none"
-	check("Back Full: mortal atrás + GIRO = tirabuzón completo", "Back Full" in moves and q in ["perfect", "clean"], str(moves) + " " + q)
+	check("Piru: mortal atrás + GIRO = tirabuzón completo", "Piru" in moves and q in ["perfect", "clean"], str(moves) + " " + q)
 	# Nombres según despegue y tirabuzones (tabla de trucos)
 	var TS := TrickSystem
 	var cases := [
 		[TS.trick_name(1, 0, 0, 0, true, false, true, "back", "wall", "wallclimb"), "Wall Flip"],
 		[TS.trick_name(1, 0, 0, 0, true, true, false, "back", "vault", "Kong Vault"), "Kong Gainer"],
 		[TS.trick_name(1, 0, 0, 0, false, true, false, "front", "vault", "Dash Vault"), "Dash Bomb"],
-		[TS.trick_name(1, 0, 0, 2, true, true, false, "back"), "Gainer Full"],
+		[TS.trick_name(1, 0, 0, 2, true, true, false, "back"), "Piru"],
 		[TS.trick_name(2, 0, 0, 2, true, false, false, "back"), "Full In"],
-		[TS.trick_name(1, 0, 0, 4, true, false, false, "back"), "Double Full"],
+		[TS.trick_name(1, 0, 0, 4, true, false, false, "back"), "Piru 720"],
 		[TS.trick_name(1, 0, 0, 1, false, false, false, "front"), "Arabian"],
 		[TS.trick_name(1, 0, 0, 2, false, false, false, "front"), "Front Full"],
 		[TS.trick_name(0, 1, 0, 1, false, true, false, "side"), "Raiz"],
@@ -1561,3 +1562,51 @@ func t_glyphs() -> void:
 			if c > 32 and c != 10 and not font.has_char(c):
 				missing[String.chr(c)] = true
 	check("Textos: la fuente tiene todos los caracteres (sin cuadrados en el móvil)", missing.is_empty(), str(missing.keys()))
+
+## PIRU (mortal atrás + tirabuzón suelto) · CORK (botón CORK: 3 pasos en C + patada al balón,
+## o el mismo giro dentro de un combo) · ST (caer a un pie y enlazar otro cork).
+func t_cork_piru() -> void:
+	# Piru: ATRÁS + una vuelta de GIRO, suelto
+	await place(Vector3(-35, 0.1, 35), Vector3.FORWARD)
+	await run(func(i, f):
+		i.stick_twist = true
+		i.jump_pressed = f == 0; i.flick = Vector2(0, -1) if f == 0 else Vector2.ZERO
+		i.tuck = f < 14; i.jump_held = i.tuck
+		i.twist = 1.0 if f >= 10 and f < 36 else 0.0, 160,
+		func(): return _f > 16 and player.state == PlayerController.State.GROUND)
+	check("Piru: mortal atrás con tirabuzón de 360 suelto = PIRU", "Piru" in moves, str(moves))
+	# Cork con su entrada: tres pasos en C y patada al balón
+	await place(Vector3(-30, 0.1, 40), Vector3.FORWARD)
+	var cs := {"steps": 0, "last": "", "face0": player.facing, "face_take": Vector3.ZERO, "phases": {}}
+	await run(func(i, f):
+		i.stick_twist = true
+		i.skill_request = "cork_entry" if f == 0 else ""
+		if player.state == PlayerController.State.SKILL and player.skill.get("id", "") == "cork_entry":
+			var rig: BodyRig = game.rig
+			cs.phases[rig.last_phase] = true
+			for c in ["fl", "fr"]:
+				if rig.contact_w[c] > 0.99 and cs.last != c:
+					cs.last = c
+					cs.steps += 1
+		if player.state == PlayerController.State.AIR and cs.face_take == Vector3.ZERO:
+			cs.face_take = player.facing, 260,
+		func(): return _f > 30 and player.state == PlayerController.State.GROUND)
+	var turned := rad_to_deg((cs.face0 as Vector3).angle_to(cs.face_take))
+	check("Cork: entrada de 3 pasos en C y patada al balón (%d apoyos, gira %d°)" % [cs.steps, int(turned)],
+		cs.steps >= 4 and turned > 60.0 and cs.phases.has("patada al balón"), str(cs.phases.keys()))
+	check("Cork: despega con la inercia de la patada y sale el CORK", "Cork" in moves and landings.size() > 0 and landings[-1].quality in ["perfect", "clean"],
+		"%s %s" % [moves, landings.map(func(l): return l.quality)])
+	# ST: CORK pulsado durante el cork = cae a un pie y enlaza otro cork
+	await place(Vector3(-30, 0.1, 40), Vector3.FORWARD)
+	var st := {"pressed": false}
+	await run(func(i, f):
+		i.stick_twist = true
+		i.move = Vector2(0.6, 0) if f == 0 else Vector2.ZERO      # la C hacia la derecha (zona libre)
+		i.skill_request = "cork_entry" if f == 0 else ""
+		if not st.pressed and player.state == PlayerController.State.AIR and player.tricks.air_time > 0.3:
+			i.skill_request = "cork_entry"
+			st.pressed = true, 400,
+		func(): return st.pressed and moves.count("Cork") >= 2 and player.state == PlayerController.State.GROUND)
+	var order_ok := moves.size() >= 3 and moves[0] == "Cork" and moves[1] == "ST" and moves[2] == "Cork"
+	check("ST: cae a un pie y enlaza otro cork (Cork › ST › Cork)", order_ok and landings.all(func(l): return l.quality in ["perfect", "clean"]),
+		"%s %s" % [moves, landings.map(func(l): return l.quality)])

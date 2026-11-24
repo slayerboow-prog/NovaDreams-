@@ -100,12 +100,13 @@ const MOVES := [
 	{"name": "Gainer (backflip avanzando)", "cat": "Gainers", "lvl": 2, "input": "Rueda: ATRÁS corriendo", "status": "ok"},
 	{"name": "Cheat Gainer / Kick the Moon", "cat": "Gainers", "lvl": 2, "input": "Gainer + GIRO ½", "status": "ok"},
 	{"name": "Swing Gainer", "cat": "Gainers", "lvl": 3, "input": "Crescent (arco por arriba) y en la recepción rueda ATRÁS", "status": "ok", "note": "interpretación: gainer con entrada de pierna en barrido"},
-	{"name": "Gainer Full / Gainer 360", "cat": "Gainers", "lvl": 4, "input": "Gainer + GIRO", "status": "ok"},
+	{"name": "Piru", "cat": "Gainers", "lvl": 3, "input": "ATRÁS + una vuelta de GIRO (suelto, parado o corriendo)", "status": "ok", "note": "mortal atrás con tirabuzón de 360; con más GIRO: Piru 540 / 720"},
 	{"name": "Double Gainer", "cat": "Gainers", "lvl": 4, "input": "Gainer + ↓ otra vez", "status": "ok"},
 	{"name": "Kong Gainer · Dash Gainer · Vault Gainer", "cat": "Gainers", "lvl": 3, "input": "JD ↓ durante el vault", "status": "ok"},
 	# --- Corks ---
-	{"name": "Cork / Corkscrew", "cat": "Corks", "lvl": 4, "input": "Rueda: ATRÁS corriendo + GIRO una vuelta", "status": "ok"},
-	{"name": "Cork 720", "cat": "Corks", "lvl": 4, "input": "Cork + JD lateral", "status": "ok"},
+	{"name": "Cork / Corkscrew", "cat": "Corks", "lvl": 4, "input": "Botón CORK: 3 pasos en C y patada al balón (tirabuzón de 360 con su inercia); o ATRÁS + GIRO dentro de un combo (tras TD Raiz, raiz, hook, rondada...)", "status": "ok"},
+	{"name": "Cork 720", "cat": "Corks", "lvl": 4, "input": "Cork + GIRO en el mismo sentido", "status": "ok"},
+	{"name": "ST (recepción a un pie)", "cat": "Corks", "lvl": 4, "input": "Pulsa CORK durante un cork: cae a un pie y enlaza otro cork", "status": "ok"},
 	{"name": "Cork 540 · Cork 1080", "cat": "Corks", "lvl": 4, "input": "Cork + giros añadidos", "status": "parcial"},
 	{"name": "Double Cork · Triple Cork", "cat": "Corks", "lvl": 4, "input": "Cork + volver a inclinar", "status": "ok"},
 	# --- Butterfly y patadas ---
