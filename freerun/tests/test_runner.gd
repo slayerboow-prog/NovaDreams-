@@ -90,6 +90,7 @@ func _run_all() -> void:
 	await t_jump()
 	await t_backflip()
 	await t_frontflip_cork()
+	await t_tuck_grab()
 	await t_ground_flick_buffer()
 	await t_overrotation_crash()
 	await t_speed_vault()
@@ -1629,3 +1630,21 @@ func t_reference_landings() -> void:
 	check("Caída grande (%.1f m/s): recepción a cuatro apoyos con las manos en el suelo" % r.imp,
 		r.imp > 9.0 and r.hands >= 5 and r.gap < 0.1 and landings[-1].quality in ["perfect", "clean"], "frames %d hueco %.2f %s" % [r.hands, r.gap, landings.map(func(l): return l.quality)])
 	check("Tras recibir, brazos abiertos a los lados para equilibrarse", r.arms_out > 0.8, "%.2f" % r.arms_out)
+
+## Agrupado real: en los mortales agrupados las manos agarran las espinillas.
+func t_tuck_grab() -> void:
+	var rig: BodyRig = game.rig
+	for c in [["Backflip", Vector2(0, -1)], ["Frontflip", Vector2(0, 1)], ["Sideflip", Vector2(1, 0)]]:
+		await place(Vector3(-35, 0.1, 35), Vector3.FORWARD)
+		var r := {"frames": 0, "best": 9.0}
+		await run(func(i, f):
+			i.stick_twist = true
+			i.jump_pressed = f == 0; i.flick = c[1] if f == 0 else Vector2.ZERO
+			i.tuck = f < 40; i.jump_held = i.tuck
+			if player.state == PlayerController.State.AIR and rig.grab_w > 0.95:
+				var d := maxf(rig.limb_end("hl").distance_to(rig.shin_grip("l")), rig.limb_end("hr").distance_to(rig.shin_grip("r")))
+				r.best = minf(r.best, d)
+				if d < 0.05: r.frames += 1, 160,
+			func(): return _f > 16 and player.state == PlayerController.State.GROUND)
+		check("Agrupado real en %s: las manos agarran las espinillas (%d fotogramas)" % [c[0], r.frames],
+			c[0] in moves and r.frames >= 6, "%s mejor %.3f" % [moves, r.best])

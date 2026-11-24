@@ -21,6 +21,8 @@ var _tilt := Basis()
 var _yaw := 0.0
 var _serial := -1
 var _prev_spd := 0.0
+var grab_w := 0.0                 # agrupado: cuánto se agarran las manos a las espinillas (IK)
+const GRAB_KINDS := ["back", "front", "side", "gainer"]
 var _accel := 0.0                 # aceleración suavizada (inclinación al arrancar/frenar)
 # Apoyos (IK): punto del suelo donde está plantada cada mano/pie y peso del apoyo
 var plants := {}
@@ -204,6 +206,7 @@ func _process(dt: float) -> void:
 		return
 	var st := player.state
 	var spd := player.speed()
+	grab_w = 0.0
 	if dt > 0.0:
 		_accel = lerpf(_accel, (spd - _prev_spd) / dt, 1.0 - exp(-8.0 * dt))
 	_prev_spd = spd
@@ -372,6 +375,20 @@ func _process(dt: float) -> void:
 		_vault_support()
 	else:
 		_solve_contacts(smp.get("contacts", ground_contacts), dt)
+	if st == PlayerController.State.AIR and grab_w > 0.01:
+		_grab_shins(grab_w)
+
+## Punto de agarre en la espinilla (delante del hueso, algo por debajo de la rodilla).
+func shin_grip(side: String) -> Vector3:
+	return (joints["knee_" + side] as Node3D).global_transform * Vector3(0.0, -0.15, -0.1)
+
+## Las manos rodean y agarran las espinillas (IK de brazo); los codos se abren hacia fuera.
+func _grab_shins(w: float) -> void:
+	var spine: Node3D = joints.spine
+	for sd in ["l", "r"]:
+		var sign := -1.0 if sd == "l" else 1.0
+		var pole := (spine.global_basis.x * sign * 0.8 + spine.global_basis.z * 0.4).normalized()
+		_ik(joints["shoulder_" + sd], joints["elbow_" + sd], shin_grip(sd), ARM_L1, ARM_L2, pole, 1.0, w)
 
 ## Apoyos de manos de cada vault sobre el obstáculo: [mano, desde, hasta, avance sobre el
 ## obstáculo (0 = borde de delante, 1 = borde de detrás), lateral]. La mano se clava en la
@@ -819,9 +836,9 @@ func _gather_pose(kind: String, rs: float, ph: float) -> Dictionary:
 				"elbow_l": Vector3(0.05, 0, 0), "elbow_r": Vector3(0.05, 0, 0),
 				"hip_l": Vector3(-0.5, 0, 0), "hip_r": Vector3(-0.15, 0, 0),
 				"knee_l": Vector3(-0.1, 0, 0), "knee_r": Vector3(-0.15, 0, 0)}
-	# Backflip: rodillas al pecho, manos a las espinillas, cabeza neutra mirando atrás
-	return {"spine": Vector3(-0.6, 0, 0), "neck": Vector3(0.15, 0, 0),
-		"hip_l": Vector3(2.5, 0, -0.1), "hip_r": Vector3(2.45, 0, 0.1), "knee_l": Vector3(-2.6, 0, 0), "knee_r": Vector3(-2.55, 0, 0),
+	# Backflip: rodillas al pecho, talones a los glúteos, manos a las espinillas, espalda redonda
+	return {"spine": Vector3(-0.78, 0, 0), "neck": Vector3(0.1, 0, 0),
+		"hip_l": Vector3(2.6, 0, -0.1), "hip_r": Vector3(2.55, 0, 0.1), "knee_l": Vector3(-2.7, 0, 0), "knee_r": Vector3(-2.65, 0, 0),
 		"shoulder_l": Vector3(1.0, 0, -0.12), "shoulder_r": Vector3(1.0, 0, 0.12),
 		"elbow_l": Vector3(1.35, 0, 0), "elbow_r": Vector3(1.35, 0, 0)}
 
@@ -898,6 +915,9 @@ func _trick_pose(p: Dictionary, tr: TrickSystem) -> void:
 			_apply(p, g, gather * open * 0.55 * compact)
 	_apply(p, _impulse_pose(kind, rs), imp)
 	_apply(p, RECEPTION, rec)
+	# Agrupado de verdad: las manos agarran las espinillas mientras el cuerpo está cerrado
+	if kind in GRAB_KINDS:
+		grab_w = clampf(gather * (1.0 - open) * (1.0 - imp) * (1.0 - rec), 0.0, 1.0)
 	last_kind = kind
 	if imp > 0.5:
 		last_phase = "impulso"
