@@ -112,6 +112,7 @@ func _run_all() -> void:
 	await t_ring_buttons()
 	await t_salto_giro_sticks()
 	await t_gesture_patterns()
+	await t_human_model()
 	await t_landing_feel()
 	await t_new_tricks()
 	await t_gestures()
@@ -1880,6 +1881,27 @@ func t_salto_giro_sticks() -> void:
 			func(): return _f > 20 and g[2] in moves)
 		check("GIRO %s = %s" % [g[0], g[2]], g[2] in moves, str(moves))
 	Settings.trick_controls = old_mode
+
+## Atleta realista: el modelo carga y sus huesos siguen a las articulaciones (mismas animaciones).
+func t_human_model() -> void:
+	var rig: BodyRig = game.rig
+	check("Atleta realista cargado (malla con esqueleto)", rig.human != null and rig.human.skeleton != null and rig.human.skeleton.get_bone_count() > 40, "")
+	if rig.human == null:
+		return
+	await place(Vector3(-35, 0.1, 35), Vector3.FORWARD)
+	var worst := {"d": 1.0}
+	var sk := rig.human.skeleton
+	await run(func(i, f):
+		i.jump_pressed = f == 0; i.flick = Vector2(0, -1) if f == 0 else Vector2.ZERO
+		i.tuck = f > 2 and f < 25; i.jump_held = i.tuck
+		for pr in [["shoulder_l", "elbow_l", "upperarm_l", "lowerarm_l"], ["hip_r", "knee_r", "thigh_r", "calf_r"]]:
+			var a: Vector3 = (rig.joints[pr[0]] as Node3D).global_position
+			var b: Vector3 = (rig.joints[pr[1]] as Node3D).global_position
+			var ba := (sk.global_transform * sk.get_bone_global_pose(sk.find_bone(pr[2]))).origin
+			var bb := (sk.global_transform * sk.get_bone_global_pose(sk.find_bone(pr[3]))).origin
+			worst.d = minf(worst.d, (b - a).normalized().dot((bb - ba).normalized())), 120,
+		func(): return _f > 20 and player.state == PlayerController.State.GROUND)
+	check("Atleta realista: brazos y piernas siguen a la animación durante un mortal (alineación mínima %.3f)" % worst.d, worst.d > 0.97, "")
 
 ## Trazo de ejemplo de un gesto (GestureRecognizer.preview_points) en píxeles de pantalla.
 func _gpts(id: String, center: Vector2, r: float, mirror := false, n := 40) -> Array:
