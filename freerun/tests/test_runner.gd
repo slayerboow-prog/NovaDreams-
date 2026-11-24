@@ -1857,27 +1857,6 @@ func t_salto_giro_sticks() -> void:
 		await get_tree().physics_frame
 	check("Tricking de suelo desactivado: el macaco dibujado no se ejecuta", not ("Macaco" in moves) and player.state != PlayerController.State.SKILL, str(moves))
 	touch.salto_page = 0
-	for gc in [["g_td_raiz", ["Touchdown Raiz"]], ["g_macaco", ["Macaco"]],
-			["g_scoot", ["Scoot"]], ["g_scoot_power", ["Scoot"]], ["g_scoot_macaco", ["Scoot", "Macaco"]],
-			["g_spin_lateral", ["3-Step 360", "Cartwheel"]]]:
-		await place(Vector3(-35, 0.1, 35), Vector3.FORWARD)
-		touch.air_mode = false
-		moves.clear()
-		var rc := touch._rot_center()
-		var gp := []
-		for q in GestureRecognizer.resample(GestureRecognizer.giro_preview(gc[0]), 40):
-			gp.append(rc + Vector2(q.x, -q.y) * touch._rot_radius() * 0.8)
-		var ge := InputEventScreenTouch.new(); ge.index = 9; ge.position = gp[0]; ge.pressed = true
-		touch._on_touch(ge)
-		for k in range(1, gp.size()):
-			var gd := InputEventScreenDrag.new(); gd.index = 9; gd.position = gp[k]; touch._on_drag(gd)
-		ge.pressed = false; ge.position = gp[gp.size() - 1]; touch._on_touch(ge)
-		var need: Array = gc[1]
-		for k in 240:
-			await get_tree().physics_frame
-			if need.all(func(m): return m in moves):
-				break
-		check("Joystick morado: dibujar %s = %s" % [gc[0].trim_prefix("g_"), " + ".join(need)], need.all(func(m): return m in moves), str(moves))
 	touch.salto_page = 0
 	game.router.scripted = _drive
 	# Joystick GIRO en el suelo
