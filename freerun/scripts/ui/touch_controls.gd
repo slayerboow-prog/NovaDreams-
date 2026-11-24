@@ -102,34 +102,33 @@ func ring_enabled() -> bool:
 	return Settings.trick_controls == 4
 
 ## [rótulo, tipo, valor]. Tipos: flip (sector de la acrobacia), cork, piru, kick (patada 360),
-## butterfly, skill (habilidad de suelo), vault / grab / action, change (CAMBIAR de página).
-## El arco va del botón de abajo a la izquierda, por arriba, hasta abajo a la derecha (270°):
-## RODAR, AGARRAR y VAULT fijos, 11 botones que cambian con la página y CAMBIAR al final.
-const RING_FIXED := [["RODAR", "action", ""], ["AGARRAR", "grab", ""], ["VAULT", "vault", ""]]
+## butterfly, skill (habilidad de suelo), change (CAMBIAR de página).
+## Arco de 270° alrededor de SALTO con 8 botones GRANDES por página y CAMBIAR al final (abajo a la
+## derecha). VAULT, AGARRAR y RODAR van aparte, en una fila encima del joystick GIRO.
+const RING_FIXED := [["VAULT", "vault", ""], ["AGARRAR", "grab", ""], ["RODAR", "action", ""]]
 const RING_CHANGE := ["CAMBIAR", "change", ""]
 const RING_PAGES := [
 	{"name": "MORTALES", "buttons": [
-		["MACACO", "skill", "macaco"], ["RUEDA", "skill", "cartwheel"], ["RONDADA", "skill", "roundoff"],
-		["FLIC-FLAC", "skill", "bhs"], ["PALOMA", "skill", "fhs"],
-		["ATRÁS", "flip", -2], ["CORK", "cork", -2], ["ADELANTE", "flip", 2],
-		["LATERAL\nIZQ.", "flip", 4], ["LATERAL\nDER.", "flip", 0], ["AERIAL /\nMARIPOSA", "flip", 3]]},
+		["ATRÁS", "flip", -2], ["ADELANTE", "flip", 2], ["LATERAL\nIZQ.", "flip", 4], ["LATERAL\nDER.", "flip", 0],
+		["CORK", "cork", -2], ["PIRU", "piru", -2], ["AERIAL /\nMARIPOSA", "flip", 3], ["PATADA\n360", "kick", 0]]},
+	{"name": "SUELO", "buttons": [
+		["RONDADA", "skill", "roundoff"], ["FLIC-FLAC", "skill", "bhs"], ["RUEDA", "skill", "cartwheel"],
+		["PALOMA", "skill", "fhs"], ["MACACO", "skill", "macaco"], ["PINO", "skill", "handstand"],
+		["ATRÁS", "flip", -2], ["CORK", "cork", -2]]},
 	{"name": "TRICKING", "buttons": [
 		["HOOK", "skill", "hook"], ["CRESCENT", "skill", "crescent"], ["CRESCENT\nINVERSA", "skill", "reverse_crescent"],
 		["RAIZ", "skill", "raiz"], ["TD RAIZ", "skill", "td_raiz"], ["SCOOT", "skill", "scoot"],
-		["ATRÁS", "flip", -2], ["CORK", "cork", -2], ["PIRU", "piru", -2],
-		["PATADA\n360", "kick", 0], ["MARIPOSA", "butterfly", 3]]},
+		["MARIPOSA", "butterfly", 3], ["CORK", "cork", -2]]},
 	{"name": "GIMNASIA", "buttons": [
 		["BACK\nWALKOVER", "skill", "back_walkover"], ["FRONT\nWALKOVER", "skill", "front_walkover"],
-		["PINO", "skill", "handstand"], ["VALDEZ", "skill", "valdez"], ["VOLTERETA\nAL PINO", "skill", "ber"],
-		["RUEDA", "skill", "cartwheel"], ["RONDADA", "skill", "roundoff"], ["FLIC-FLAC", "skill", "bhs"],
-		["PALOMA", "skill", "fhs"], ["MACACO", "skill", "macaco"], ["ATRÁS", "flip", -2]]},
+		["VALDEZ", "skill", "valdez"], ["VOLTERETA\nAL PINO", "skill", "ber"], ["PINO", "skill", "handstand"],
+		["RONDADA", "skill", "roundoff"], ["FLIC-FLAC", "skill", "bhs"], ["ATRÁS", "flip", -2]]},
 ]
 var ring_page := 0
 var _ring_anim := 0.0                 # giro animado de la rueda al cambiar de página (-1..1 → 0)
 
 func ring_buttons() -> Array:
-	var out: Array = RING_FIXED.duplicate()
-	out.append_array(RING_PAGES[ring_page].buttons)
+	var out: Array = RING_PAGES[ring_page].buttons.duplicate()
 	out.append(RING_CHANGE)
 	return out
 
@@ -142,27 +141,36 @@ static func all_ring_labels() -> Array:
 		for b in pg.buttons: out.append(String(b[0]))
 	return out
 
+## Página donde está un botón (para las pruebas y la ayuda).
+static func page_of(label: String) -> int:
+	for i in RING_PAGES.size():
+		for b in RING_PAGES[i].buttons:
+			if String(b[0]).replace("\n", " ") == label:
+				return i
+	return -1
+
 ## Gira la rueda a otra página (+1 siguiente, -1 anterior).
 func ring_turn(d: int) -> void:
 	ring_page = posmod(ring_page + d, RING_PAGES.size())
 	_ring_anim = float(d)
 	_flash["page"] = 1.2
 
-const RING_JUMP_R := 86.0
-const RING_R := 216.0
-const RING_BTN_R := 33.0
+const RING_JUMP_R := 95.0
+const RING_R := 205.0
+const RING_BTN_R := 44.0
 const RING_A0 := 225.0               # grados (matemáticos, y arriba): abajo a la izquierda
 const RING_SPAN := 270.0
+const PARK_R := 44.0                 # VAULT, AGARRAR, RODAR en la botonera
 
 func _ring_center() -> Vector2:
 	var s := _s()
-	return Vector2(_mirror(size.x - 252.0 * s), size.y - 192.0 * s)
+	return Vector2(_mirror(size.x - 255.0 * s), size.y - 195.0 * s)
 
 func ring_button_center(i: int, animated := false) -> Vector2:
 	var n := ring_buttons().size()
 	var a_deg := RING_A0 - RING_SPAN * float(i) / float(n - 1)
-	if animated and i >= RING_FIXED.size() and i < n - 1:
-		a_deg += _ring_anim * 55.0          # los botones de la página entran girando por el arco
+	if animated and i < n - 1:
+		a_deg += _ring_anim * 40.0          # los botones de la página entran girando por el arco
 	var ang := deg_to_rad(a_deg)
 	var v := Vector2(cos(ang), -sin(ang)) * RING_R * _s()
 	if Settings.left_handed:
@@ -181,6 +189,25 @@ func ring_button_at(p: Vector2) -> int:
 			bd = d
 			best = i
 	return best
+
+## Botonera: VAULT (0), AGARRAR (1) y RODAR (2). Abajo, entre el joystick de movimiento y el
+## GIRO (debajo de los pies del atleta, sin taparlo); si no caben ahí, en fila encima del GIRO.
+func _park_center(i: int) -> Vector2:
+	var s := _s()
+	var rc := _rot_center()
+	var r := PARK_R * s * 1.1
+	var side := -1.0 if not Settings.left_handed else 1.0
+	var joy_edge := (JOY_R * s + 50.0 * s) + JOY_R * s          # borde del joystick en reposo
+	var first := absf(rc.x - _mirror(0.0)) - _rot_radius() * 1.08 - 12.0 * s - r
+	var last := first - 2.0 * (2.0 * r + 10.0 * s)
+	if last - r > joy_edge + 8.0 * s:
+		var x := rc.x + side * (_rot_radius() * 1.08 + 12.0 * s + r + float(i) * (2.0 * r + 10.0 * s))
+		return Vector2(x, size.y - r - 8.0 * s)
+	var y := rc.y - _rot_radius() * 1.08 - 14.0 * s - r
+	var dx := (float(i) - 1.0) * 104.0 * s - 40.0 * s
+	if Settings.left_handed:
+		dx = -dx
+	return Vector2(rc.x + dx, y)
 
 # Distribución ergonómica para el pulgar derecho (arco alrededor de la esquina inferior):
 #   SALTO grande en la esquina, cruceta de trucos a su izquierda, RODAR encima del salto.
@@ -214,7 +241,7 @@ func _rot_center() -> Vector2:
 	var s := _s()
 	if ring_enabled():
 		# Justo a la izquierda del arco de botones (sin invadir el joystick de movimiento)
-		var off := (RING_R + RING_BTN_R * 1.06 + 112.0 * 1.08 + 12.0) * s
+		var off := (RING_R + RING_BTN_R * 1.06 + 112.0 * 1.08 + 14.0) * s
 		var cx := _ring_center().x + (off if Settings.left_handed else -off)
 		return Vector2(cx, size.y - 150.0 * s)
 	return Vector2(_mirror(size.x - 520.0 * s), size.y - 195.0 * s)
@@ -240,12 +267,16 @@ func _column_x() -> float:
 	return _mirror(size.x - 82.0 * _s())
 
 func _small_radius() -> float:
-	return SMALL_R * _s()
+	return (PARK_R if ring_enabled() else SMALL_R) * _s()
 
 func _vault_center() -> Vector2:
+	if ring_enabled():
+		return _park_center(0)
 	return Vector2(_column_x(), _column_y(0))
 
 func _grab_center() -> Vector2:
+	if ring_enabled():
+		return _park_center(1)
 	return Vector2(_column_x(), _column_y(1))
 
 ## Pantallas menos panorámicas que un móvil actual (16:9, tablets): la cruceta sube encima
@@ -255,6 +286,8 @@ func _narrow() -> bool:
 
 func _action_center() -> Vector2:
 	var s := _s()
+	if ring_enabled():
+		return _park_center(2)
 	if stick_enabled():
 		return Vector2(_column_x(), _column_y(2))
 	if _narrow():
@@ -263,6 +296,8 @@ func _action_center() -> Vector2:
 	return Vector2(_mirror(size.x - 216.0 * s), size.y - 385.0 * s)
 
 func _action_radius() -> float:
+	if ring_enabled():
+		return PARK_R * _s()
 	return (SMALL_R if stick_enabled() else ACTION_R) * _s()
 
 func _pad_center() -> Vector2:
@@ -282,7 +317,8 @@ func _pad_radius() -> float:
 ## Radios de pulsación (algo mayores que el dibujo para acertar con el pulgar sin mirar).
 func hit_radii() -> Dictionary:
 	if ring_enabled():
-		var hr := {"jump": _jump_radius() * 1.04, "rot": _rot_radius() * 1.08}
+		var hr := {"jump": _jump_radius() * 1.04, "rot": _rot_radius() * 1.08,
+			"vault": PARK_R * _s() * 1.1, "grab": PARK_R * _s() * 1.1, "action": PARK_R * _s() * 1.1}
 		for i in ring_buttons().size():
 			hr["ring_%d" % i] = ring_button_radius() * 1.06
 		return hr
@@ -293,7 +329,7 @@ func hit_radii() -> Dictionary:
 ## Zonas táctiles activas en el modo actual (las pruebas comprueban que no se solapan).
 func zones() -> Dictionary:
 	if ring_enabled():
-		var zr := {"jump": _jump_center(), "rot": _rot_center()}
+		var zr := {"jump": _jump_center(), "rot": _rot_center(), "vault": _vault_center(), "grab": _grab_center(), "action": _action_center()}
 		for i in ring_buttons().size():
 			zr["ring_%d" % i] = ring_button_center(i)
 		return zr
@@ -452,15 +488,15 @@ func _on_touch(e: InputEventScreenTouch) -> void:
 			role = "jump"
 			_pending.jump_pressed = true
 			_flash["jump"] = 0.15
-		elif not ring_enabled() and p.distance_to(_action_center()) < hr.action:
+		elif p.distance_to(_action_center()) < hr.action:
 			role = "action"
 			_pending.action_pressed = true
 			_flash["action"] = 0.15
-		elif stick_enabled() and not ring_enabled() and p.distance_to(_vault_center()) < hr.vault:
+		elif stick_enabled() and p.distance_to(_vault_center()) < hr.vault:
 			role = "vault"
 			_pending.vault_pressed = true
 			_flash["vault"] = 0.15
-		elif stick_enabled() and not ring_enabled() and p.distance_to(_grab_center()) < hr.grab:
+		elif stick_enabled() and p.distance_to(_grab_center()) < hr.grab:
 			role = "grab"
 			_pending.grab_pressed = true
 			_flash["grab"] = 0.15
@@ -680,6 +716,15 @@ func _draw() -> void:
 		if gestures_enabled():
 			_label(font, jc + Vector2(0, 36 * s), "desliza = truco", 19 * s, Color(1, 1, 1, a + 0.15))
 	if ring_enabled():
+		# VAULT, AGARRAR y RODAR (fila encima del joystick GIRO)
+		var heldp := {}
+		for f in _fingers.values():
+			heldp[f.role] = true
+		for pk in [["vault", _vault_center(), "VAULT", Color(0.35, 0.65, 1.0, white.a)], ["grab", _grab_center(), grab_label, white],
+				["action", _action_center(), "RODAR", Color(0.35, 0.95, 0.45, white.a)]]:
+			draw_circle(pk[1], PARK_R * s, accent if (heldp.has(pk[0]) or _flash.has(pk[0])) else dark)
+			draw_arc(pk[1], PARK_R * s, 0, TAU, 40, pk[3], 3.5 * s, true)
+			_label(font, pk[1], pk[2], 16 * s, white)
 		_draw_rot_stick(font, s, a, white, dark, accent)
 		_draw_camera_hint(font, s, a)
 		_draw_ring_hint(font, s)
@@ -781,16 +826,16 @@ func _draw_ring(font: Font, s: float, a: float, white: Color, dark: Color, accen
 		if bt[1] == "grab":
 			lbl = grab_label
 		var lines := lbl.split("\n")
-		var fs := (11.0 if lines.size() > 1 or lbl.length() > 7 else 13.0) * s
+		var fs := (14.0 if lines.size() > 1 or lbl.length() > 8 else 17.0) * s
 		for li in lines.size():
 			_label(font, c + Vector2(0, (li - (lines.size() - 1) * 0.5) * fs * 1.05), lines[li], fs, white)
 	draw_circle(jc, _jump_radius(), accent if (jheld or _flash.has("jump")) else dark)
 	draw_arc(jc, _jump_radius(), 0, TAU, 64, white, 4.0 * s, true)
-	_label(font, jc, "SALTO", 30 * s, white)
+	_label(font, jc, "SALTO", 34 * s, white)
 	# Página actual de la rueda (más visible justo después de cambiar)
 	var pa := minf(1.0, 0.55 + float(_flash.get("page", 0.0)))
 	var top := ring_button_center(int(btns.size() / 2))
-	_label(font, top + Vector2(0, -ring_button_radius() - 18 * s), "%s  %d/%d" % [RING_PAGES[ring_page].name, ring_page + 1, RING_PAGES.size()], 17 * s, Color(1, 0.9, 0.3, pa))
+	_label(font, top + Vector2(0, -ring_button_radius() - 18 * s), "%s  %d/%d" % [RING_PAGES[ring_page].name, ring_page + 1, RING_PAGES.size()], 20 * s, Color(1, 0.9, 0.3, pa))
 	var _unused := page_a
 
 func _draw_ring_hint(font: Font, s: float) -> void:
@@ -799,7 +844,7 @@ func _draw_ring_hint(font: Font, s: float) -> void:
 	var hc := Vector2(size.x * 0.5, size.y * 0.16)
 	var ha := clampf(1.0 - (_hint_time - 7.0) / 2.0, 0.0, 1.0)
 	_label(font, hc, "Cada botón del arco es un movimiento. Mantén el botón del mortal = sigue girando (doble, triple...)", 22 * s, Color(1, 1, 1, ha))
-	_label(font, hc + Vector2(0, 34 * s), "CAMBIAR (tocar o deslizar arriba/abajo) gira la rueda: MORTALES · TRICKING · GIMNASIA · Joystick GIRO = tirabuzones", 22 * s, Color(1, 1, 1, ha))
+	_label(font, hc + Vector2(0, 34 * s), "CAMBIAR (tocar o deslizar arriba/abajo) gira la rueda: MORTALES · SUELO · TRICKING · GIMNASIA", 22 * s, Color(1, 1, 1, ha))
 
 ## Rueda SALTO / MORTALES: centro SALTO y 4 zonas (ADELANTE, ATRÁS, LATERAL ← →).
 func _draw_wheel(font: Font, s: float, a: float, white: Color, dark: Color, accent: Color) -> void:

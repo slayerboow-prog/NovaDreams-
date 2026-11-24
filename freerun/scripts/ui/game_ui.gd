@@ -205,10 +205,9 @@ func _build_hud() -> void:
 	popups.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	hud.add_child(popups)
 
-	speed_label = _label("", 16, Color(1, 1, 1, 0.8), HORIZONTAL_ALIGNMENT_CENTER)
-	speed_label.set_anchors_preset(Control.PRESET_CENTER_BOTTOM)
-	speed_label.grow_horizontal = Control.GROW_DIRECTION_BOTH
-	speed_label.position.y -= 34
+	# Velocidad y estado: arriba a la izquierda, bajo la puntuación (abajo lo tapaban los botones)
+	speed_label = _label("", 15, Color(1, 1, 1, 0.75), HORIZONTAL_ALIGNMENT_LEFT)
+	speed_label.position = Vector2(24, 64)
 	hud.add_child(speed_label)
 
 	# Medidor FLOW (arriba al centro, fino para no tapar la acción)
