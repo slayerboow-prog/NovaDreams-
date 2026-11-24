@@ -53,8 +53,20 @@ const COL_STRIPE := Color(0.92, 0.92, 0.9)
 const COL_SOLE := Color(0.95, 0.95, 0.92)
 const COL_CAP := Color(0.95, 0.95, 0.92)
 
+## Capturas de movimiento reales (CMU) que sustituyen a la animación hecha a mano.
+const MOCAP_FLIPS := {"back": "res://assets/mocap/backflip.json"}
+const MOCAP_PREP := 30.0                  # fotogramas de la captura que dura la flexión antes de despegar
+var mocap := {}                           # tipo de mortal -> MocapClip
+var mocap_active := ""                    # clip que manda en la pose este fotograma
+var _force_blend := 0.0
+var _mocap_recent := 0.0                  # tras una captura, la pose siguiente entra deprisa (sin arrastrar la pierna)
+
 func setup(p: PlayerController) -> void:
 	player = p
+	for k in MOCAP_FLIPS.keys():
+		var c := MocapClip.load_clip(MOCAP_FLIPS[k])
+		if c:
+			mocap[k] = c
 	# El muñeco se anima en cada fotograma (_process): sin interpolación física, para que las piezas
 	# rígidas (cabeza, manos, zapatillas) y la piel se dibujen en la misma pose. Con interpolación
 	# las piezas iban un paso por detrás de la piel y en movimientos rápidos se separaban.
@@ -255,6 +267,8 @@ func _process(dt: float) -> void:
 	var tilt := Basis()
 	var drop := 0.0
 	var blend_speed := 14.0
+	mocap_active = ""
+	_force_blend = 0.0
 
 	# Orientación horizontal
 	var fwd := player.facing
@@ -402,6 +416,13 @@ func _process(dt: float) -> void:
 			target.hip_l.x = sin(phase * 1.3) * 0.4; target.hip_r.x = -sin(phase * 1.3) * 0.4
 			tilt = Basis(Vector3.RIGHT, -0.9 if player.speed() > 0.6 else -0.2)
 
+	if mocap_active != "":
+		_mocap_recent = 0.25
+	elif _mocap_recent > 0.0:
+		_mocap_recent -= dt
+		_force_blend = maxf(_force_blend, 38.0)
+	if _force_blend > 0.0:
+		blend_speed = _force_blend          # captura real: se sigue casi al instante
 	# Mezcla hacia la pose objetivo con un muelle amortiguado por articulación: arranca y frena
 	# con suavidad (sin tirones de velocidad) y se pasa un pelín al final, como un cuerpo real.
 	# Codos, rodillas, cuello y muñecas van un instante por detrás del tronco (inercia de las
@@ -986,8 +1007,34 @@ func _smooth(x: float) -> float:
 var last_phase := ""          # para pruebas/depuración: fase visible actual
 var last_kind := ""
 
+func _mocap_for_kind(kind: String) -> MocapClip:
+	if kind == "back" and not Settings.backflip_real():
+		return null                          # el de captura real es una versión desbloqueable
+	return mocap.get(kind, null)
+
 func _trick_pose(p: Dictionary, tr: TrickSystem) -> void:
 	var kind := trick_kind(tr)
+	var mc := _mocap_for_kind("back" if kind in ["back", "gainer"] and not tr.all_settled() else "")
+	if mc and absf(tr.total_pitch) < float(maxi(int(tr.goal.get("pitch", 1)), 1)) * TAU - 0.12:
+		# Captura real: la forma del cuerpo sigue el giro del mortal (agrupa y abre en el mismo
+		# ángulo que el atleta de verdad). En dobles, las primeras vueltas van agrupadas.
+		var goal := maxi(int(tr.goal.get("pitch", 1)), 1)
+		var tot := absf(tr.total_pitch)
+		var prog := 0.0
+		if tot < float(goal - 1) * TAU:
+			prog = 0.45
+		else:
+			prog = clampf((tot - float(goal - 1) * TAU) / TAU, 0.0, 1.0)
+		var mp := mc.pose_at(mc.flight_frame(prog))
+		for k in mp.keys():
+			p[k] = mp[k]
+		# Cerca del suelo pasa a la recepción con las dos piernas (la captura cae a un pie)
+		if player.velocity.y < 0.0 and prog > 0.6:
+			_apply(p, RECEPTION, _smooth(1.0 - player.time_to_ground() / 0.25))
+		grab_w = 0.0                         # las manos ya van donde las llevaba el atleta
+		mocap_active = kind
+		_force_blend = 60.0
+		return
 	var ax := tr.primary_axis()
 	var s: int = tr.dir.get(ax, 1)
 	var rs := float(tr.dir.get("roll", 0)) if kind in ["side", "aerial", "cartwheel", "roundoff"] else float(tr.dir.get("twist", 0))
@@ -1070,6 +1117,16 @@ func _load_pose(p: Dictionary) -> float:
 	var sec := TouchControls.sector_of(f) if f != Vector2.ZERO else 99
 	var kind := player.jump_flip
 	var prog := clampf(1.0 - player.jump_load / maxf(player.jump_load_total, 0.01), 0.0, 1.0)
+	var mc := _mocap_for_kind("back" if kind in ["back", "double_back", "gainer"] else "")
+	if mc:
+		# Captura real: flexión y braceo del atleta de verdad hasta el despegue
+		var fr := lerpf(float(mc.takeoff) - MOCAP_PREP, float(mc.takeoff), prog)
+		var mp := mc.pose_at(fr)
+		for k in mp.keys():
+			p[k] = mp[k]
+		mocap_active = kind
+		_force_blend = 60.0
+		return mc.drop_at(fr)
 	var down := _smooth(prog / 0.65)                    # bajada (flexión)
 	var swing := _smooth((prog - 0.6) / 0.4)            # brazos lanzados arriba al final
 	var depth := 1.0

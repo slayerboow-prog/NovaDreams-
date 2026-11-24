@@ -28,6 +28,7 @@ Atajos: `godot --path freerun -- --mode=freerun` salta el menú (`tricking`, `wa
   - Líneas: ↑ rondada · ↓ flic-flac · ← → rueda.
   - **Desactivados por ahora** (se rehacen sus animaciones y volverán): macaco, touchdown raiz, scoot, scoot fuerte, scoot + macaco, 360 + rueda y pino.
   - Solo un círculo = salto con giro de 360.
+- **Backflip de captura real** (desbloqueable con 20 backflips; Ajustes › Estilo de backflip): movimiento de un atleta real de la base de datos pública de captura de movimiento de Carnegie Mellon (CMU, uso libre también comercial), sincronizado con el giro del juego: flexión y braceo reales, agrupado y apertura. El backflip clásico sigue siendo el de por defecto. Conversión: `tools/mocap/cmu_to_clip.py`.
 - **Botón 1 PIE** (abajo a la derecha): púlsalo en el aire y la recepción será a un pie (alternando la pierna). Durante esa recepción se abre una ventana de enlace para encadenar el siguiente mortal o habilidad sin apoyar el otro pie: combos a un pie.
 - **Cámaras** (botón CÁMARA, arriba a la derecha): NORMAL · **POV** (cámara de acción en la cabeza, tipo GoPro) · **DRON** (alta y detrás, siguiendo con retraso).
 - **Repetición** (botón REPETIR o Pausa › Ver repetición): reproduce los últimos 15 s con **cámara libre** (arrastra para girar alrededor del atleta, + / - para acercar), POV, dron o seguir, a velocidad x1, x0.5 o x0.25, con barra para buscar el momento. Para guardar el vídeo, usa la grabación de pantalla del móvil mientras se reproduce.

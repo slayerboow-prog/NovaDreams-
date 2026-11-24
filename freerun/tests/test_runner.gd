@@ -115,6 +115,7 @@ func _run_all() -> void:
 	await t_human_model()
 	await t_air_control()
 	await t_one_foot_replay_cameras()
+	await t_mocap_backflip()
 	await t_landing_feel()
 	await t_new_tricks()
 	await t_gestures()
@@ -1872,6 +1873,28 @@ func t_salto_giro_sticks() -> void:
 			func(): return _f > 20 and g[2] in moves)
 		check("GIRO %s = %s" % [g[0], g[2]], g[2] in moves, str(moves))
 	Settings.trick_controls = old_mode
+
+## Backflip de captura real (CMU): versión desbloqueable; por defecto se usa el clásico.
+func t_mocap_backflip() -> void:
+	var rig: BodyRig = game.rig
+	check("Captura real del backflip cargada (%d fotogramas)" % (rig.mocap["back"].frame_count() if rig.mocap.has("back") else 0), rig.mocap.has("back"), "")
+	var old_stats: int = int(SaveData.stats.get("move_Backflip", 0))
+	var old_style := Settings.backflip_style
+	for case in [["bloqueado: sale el clásico", 0, 1], ["desbloqueado y elegido: sale la captura real", 999, 1], ["desbloqueado pero clásico elegido", 999, 0]]:
+		SaveData.stats["move_Backflip"] = int(case[1])
+		Settings.backflip_style = int(case[2])
+		await place(Vector3(-35, 0.1, 35), Vector3.FORWARD)
+		var used := {"v": false}
+		await run(func(i, f):
+			i.jump_pressed = f == 0; i.flick = Vector2(0, -1) if f == 0 else Vector2.ZERO
+			i.tuck = f > 3 and f < 26; i.jump_held = i.tuck
+			used.v = used.v or rig.mocap_active == "back", 140,
+			func(): return _f > 20 and player.state == PlayerController.State.GROUND and landings.size() > 0)
+		var want: bool = int(case[1]) >= Settings.BACKFLIP_REAL_UNLOCK and int(case[2]) == 1
+		check("Backflip %s" % case[0], used.v == want and "Backflip" in moves and landings[-1].quality in ["perfect", "clean"],
+			"captura %s %s %s" % [used.v, moves, landings.map(func(l): return l.quality)])
+	SaveData.stats["move_Backflip"] = old_stats
+	Settings.backflip_style = old_style
 
 ## Botón 1 PIE (recepción a un pie y combos a un pie), repetición con cámara libre y cámaras.
 func t_one_foot_replay_cameras() -> void:

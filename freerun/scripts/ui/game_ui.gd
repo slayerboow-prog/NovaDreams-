@@ -561,6 +561,24 @@ func _build_settings() -> void:
 	_option(box, "Ayuda de rotación", "rotation_assist", ["Pro (sin ayudas)", "Media", "Alta"])
 	_option(box, "Controles de trucos", "trick_controls", ["Doble joystick (rueda)", "Solo gestos", "Solo cruceta", "Gestos + cruceta", "Botonera de botones", "Gestos: SALTO + GIRO (por defecto)"])
 	_option(box, "Gráficos", "graphics_preset", ["Bajo", "Medio", "Alto"])
+	# Backflip de captura real: versión desbloqueable (con N backflips hechos)
+	var brow := HBoxContainer.new()
+	var bl := _label("Estilo de backflip", 18)
+	bl.custom_minimum_size.x = 260
+	brow.add_child(bl)
+	var bob := OptionButton.new()
+	bob.add_item("Clásico")
+	bob.add_item("Captura real" if Settings.backflip_real_unlocked() else "Captura real (bloqueado)")
+	bob.selected = Settings.backflip_style
+	bob.custom_minimum_size = Vector2(320, 44)
+	bob.item_selected.connect(func(i):
+		if i == 1 and not Settings.backflip_real_unlocked():
+			bob.selected = 0
+			popup("Te faltan %d backflips para desbloquearlo" % (Settings.BACKFLIP_REAL_UNLOCK - Settings.backflips_done()), Color(1, 0.7, 0.4))
+			return
+		Settings.backflip_style = i)
+	brow.add_child(bob)
+	box.add_child(brow)
 	_slider(box, "Sensibilidad cámara", "camera_sensitivity", 0.3, 2.5, 0.05)
 	_slider(box, "Sensibilidad joystick/gestos", "gesture_sensitivity", 0.4, 2.0, 0.05)
 	_slider(box, "Tamaño controles", "control_scale", 0.7, 1.4, 0.05)
