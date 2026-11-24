@@ -1734,7 +1734,8 @@ func t_cork_piru() -> void:
 		func(): return hc.pressed and player.state != PlayerController.State.AIR)
 	check("Cork desde una altura: se decide en el aire, en el punto que quieras (%.1f m)" % hc.y,
 		"Cork" in moves, "%s %s" % [moves, landings.map(func(l): return [l.quality, int(l.error)])])
-	# ST: CORK pulsado durante el cork = cae a un pie y enlaza otro cork
+	# ST: CORK pulsado durante el cork = cae a un pie; el siguiente cork lo enlaza el jugador
+	# (CORK + SALTO en la recepción). Nada se encadena solo.
 	await place(Vector3(-35, 0.1, 40), Vector3.FORWARD)
 	var st := {"pressed": false}
 	await run(func(i, f):
@@ -1743,10 +1744,27 @@ func t_cork_piru() -> void:
 		i.cork_request = f == 0
 		if not st.pressed and player.state == PlayerController.State.AIR and player.tricks.air_time > 0.3:
 			i.cork_request = true
-			st.pressed = true, 400,
-		func(): return st.pressed and moves.count("Cork") >= 2 and player.state == PlayerController.State.GROUND)
-	var order_ok := moves.size() >= 3 and moves[0] == "Cork" and moves[1] == "ST" and moves[2] == "Cork"
-	check("ST: cae a un pie y enlaza otro cork (Cork › ST › Cork)", order_ok and landings.all(func(l): return l.quality in ["perfect", "clean"]),
+			st.pressed = true
+		if "ST" in moves and not st.get("solo", false):
+			st.solo = true
+			st.skill = player.skill.get("id", "") if player.state == PlayerController.State.SKILL else ""
+			st.moves_at_st = moves.size()
+		# Sin tocar nada tras el ST: no debe salir otro cork solo
+		if st.get("solo", false) and not st.get("waited", false):
+			st.wait = int(st.get("wait", 0)) + 1
+			if st.wait > 20:
+				st.waited = true
+				st.alone = moves.count("Cork") == 1
+		# Ahora el jugador enlaza otro cork a mano: CORK + SALTO en la ventana de la recepción
+		if st.get("waited", false) and not st.get("linked", false):
+			st.linked = true
+			i.cork_request = true; i.jump_pressed = true; i.flick = Vector2(0, -1)
+		, 520,
+		func(): return st.get("linked", false) and moves.count("Cork") >= 2 and player.state == PlayerController.State.GROUND)
+	check("ST: cae a un pie (One-Foot) y no lanza otro cork solo", st.get("alone", false) and st.get("skill", "") == "one_foot",
+		"%s %s" % [moves, st])
+	var order_ok := moves.size() >= 3 and moves[0] == "Cork" and moves[1] == "ST" and moves.count("Cork") >= 2
+	check("ST: el siguiente cork se enlaza a mano (Cork › ST › Cork)", order_ok and landings.all(func(l): return l.quality in ["perfect", "clean"]),
 		"%s %s" % [moves, landings.map(func(l): return l.quality)])
 
 ## Botonera: SALTO es un joystick de mortales básicos (deslizar ↑ adelante · ← → lateral ·

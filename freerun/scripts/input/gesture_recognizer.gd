@@ -513,7 +513,7 @@ static func _add_circles(out: PackedVector2Array, from: Vector2, r: float, n: in
 const GIRO_NAMES := {
 	"rondada": "RONDADA", "flicflac": "FLIC-FLAC", "rueda": "RUEDA", "td_raiz": "TOUCHDOWN RAIZ",
 	"macaco": "MACACO", "scoot": "SCOOT", "scoot_power": "SCOOT FUERTE",
-	"scoot_macaco": "SCOOT + MACACO FUERTE", "spin_lateral": "360 + RUEDA FUERTE", "twist": "GIRO 360",
+	"twist": "GIRO 360",
 }
 ## Plantillas del morado (x derecha, y arriba). Se prueban también reflejadas (otro lado).
 const GIRO_TEMPLATES := {
@@ -535,17 +535,7 @@ static func recognize_giro(screen: PackedVector2Array, radius: float) -> Diction
 	var rs := resample(pts, 64)
 	var loop := _loop_span(rs)
 	if not loop.is_empty():
-		var pre := rs.slice(0, int(loop.i0) + 1)
-		var post := rs.slice(int(loop.i1))
-		var pl := path_length(pre)
-		var sl := path_length(post)
-		var sch := post[post.size() - 1] - post[0] if post.size() > 1 else Vector2.ZERO
-		var ang := rad_to_deg(sch.angle())
 		var dir := int(loop.dir)
-		if sl >= 0.5 and sch.length() >= 0.4 and ang > 20.0 and ang < 160.0:
-			var side := 1 if sch.x >= 0.0 else -1
-			var gid := "scoot_macaco" if pl >= 0.6 else "spin_lateral"
-			return _giro_result(gid, side, {"loops": int(loop.count), "dir": dir})
 		return _giro_result("twist", dir, {"loops": int(loop.count), "dir": dir})
 	var chord := pts[pts.size() - 1] - pts[0]
 	var coarse := resample(pts, 16)
@@ -648,18 +638,6 @@ static func giro_preview(id: String) -> PackedVector2Array:
 		"g_flicflac": out = PackedVector2Array([Vector2(0, 0.7), Vector2(0, -0.7)])
 		"g_rueda": out = PackedVector2Array([Vector2(-0.7, 0), Vector2(0.7, 0)])
 		"g_td_raiz": out = PackedVector2Array([Vector2(-0.55, 0.55), Vector2(0.55, -0.55)])
-		"g_scoot_macaco":
-			for p in GIRO_TEMPLATES["scoot_power"].slice(0, 6):
-				out.append(Vector2(float(p[0]), float(p[1])))
-			_add_circles(out, out[out.size() - 1], 0.25, 1, -1)
-			var e := out[out.size() - 1]
-			out.append(e + Vector2(0.15, 0.45)); out.append(e + Vector2(0.3, 0.95))
-		"g_spin_lateral":
-			out.append(Vector2(-0.15, -0.5))
-			out.append(Vector2(0.0, -0.45))
-			_add_circles(out, out[out.size() - 1], 0.28, 1, -1)
-			var e2 := out[out.size() - 1]
-			out.append(e2 + Vector2(0.25, 0.45)); out.append(e2 + Vector2(0.55, 1.0))
 		_:
 			var k := id.trim_prefix("g_")
 			if GIRO_TEMPLATES.has(k):
