@@ -179,6 +179,11 @@ func _read_intent(_dt: float) -> void:
 			intent.pattern = t.pattern
 		intent.twist_loops = t.twist_loops
 		intent.giro_sector = t.giro_sector
+		if not t.giro.is_empty():
+			intent.giro = t.giro
+		if t.flip_press != 99:
+			intent.flip_press = t.flip_press
+		intent.flip_held = t.flip_held
 		if touch.stick_enabled():
 			# Doble joystick: los mortales van en la rueda de SALTO y el joystick derecho es el GIRO
 			intent.stick_twist = true

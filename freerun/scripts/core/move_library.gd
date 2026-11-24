@@ -99,7 +99,6 @@ const MOVES := [
 	# --- Gainers ---
 	{"name": "Gainer (backflip avanzando)", "cat": "Gainers", "lvl": 2, "input": "Rueda: ATRÁS corriendo", "status": "ok"},
 	{"name": "Cheat Gainer / Kick the Moon", "cat": "Gainers", "lvl": 2, "input": "Gainer + GIRO ½", "status": "ok"},
-	{"name": "Swing Gainer", "cat": "Gainers", "lvl": 3, "input": "Crescent (arco por arriba) y en la recepción rueda ATRÁS", "status": "ok", "note": "interpretación: gainer con entrada de pierna en barrido"},
 	{"name": "Piru", "cat": "Gainers", "lvl": 3, "input": "ATRÁS + una vuelta de GIRO (suelto, parado o corriendo)", "status": "ok", "note": "mortal atrás con tirabuzón de 360; con más GIRO: Piru 540 / 720"},
 	{"name": "Double Gainer", "cat": "Gainers", "lvl": 4, "input": "Gainer + ↓ otra vez", "status": "ok"},
 	{"name": "Kong Gainer · Dash Gainer · Vault Gainer", "cat": "Gainers", "lvl": 3, "input": "JD ↓ durante el vault", "status": "ok"},
@@ -113,10 +112,8 @@ const MOVES := [
 	{"name": "Butterfly Kick", "cat": "Butterfly y patadas", "lvl": 2, "input": "Joystick GIRO ↖ en el suelo, corriendo", "status": "ok"},
 	{"name": "Butterfly Twist / B-Twist", "cat": "Butterfly y patadas", "lvl": 3, "input": "Butterfly + GIRO (mejor tras scoot o touchdown raiz)", "status": "ok"},
 	{"name": "360 Kick / Tornado Kick", "cat": "Butterfly y patadas", "lvl": 1, "input": "Joystick GIRO ↗ en el suelo, o SALTO + GIRO sin mortal", "status": "ok"},
-	{"name": "Cheat 360 Kick", "cat": "Butterfly y patadas", "lvl": 2, "input": "Joystick GIRO ↗ en la ventana de enlace de un scoot, hook o crescent", "status": "ok", "note": "el 360 con despegue de entrada (cheat)"},
+	{"name": "Cheat 360 Kick", "cat": "Butterfly y patadas", "lvl": 2, "input": "Joystick GIRO ↗ en la ventana de enlace de un hook", "status": "ok", "note": "el 360 con despegue de entrada (cheat)"},
 	{"name": "Hook Kick", "cat": "Tricking", "lvl": 2, "input": "Joystick GIRO en ARCO por abajo (← ↙ ↓ ↘ →)", "status": "ok", "note": "giro de entrada, cadera, extensión y gancho"},
-	{"name": "Crescent Kick", "cat": "Tricking", "lvl": 1, "input": "Joystick GIRO en ARCO por arriba, de derecha a izquierda", "status": "ok"},
-	{"name": "Reverse Crescent Kick", "cat": "Tricking", "lvl": 1, "input": "Joystick GIRO en ARCO por arriba, de izquierda a derecha", "status": "ok"},
 	{"name": "Scoot", "cat": "Tricking", "lvl": 2, "input": "Joystick GIRO: CAMBIO DE DIRECCIÓN (← y enseguida →)", "status": "ok", "note": "interpretación propia de la técnica (no verificada con vídeo)"},
 	{"name": "Master Scoot", "cat": "Tricking", "lvl": 3, "input": "-", "status": "pendiente", "note": "no he podido verificar su técnica: no se inventa"},
 	{"name": "540 Kick", "cat": "Butterfly y patadas", "lvl": 1, "input": "360 Kick + GIRO otra vez", "status": "ok"},
@@ -124,9 +121,6 @@ const MOVES := [
 	{"name": "Axe Kick Aerial · Frisbee", "cat": "Butterfly y patadas", "lvl": 3, "input": "-", "status": "pendiente"},
 	# --- Handsprings ---
 	{"name": "Back Handspring (flic-flac)", "cat": "Handsprings", "lvl": 3, "input": "Joystick GIRO ↓ (inclinar y soltar) en el suelo", "status": "ok"},
-	{"name": "Front Handspring (paloma)", "cat": "Handsprings", "lvl": 2, "input": "Joystick GIRO ↑ (inclinar y soltar) en el suelo", "status": "ok"},
-	{"name": "Front Walkover", "cat": "Handsprings", "lvl": 2, "input": "MANTÉN GIRO ↑ (pino) y suéltalo", "status": "ok"},
-	{"name": "Back Walkover", "cat": "Handsprings", "lvl": 2, "input": "MANTÉN GIRO ↓ en el suelo", "status": "ok"},
 	{"name": "Side Handspring", "cat": "Handsprings", "lvl": 1, "input": "-", "status": "pendiente"},
 	{"name": "Back Handspring Twist", "cat": "Handsprings", "lvl": 3, "input": "Flic-flac + GIRO", "status": "parcial"},
 	# --- Ruedas y rondadas ---
@@ -139,8 +133,6 @@ const MOVES := [
 	{"name": "Gumbi", "cat": "Suelo", "lvl": 2, "input": "-", "status": "pendiente"},
 	{"name": "Handstand (pino)", "cat": "Suelo", "lvl": 1, "input": "MANTÉN GIRO ↑: se sostiene mientras no sueltes", "status": "ok"},
 	{"name": "Handstand Push-off (snap down)", "cat": "Suelo", "lvl": 2, "input": "En el pino, SALTO", "status": "ok"},
-	{"name": "Valdez", "cat": "Suelo", "lvl": 2, "input": "Casi parado: RODAR con GIRO ↙ o ↘", "status": "ok"},
-	{"name": "Back Extension Roll", "cat": "Suelo", "lvl": 2, "input": "Casi parado: RODAR con GIRO ↓", "status": "ok"},
 	# --- Combos ---
 	{"name": "Round-off → Backflip", "cat": "Combos", "lvl": 3, "input": "GIRO ↙ y en la recepción rueda ATRÁS (rebote más alto)", "status": "ok"},
 	{"name": "Round-off → Back Handspring → Backflip", "cat": "Combos", "lvl": 4, "input": "GIRO ↙ · GIRO ↓ durante la rondada · rueda ATRÁS", "status": "ok"},
@@ -170,17 +162,17 @@ const MOVES := [
 const CATEGORY_ES := {"Vaults": "Pasavallas (vaults)", "Precision": "Precisión",
 	"Rolls y recepciones": "Volteretas y recepciones", "Aerials y Websters": "Ruedas sin manos y websters",
 	"Gainers": "Mortales atrás en carrera (gainers)", "Corks": "Sacacorchos (corks)",
-	"Butterfly y patadas": "Mariposas y patadas", "Handsprings": "Flic-flacs, palomas y walkovers",
+	"Butterfly y patadas": "Mariposas y patadas", "Handsprings": "Flic-flacs",
 	"Tricking": "Tricking (patadas, raiz y entradas)"}
 const LEVELS := ["", "Documentado", "Implementado", "Probado técnicamente", "Inspeccionado visualmente", "Validado en móvil"]
 ## Revisados en capturas/vídeo de la partida (fotogramas de las fases del movimiento).
 const VISUALLY_INSPECTED := ["Backflip / Back Tuck", "Frontflip / Front Tuck", "Double Backflip", "Sideflip",
 	"Gainer (backflip avanzando)", "Thief Vault", "Turn Vault",
 	# Habilidades con apoyo real (capturas por fases tras el sistema de apoyos con IK)
-	"Round-off (rondada)", "Back Handspring (flic-flac)", "Front Handspring (paloma)", "Cartwheel (rueda)",
-	"Macaco", "Back Walkover", "Front Walkover", "Valdez", "Back Extension Roll", "Kip-up",
+	"Round-off (rondada)", "Back Handspring (flic-flac)", "Cartwheel (rueda)",
+	"Macaco", "Kip-up",
 	"Handstand (pino)", "Handstand Push-off (snap down)", "Raiz", "Touchdown Raiz", "Hook Kick",
-	"Crescent Kick", "Reverse Crescent Kick", "Scoot", "Speed Vault", "Kong Vault / Monkey / Cat Pass"]
+	"Scoot", "Speed Vault", "Kong Vault / Monkey / Cat Pass"]
 ## Confirmados por el jugador en su móvil (vacío hasta tener esa confirmación).
 const MOBILE_VALIDATED: Array[String] = []
 

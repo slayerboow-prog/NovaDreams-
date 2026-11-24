@@ -34,6 +34,7 @@ var rotate_overlay: Control
 var trick_indicator: TrickIndicator
 
 var main_menu: Control
+var menu_back_btn: Button
 var pause_menu: Control
 var settings_panel: Control
 var library_panel: Control
@@ -45,20 +46,18 @@ const TUTORIAL := [
 	["Corre: inclina el joystick azul (a fondo = sprint)", ["@run"]],
 	["Mueve la cámara: arrastra en una zona libre (doble toque = detrás del atleta)", ["@camera"]],
 	["Toca el joystick dorado (SALTO)", ["@air"]],
-	["Dorado: línea hacia abajo = Mortal atrás (deja el dedo quieto = agrupado)", ["Backflip", "Gainer"]],
-	["Dorado: línea hacia arriba = Mortal adelante", ["Frontflip", "Webster"]],
-	["Dorado: línea a un lado = Mortal lateral", ["Sideflip"]],
+	["Botón ATRÁS: 1.ª pulsación salta · 2.ª agrupa y gira · 3.ª abre para aterrizar", ["Backflip", "Gainer"]],
+	["Botón ADELANTE: igual, hacia delante", ["Frontflip", "Webster"]],
+	["Botón LATERAL: mortal lateral (empuja el azul a la izquierda para el otro lado)", ["Sideflip"]],
+	["Mortal y, en el aire, inclina el morado a un lado: tirabuzón (atrás + giro = Piru)", ["Piru", "Piru 540", "Piru 720", "Front Full", "Sideflip Twist"]],
 	["Dorado: arco lateral que sube y baja = Aerial", ["Aerial", "Double Aerial"]],
 	["Dorado: diagonal hacia arriba y un círculo pequeño = Cork", ["Cork", "Cork 540", "Cork 720"]],
-	["Dorado: hacia abajo y una vuelta ovalada = Gainer", ["Gainer", "Backflip"]],
-	["Mortal atrás y, en el aire, un círculo en el joystick morado = Piru", ["Piru", "Piru 540", "Piru 720", "Cork", "Cork 720"]],
-	["Morado en el suelo: línea a un lado = Rueda con apoyo de manos", ["Cartwheel"]],
-	["Morado en el suelo: línea hacia abajo = Flic-flac", ["Back Handspring"]],
-	["Morado: línea hacia arriba = Rondada y, al recibir (¡ENLAZA!), línea abajo en el dorado", ["@roundoff_back"]],
-	["Botón pequeño junto a SALTO: página TRICKING. Línea arriba-derecha = Hook", ["Hook Kick"]],
-	["Página GIMNASIA: línea hacia arriba = Paloma (flic-flac adelante)", ["Front Handspring"]],
+	["Morado en el suelo: línea a un lado = Rueda · abajo = Flic-flac", ["Cartwheel", "Back Handspring"]],
+	["Morado: línea hacia arriba = Rondada y, al recibir (¡ENLAZA!), botón ATRÁS", ["@roundoff_back"]],
+	["Morado: arco por abajo = Hook · arco por arriba = Macaco", ["Hook Kick", "Macaco"]],
+	["Morado: un círculo y diagonal arriba = 360 + rueda fuerte (entrada de potencia)", ["3-Step 360", "Cartwheel"]],
 	["Corre hacia un obstáculo y dibuja una U invertida en el dorado (o pulsa VAULT)", ["@vault"]],
-	["Junto a una pared alta: zigzag hacia arriba en el dorado = Escalada", ["Wall Climb", "Ledge Grab", "Cat Leap", "Mantle"]],
+	["Junto a una pared: línea arriba y un círculo en el dorado = Palm Flip", ["Palm Flip", "Palm Full", "Palm Half"]],
 	["Antes de caer desde alto: curva hacia abajo y adelante en el dorado = Rodar", ["Safety Roll", "Roll"]],
 ]
 var tutorial_step := -1
@@ -378,6 +377,12 @@ func _build_main_menu() -> void:
 		b.custom_minimum_size.y = 64
 		grid.add_child(b)
 	grid.add_child(_button("Ajustes", func(): open_settings(), 330))
+	# Volver a la partida que se estaba jugando (si se entró al menú desde el juego)
+	menu_back_btn = _button("Volver al juego", func():
+		if game and String(game.last_mode) != "":
+			mode_selected.emit(String(game.last_mode)), 330)
+	menu_back_btn.visible = false
+	box.add_child(menu_back_btn)
 	box.add_child(_label("Elige una disciplina. Todas comparten el mismo sistema de movimiento.", 15, Color(1, 1, 1, 0.6), HORIZONTAL_ALIGNMENT_CENTER))
 
 func _build_pause() -> void:
@@ -385,7 +390,7 @@ func _build_pause() -> void:
 	pause_menu = r[0]
 	var box: VBoxContainer = r[1]
 	box.add_child(_label("PAUSA", 44, ACCENT, HORIZONTAL_ALIGNMENT_CENTER))
-	box.add_child(_button("Continuar", func(): resume_requested.emit()))
+	box.add_child(_button("Volver al juego", func(): resume_requested.emit()))
 	box.add_child(_button("Reaparecer", func(): respawn_requested.emit()))
 	box.add_child(_button("Reiniciar", func(): restart_requested.emit()))
 	box.add_child(_button("Movimientos", func(): open_library()))
@@ -563,6 +568,8 @@ func open_settings() -> void:
 
 func show_main_menu(v: bool) -> void:
 	main_menu.visible = v
+	if menu_back_btn:
+		menu_back_btn.visible = v and game != null and String(game.get("last_mode")) != ""
 
 func show_pause(v: bool) -> void:
 	pause_menu.visible = v

@@ -573,6 +573,7 @@ static func trick_name(pn: int, rn: int, sn: int, th: int, back: bool, moving: b
 			if th == 0:
 				if pn == 1:
 					if wall:
+						if detail == "palm": return "Palm Flip"
 						return "Wall Flip" if detail in ["wallclimb", ""] else "Wall Gainer"
 					if vaulted:
 						if detail.begins_with("Kong") or detail in ["Double Kong", "Kash Vault"]:
@@ -592,6 +593,8 @@ static func trick_name(pn: int, rn: int, sn: int, th: int, back: bool, moving: b
 				if th >= 4: return "Cork 720"
 				return "Cork" if th <= 2 else "Cork 540"
 			if wall:
+				if detail == "palm":
+					return "Palm Double Full" if th >= 4 else ("Palm Full" if th >= 2 else "Palm Half")
 				return "Wall Full" if th >= 2 else "Wall Half"
 			if pn >= 2:
 				return "Double Full" if th >= 4 else "Full In"
@@ -618,7 +621,7 @@ static func trick_name(pn: int, rn: int, sn: int, th: int, back: bool, moving: b
 		if st == "aerial" and th == 0:
 			return "Double Aerial" if rn >= 2 else "Aerial"
 		if th >= 4: return "Aerial Double Twist"
-		if th >= 2: return "Aerial Twist"
+		if th >= 2: return "Sideflip Twist" if st == "side" else "Aerial Twist"
 		if th == 1: return "Raiz"
 		if rn >= 2: return "Double Sideflip"
 		if wall: return "Wall Sideflip"

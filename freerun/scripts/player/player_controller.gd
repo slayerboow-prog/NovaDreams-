@@ -107,6 +107,7 @@ var vault_pref_t := 0.0
 var keep_buf := ""                       # "vault" / "grab": el patrón sigue pidiendo esa acción un rato
 var keep_t := 0.0                        # (da tiempo a llegar al obstáculo o a la pared)
 var air_grab_t := 0.0                    # cat leap / agarre: agarrar en cuanto haya borde o pared en el aire
+var palm_t := 0.0                        # palm flip: manos a la pared y mortal atrás enseguida
 var wallflip_t := 0.0                    # wall flip: tras empezar a trepar, mortal atrás desde la pared
 var wallrun_hold_t := 0.0                # wall run: el salto se mantiene para engancharse a la pared
 var precision_t := 0.0                   # salto de precisión: clavar la recepción
@@ -117,6 +118,13 @@ var cork_more := 0                       # cork 720: medias vueltas extra del co
 var cork_more_t := 0.0
 var pending_twists: Array[int] = []      # círculos dibujados en el suelo: salen en el despegue
 var pending_twists_t := 0.0
+# Botones de mortal (estilo Madness): 1.ª pulsación carga el salto, 2.ª agrupa y gira, 3.ª abre
+var mad_axis := 99                       # sector del mortal elegido (-2 atrás · 2 adelante · 0/4 lateral)
+var mad_stage := 0                       # 0 nada · 1 cargando / en el aire sin girar · 2 agrupado · 3 abierto
+var mad_charge := 0.0                    # carga extra del salto (s)
+const MAD_CHARGE_MAX := 0.12
+var twist_wait_t := 0.0                  # ventana para combinar el círculo con un mortal del dorado
+const TWIST_WAIT := 0.4
 
 # Datos de la acción en curso
 var vault := {}
@@ -165,6 +173,7 @@ func respawn() -> void:
 	tricks.reset()
 	stun = 0.0
 	jump_load = 0.0
+	mad_stage = 0; mad_axis = 99; mad_charge = 0.0
 	keep_t = 0.0; air_grab_t = 0.0; wallflip_t = 0.0; wallrun_hold_t = 0.0; precision_t = 0.0
 	extra_twist_t = 0.0; cork_more = 0; pending_twists.clear(); vault_pref = ""
 	ground_wait = 0.0
@@ -386,13 +395,6 @@ func _state_ground(dt: float) -> void:
 		if grab_buffer > 0.0 and _try_wall_climb():
 			grab_buffer = 0.0
 			return
-		# RODAR casi parado + joystick derecho: voltereta atrás al pino (↓) o valdez (↙ ↘)
-		if intent.action_pressed and spd <= 3.0 and intent.rot.length() > 0.5:
-			var rs := TouchControls.sector_of(intent.rot)
-			if rs in [-2, -1, -3]:
-				gestures.cancel()
-				_start_skill("ber" if rs == -2 else "valdez", 1 if rs != -3 else -1)
-				return
 		if not gesture_event.is_empty() and jump_buffer <= 0.0 and vault_buffer <= 0.0 and not _obstacle_ahead():
 			if _ground_gesture(gesture_event):
 				return
@@ -460,6 +462,11 @@ func _apply_jump_flick(d: Vector2, allow_twist := true) -> void:
 func _flip_kind(spd: float) -> String:
 	if cork_buffer > 0.0:
 		return "cork"
+	if mad_stage == 1 and mad_axis != 99:
+		match mad_axis:
+			2: return "front"
+			-2: return "back"
+			0, 4: return "side"
 	if flick_timer <= 0.0:
 		return "jump"
 	var dbl := double_buffer > 0.0 or intent.double_flip
@@ -535,6 +542,10 @@ func _takeoff(kind: String) -> void:
 ## inclinarlo hacia el sentido del giro agrupa poco a poco, soltarlo abre, en contra frena.
 func trick_push() -> float:
 	var p := 1.0 if intent.tuck else 0.0
+	if mad_stage == 2:
+		return 1.0                # botón: agrupado y girando hasta la 3.ª pulsación
+	if mad_stage == 3:
+		return -0.6               # botón: abierto, frena y prepara el aterrizaje
 	if intent.stick_twist:
 		return p                  # rueda de SALTO mantenida = agrupado; el joystick derecho es el GIRO
 	var r := intent.rot
@@ -565,13 +576,19 @@ func _do_jump(kind: String, link := {}) -> void:
 	# Enlace: el rebote de la recepción anterior (rondada, flic-flac...) se suma al impulso de
 	# piernas. No es un multiplicador: sale de la velocidad de recepción y de la técnica.
 	velocity.y += float(link.get("rebound_vy", 0.0))
+	if mad_charge > 0.0:
+		velocity.y += mad_charge / MAD_CHARGE_MAX * 1.2   # botón mantenido en la carga: más alto
+		mad_charge = 0.0
 	# Despegue propio del mortal: más alto para los dobles, hacia atrás/adelante según la técnica
 	if TAKEOFF.has(takeoff_style):
 		var tk: Dictionary = TAKEOFF[takeoff_style]
 		velocity.y += float(tk.vy)
 		var slow := 1.0 - clampf(spd / 5.0, 0.0, 1.0)
-		velocity.x += facing.x * float(tk.fwd) * slow
-		velocity.z += facing.z * float(tk.fwd) * slow
+		# Mortal en el sitio: sin joystick el empuje de la técnica casi no desplaza (para caer donde
+		# se despega o encima del mismo muro); con el joystick, desplaza. Gainer y aerial siempre avanzan.
+		var aim := 1.0 if takeoff_style in ["gainer", "aerial", "butterfly"] else lerpf(0.15, 1.0, clampf(intent.move.length() / 0.6, 0.0, 1.0))
+		velocity.x += facing.x * float(tk.fwd) * slow * aim
+		velocity.z += facing.z * float(tk.fwd) * slow * aim
 	takeoff_style = ""
 	_enter_air(kind)
 	if not link.is_empty():
@@ -579,7 +596,7 @@ func _do_jump(kind: String, link := {}) -> void:
 	move_and_slide()
 
 ## Lo que hereda una acrobacia del movimiento anterior: el giro de un hook/raiz/scoot precarga
-## el tirabuzón; el barrido de pierna (crescent, aerial, td raiz) da la rotación horizontal que
+## el tirabuzón; el barrido de pierna (aerial, td raiz) da la rotación horizontal que
 ## convierte el salto en butterfly o en gainer aunque no haya carrera.
 func _apply_link_to_air(link: Dictionary) -> void:
 	tricks.takeoff_detail = String(link.from)
@@ -593,6 +610,11 @@ func _apply_link_to_air(link: Dictionary) -> void:
 		"barrido":
 			tricks.takeoff_speed = maxf(tricks.takeoff_speed, 4.5)
 			tricks.travel_speed = maxf(tricks.travel_speed, 4.5)
+	if link.get("strong", false):
+		# Entrada de potencia: más altura y el tirabuzón sale con mucha más inercia
+		tricks.twist_boost = maxf(tricks.twist_boost, 1.35)
+		velocity.y += 0.9
+		tricks.takeoff_speed = maxf(tricks.takeoff_speed, 5.0)
 
 ## Consume el enlace abierto para `target` (habilidad o salto). {} si no hay o no es coherente.
 func _link_for(target: String) -> Dictionary:
@@ -631,8 +653,11 @@ func _state_air(dt: float) -> void:
 	var wish := wish_dir()
 	var hv := horizontal_velocity()
 	if wish.length() > 0.08:
+		# Control en el aire también durante los mortales: el joystick lleva el cuerpo hacia donde
+		# apuntas (adelante, atrás o a un lado) para caer con precisión encima de otro muro
 		var max_s := maxf(hv.length(), t.run_speed)
-		hv += wish * t.air_accel * dt
+		var acc := t.air_accel * (1.35 if tricks.active else 1.0)
+		hv += wish * acc * dt
 		hv = hv.limit_length(max_s)
 	velocity.x = hv.x
 	velocity.z = hv.z
@@ -719,6 +744,8 @@ func _check_water() -> bool:
 
 func _land() -> void:
 	var impact := -prev_velocity.y
+	mad_stage = 0
+	mad_axis = 99
 	var prec := precision_t > 0.0
 	precision_t = 0.0
 	pending_twists.clear()
@@ -826,6 +853,9 @@ func _tick_gestures(dt: float) -> void:
 	air_grab_t = maxf(0.0, air_grab_t - dt)
 	if air_grab_t > 0.0 and state == State.AIR:
 		grab_buffer = maxf(grab_buffer, 0.05)
+	palm_t = maxf(0.0, palm_t - dt)
+	if palm_t > 0.0 and state == State.WALLCLIMB and state_time > 0.06:
+		intent.flick = Vector2(0, -1)          # palm flip: empuje de manos y mortal atrás
 	wallflip_t = maxf(0.0, wallflip_t - dt)
 	if wallflip_t > 0.0 and state == State.WALLCLIMB and state_time > 0.1:
 		intent.flick = Vector2(0, -1)          # wall flip: mortal atrás impulsándose en la pared
@@ -837,13 +867,22 @@ func _tick_gestures(dt: float) -> void:
 	if jump_load <= 0.0:
 		extra_twist_t = maxf(0.0, extra_twist_t - dt)
 		pending_twists_t = maxf(0.0, pending_twists_t - dt)
-		if pending_twists_t <= 0.0:
+		if pending_twists_t <= 0.0 and twist_wait_t <= 0.0:
 			pending_twists.clear()
 	cork_more_t = maxf(0.0, cork_more_t - dt)
 	if cork_more_t <= 0.0:
 		cork_more = 0
 	if not intent.pattern.is_empty():
 		_apply_pattern(intent.pattern)
+	if not intent.giro.is_empty():
+		_apply_giro(intent.giro)
+	_tick_flip_buttons(dt)
+	if twist_wait_t > 0.0:
+		twist_wait_t -= dt
+		if twist_wait_t <= 0.0 and state == State.GROUND and not pending_twists.is_empty() and jump_load <= 0.0 and jump_buffer <= 0.0:
+			jump_buffer = t.jump_buffer_time         # nadie pidió mortal: salto con giro de 360
+	if not pending_twists.is_empty() and intent.flick != Vector2.ZERO and TouchControls.sector_of(intent.flick) == 2:
+		flick_buffer = Vector2(-0.71, 0.71)          # círculo + SALTO ↑ = aerial twist
 	if intent.giro_sector != 99:
 		# Joystick morado en línea recta: rondada, flic-flac o rueda (en una habilidad, en cola)
 		var gev := {"type": "flick", "sector": intent.giro_sector}
@@ -862,10 +901,93 @@ func _tick_gestures(dt: float) -> void:
 				q.append(ev)
 				vault["twists"] = q
 			State.GROUND:
+				# Círculo en el suelo: espera un instante por si llega un mortal del dorado
+				# (↑ aerial twist · ← → sideflip twist · ↓ piru); si no, salto con giro de 360
 				pending_twists.append(ev)
-				pending_twists_t = 0.4
-				if jump_load <= 0.0:
-					jump_buffer = t.jump_buffer_time   # círculo en el suelo: salto con tirabuzón
+				pending_twists_t = 1.0
+				twist_wait_t = TWIST_WAIT
+
+## Botones ATRÁS / ADELANTE / LATERAL (estilo Madness):
+##   1.ª pulsación (en el suelo): flexión y salto; mantener un instante = algo más alto.
+##   2.ª (en el aire): se agrupa y gira en ese sentido; agrupado sigue girando (dobles con altura).
+##   3.ª: se abre y frena para aterrizar (otra pulsación vuelve a agrupar).
+## Con ayuda alta, si no abres, se abre solo cuando ya no cabe otra vuelta.
+func _tick_flip_buttons(dt: float) -> void:
+	if state == State.GROUND and jump_load > 0.0 and mad_stage == 1 and intent.flip_held and mad_charge < MAD_CHARGE_MAX:
+		var add := minf(dt, MAD_CHARGE_MAX - mad_charge)
+		mad_charge += add
+		jump_load += add                       # mantener = flexión algo más larga y salto más alto
+		jump_load_total += add
+	if intent.flip_press == 99:
+		return
+	var sec := intent.flip_press
+	match state:
+		State.GROUND, State.SKILL, State.ROLL:
+			if jump_load > 0.0:
+				return
+			mad_axis = sec
+			mad_stage = 1
+			mad_charge = 0.0
+			jump_buffer = t.jump_buffer_time
+		State.AIR, State.VAULT:
+			if mad_stage <= 1:
+				if mad_axis == 99:
+					mad_axis = sec               # cayendo de una altura: empieza el mortal ya
+				var d := TouchControls.sector_dir(mad_axis)
+				if state == State.VAULT:
+					vault.flick = d
+				else:
+					_apply_jump_flick(d)
+				mad_stage = 2
+			elif mad_stage == 2:
+				mad_stage = 3
+			else:
+				mad_stage = 2
+
+## Joystick morado en el suelo (GestureRecognizer.recognize_giro): habilidades de suelo y
+## entradas de potencia. En una habilidad quedan en cola para el enlace.
+const GIRO_SKILLS := {"rondada": "roundoff", "flicflac": "bhs", "rueda": "cartwheel", "raiz": "raiz",
+	"td_raiz": "td_raiz", "macaco": "macaco", "hook": "hook", "scoot": "scoot"}
+func _apply_giro(g: Dictionary) -> void:
+	var id := String(g.get("id", ""))
+	var sd := 1 if int(g.get("side", 1)) >= 0 else -1
+	if id == "twist":
+		var tl: Array[int] = []
+		for k in maxi(int(g.get("loops", 1)), 1):
+			tl.append(int(g.get("dir", 1)))
+		if state == State.GROUND:
+			for e in tl:
+				pending_twists.append(e)
+			pending_twists_t = 1.0
+			twist_wait_t = TWIST_WAIT
+		elif state == State.AIR:
+			for e in tl:
+				tricks.add_twist_turn(e, time_to_ground(), t)
+		elif state == State.SKILL:
+			for e in tl:
+				pending_twists.append(e)          # sale en el mortal que se enlace (rueda → piru)
+			pending_twists_t = 1.5
+		return
+	if id == "rondada":
+		sd = -1 if intent.move.x < -0.3 else 1
+	var skill_id := String(GIRO_SKILLS.get(id, ""))
+	var strong := false
+	var next := ""
+	match id:
+		"scoot_power":
+			skill_id = "scoot"; strong = true
+		"scoot_macaco":
+			skill_id = "scoot"; strong = true; next = "macaco"
+		"spin_lateral":
+			skill_id = "spin_entry"; strong = true; next = "cartwheel"
+	if skill_id == "":
+		return
+	if state == State.SKILL and not strong:
+		chain_event = {"type": "skill", "id": "%s:%d" % [skill_id, sd]}
+		chain_event_t = 0.45
+	elif state in [State.GROUND, State.CRASH] and jump_load <= 0.0:
+		gestures.cancel()
+		_start_skill(skill_id, sd, -1.0, strong, next)
 
 ## Ejecuta un patrón reconocido en el joystick dorado (GestureRecognizer) con las mismas
 ## mecánicas que los botones: el jugador solo hace lo que es físicamente posible ahora.
@@ -911,6 +1033,17 @@ func _apply_pattern(p: Dictionary) -> void:
 			keep_buf = "grab"
 			keep_t = 0.9
 			wallflip_t = 1.4
+		"palm":
+			grab_buffer = 0.3
+			keep_buf = "grab"
+			keep_t = 0.9
+			palm_t = 1.4
+		"speed", "reverse":
+			vault_buffer = 0.3
+			vault_pref = id
+			vault_pref_t = 1.0
+			keep_buf = "vault"
+			keep_t = 0.9
 		"climb", "wall_climb":
 			grab_buffer = 0.3
 			keep_buf = "grab"
@@ -998,6 +1131,13 @@ func _try_vault() -> bool:
 		kind = "Kong Vault"
 		ideal = Vector2(0.6, 2.0)
 		speed_mult = 1.05
+	elif vault_pref == "speed" and not info.mount:
+		kind = "Speed Vault"               # pasavallas: de lado con una mano
+		ideal = Vector2(0.25, 1.3)
+		speed_mult = 1.0
+	elif vault_pref == "reverse" and not info.mount:
+		kind = "Reverse Vault"             # reverso: entra de espaldas a una mano y media vuelta
+		speed_mult = 0.92
 	vault_pref = ""
 	# Variantes elegidas con un gesto justo antes del vault (SALTO + deslizar o cruceta):
 	#   lateral = Reverse Vault (giro de 360 sobre el obstáculo)
@@ -1162,12 +1302,10 @@ func _obstacle_ahead() -> bool:
 ## Tricking de suelo con el joystick derecho (sin SALTO). El intérprete de gestos decide:
 ##   FLICK (inclinar y soltar)   ← → rueda · ↙ ↘ rondada · ↓ flic-flac · ↑ paloma
 ##                                ↗ patada 360 / tornado · ↖ aerial (parado) / butterfly (carrera)
-##   MANTENER (0,5 s)             ↓ back walkover · ↑ pino (soltar = front walkover, SALTO = snap down)
+##   MANTENER (0,5 s)             ↑ pino (soltar o SALTO = snap down)
 ##                                ← → raiz · ↖ ↗ touchdown raiz · ↙ ↘ macaco
-##   ARCO por arriba              crescent (antihorario) / reverse crescent (horario)
 ##   ARCO por abajo               hook kick (gira hacia el sentido del arco)
 ##   CAMBIO DE DIRECCIÓN          scoot hacia el lado final
-##   RODAR casi parado + ↓ / ↙ ↘   back extension roll / valdez
 ## Cada habilidad tiene fases, apoyos y potencia propios (SkillLibrary) y transfiere su
 ## impulso al siguiente movimiento si se enlaza en la recepción (ChainSystem).
 func _ground_gesture(ev: Dictionary) -> bool:
@@ -1190,7 +1328,6 @@ func _ground_gesture(ev: Dictionary) -> bool:
 				return false        # modo gestos: esas habilidades están en las páginas de SALTO
 			var sec := int(ev.sector)
 			match sec:
-				-2: _start_skill("back_walkover", 1)
 				2: _start_skill("handstand", 1)
 				0, 4: _start_skill("raiz", 1 if sec == 0 else -1)
 				1, 3: _start_skill("td_raiz", 1 if sec == 1 else -1)
@@ -1208,9 +1345,8 @@ func _ground_gesture(ev: Dictionary) -> bool:
 					return true
 				return false
 			if String(ev.through) == "top":
-				_start_skill("crescent" if int(ev.dir) > 0 else "reverse_crescent", 1)
-			else:
-				_start_skill("hook", int(ev.dir))
+				return false          # (crescents eliminados)
+			_start_skill("hook", int(ev.dir))
 			return true
 		"change":
 			var to := int(ev.to)
@@ -1239,8 +1375,6 @@ func _ground_flick(sec: int) -> bool:
 			_start_skill("roundoff", 1 if sec == -1 else -1)
 		-2:
 			_start_skill("bhs", 1)
-		2:
-			_start_skill("fhs", 1)
 		1:
 			# Patada giratoria en el aire (360 / tornado / cheat 360 si viene de una entrada)
 			twist_lock = true
@@ -1260,7 +1394,9 @@ func _ground_flick(sec: int) -> bool:
 
 # ---------------------------------------------------------------- habilidades de suelo
 
-func _start_skill(id: String, side: int, start_s := -1.0) -> void:
+## strong: entrada de potencia (scoot fuerte, 360 + rueda...): más recorrido y más rebote para lo
+## que se enlace después. next: habilidad que sigue sola al terminar (scoot → macaco, 360 → rueda).
+func _start_skill(id: String, side: int, start_s := -1.0, strong := false, next := "") -> void:
 	var d := SkillLibrary.get_def(id)
 	twist_lock = true                  # el joystick sigue inclinado: no es un tirabuzón
 	jump_load = 0.0
@@ -1273,11 +1409,16 @@ func _start_skill(id: String, side: int, start_s := -1.0) -> void:
 	if not lp.is_empty():
 		# Enlace coherente: la potencia de la recepción anterior se suma (pasada de tumbling)
 		pw.rebound_vy = clampf(float(pw.rebound_vy) + float(lp.get("rebound_vy", 0.0)) * 0.35, 0.0, 3.2)
+	if strong:
+		pw.travel = float(pw.travel) * 1.3
+		pw.exit_speed = float(pw.exit_speed) * 1.3
+		pw.rebound_vy = minf(float(pw.rebound_vy) + 1.0, 3.6)
+		pw.strong = true
 	var s0 := start_s
 	if s0 < 0.0:
 		s0 = float(d.chain_start) if not lp.is_empty() else 0.0
 	skill = {"id": id, "side": side, "s": s0, "dur": float(d.dur) * (0.92 if not lp.is_empty() else 1.0),
-		"power": pw, "link": lp, "facing0": facing, "linked": false, "air": 0.0, "hold_t": 0.0}
+		"power": pw, "link": lp, "facing0": facing, "linked": false, "air": 0.0, "hold_t": 0.0, "strong": strong, "next": next}
 	skill_serial += 1
 	last_skill = {"id": id, "power": pw, "linked_from": String(lp.get("from", "")), "timing": quality}
 	_set_state(State.SKILL)
@@ -1292,8 +1433,8 @@ func _state_skill(dt: float) -> void:
 	var hold: bool = d.get("hold", false)
 	skill.s = float(skill.s) + dt / float(skill.dur)
 	if hold and skill.s >= 1.0:
-		# Pino: se mantiene mientras el joystick siga inclinado. Soltar = front walkover;
-		# SALTO = snap down (bloqueo de hombros y rebote).
+		# Pino: se mantiene mientras el joystick siga inclinado. Soltar o SALTO = bajada del pino
+		# (snap down: bloqueo de hombros y rebote).
 		skill.s = 1.0
 		skill.hold_t = float(skill.hold_t) + dt
 		if jump_buffer > 0.0:
@@ -1305,7 +1446,7 @@ func _state_skill(dt: float) -> void:
 			var held := float(skill.hold_t)
 			_finish_skill(false)
 			_emit_move("Handstand", 1.0, {"difficulty": float(d.difficulty) + minf(held, 2.0) * 0.2})
-			_start_skill("front_walkover", 1, 0.46)
+			_start_skill("pushoff", 1)
 			return
 	var smp := skill_sample()
 	var pw: Dictionary = skill.power
@@ -1374,6 +1515,14 @@ func _state_skill(dt: float) -> void:
 			if _ground_gesture(ev):
 				return
 	if skill.s >= 1.0 and not hold:
+		if String(skill.get("next", "")) != "":
+			# Entrada de potencia encadenada: sigue sola con la siguiente habilidad
+			var nx := String(skill.next)
+			var nsd := int(skill.side)
+			var nst: bool = skill.get("strong", false)
+			_finish_skill(true)
+			_start_skill(nx, nsd, -1.0, nst)
+			return
 		if d.get("cork_takeoff", false):
 			var side := int(skill.side)
 			var via := String(skill.id)
@@ -1621,7 +1770,8 @@ func _try_wall_climb() -> bool:
 	jump_buffer = 0.0
 	tricks.reset("wall", 0.0)
 	_set_state(State.WALLCLIMB)
-	_emit_move("Wall Climb", 1.0, {})
+	if palm_t <= 0.0:
+		_emit_move("Wall Climb", 1.0, {})
 	return true
 
 func _state_wallclimb(dt: float) -> void:
@@ -1636,13 +1786,16 @@ func _state_wallclimb(dt: float) -> void:
 		return
 	if jump_buffer > 0.0 or intent.flick != Vector2.ZERO:
 		jump_buffer = 0.0
-		velocity = n * 4.6 + Vector3.UP * 7.2
+		var palm := palm_t > 0.0
+		velocity = n * (3.4 if palm else 4.6) + Vector3.UP * (6.3 if palm else 7.2)
 		var wish := wish_dir()
-		if wish.dot(n) > 0.4:
+		if wish.dot(n) > 0.4 and not palm:
 			facing = n                     # gira y sale de cara
 		_enter_air("wall")
-		tricks.takeoff_detail = "wallclimb"
-		_emit_move("Wall Kick", 1.0, {})
+		tricks.takeoff_detail = "palm" if palm else "wallclimb"
+		if not palm:
+			_emit_move("Wall Kick", 1.0, {})
+		palm_t = 0.0
 		if intent.flick != Vector2.ZERO:
 			tricks.apply_flick(intent.flick)
 		return

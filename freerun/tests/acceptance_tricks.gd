@@ -86,7 +86,6 @@ func _ready() -> void:
 	await seq("Cartwheel", [["stick", Vector2(1, 0), 22], ["land"]], ["Cartwheel"])
 	await seq("Round-off", [["stick", Vector2(0.7, -0.7), 22], ["land"]], ["Round-off"])
 	await seq("Back Handspring", [["stick", Vector2(0, -1), 22], ["land"]], ["Back Handspring"])
-	await seq("Front Handspring", [["stick", Vector2(0, 1), 22], ["land"]], ["Front Handspring"])
 	await seq("360 Kick (suelo)", [["stick", Vector2(0.7, 0.7), 22], ["land"]], ["360 Kick"])
 	# COMBINACIONES (toques reales, multitáctil)
 	await seq("Round-off → Backflip", [["stick", Vector2(0.7, -0.7), 22], ["rebound"], ["jumpwheel", Vector2(0, -1)], ["land"]], ["Round-off", "@back"])

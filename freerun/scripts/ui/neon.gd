@@ -146,7 +146,7 @@ static func icon_for(kind: String, value) -> String:
 		"skill":
 			match String(value):
 				"roundoff", "cartwheel": return "wheel"
-				"hook", "crescent", "reverse_crescent": return "kick"
+				"hook": return "kick"
 				"raiz", "td_raiz": return "spin"
 				"scoot": return "run"
 				_: return "hand"
@@ -164,6 +164,6 @@ static func color_for(kind: String, value) -> Color:
 		"action": return GREEN
 		"skill":
 			match String(value):
-				"hook", "crescent", "reverse_crescent", "raiz", "td_raiz", "scoot": return GREEN
+				"hook", "raiz", "td_raiz", "scoot": return GREEN
 				_: return ORANGE
 	return BLUE
