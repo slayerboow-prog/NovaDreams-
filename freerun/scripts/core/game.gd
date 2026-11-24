@@ -54,6 +54,7 @@ func _ready() -> void:
 	add_child(ui)
 	ui.setup(self)
 	router.touch = ui.touch
+	ui.touch.context_provider = player.gesture_context   # los patrones de parkour comprueban el entorno
 	ui.trick_indicator.player = player
 
 	player.move_performed.connect(_on_move)

@@ -41,6 +41,9 @@ class TouchFrame:
 	var cork := false
 	var butterfly := false
 	var skill_hold := false
+	var pattern := {}                      # modo gestos: patrón reconocido en el joystick dorado
+	var twist_loops: Array[int] = []       # modo gestos: círculos completados en el joystick morado
+	var giro_sector := 99                  # modo gestos: línea recta en el joystick morado
 
 var grab_label := "AGARRAR"           # SOLTAR cuando está colgado
 var context_label := "RODAR"
@@ -130,23 +133,34 @@ const RING_PAGES := [
 		["VALDEZ", "skill", "valdez"], ["VOLTERETA\nAL PINO", "skill", "ber"], ["PINO", "skill", "handstand"],
 		["RONDADA", "skill", "roundoff"], ["FLIC-FLAC", "skill", "bhs"], ["ATRÁS", "flip", -2]]},
 ]
-## Modo gestos: SALTO tiene páginas; en cada una, dibujar una dirección desde SALTO hace un
-## movimiento (8 direcciones; sector: 2 ↑ · 1 ↗ · 0 → · -1 ↘ · -2 ↓ · -3 ↙ · 4 ← · 3 ↖).
-## El botón pequeño junto a SALTO cambia de página. Tocar SALTO sin dibujar = salto normal.
-## Ningún movimiento de aquí está en el joystick GIRO (rondada, flic-flac, rueda, macaco y los
-## tirabuzones son solo del GIRO).
+## Modo gestos (tres joysticks: movimiento azul, tirabuzones morado, mortales dorado).
+## Joystick dorado (SALTO): tocar = salto · línea recta = mortal básico (↑ adelante, ↓ atrás,
+## ← → lateral) · patrones dibujados = acrobacias (aerial, aerial twist, cork, cork 720, webster,
+## gainer) y parkour (vault, kong, wall run, wall flip, escalada, agarre, cat leap, precisión,
+## rodar, wall climb), ver GestureRecognizer. El botón pequeño junto a SALTO cambia de página:
+## en TRICKING y GIMNASIA las líneas rectas (8 direcciones) son habilidades de suelo.
+## Joystick morado (GIRO): cada círculo = un tirabuzón (horario derecho, antihorario izquierdo;
+## dos o tres seguidos = doble o triple; uno y otro al revés = combinado). En el suelo, una línea
+## recta = rondada (↑), flic-flac (↓) o rueda (← →).
 const SALTO_PAGES := [
-	{"name": "MORTALES", "moves": {2: ["ADELANTE", "flip"], 1: ["WEBSTER", "flip"], 3: ["AERIAL", "flip"],
-		0: ["LATERAL", "flip"], 4: ["LATERAL", "flip"], -2: ["ATRÁS", "flip"], -1: ["GAINER", "flip"], -3: ["GAINER", "flip"]}},
+	{"name": "MORTALES", "moves": {2: ["ADELANTE", "flip"], 0: ["LATERAL", "flip"], 4: ["LATERAL", "flip"], -2: ["ATRÁS", "flip"]}},
 	{"name": "TRICKING", "moves": {2: ["CRESCENT", "skill", "crescent:1"], 1: ["HOOK", "skill", "hook:1"],
 		3: ["CRESCENT INV.", "skill", "reverse_crescent:1"], 0: ["RAIZ", "skill", "raiz:1"], 4: ["RAIZ", "skill", "raiz:-1"],
-		-1: ["TD RAIZ", "skill", "td_raiz:1"], -3: ["TD RAIZ", "skill", "td_raiz:-1"]}},
+		-1: ["TD RAIZ", "skill", "td_raiz:1"], -3: ["TD RAIZ", "skill", "td_raiz:-1"], -2: ["MACACO", "skill", "macaco:1"]}},
 	{"name": "GIMNASIA", "moves": {2: ["PALOMA", "skill", "fhs:1"], 1: ["FRONT WALKOVER", "skill", "front_walkover:1"],
 		3: ["PINO", "skill", "handstand:1"], -2: ["BACK WALKOVER", "skill", "back_walkover:1"],
 		0: ["VALDEZ", "skill", "valdez:1"], 4: ["VALDEZ", "skill", "valdez:-1"], -1: ["VOLTERETA PINO", "skill", "ber:1"],
 		-3: ["VOLTERETA PINO", "skill", "ber:1"]}},
 ]
 var salto_page := 0
+var context_provider: Callable          # () -> Dictionary: qué permite el entorno (PlayerController.gesture_context)
+var _toasts := []                       # nombres de los movimientos reconocidos (encima del joystick)
+var _trails := []                       # estelas de los trazos ya soltados (se desvanecen)
+var _await_tap := {}                    # línea corta hacia arriba: si llega un toque es salto de precisión
+var _jump_hold_until := 0.0             # el salto de un toque se mantiene un instante (altura normal)
+const PRECISION_LEN := 0.6              # línea más corta que esto (radios) + toque = precisión
+const PRECISION_WAIT := 0.3             # s para el toque del salto de precisión
+signal gesture_recognized(info: Dictionary)
 
 func salto_pages_enabled() -> bool:
 	return Settings.trick_controls == 5
@@ -292,7 +306,8 @@ func _rot_center() -> Vector2:
 		# Justo a la izquierda del arco de botones (sin invadir el joystick de movimiento)
 		var off := (RING_R + RING_BTN_R * 1.06 + 112.0 * 1.08 + 14.0) * s
 		var cx := _ring_center().x + (off if Settings.left_handed else -off)
-		return Vector2(cx, size.y - 150.0 * s)
+		# Modo gestos: el joystick de tirabuzones algo más arriba que el de mortales
+		return Vector2(cx, size.y - (215.0 if salto_pages_enabled() else 150.0) * s)
 	return Vector2(_mirror(size.x - 520.0 * s), size.y - 195.0 * s)
 
 func _rot_radius() -> float:
@@ -411,7 +426,11 @@ func collect() -> TouchFrame:
 	for fd in _fingers.values():
 		match fd.role:
 			"jump":
-				if fd.get("skill_hold", false):
+				if salto_pages_enabled() and not fd.get("committed", false):
+					pass                      # aún dibujando el patrón: no cuenta como salto mantenido
+				elif fd.get("grab_hold", false):
+					f.grab_held = true       # agarre de borde: el dedo mantenido sigue agarrado
+				elif fd.get("skill_hold", false):
 					f.skill_hold = true      # PINO dibujado desde SALTO: sigue en el pino mientras mantienes
 				else:
 					f.jump_held = true
@@ -431,6 +450,8 @@ func collect() -> TouchFrame:
 				f.grab_held = true
 			"gesture":
 				f.tuck = f.tuck or fd.flicked
+	if _time < _jump_hold_until:
+		f.jump_held = true
 	f.rot = _rot_vec
 	_pending = TouchFrame.new()
 	return f
@@ -545,10 +566,21 @@ func _on_touch(e: InputEventScreenTouch) -> void:
 		elif salto_pages_enabled() and p.distance_to(salto_swap_center()) < salto_swap_radius() * 1.15:
 			role = "salto_swap"
 			salto_turn(1)
+		elif training and _train_button_at(p) >= 0:
+			role = "train_btn"
+			_train_button(_train_button_at(p))
 		elif p.distance_to(_jump_center()) < hr.jump:
 			role = "jump"
-			# En las páginas de habilidades de suelo el salto sale al soltar sin dibujar
-			if not salto_pages_enabled() or salto_page == 0 or air_mode:
+			if salto_pages_enabled():
+				# Modo gestos: se dibuja el trazo y se reconoce al soltar (tocar = salto)
+				info["path"] = [p]
+				info["moved_t"] = _time
+				if not _await_tap.is_empty() and _time - float(_await_tap.t) < PRECISION_WAIT:
+					var pr: Dictionary = GestureRecognizer._result("precision", "pattern", 1.0, {}, {})
+					_await_tap = {}
+					info["committed"] = true
+					_salto_execute(pr, info)
+			else:
 				_pending.jump_pressed = true
 				info["jumped"] = true
 			_flash["jump"] = 0.15
@@ -564,6 +596,13 @@ func _on_touch(e: InputEventScreenTouch) -> void:
 			role = "grab"
 			_pending.grab_pressed = true
 			_flash["grab"] = 0.15
+		elif salto_pages_enabled() and p.distance_to(_rot_center()) < hr.rot:
+			# Joystick morado: se dibujan círculos (cada vuelta = un tirabuzón) o una línea recta
+			role = "twist"
+			var lc := GestureRecognizer.LoopCounter.new(_rot_radius())
+			lc.feed(p)
+			info["lc"] = lc
+			info["path"] = [p]
 		elif stick_enabled() and p.distance_to(_rot_center()) < hr.rot:
 			# Joystick flotante: el origen es donde se apoya el pulgar (sin giro accidental al tocar)
 			role = "rot"
@@ -611,6 +650,13 @@ func _on_touch(e: InputEventScreenTouch) -> void:
 		elif f.role == "ringchange":
 			if not f.get("turned", false):
 				ring_turn(1)                      # tocar CAMBIAR = siguiente página
+		elif f.role == "jump" and salto_pages_enabled():
+			if not f.get("committed", false):
+				(f.path as Array).append(p)
+				_salto_execute(GestureRecognizer.recognize_salto(PackedVector2Array(f.path), _jump_radius(), _salto_opts()), f)
+			_add_trail(f.path, Neon.GOLD)
+		elif f.role == "twist":
+			_twist_release(f, p)
 		elif f.role == "jump" and not f.get("jumped", false) and not f.flicked:
 			_pending.jump_pressed = true         # tocar SALTO sin dibujar = salto
 		elif f.role == "rot":
@@ -647,10 +693,22 @@ func _on_drag(e: InputEventScreenDrag) -> void:
 			var v := d / r
 			_joy_vec = Vector2(v.x, -v.y).limit_length(1.0)
 		"jump":
-			if gestures_enabled():
+			if salto_pages_enabled():
+				var path: Array = f.path
+				if e.position.distance_to(path[path.size() - 1]) > 1.5:
+					path.append(e.position)
+					f.moved_t = _time
+			elif gestures_enabled():
 				_swipe(f, e.position)
 			elif ring_enabled():
 				_jump_swipe(f, e.position)
+		"twist":
+			(f.path as Array).append(e.position)
+			var ev: int = (f.lc as GestureRecognizer.LoopCounter).feed(e.position)
+			if ev != 0:
+				_pending.twist_loops.append(ev)
+				_flash["twist_ok"] = 0.4
+				_toast(GestureRecognizer.twist_name((f.lc as GestureRecognizer.LoopCounter).events), Neon.PURPLE, "purple")
 		"pad":
 			pass   # la cruceta solo cuenta el toque: arrastrar el dedo no lanza trucos extra
 		"rot":
@@ -750,10 +808,314 @@ func _swipe(f: Dictionary, pos: Vector2) -> void:
 		f.flicked = true
 		f.anchor = pos
 
+# ---------------------------------------------------------------- modo gestos
+
+func _salto_opts() -> Dictionary:
+	var ctx := {}
+	if context_provider.is_valid():
+		ctx = context_provider.call()
+	return {"ctx": ctx, "dirs8": salto_page != 0, "training": training}
+
+## Ejecuta lo reconocido en el joystick dorado (al soltar, o antes si el dedo se para tras una línea).
+func _salto_execute(res: Dictionary, f: Dictionary) -> void:
+	var id := String(res.get("id", ""))
+	var kind := String(res.get("kind", ""))
+	if kind == "tap":
+		_pending.jump_pressed = true
+		_jump_hold_until = _time + 0.22
+		_flash["jump"] = 0.15
+		return
+	if kind == "simple":
+		var sec := int(res.sector)
+		if salto_page != 0:
+			var mv: Array = SALTO_PAGES[salto_page].moves.get(sec, [])
+			if mv.is_empty():
+				_toast("Sin movimiento en esa dirección", Color(1, 0.45, 0.4), "gold")
+				return
+			if air_mode:
+				_toast("%s: solo en el suelo" % mv[0], Color(1, 0.45, 0.4), "gold")
+				return
+			_pending.skill = String(mv[2])
+			f["skill_hold"] = String(mv[2]).begins_with("handstand")
+			_flash["jump_sec"] = sec
+			_flash["jump_swipe"] = 0.35
+			_recognized({"id": String(mv[2]), "name": String(mv[0]), "kind": "skill"}, "gold")
+			return
+		if id == "front" and float(res.get("len", 1.0)) < PRECISION_LEN and not air_mode and not f.get("committed", false):
+			_await_tap = {"t": _time, "res": res}     # ¿toque enseguida? = salto de precisión
+			return
+		_salto_flip(res)
+		return
+	if kind in ["pattern", "parkour"]:
+		if not res.get("ok", false):
+			_toast("%s: %s" % [res.get("name", id), res.get("reason", "")], Color(1, 0.45, 0.4), "gold")
+			_train_check(res)
+			return
+		_pending.pattern = res
+		_flash["gold_ok"] = 0.4
+		_recognized(res, "gold")
+		return
+	_toast(String(res.get("reason", "")) if res.get("reason", "") != "" else "?", Color(1, 0.45, 0.4), "gold")
+
+## Mortal básico (línea recta): salta (en el suelo) y empieza el mortal en esa dirección.
+func _salto_flip(res: Dictionary) -> void:
+	var sec := int(res.sector)
+	if not air_mode:
+		_pending.jump_pressed = true
+	_emit_flick(sector_dir(sec))
+	_flash["jump_sec"] = sec
+	_flash["jump_swipe"] = 0.35
+	_flash["gold_ok"] = 0.4
+	var r := res.duplicate()
+	if sec in [0, 4]:
+		r["id"] = "side_r" if sec == 0 else "side_l"
+		r["name"] = "LATERAL " + ("DERECHO" if sec == 0 else "IZQUIERDO")
+	_recognized(r, "gold")
+
+## Joystick morado soltado: si no hubo círculos, una línea recta es un movimiento de suelo.
+func _twist_release(f: Dictionary, p: Vector2) -> void:
+	var lc: GestureRecognizer.LoopCounter = f.lc
+	(f.path as Array).append(p)
+	_add_trail(f.path, Neon.PURPLE)
+	if not lc.events.is_empty():
+		var ids := {1: "twist_r", -1: "twist_l"}
+		var tid: String = ids[lc.events[0]]
+		var mixed := false
+		for e in lc.events:
+			if e != lc.events[0]:
+				mixed = true
+		if mixed:
+			tid = "twist_combo"
+		elif lc.events.size() == 2:
+			tid = "twist_2"
+		elif lc.events.size() >= 3:
+			tid = "twist_3"
+		_train_check({"id": tid, "name": GestureRecognizer.twist_name(lc.events)})
+		gesture_recognized.emit({"id": tid, "name": GestureRecognizer.twist_name(lc.events), "joystick": "purple"})
+		return
+	var u := GestureRecognizer.to_units(PackedVector2Array(f.path), _rot_radius())
+	var ch := u[u.size() - 1] - u[0] if u.size() > 1 else Vector2.ZERO
+	var ln := GestureRecognizer.path_length(u)
+	if ch.length() < 0.45 or ch.length() < ln * 0.75:
+		return
+	var sec := 2 if absf(ch.y) >= absf(ch.x) and ch.y > 0.0 else (-2 if absf(ch.y) >= absf(ch.x) else (0 if ch.x > 0.0 else 4))
+	if air_mode:
+		_toast("En el aire: dibuja círculos", Color(1, 0.45, 0.4), "purple")
+		return
+	_pending.giro_sector = sec
+	_flash["twist_ok"] = 0.4
+	var nm := {2: "RONDADA", -2: "FLIC-FLAC", 0: "RUEDA", 4: "RUEDA"}
+	_toast(nm[sec], Neon.PURPLE, "purple")
+	gesture_recognized.emit({"id": nm[sec], "name": nm[sec], "joystick": "purple"})
+
+func _recognized(res: Dictionary, joy: String) -> void:
+	_toast(String(res.get("name", "")), Neon.GOLD if joy == "gold" else Neon.PURPLE, joy)
+	_train_check(res)
+	var info := res.duplicate()
+	info["joystick"] = joy
+	gesture_recognized.emit(info)
+
+## Nombre del movimiento encima del joystick que lo reconoció (sin tapar al atleta).
+func _toast(txt: String, col: Color, joy: String) -> void:
+	if txt == "":
+		return
+	for t in _toasts:
+		if t.joy == joy:
+			_toasts.erase(t)
+			break
+	_toasts.append({"text": txt, "col": col, "joy": joy, "t": 1.1})
+
+func _add_trail(path: Array, col: Color) -> void:
+	if path.size() >= 2:
+		_trails.append({"pts": PackedVector2Array(path), "col": col, "t": 0.45})
+		if _trails.size() > 4:
+			_trails.pop_front()
+
+## Dedo parado en el joystick dorado tras una línea recta larga: el mortal sale ya (y mantener el
+## dedo después = agruparse). J hacia arriba y dedo quieto = agarre de borde (mientras se mantiene).
+func _gesture_rest_checks() -> void:
+	for fd in _fingers.values():
+		if fd.role != "jump" or fd.get("committed", false) or not fd.has("path"):
+			continue
+		var path: Array = fd.path
+		if path.size() < 3 or fd.get("rest_checked", -1.0) == fd.moved_t:
+			continue
+		var rest: float = _time - float(fd.moved_t)
+		if rest < 0.09:
+			continue
+		var res := GestureRecognizer.recognize_salto(PackedVector2Array(path), _jump_radius(), _salto_opts())
+		if res.kind == "simple" and float(res.len) >= PRECISION_LEN:
+			fd["committed"] = true
+			fd["flicked"] = true
+			_salto_execute(res, fd)
+		elif res.get("id", "") == "ledge_grab" and res.get("ok", false):
+			if rest < 0.15:
+				continue
+			fd["committed"] = true
+			fd["grab_hold"] = true
+			_salto_execute(res, fd)
+		fd["rest_checked"] = fd.moved_t
+
+# ---------------------------------------------------------------- práctica de gestos
+
+## [id, nombre, joystick, cómo se dibuja]
+const TRAIN := [
+	["front", "MORTAL ADELANTE", "gold", "Desliza hacia arriba"],
+	["back", "MORTAL ATRÁS", "gold", "Desliza hacia abajo"],
+	["side_l", "LATERAL IZQUIERDO", "gold", "Desliza a la izquierda"],
+	["side_r", "LATERAL DERECHO", "gold", "Desliza a la derecha"],
+	["aerial", "AERIAL", "gold", "Arco lateral que sube y baja, sin cerrar"],
+	["aerial_twist", "AERIAL TWIST", "gold", "Arco lateral y un círculo pequeño al final"],
+	["cork", "CORK", "gold", "Diagonal hacia arriba y un círculo pequeño"],
+	["cork720", "CORK 720", "gold", "Diagonal hacia arriba y dos círculos pequeños"],
+	["webster", "WEBSTER", "gold", "Sube, cae por delante y retrocede un poco"],
+	["gainer", "GAINER", "gold", "Baja (hacia atrás) y da una vuelta ovalada"],
+	["twist_r", "TIRABUZÓN DERECHO", "purple", "Un círculo en sentido horario"],
+	["twist_l", "TIRABUZÓN IZQUIERDO", "purple", "Un círculo en sentido antihorario"],
+	["twist_2", "DOBLE TIRABUZÓN", "purple", "Dos círculos seguidos en el mismo sentido"],
+	["twist_3", "TRIPLE TIRABUZÓN", "purple", "Tres círculos seguidos (necesita altura)"],
+	["twist_combo", "TIRABUZÓN COMBINADO", "purple", "Un círculo horario y luego uno antihorario"],
+	["vault", "VAULT", "gold", "U invertida: sube, pasa por encima y baja (obstáculo delante)"],
+	["kong", "KONG VAULT", "gold", "Dos arcos seguidos (obstáculo con fondo y carrera)"],
+	["wall_run", "WALL RUN", "gold", "Diagonal hacia arriba que se curva adelante (pared al lado)"],
+	["wall_flip", "WALL FLIP", "gold", "Sube y vuelve en semicírculo (pared delante)"],
+	["climb", "ESCALADA", "gold", "Zigzag hacia arriba de tres tramos (pared delante)"],
+	["wall_climb", "WALL CLIMB", "gold", "Zigzag hacia arriba de dos tramos (pared delante)"],
+	["ledge_grab", "AGARRE DE BORDE", "gold", "J hacia arriba y mantén el dedo"],
+	["cat_leap", "CAT LEAP", "gold", "V y una curva pequeña hacia dentro (pared delante)"],
+	["precision", "SALTO DE PRECISIÓN", "gold", "Línea corta hacia arriba y un toque"],
+	["roll", "RODAR", "gold", "Curva hacia abajo y adelante (corriendo o en el aire)"],
+]
+var training := false
+var train_i := 0
+var train_done := {}
+var train_last := {}                     # {"ok": bool, "text": String, "t": tiempo}
+
+func toggle_training(on := not training) -> void:
+	training = on
+	train_last = {}
+	queue_redraw()
+
+func _train_check(res: Dictionary) -> void:
+	if not training:
+		return
+	var want: String = TRAIN[train_i][0]
+	var got := String(res.get("id", ""))
+	if got == "side":
+		got = "side_r" if int(res.get("side", 1)) > 0 else "side_l"
+	var ok := got == want
+	var txt := "¡Correcto! %s" % TRAIN[train_i][1] if ok else "Has hecho: %s" % String(res.get("name", got))
+	if ok and not res.get("ok", true):
+		txt += " (%s: aquí no se ejecuta)" % res.get("reason", "")
+	train_last = {"ok": ok, "text": txt, "t": _time}
+	if ok:
+		train_done[want] = true
+
+func _train_panel_rect() -> Rect2:
+	var s := _s()
+	var w := minf(620.0 * s, size.x - 40.0)
+	return Rect2(Vector2(size.x * 0.5 - w * 0.5, 64.0 * s), Vector2(w, 150.0 * s))
+
+func _train_button_center(i: int) -> Vector2:
+	var r := _train_panel_rect()
+	var s := _s()
+	match i:
+		0: return r.position + Vector2(r.size.x - 118.0 * s, r.size.y - 26.0 * s)    # anterior
+		1: return r.position + Vector2(r.size.x - 70.0 * s, r.size.y - 26.0 * s)     # siguiente
+	return r.position + Vector2(r.size.x - 22.0 * s, 22.0 * s)                         # salir
+
+func _train_button_at(p: Vector2) -> int:
+	for i in 3:
+		if p.distance_to(_train_button_center(i)) < 24.0 * _s():
+			return i
+	return -1
+
+func _train_button(i: int) -> void:
+	match i:
+		0: train_i = posmod(train_i - 1, TRAIN.size())
+		1: train_i = posmod(train_i + 1, TRAIN.size())
+		2: toggle_training(false)
+	train_last = {}
+
+func _draw_training(font: Font, s: float) -> void:
+	var r := _train_panel_rect()
+	var item: Array = TRAIN[train_i]
+	var col: Color = Neon.GOLD if item[2] == "gold" else Neon.PURPLE
+	draw_rect(r, Color(Neon.NAVY, 0.86))
+	draw_rect(r, Color(col, 0.9), false, 2.0 * s)
+	# Ejemplo del trazo (punto = inicio, flecha = final)
+	var box := Rect2(r.position + Vector2(10, 10) * s, Vector2(130, 130) * s)
+	draw_rect(box, Color(1, 1, 1, 0.06))
+	var pts := GestureRecognizer.preview_points(String(item[0]))
+	if pts.size() >= 2:
+		var c := box.get_center()
+		var k := box.size.x * 0.42
+		var poly := PackedVector2Array()
+		for q in pts:
+			poly.append(c + Vector2(q.x, -q.y) * k)
+		draw_polyline(poly, Color(col, 0.35), 9.0 * s, true)
+		draw_polyline(poly, col, 3.5 * s, true)
+		draw_circle(poly[0], 6.0 * s, Color(1, 1, 1))
+		var dv := (poly[poly.size() - 1] - poly[maxi(poly.size() - 3, 0)]).normalized()
+		Neon._chevron(self, poly[poly.size() - 1], 9.0 * s, dv, Color(1, 1, 1), 3.0 * s)
+		if item[0] == "precision":
+			draw_arc(c + Vector2(0, -0.2) * k + Vector2(0, -0.35 * k), 9.0 * s, 0, TAU, 20, Color(1, 1, 1), 2.5 * s, true)
+	var x0 := box.end.x + 14.0 * s
+	var tx := x0 + (r.end.x - x0 - 130.0 * s) * 0.5
+	_label(font, Vector2(tx, r.position.y + 20.0 * s), "PRÁCTICA DE GESTOS  %d/%d  ·  hechos %d" % [train_i + 1, TRAIN.size(), train_done.size()], 14 * s, Color(1, 1, 1, 0.8))
+	_label(font, Vector2(tx, r.position.y + 50.0 * s), String(item[1]) + ("  ✓" if train_done.has(item[0]) else ""), 26 * s, col)
+	_label(font, Vector2(tx, r.position.y + 82.0 * s), "Joystick %s: %s" % ["dorado" if item[2] == "gold" else "morado", item[3]], 14 * s, Color(1, 1, 1, 0.92))
+	if not train_last.is_empty() and _time - float(train_last.t) < 2.5:
+		_label(font, Vector2(tx, r.position.y + 112.0 * s), String(train_last.text), 15 * s, Color(0.45, 1, 0.55) if train_last.ok else Color(1, 0.5, 0.45))
+	for i in 3:
+		var bc := _train_button_center(i)
+		Neon.button(self, bc, 20.0 * s, col if i < 2 else Color(1, 0.45, 0.4), false, 0.95)
+		_label(font, bc, ["<", ">", "X"][i], 18 * s, Color(1, 1, 1))
+
+func _draw_gesture_fx(font: Font, s: float) -> void:
+	# Estela luminosa que sigue exactamente al dedo mientras dibuja
+	for fd in _fingers.values():
+		if fd.role in ["jump", "twist"] and fd.has("path") and salto_pages_enabled():
+			var path: Array = fd.path
+			if path.size() >= 2:
+				var col: Color = Neon.GOLD if fd.role == "jump" else Neon.PURPLE
+				var poly := PackedVector2Array(path)
+				draw_polyline(poly, Color(col, 0.28), 16.0 * s, true)
+				draw_polyline(poly, Color(col, 0.95), 5.0 * s, true)
+				draw_circle(poly[poly.size() - 1], 9.0 * s, Color(1, 1, 1, 0.9))
+	for tr in _trails:
+		var a: float = clampf(float(tr.t) / 0.45, 0.0, 1.0)
+		draw_polyline(tr.pts, Color(tr.col, 0.22 * a), 16.0 * s, true)
+		draw_polyline(tr.pts, Color(tr.col, 0.8 * a), 5.0 * s, true)
+	# Joystick iluminado y nombre del movimiento reconocido
+	if _flash.has("gold_ok"):
+		draw_arc(_jump_center(), _jump_radius() * 1.12, 0, TAU, 64, Color(Neon.GOLD, minf(1.0, _flash.gold_ok * 2.5)), 8.0 * s, true)
+	if _flash.has("twist_ok"):
+		draw_arc(_rot_center(), _rot_radius() * 1.1, 0, TAU, 64, Color(Neon.PURPLE, minf(1.0, _flash.twist_ok * 2.5)), 8.0 * s, true)
+	for t in _toasts:
+		var at: Vector2 = _jump_center() + Vector2(0, -_jump_radius() * 2.05) if t.joy == "gold" else _rot_center() + Vector2(0, -_rot_radius() * 1.75)
+		var a2 := clampf(float(t.t) * 2.0, 0.0, 1.0)
+		var fs := 22.0 * s if String(t.text).length() < 22 else 16.0 * s
+		_pill(font, at + Vector2(0, -(1.1 - float(t.t)) * 18.0 * s), String(t.text), fs, t.col, a2, true)
+
 func _process(dt: float) -> void:
 	if not visible:
 		return
 	_time += dt
+	if salto_pages_enabled():
+		_gesture_rest_checks()
+		if not _await_tap.is_empty() and _time - float(_await_tap.t) >= PRECISION_WAIT:
+			var res: Dictionary = _await_tap.res
+			_await_tap = {}
+			_salto_flip(res)                 # no hubo toque: era un mortal adelante
+	for t in _toasts.duplicate():
+		t.t -= dt
+		if t.t <= 0.0:
+			_toasts.erase(t)
+	for tr in _trails.duplicate():
+		tr.t -= dt
+		if tr.t <= 0.0:
+			_trails.erase(tr)
 	_hint_time += dt
 	var vs := get_viewport_rect().size
 	if size != vs:
@@ -834,6 +1196,10 @@ func _draw() -> void:
 		_draw_rot_stick(font, s, a, white, dark, accent)
 		_draw_camera_hint(font, s, a)
 		_draw_ring_hint(font, s)
+		if salto_pages_enabled():
+			_draw_gesture_fx(font, s)
+			if training:
+				_draw_training(font, s)
 		return
 	# RODAR (y, en los modos clásicos, acción contextual)
 	var ac := _action_center()
@@ -983,7 +1349,7 @@ func _draw_salto_page(font: Font, s: float, al: float, jc: Vector2, jr: float) -
 	_label(font, sc + Vector2(0, -sr - 16 * s), pg.name, 18 * s, Color(Neon.GOLD, pa))
 
 ## Accesos rápidos (botonera): columna a la izquierda si cabe sobre el joystick; si no, fila arriba.
-const QUICK := [["MOVIMIENTOS", "list", "library"], ["TUTORIAL", "star", "tutorial"], ["AJUSTES", "gear", "settings"], ["REAPARECER", "respawn", "respawn"]]
+const QUICK := [["MOVIMIENTOS", "list", "library"], ["PRÁCTICA", "hand", "training"], ["TUTORIAL", "star", "tutorial"], ["AJUSTES", "gear", "settings"], ["REAPARECER", "respawn", "respawn"]]
 signal quick_action(id: String)
 const QUICK_R := 27.0
 
@@ -992,8 +1358,8 @@ func quick_center(i: int) -> Vector2:
 	var r := QUICK_R * s
 	var joy_top := _joy_idle().y - JOY_R * s
 	var y0 := 128.0 * s
-	var step := 66.0 * s
-	if y0 + step * 3.0 + r * 1.15 < joy_top - 8.0:
+	var step := 60.0 * s
+	if y0 + step * float(QUICK.size() - 1) + r * 1.15 < joy_top - 8.0:
 		return Vector2(_mirror(56.0 * s), y0 + step * float(i))
 	return Vector2(_mirror(56.0 * s + float(i) * 80.0 * s), 130.0 * s)
 
@@ -1011,7 +1377,7 @@ func _draw_quick(font: Font, s: float, a: float) -> void:
 		var c := quick_center(i)
 		var r := QUICK_R * s
 		var hot: bool = int(_flash.get("quick", -1)) == i
-		var qcols: Array[Color] = [Neon.GOLD, Neon.CYAN, Neon.PURPLE, Neon.BLUE]
+		var qcols: Array[Color] = [Neon.GOLD, Neon.GREEN, Neon.CYAN, Neon.PURPLE, Neon.BLUE]
 		Neon.button(self, c, r, qcols[i], hot, al)
 		Neon.icon(self, QUICK[i][1], c + Vector2(0, -r * 0.18), r * 0.38, Color(1, 1, 1, al))
 		if quick_center(1).x == quick_center(0).x:
@@ -1045,6 +1411,11 @@ func _draw_ring_hint(font: Font, s: float) -> void:
 		return
 	var hc := Vector2(size.x * 0.5, size.y * 0.16)
 	var ha := clampf(1.0 - (_hint_time - 7.0) / 2.0, 0.0, 1.0)
+	if salto_pages_enabled():
+		_label(font, hc, "Dorado: línea = mortal · dibuja patrones = cork, aerial, webster, gainer, vault, kong...", 22 * s, Color(1, 1, 1, ha))
+		_label(font, hc + Vector2(0, 34 * s), "Morado: cada círculo = un tirabuzón · en el suelo, línea = rondada, flic-flac o rueda", 22 * s, Color(1, 1, 1, ha))
+		_label(font, hc + Vector2(0, 68 * s), "Todos los patrones, con dibujo de ejemplo: botón PRÁCTICA", 20 * s, Color(1, 1, 1, ha * 0.9))
+		return
 	_label(font, hc, "Dibuja una dirección desde SALTO: cada página (botón dorado junto a SALTO) tiene 8 movimientos", 22 * s, Color(1, 1, 1, ha))
 	_label(font, hc + Vector2(0, 34 * s), "GIRO en el suelo: arriba rondada · abajo flic-flac · lado rueda · semicírculo desde arriba macaco", 22 * s, Color(1, 1, 1, ha))
 	_label(font, hc + Vector2(0, 68 * s), "Mantén el dedo tras deslizar = sigue girando · en el aire, GIRO = tirabuzones", 20 * s, Color(1, 1, 1, ha * 0.9))
@@ -1087,10 +1458,10 @@ func _draw_rot_stick(font: Font, s: float, a: float, white: Color, dark: Color, 
 	var rr := _rot_radius()
 	var finger := {}
 	for f in _fingers.values():
-		if f.role == "rot":
+		if f.role == "rot" or f.role == "twist":
 			finger = f
 	var base := rc
-	if not finger.is_empty():
+	if not finger.is_empty() and finger.has("origin"):
 		base = finger.origin
 	var neon := ring_enabled()
 	var al := clampf(a + 0.35, 0.5, 1.0)
@@ -1125,14 +1496,20 @@ func _draw_rot_stick(font: Font, s: float, a: float, white: Color, dark: Color, 
 		_pill(font, base + Vector2(0, rr + 14 * s), "FLIC-FLAC", 14 * s, Neon.PURPLE, la)
 		_pill(font, base + Vector2(-rr - 30 * s, 0), "RUEDA", 13 * s, Neon.PURPLE, la)
 		_pill(font, base + Vector2(rr + 30 * s, 0), "RUEDA", 13 * s, Neon.PURPLE, la)
-		_pill(font, base + Vector2(rr * 0.78, -rr * 0.86), "MACACO arco", 11 * s, Neon.PURPLE, la)
+		if not salto_pages_enabled():
+			_pill(font, base + Vector2(rr * 0.78, -rr * 0.86), "MACACO arco", 11 * s, Neon.PURPLE, la)
 	else:
 		_label(font, base + Vector2(0, -rr * 0.82), "¼ · ½ · 1", 14 * s, Color(1, 1, 1, white.a * 0.8))
 	if not ring_enabled():
 		_label(font, base + Vector2(0, rr + 18 * s), "suelo: soltar · mantener · arco", 13 * s, Color(1, 1, 1, white.a * 0.75))
+	if salto_pages_enabled():
+		var la2 := clampf(a + 0.35, 0.5, 1.0)
+		_label(font, base + Vector2(0, -rr - (40.0 if not air_mode else 14.0) * s), "TIRABUZONES: dibuja círculos", 13 * s, Color(Neon.PURPLE.lightened(0.35), la2))
 	draw_arc(base, rr, 0, TAU, 64, Color(Neon.PURPLE, al) if neon else Color(white, white.a * 0.8), (rr * 0.05) if neon else 3.0 * s, true)
-	# Mando
+	# Mando (modo gestos: sigue al dedo dentro del joystick)
 	var knob := base + Vector2(_rot_vec.x, -_rot_vec.y) * _rot_travel()
+	if not finger.is_empty() and finger.role == "twist":
+		knob = base + (finger.pos - base).limit_length(rr * 0.6)
 	if neon:
 		Neon.button(self, knob, 50.0 * s, Neon.PURPLE, not finger.is_empty() or _flash.has("kick"), al)
 		Neon.icon(self, "spin", knob + Vector2(0, -12 * s), 15 * s, Color(1, 1, 1, al))
