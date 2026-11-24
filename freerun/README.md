@@ -19,7 +19,7 @@ Atajos: `godot --path freerun -- --mode=freerun` salta el menú (`tricking`, `wa
 **Móvil (iPhone / Android) — BOTONERA (por defecto)**: abajo a la derecha, **SALTO grande en el centro** y un **arco de 3/4 de círculo con 15 botones, uno por movimiento**:
 - RODAR, AGARRAR y VAULT (parkour);
 - MACACO, RUEDA, RONDADA, FLIC-FLAC y PALOMA (suelo, con apoyo real de manos);
-- ATRÁS, DOBLE ATRÁS, ADELANTE, DOBLE ADELANTE, LATERAL ◀ ▶ y AERIAL / MARIPOSA (mortales).
+- ATRÁS, DOBLE ATRÁS, ADELANTE, DOBLE ADELANTE, LATERAL IZQ. y DER. y AERIAL / MARIPOSA (mortales).
 
 Cómo se usan:
 - Mantener el botón de un mortal = agruparse.

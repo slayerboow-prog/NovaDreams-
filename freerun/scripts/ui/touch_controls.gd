@@ -106,7 +106,7 @@ const RING_BUTTONS := [
 	["MACACO", "skill", "macaco"], ["RUEDA", "skill", "cartwheel"], ["RONDADA", "skill", "roundoff"],
 	["FLIC-FLAC", "skill", "bhs"], ["PALOMA", "skill", "fhs"],
 	["ATRÁS", "flip", -2], ["DOBLE\nATRÁS", "flip2", -2], ["ADELANTE", "flip", 2], ["DOBLE\nADELANTE", "flip2", 2],
-	["LATERAL\n◀", "flip", 4], ["LATERAL\n▶", "flip", 0], ["AERIAL /\nMARIPOSA", "flip", 3],
+	["LATERAL\nIZQ.", "flip", 4], ["LATERAL\nDER.", "flip", 0], ["AERIAL /\nMARIPOSA", "flip", 3],
 ]
 const RING_JUMP_R := 86.0
 const RING_R := 212.0

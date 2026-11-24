@@ -117,6 +117,7 @@ func _run_all() -> void:
 	await t_flow()
 	await t_camera()
 	await t_spanish_names()
+	await t_glyphs()
 	await t_respawn_repeat()
 	await t_modes()
 
@@ -1470,7 +1471,7 @@ func t_ring_buttons() -> void:
 				return i
 		return -1
 	game.router.scripted = Callable()            # entrada real: el táctil
-	for c in [["ATRÁS", "Backflip"], ["ADELANTE", "Frontflip"], ["DOBLE ATRÁS", "Double Backflip"], ["LATERAL ▶", "Sideflip"],
+	for c in [["ATRÁS", "Backflip"], ["ADELANTE", "Frontflip"], ["DOBLE ATRÁS", "Double Backflip"], ["LATERAL DER.", "Sideflip"],
 			["RONDADA", "Round-off"], ["FLIC-FLAC", "Back Handspring"], ["RUEDA", "Cartwheel"], ["PALOMA", "Front Handspring"], ["MACACO", "Macaco"]]:
 		var bi: int = find.call(c[0])
 		player.set_spawn(Transform3D(Basis(), Vector3(-35, 0.1, 35)), Vector3.FORWARD)
@@ -1517,3 +1518,24 @@ func t_ring_buttons() -> void:
 	game.router.scripted = _drive
 	Settings.trick_controls = old_mode
 	Settings.force_touch_ui = false
+
+## La fuente del juego (la misma en el navegador del iPhone) debe tener todos los caracteres
+## que se dibujan: botones, tutorial y biblioteca (sin cuadrados en lugar de flechas).
+func t_glyphs() -> void:
+	var font := ThemeDB.fallback_font
+	var texts: Array[String] = []
+	for b in TouchControls.RING_BUTTONS:
+		texts.append(String(b[0]))
+	for st in GameUI.TUTORIAL:
+		texts.append(MoveNames.safe(String(st[0])))
+	var lib := MoveNames.safe(MoveLibrary.bbcode())
+	var rx := RegEx.new()
+	rx.compile("\\\\[[^\\\\]]*\\\\]")
+	texts.append(rx.sub(lib, "", true))
+	var missing := {}
+	for t in texts:
+		for i in t.length():
+			var c := t.unicode_at(i)
+			if c > 32 and c != 10 and not font.has_char(c):
+				missing[String.chr(c)] = true
+	check("Textos: la fuente tiene todos los caracteres (sin cuadrados en el móvil)", missing.is_empty(), str(missing.keys()))

@@ -221,7 +221,7 @@ static func bbcode() -> String:
 			var col: String = {"ok": "#5fe08a", "parcial": "#f2c14e", "pendiente": "#999999"}[m.status]
 			var es_name := MoveNames.es_text(m.name)
 			var orig := ("  [color=#777777](%s)[/color]" % m.name) if es_name != m.name else ""
-			var line := "[color=%s]●[/color] [b]%s[/b]%s  [color=#888888]nivel %d · %d/5 %s[/color]" % [col, es_name, orig, m.lvl, validation(m), LEVELS[validation(m)]]
+			var line := "[color=%s]•[/color] [b]%s[/b]%s  [color=#888888]nivel %d · %d/5 %s[/color]" % [col, es_name, orig, m.lvl, validation(m), LEVELS[validation(m)]]
 			if m.status != "pendiente":
 				line += "\n     " + MoveNames.es_phrase(m.input)
 			elif m.has("note"):

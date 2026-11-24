@@ -99,6 +99,17 @@ static func es(name: String) -> String:
 		return es(name.trim_suffix(" +¼")) + " y ¼ de giro"
 	return ES.get(name, name)
 
+## La fuente del juego (también en el navegador del móvil) no tiene flechas: se escriben con
+## palabras para que no salgan cuadrados. " → " entre movimientos pasa a " › ".
+const ARROWS := [[" → ", " › "], ["← →", "izq./der."], ["←→", "izq./der."], ["↙ ↘", "abajo-izq./abajo-der."],
+	["↖ ↗", "arriba-izq./arriba-der."], ["↙", "abajo-izq."], ["↘", "abajo-der."], ["↖", "arriba-izq."],
+	["↗", "arriba-der."], ["↑", "arriba"], ["↓", "abajo"], ["←", "izq."], ["→", "der."], ["◀", "izq."], ["▶", "der."]]
+
+static func safe(text: String) -> String:
+	for a in ARROWS:
+		text = text.replace(a[0], a[1])
+	return text
+
 ## Sustituye nombres sueltos dentro de una frase (instrucciones de la biblioteca).
 const WORDS := [["Back Full", "mortal atrás con tirabuzón"], ["Front Full", "mortal adelante con tirabuzón"],
 	["Dash Vault", "dash"], ["360 Kick", "patada 360"], ["Backflip", "mortal atrás"],
