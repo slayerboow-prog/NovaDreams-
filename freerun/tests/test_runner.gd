@@ -91,6 +91,7 @@ func _run_all() -> void:
 	await t_backflip()
 	await t_frontflip_cork()
 	await t_tuck_grab()
+	await t_twist_wrap()
 	await t_ground_flick_buffer()
 	await t_overrotation_crash()
 	await t_speed_vault()
@@ -1648,3 +1649,21 @@ func t_tuck_grab() -> void:
 			func(): return _f > 16 and player.state == PlayerController.State.GROUND)
 		check("Agrupado real en %s: las manos agarran las espinillas (%d fotogramas)" % [c[0], r.frames],
 			c[0] in moves and r.frames >= 6, "%s mejor %.3f" % [moves, r.best])
+
+## Tirabuzón real: mientras gira, los brazos se cruzan pegados al pecho.
+func t_twist_wrap() -> void:
+	var rig: BodyRig = game.rig
+	await place(Vector3(-35, 0.1, 35), Vector3.FORWARD)
+	var r := {"frames": 0, "best": 9.0}
+	await run(func(i, f):
+		i.stick_twist = true
+		i.jump_pressed = f == 0; i.flick = Vector2(0, -1) if f == 0 else Vector2.ZERO
+		i.tuck = f < 12; i.jump_held = i.tuck
+		i.twist = 1.0 if f >= 10 and f < 36 else 0.0
+		if player.state == PlayerController.State.AIR and rig.wrap_w > 0.95:
+			var d := maxf(rig.limb_end("hl").distance_to(rig.chest_grip("l")), rig.limb_end("hr").distance_to(rig.chest_grip("r")))
+			r.best = minf(r.best, d)
+			if d < 0.05: r.frames += 1, 160,
+		func(): return _f > 16 and player.state == PlayerController.State.GROUND)
+	check("Tirabuzón (Piru): brazos cruzados pegados al pecho mientras gira (%d fotogramas)" % r.frames,
+		"Piru" in moves and r.frames >= 6, "%s mejor %.3f" % [moves, r.best])

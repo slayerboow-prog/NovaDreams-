@@ -22,6 +22,7 @@ var _yaw := 0.0
 var _serial := -1
 var _prev_spd := 0.0
 var grab_w := 0.0                 # agrupado: cuánto se agarran las manos a las espinillas (IK)
+var wrap_w := 0.0                 # tirabuzón: brazos cruzados pegados al pecho (IK)
 const GRAB_KINDS := ["back", "front", "side", "gainer"]
 var _accel := 0.0                 # aceleración suavizada (inclinación al arrancar/frenar)
 # Apoyos (IK): punto del suelo donde está plantada cada mano/pie y peso del apoyo
@@ -207,6 +208,7 @@ func _process(dt: float) -> void:
 	var st := player.state
 	var spd := player.speed()
 	grab_w = 0.0
+	wrap_w = 0.0
 	if dt > 0.0:
 		_accel = lerpf(_accel, (spd - _prev_spd) / dt, 1.0 - exp(-8.0 * dt))
 	_prev_spd = spd
@@ -377,10 +379,25 @@ func _process(dt: float) -> void:
 		_solve_contacts(smp.get("contacts", ground_contacts), dt)
 	if st == PlayerController.State.AIR and grab_w > 0.01:
 		_grab_shins(grab_w)
+	if st == PlayerController.State.AIR and wrap_w > 0.01:
+		_wrap_chest(wrap_w)
 
 ## Punto de agarre en la espinilla (delante del hueso, algo por debajo de la rodilla).
 func shin_grip(side: String) -> Vector3:
 	return (joints["knee_" + side] as Node3D).global_transform * Vector3(0.0, -0.25, -0.095)
+
+## Puntos de las manos con los brazos cruzados: la izquierda al pecho derecho y la derecha al
+## izquierdo (una algo más alta que la otra).
+func chest_grip(side: String) -> Vector3:
+	var spine: Node3D = joints.spine
+	return spine.global_transform * (Vector3(0.07, 0.37, -0.175) if side == "l" else Vector3(-0.07, 0.3, -0.18))
+
+func _wrap_chest(w: float) -> void:
+	var spine: Node3D = joints.spine
+	for sd in ["l", "r"]:
+		var sign := -1.0 if sd == "l" else 1.0
+		var pole := (spine.global_basis.x * sign * 0.6 - spine.global_basis.y * 0.8).normalized()   # codos abajo y fuera
+		_ik(joints["shoulder_" + sd], joints["elbow_" + sd], chest_grip(sd), ARM_L1, ARM_L2, pole, 1.0, w)
 
 ## Las manos rodean y agarran las espinillas (IK de brazo); los codos se abren hacia fuera.
 func _grab_shins(w: float) -> void:
@@ -785,9 +802,9 @@ func _gather_pose(kind: String, rs: float, ph: float) -> Dictionary:
 				"elbow_l": Vector3(2.35, 0, 0), "elbow_r": Vector3(2.35, 0, 0)}
 		"twist":
 			# Mortal con tirabuzón añadido: cuerpo más largo, brazos cerrados para girar rápido
-			return {"spine": Vector3(-0.2, 0, 0), "neck": Vector3(0.1, 0, 0),
-				"hip_l": Vector3(1.15, 0, 0.06), "hip_r": Vector3(1.2, 0, -0.06),
-				"knee_l": Vector3(-1.35, 0, 0), "knee_r": Vector3(-1.4, 0, 0),
+			return {"spine": Vector3(-0.15, 0, 0), "neck": Vector3(0.1, 0, 0),
+				"hip_l": Vector3(1.0, 0, 0.03), "hip_r": Vector3(1.02, 0, -0.03),
+				"knee_l": Vector3(-1.1, 0, 0), "knee_r": Vector3(-1.12, 0, 0),
 				"shoulder_l": Vector3(0.55, 0, 0.6), "shoulder_r": Vector3(0.55, 0, -0.6),
 				"elbow_l": Vector3(2.35, 0, 0), "elbow_r": Vector3(2.35, 0, 0)}
 		"kick":
@@ -918,6 +935,11 @@ func _trick_pose(p: Dictionary, tr: TrickSystem) -> void:
 	# Agrupado de verdad: las manos agarran las espinillas mientras el cuerpo está cerrado
 	if kind in GRAB_KINDS:
 		grab_w = clampf(gather * (1.0 - open) * (1.0 - imp) * (1.0 - rec), 0.0, 1.0)
+	elif kind in ["twist", "cork"] and tr.dir.get("twist", 0) != 0:
+		# Mientras gira el tirabuzón los brazos se cierran cruzados sobre el pecho (gira más rápido);
+		# se abren al terminar el giro para aterrizar
+		var twisting := 0.0 if tr.settled.get("twist", true) else 1.0
+		wrap_w = clampf(gather * (1.0 - imp) * (1.0 - rec) * maxf(twisting, 1.0 - open), 0.0, 1.0)
 	last_kind = kind
 	if imp > 0.5:
 		last_phase = "impulso"
