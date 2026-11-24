@@ -110,6 +110,7 @@ func _run_all() -> void:
 	await t_wheel_no_twist()
 	await t_touch_layout()
 	await t_ring_buttons()
+	await t_salto_giro_sticks()
 	await t_landing_feel()
 	await t_new_tricks()
 	await t_gestures()
@@ -1804,6 +1805,62 @@ func t_cork_piru() -> void:
 	var order_ok := moves.size() >= 3 and moves[0] == "Cork" and moves[1] == "ST" and moves[2] == "Cork"
 	check("ST: cae a un pie y enlaza otro cork (Cork › ST › Cork)", order_ok and landings.all(func(l): return l.quality in ["perfect", "clean"]),
 		"%s %s" % [moves, landings.map(func(l): return l.quality)])
+
+## Botonera: SALTO es un joystick de mortales básicos (deslizar ↑ adelante · ← → lateral ·
+## ↓ atrás) y el joystick GIRO en el suelo hace ↑ rondada · ↓ flic-flac · ← → rueda ·
+## semicírculo desde abajo = scoot · desde arriba = macaco.
+func t_salto_giro_sticks() -> void:
+	var touch: TouchControls = game.ui.touch
+	var old_mode := Settings.trick_controls
+	Settings.trick_controls = 5
+	Settings.force_touch_ui = true
+	touch.visible = true
+	touch.size = Vector2(1542, 720)
+	check("Modo gestos: sin rueda de botones de movimientos (todo con SALTO y GIRO)", touch.ring_buttons().is_empty(), str(touch.ring_buttons().size()))
+	game.router.scripted = Callable()            # entrada real: el táctil
+	var no_twist := {"max": 0.0}
+	for c in [[Vector2(0, -1), "Frontflip"], [Vector2(0.71, -0.71), "Aerial"], [Vector2(-1, 0), "Sideflip"], [Vector2(1, 0), "Sideflip"],
+			[Vector2(0, 1), "Backflip"], [Vector2(0.71, 0.71), "Gainer"], [Vector2(-0.71, 0.71), "Gainer"]]:
+		await place(Vector3(-35, 0.1, 35), Vector3.FORWARD)
+		moves.clear(); landings.clear()
+		touch.air_mode = false
+		var jc := touch._jump_center()
+		var e := InputEventScreenTouch.new(); e.index = 7; e.position = jc; e.pressed = true
+		touch._on_touch(e)
+		var dr := InputEventScreenDrag.new(); dr.index = 7; dr.position = jc + (c[0] as Vector2) * 90.0
+		dr.relative = (c[0] as Vector2) * 90.0
+		touch._on_drag(dr)
+		var released := false
+		for k in 200:
+			await get_tree().physics_frame
+			var tp: float = maxf(absf(player.tricks.total_pitch), absf(player.tricks.total_roll))
+			no_twist.max = maxf(no_twist.max, absf(float(player.tricks.total.twist)))
+			if not released and (k > 40 or tp > TAU - deg_to_rad(110)):
+				e.pressed = false; e.position = dr.position
+				touch._on_touch(e)
+				released = true
+			if k > 30 and player.state == PlayerController.State.GROUND and not moves.is_empty():
+				break
+		if not released:
+			e.pressed = false; touch._on_touch(e)
+		check("SALTO deslizando %s = %s" % [str(c[0]), c[1]], c[1] in moves and landings.size() > 0 and landings[-1].quality in ["perfect", "clean"],
+			"%s %s" % [moves, landings.map(func(l): return l.quality)])
+	check("SALTO nunca añade tirabuzones (giro máximo %.2f rad)" % no_twist.max, no_twist.max < 0.05, "")
+	game.router.scripted = _drive
+	# Joystick GIRO en el suelo
+	for g in [["arriba", [Vector2(0, 1)], "Round-off"], ["abajo", [Vector2(0, -1)], "Back Handspring"], ["lado", [Vector2(1, 0)], "Cartwheel"],
+			["semicírculo desde abajo", [Vector2(0, -1), Vector2(0.7, -0.7), Vector2(1, 0), Vector2(0.7, 0.7), Vector2(0, 1)], "Scoot"],
+			["semicírculo desde arriba", [Vector2(0, 1), Vector2(0.7, 0.7), Vector2(1, 0), Vector2(0.7, -0.7), Vector2(0, -1)], "Macaco"]]:
+		await place(Vector3(-35, 0.1, 35), Vector3.FORWARD)
+		moves.clear()
+		var path: Array = g[1]
+		await run(func(i, f):
+			i.stick_twist = true
+			var idx: int = int(f) / 3
+			i.rot = path[idx] if idx < path.size() else Vector2.ZERO, 160,
+			func(): return _f > 20 and g[2] in moves)
+		check("GIRO %s = %s" % [g[0], g[2]], g[2] in moves, str(moves))
+	Settings.trick_controls = old_mode
 
 ## Como en el vídeo de referencia: una caída grande se recibe a cuatro apoyos (manos al suelo)
 ## y, tras recibir, los brazos se abren a los lados para equilibrarse.

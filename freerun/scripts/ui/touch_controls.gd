@@ -86,19 +86,24 @@ func _mirror(x: float) -> float:
 	return x if not Settings.left_handed else size.x - x
 
 ## trick_controls: 0 doble joystick · 1 solo gestos · 2 solo cruceta · 3 gestos + cruceta · 4 botonera
+## · 5 gestos con dos joysticks: SALTO (mortales por ángulo) y GIRO (suelo / tirabuzones), sin rueda de botones
 func gestures_enabled() -> bool:
-	return Settings.trick_controls != 2 and Settings.trick_controls != 4
+	return Settings.trick_controls not in [2, 4, 5]
 
 func pad_enabled() -> bool:
 	return Settings.trick_controls in [2, 3]
 
 ## Joystick GIRO presente (doble joystick y botonera): los tirabuzones son solo suyos.
 func stick_enabled() -> bool:
-	return Settings.trick_controls == 0 or Settings.trick_controls == 4
+	return Settings.trick_controls in [0, 4, 5]
 
 ## Botonera: SALTO grande abajo a la derecha y un arco de 3/4 de círculo con un botón por
 ## movimiento (mortales, movimientos de suelo y de parkour).
 func ring_enabled() -> bool:
+	return Settings.trick_controls in [4, 5]
+
+## Botones de movimientos alrededor de SALTO (solo en la botonera; en el modo gestos no hay).
+func ring_moves() -> bool:
 	return Settings.trick_controls == 4
 
 ## [rótulo, tipo, valor]. Tipos: flip (sector de la acrobacia), cork, kick (patada 360),
@@ -129,6 +134,8 @@ var ring_page := 0
 var _ring_anim := 0.0                 # giro animado de la rueda al cambiar de página (-1..1 → 0)
 
 func ring_buttons() -> Array:
+	if not ring_moves():
+		return []
 	var out: Array = RING_PAGES[ring_page].buttons.duplicate()
 	out.append(RING_CHANGE)
 	return out
@@ -596,6 +603,8 @@ func _on_drag(e: InputEventScreenDrag) -> void:
 		"jump":
 			if gestures_enabled():
 				_swipe(f, e.position)
+			elif ring_enabled():
+				_jump_swipe(f, e.position)
 		"pad":
 			pass   # la cruceta solo cuenta el toque: arrastrar el dedo no lanza trucos extra
 		"rot":
@@ -655,6 +664,21 @@ func _rot_drag(f: Dictionary, pos: Vector2) -> void:
 			f.cand = 99
 			_pending.rot_flick = sector_dir(sec)
 
+## Botonera: SALTO es también un joystick de mortales básicos. Deslizar el dedo desde SALTO:
+## adelante (arriba) = mortal adelante · a un lado = mortal lateral · atrás (abajo) = mortal atrás.
+## Un solo mortal por toque; mantener el dedo después = agruparse y seguir girando.
+func _jump_swipe(f: Dictionary, pos: Vector2) -> void:
+	if f.flicked:
+		return
+	var disp: Vector2 = pos - f.anchor
+	if disp.length() > _flick_px() * 0.8:
+		var sec := sector_of(Vector2(disp.x, -disp.y))
+		_emit_flick(sector_dir(sec))
+		f.sector = sec
+		f.flicked = true
+		_flash["jump_sec"] = sec
+		_flash["jump_swipe"] = 0.35
+
 ## Deslizamiento con el dedo apoyado: primer gesto = acrobacia; gestos siguientes = añadidos.
 func _swipe(f: Dictionary, pos: Vector2) -> void:
 	var disp: Vector2 = pos - f.anchor
@@ -682,7 +706,7 @@ func _process(dt: float) -> void:
 		if _flash["quick_t"] <= 0.0:
 			_flash.erase("quick_t"); _flash.erase("quick")
 	for k in _flash.keys():
-		if k == "sector" or k == "wheel_sec" or k == "ring_i" or k == "quick" or k == "quick_t":
+		if k in ["sector", "wheel_sec", "ring_i", "quick", "quick_t", "jump_sec"]:
 			continue
 		_flash[k] -= dt
 		if _flash[k] <= 0.0:
@@ -691,6 +715,8 @@ func _process(dt: float) -> void:
 		_flash.erase("sector")
 	if not _flash.has("wheel"):
 		_flash.erase("wheel_sec")
+	if not _flash.has("jump_swipe"):
+		_flash.erase("jump_sec")
 	if not _flash.has("ring"):
 		_flash.erase("ring_i")
 	_ring_anim = move_toward(_ring_anim, 0.0, dt * 5.0)
@@ -853,7 +879,17 @@ func _draw_ring(font: Font, s: float, a: float, white: Color, dark: Color, accen
 	Neon.icon(self, "crown", jc + Vector2(0, -jr * 1.12), jr * 0.26, Color(Neon.GOLD, al))
 	Neon.icon(self, "jump", jc + Vector2(0, -jr * 0.22), jr * 0.32, Color(1, 1, 1, al))
 	_label(font, jc + Vector2(0, jr * 0.36), "SALTO", 30 * s, Color(1, 1, 1, al))
+	# Deslizar desde SALTO: ↑ mortal adelante · ← → lateral · ↓ atrás (marcas en el borde)
+	var js: int = int(_flash.get("jump_sec", 99))
+	for d in [[2, Vector2.UP], [0, Vector2.RIGHT], [4, Vector2.LEFT], [-2, Vector2.DOWN],
+			[1, Vector2(0.71, -0.71)], [3, Vector2(-0.71, -0.71)], [-1, Vector2(0.71, 0.71)], [-3, Vector2(-0.71, 0.71)]]:
+		var hot2: bool = js == int(d[0])
+		var dv: Vector2 = d[1]
+		Neon._chevron(self, jc + dv * jr * 0.8, jr * (0.11 if hot2 else 0.08), dv,
+			Color(Neon.GOLD, al) if hot2 else Color(1, 1, 1, 0.55 * al), jr * (0.05 if hot2 else 0.035))
 	# Página actual de la rueda (más visible justo después de cambiar)
+	if btns.is_empty():
+		return
 	var pa := minf(1.0, 0.55 + float(_flash.get("page", 0.0)))
 	var top := ring_button_center(int(btns.size() / 2))
 	_label(font, top + Vector2(0, -br - 20 * s), "%s  %d/%d" % [RING_PAGES[ring_page].name, ring_page + 1, RING_PAGES.size()], 20 * s, Color(Neon.GOLD, pa))
@@ -921,8 +957,9 @@ func _draw_ring_hint(font: Font, s: float) -> void:
 		return
 	var hc := Vector2(size.x * 0.5, size.y * 0.16)
 	var ha := clampf(1.0 - (_hint_time - 7.0) / 2.0, 0.0, 1.0)
-	_label(font, hc, "Cada botón del arco es un movimiento. Mantén el botón del mortal = sigue girando (doble, triple...)", 22 * s, Color(1, 1, 1, ha))
-	_label(font, hc + Vector2(0, 34 * s), "CAMBIAR (tocar o deslizar arriba/abajo) gira la rueda: MORTALES · SUELO · TRICKING · GIMNASIA", 22 * s, Color(1, 1, 1, ha))
+	_label(font, hc, "SALTO es un joystick: arriba adelante · diagonal arriba aerial · lado lateral · abajo atrás · diagonal abajo gainer", 22 * s, Color(1, 1, 1, ha))
+	_label(font, hc + Vector2(0, 34 * s), "GIRO en el suelo: arriba rondada · abajo flic-flac · lado rueda · semicírculo desde abajo scoot, desde arriba macaco", 22 * s, Color(1, 1, 1, ha))
+	_label(font, hc + Vector2(0, 68 * s), "Mantén el dedo tras deslizar = sigue girando · en el aire, GIRO = tirabuzones", 20 * s, Color(1, 1, 1, ha * 0.9))
 
 ## Rueda SALTO / MORTALES: centro SALTO y 4 zonas (ADELANTE, ATRÁS, LATERAL ← →).
 func _draw_wheel(font: Font, s: float, a: float, white: Color, dark: Color, accent: Color) -> void:
@@ -992,7 +1029,15 @@ func _draw_rot_stick(font: Font, s: float, a: float, white: Color, dark: Color, 
 			Neon._curved_arrow(self, base, rr * 0.84, deg_to_rad(-35.0 if side == 1 else 215.0), deg_to_rad(35.0 if side == 1 else 145.0), Color(1, 1, 1, 0.85 * al), maxf(2.0, rr * 0.035))
 		else:
 			_label(font, base + Vector2(side * rr * 0.84, 0), "GIRO", 15 * s, white)
-	_label(font, base + Vector2(0, -rr * 0.82), "¼ · ½ · 1", 14 * s, Color(1, 1, 1, white.a * 0.8))
+	if ring_enabled() and not air_mode:
+		# En el suelo el GIRO hace movimientos: ↑ rondada · ↓ flic-flac · ← → rueda ·
+		# semicírculo desde abajo = scoot, desde arriba = macaco
+		var lc := Color(1, 1, 1, white.a * 0.85)
+		_label(font, base + Vector2(0, -rr - 12 * s), "RONDADA", 13 * s, lc)
+		_label(font, base + Vector2(0, rr + 12 * s), "FLIC-FLAC", 13 * s, lc)
+		_label(font, base + Vector2(0, -rr * 0.82), "RUEDA a los lados", 11 * s, Color(1, 1, 1, white.a * 0.7))
+	else:
+		_label(font, base + Vector2(0, -rr * 0.82), "¼ · ½ · 1", 14 * s, Color(1, 1, 1, white.a * 0.8))
 	if not ring_enabled():
 		_label(font, base + Vector2(0, rr + 18 * s), "suelo: soltar · mantener · arco", 13 * s, Color(1, 1, 1, white.a * 0.75))
 	draw_arc(base, rr, 0, TAU, 64, Color(Neon.PURPLE, al) if neon else Color(white, white.a * 0.8), (rr * 0.05) if neon else 3.0 * s, true)

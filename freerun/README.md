@@ -17,6 +17,9 @@ Atajos: `godot --path freerun -- --mode=freerun` salta el menú (`tricking`, `wa
 ## Controles
 
 **Móvil (iPhone / Android) — BOTONERA (por defecto)**: abajo a la derecha, **SALTO grande en el centro** y un **arco de 3/4 de círculo con 8 botones grandes por página y CAMBIAR**, que se puede girar. VAULT, AGARRAR y RODAR van en una fila abajo, entre el joystick de movimiento y el joystick GIRO (no tapan al atleta). Páginas:
+- **Modo por defecto: Gestos (SALTO + GIRO)**. No hay rueda de botones de movimientos: todo se hace con dos joysticks sin repetir movimientos entre ellos, para jugar mirando al personaje.
+- **SALTO es un joystick de mortales (nunca tirabuzones)**: tocar = salto; deslizar el dedo desde SALTO según el ángulo: **arriba = mortal adelante** (webster con carrera), **diagonal arriba = aerial** hacia ese lado (butterfly con carrera), **a un lado = mortal lateral**, **abajo = mortal atrás**, **diagonal abajo = gainer** (mortal atrás avanzando). Mantener el dedo después = agruparse y seguir girando (doble, triple...).
+- **Joystick GIRO en el suelo**: **arriba = rondada**, **abajo = flic-flac**, **a un lado = rueda lateral**, **semicírculo empezando abajo** (abajo → lado → arriba) **= scoot**, **empezando arriba = macaco**. En el aire sigue siendo el tirabuzón.
 - **1 · MORTALES**: atrás, adelante, lateral izq. y der., cork, aerial/mariposa, patada 360 (sin botón de piru: los tirabuzones van con el joystick GIRO).
 - **2 · SUELO**: rondada, flic-flac, rueda, paloma, macaco, pino (se sostiene mientras mantienes el botón), atrás, cork.
 - **3 · TRICKING**: hook, crescent, crescent inversa, raiz, TD raiz, scoot, mariposa, cork.

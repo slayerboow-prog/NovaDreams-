@@ -44,19 +44,21 @@ var theme_res: Theme
 const TUTORIAL := [
 	["Corre: inclina el joystick izquierdo (a fondo = sprint)", ["@run"]],
 	["Mueve la cámara: arrastra en una zona libre (doble toque = detrás del atleta)", ["@camera"]],
-	["Pulsa SALTO", ["@air"]],
-	["Botón ATRÁS = Mortal atrás (mantén el botón = agrupado)", ["Backflip", "Gainer"]],
-	["Botón ADELANTE = Mortal adelante", ["Frontflip", "Webster"]],
-	["Botón LATERAL corriendo = Mortal lateral (se pone de lado y avanza girando)", ["Sideflip"]],
-	["Mantén ATRÁS pulsado: sigue girando = Doble mortal atrás", ["Double Backflip", "Double Gainer"]],
+	["Toca SALTO", ["@air"]],
+	["Desliza desde SALTO hacia abajo = Mortal atrás (mantén el dedo = agrupado)", ["Backflip", "Gainer"]],
+	["Desliza desde SALTO hacia arriba = Mortal adelante", ["Frontflip", "Webster"]],
+	["Desliza desde SALTO a un lado = Mortal lateral", ["Sideflip"]],
+	["Desliza desde SALTO en diagonal hacia abajo = Gainer (mortal atrás avanzando)", ["Gainer"]],
+	["Desliza desde SALTO en diagonal hacia arriba = Aerial (con carrera, Butterfly)", ["Aerial", "Butterfly Kick"]],
+	["Desliza hacia abajo y mantén el dedo: sigue girando = Doble mortal atrás", ["Double Backflip", "Double Gainer"]],
 	["En un mortal, joystick GIRO a un lado: suéltalo en ¼ (híper), ½ o 1 giro", ["@twist"]],
-	["Botón ATRÁS y GIRO una vuelta = Piru (mortal atrás con tirabuzón)", ["Piru", "Piru 540", "Piru 720"]],
-	["Botón CORK = Sacacorchos (también en el aire, saltando desde una altura)", ["Cork", "Cork 540", "Cork 720"]],
-	["Botón RUEDA = Rueda con apoyo de manos", ["Cartwheel"]],
-	["Botón FLIC-FLAC = Flic-flac: apoyo de manos", ["Back Handspring"]],
-	["Botón RONDADA y, al recibir (¡ENLAZA!), botón ATRÁS = Mortal atrás con rebote", ["@roundoff_back"]],
-	["MANTÉN GIRO ↑ = Pino; suéltalo = Front Walkover", ["Front Walkover", "Handstand"]],
-	["Gira el joystick GIRO en arco por abajo = Hook Kick", ["Hook Kick"]],
+	["Mortal atrás + una vuelta de GIRO = Piru", ["Piru", "Piru 540", "Piru 720", "Cork", "Cork 540", "Cork 720"]],
+	["En el suelo, GIRO a un lado = Rueda con apoyo de manos", ["Cartwheel"]],
+	["En el suelo, GIRO hacia abajo = Flic-flac", ["Back Handspring"]],
+	["GIRO hacia arriba = Rondada y, al recibir (¡ENLAZA!), desliza SALTO abajo", ["@roundoff_back"]],
+	["GIRO en semicírculo empezando abajo = Scoot", ["Scoot"]],
+	["GIRO en semicírculo empezando arriba = Macaco", ["Macaco"]],
+	["MANTÉN GIRO arriba = Pino; suéltalo = Front Walkover", ["Front Walkover", "Handstand"]],
 	["Corre hacia un obstáculo y pulsa VAULT", ["@vault"]],
 	["Salta hacia un borde alto y pulsa AGARRAR", ["Ledge Grab", "Cat Leap", "Mantle"]],
 	["Pulsa RODAR justo antes de caer desde alto (o corriendo)", ["Safety Roll", "Roll"]],
@@ -533,7 +535,7 @@ func _build_settings() -> void:
 	var box: VBoxContainer = r[1]
 	box.add_child(_label("AJUSTES", 40, ACCENT, HORIZONTAL_ALIGNMENT_CENTER))
 	_option(box, "Ayuda de rotación", "rotation_assist", ["Pro (sin ayudas)", "Media", "Alta"])
-	_option(box, "Controles de trucos", "trick_controls", ["Doble joystick (rueda)", "Solo gestos", "Solo cruceta", "Gestos + cruceta", "Botonera (por defecto)"])
+	_option(box, "Controles de trucos", "trick_controls", ["Doble joystick (rueda)", "Solo gestos", "Solo cruceta", "Gestos + cruceta", "Botonera de botones", "Gestos: SALTO + GIRO (por defecto)"])
 	_option(box, "Gráficos", "graphics_preset", ["Bajo", "Medio", "Alto"])
 	_slider(box, "Sensibilidad cámara", "camera_sensitivity", 0.3, 2.5, 0.05)
 	_slider(box, "Sensibilidad joystick/gestos", "gesture_sensitivity", 0.4, 2.0, 0.05)

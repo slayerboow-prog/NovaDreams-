@@ -19,8 +19,8 @@ var force_touch_ui := false       # mostrar controles táctiles en escritorio
 var invert_camera_y := false
 ## Acrobacias: 0 doble joystick (rueda) · 1 solo gestos · 2 solo cruceta · 3 gestos + cruceta
 ## · 4 BOTONERA (SALTO grande + arco de botones, uno por movimiento) — por defecto
-var trick_controls := 4
-var controls_version := 2         # sube cuando cambia el esquema por defecto
+var trick_controls := 5
+var controls_version := 3         # sube cuando cambia el esquema por defecto
 
 # Jugabilidad
 ## 0 = Pro (sin ayudas), 1 = Media, 2 = Alta. Afecta a la calibración de rotaciones y al "spotting".
@@ -39,9 +39,9 @@ func load_settings() -> void:
 		return
 	for key in _keys():
 		set(key, cfg.get_value("settings", key, get(key)))
-	if int(cfg.get_value("settings", "controls_version", 0)) < 2:
-		trick_controls = 4            # nuevo esquema por defecto: la botonera
-		controls_version = 2
+	if int(cfg.get_value("settings", "controls_version", 0)) < 3:
+		trick_controls = 5            # nuevo esquema por defecto: todo con gestos (SALTO + GIRO)
+		controls_version = 3
 
 func save_settings() -> void:
 	var cfg := ConfigFile.new()
