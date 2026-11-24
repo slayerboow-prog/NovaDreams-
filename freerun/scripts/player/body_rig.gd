@@ -209,8 +209,21 @@ func _build() -> void:
 		(mi as MeshInstance3D).cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_ON
 	for mi in details:
 		mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	# Atleta realista: si el modelo carga, sustituye a la vista procedural (que sigue existiendo
+	# por debajo como esqueleto de referencia, invisible)
+	human = HumanModel.new()
+	human.name = "Human"
+	body.add_child(human)
+	if human.build(joints):
+		for mi in find_children("*", "MeshInstance3D", true, false):
+			if not human.is_ancestor_of(mi):
+				(mi as MeshInstance3D).visible = false
+	else:
+		human.queue_free()
+		human = null
 
 var skin_body: SkinBody
+var human: HumanModel
 
 # ------------------------------------------------------------------ animación
 
@@ -425,6 +438,8 @@ func _process(dt: float) -> void:
 		_wrap_chest(wrap_w)
 	if skin_body:
 		skin_body.sync()
+	if human:
+		human.sync()
 
 ## Punto de agarre en la espinilla (delante del hueso, algo por debajo de la rodilla).
 func shin_grip(side: String) -> Vector3:
