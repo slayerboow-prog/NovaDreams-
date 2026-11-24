@@ -14,7 +14,7 @@ const ENVIRONMENT := ["Speed Vault", "Lazy Vault", "Step Vault", "Kong Vault", "
 	"Ledge Grab", "Climb Up", "Precision Jump", "Safety Roll", "Wall Flip", "Wall Gainer", "Step Up", "Mantle"]
 ## Movimientos de preparación que dan potencia al siguiente (cuentan como enlace si se encadenan)
 const SETUPS := ["Round-off", "Back Handspring", "Macaco", "Hook Kick", "Raiz", "Touchdown Raiz", "Scoot",
-	"Crescent Kick", "Reverse Crescent Kick", "Handstand Push-off", "Cartwheel", "Front Handspring"]
+	"Handstand Push-off", "Cartwheel"]
 const BOOST_FROM := 60.0
 
 var value := 0.0

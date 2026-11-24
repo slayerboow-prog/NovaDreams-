@@ -843,7 +843,7 @@ func t_spanish_names() -> void:
 					for back in [true, false]:
 						for mv in [true, false]:
 							for wall in [true, false]:
-								for st in ["", "cork", "aerial", "kick", "cartwheel", "roundoff", "bhs", "fhs"]:
+								for st in ["", "cork", "aerial", "kick", "cartwheel", "roundoff", "bhs"]:
 									for kind in ["", "vault", "ledge"]:
 										var n: String = TrickSystem.trick_name(pn, rn, sn, th, back, mv, wall, st, kind, "Kong Vault" if kind == "vault" else "")
 										if n != "" and MoveNames.es(n) == n and not n in missing:
@@ -1240,25 +1240,18 @@ func t_ground_skills() -> void:
 	var cases := [
 		["Round-off", ["flick", Vector2(0.7, -0.7)], 50, "fwd", true, true],
 		["Back Handspring", ["flick", Vector2(0, -1)], 0, "back", false, true],
-		["Front Handspring", ["flick", Vector2(0, 1)], 0, "fwd", false, true],
 		["Cartwheel", ["flick", Vector2(1, 0)], 0, "side", false, true],
 		["Macaco", ["hold", Vector2(0.7, -0.7), 34], 0, "back", false, true],
-		["Back Walkover", ["hold", Vector2(0, -1), 34], 0, "back", false, true],
-		["Front Walkover", ["hold", Vector2(0, 1), 34], 0, "fwd", false, true],
 		["Raiz", ["hold", Vector2(1, 0), 34], 0, "side", true, false],
 		["Touchdown Raiz", ["hold", Vector2(0.7, 0.7), 34], 0, "side", true, true],
 		["Hook Kick", ["arc", PI, TAU], 0, "any", false, false],
-		["Crescent Kick", ["arc", 0.0, PI], 0, "any", false, false],
-		["Reverse Crescent Kick", ["arc", PI, 0.0], 0, "any", false, false],
-		["Back Extension Roll", ["roll", Vector2(0, -1)], 0, "back", false, true],
-		["Valdez", ["roll", Vector2(0.7, -0.7)], 0, "back", false, true],
 	]
 	for c in cases:
 		await place(Vector3(-35, 0.1, 35), Vector3.FORWARD)
 		var r: Dictionary = await skill_probe(c[1], c[2])
 		var name: String = c[0]
 		var tag := "Habilidad %s: " % name
-		check(tag + "se ejecuta y se reconoce", name in moves or (name == "Front Walkover" and "Front Walkover" in moves), "%s ids %s" % [moves, r.ids])
+		check(tag + "se ejecuta y se reconoce", name in moves, "%s ids %s" % [moves, r.ids])
 		var d: Vector3 = r.end - r.start
 		var f0: Vector3 = r.facing0
 		var ok_dir := true
@@ -1409,7 +1402,6 @@ func t_chains() -> void:
 		["Raiz → Cork", [["now", ["hold", Vector2(1, 0), 34]], ["link", ["jump", D, 20]]], 0, ["Raiz", "Cork"]],
 		["Aerial → Aerial", [["now", ["flick", Vector2(-0.7, 0.7)]], ["link", ["flick", Vector2(-0.7, 0.7)]]], 0, ["Aerial", "Aerial"]],
 		["Rueda → Backflip", [["now", ["flick", Vector2(1, 0)]], ["link", ["jump", D]]], 0, ["Cartwheel", "@back"]],
-		["Crescent → Swing Gainer", [["now", ["arc", 0.0, PI]], ["link", ["jump", D]]], 0, ["Crescent Kick", "Swing Gainer"]],
 	]
 	for c in cases:
 		await place(Vector3(-35, 0.1, 40), Vector3.FORWARD)
@@ -1562,7 +1554,7 @@ func t_ring_buttons() -> void:
 		return -1
 	game.router.scripted = Callable()            # entrada real: el táctil
 	for c in [["ATRÁS", "Backflip"], ["ADELANTE", "Frontflip"], ["LATERAL DER.", "Sideflip"],
-			["RONDADA", "Round-off"], ["FLIC-FLAC", "Back Handspring"], ["RUEDA", "Cartwheel"], ["PALOMA", "Front Handspring"], ["MACACO", "Macaco"]]:
+			["RONDADA", "Round-off"], ["FLIC-FLAC", "Back Handspring"], ["RUEDA", "Cartwheel"], ["MACACO", "Macaco"]]:
 		var bi: int = find.call(c[0])
 		player.set_spawn(Transform3D(Basis(), Vector3(-35, 0.1, 35)), Vector3.FORWARD)
 		player.respawn()
@@ -1644,8 +1636,7 @@ func t_ring_buttons() -> void:
 	e2.pressed = false; e2.position = dr.position
 	touch._on_touch(e2)
 	check("Botonera: CAMBIAR gira la rueda (tocar = siguiente, deslizar abajo = anterior)", p1 == 1 and touch.ring_page == 0, "tras tocar %d, tras deslizar %d" % [p1, touch.ring_page])
-	for c in [[2, "HOOK", "Hook Kick"], [0, "PATADA 360", "360 Kick"], [2, "MACACO", "Macaco"],
-			[3, "BACK WALKOVER", "Back Walkover"], [3, "VOLTERETA AL PINO", "Back Extension Roll"]]:
+	for c in [[2, "HOOK", "Hook Kick"], [0, "PATADA 360", "360 Kick"], [2, "MACACO", "Macaco"]]:
 		touch.ring_page = c[0]
 		player.set_spawn(Transform3D(Basis(), Vector3(-35, 0.1, 35)), Vector3.FORWARD)
 		player.respawn()
@@ -1664,7 +1655,7 @@ func t_ring_buttons() -> void:
 			press.call(bi3, false)
 		await frames(10)
 		check("Botonera página %s: botón %s = %s" % [TouchControls.RING_PAGES[c[0]].name, c[1], c[2]], c[2] in moves, str(moves))
-	# PINO mantenido: sigue en el pino mientras se mantiene el botón; al soltar, front walkover
+	# PINO mantenido: sigue en el pino mientras se mantiene el botón; al soltar, bajada del pino
 	touch.ring_page = 1
 	player.set_spawn(Transform3D(Basis(), Vector3(-35, 0.1, 35)), Vector3.FORWARD)
 	player.respawn()
@@ -1681,7 +1672,7 @@ func t_ring_buttons() -> void:
 			press.call(pb, false)
 	for k in 120:
 		await get_tree().physics_frame
-	check("Botonera: PINO mantenido se sostiene y al soltar sale el front walkover", held_f > 40 and "Front Walkover" in moves, "pino %d %s" % [held_f, moves])
+	check("Botonera: PINO mantenido se sostiene y al soltar baja del pino", held_f > 40 and "Handstand Push-off" in moves, "pino %d %s" % [held_f, moves])
 	touch.ring_page = 0
 	touch.size = touch.get_viewport_rect().size
 	game.router.scripted = _drive
@@ -1833,7 +1824,7 @@ func t_salto_giro_sticks() -> void:
 	check("SALTO nunca añade tirabuzones (giro máximo %.2f rad)" % no_twist.max, no_twist.max < 0.05, "")
 	# Páginas de SALTO: el botón dorado cambia de página y cada dirección dibujada es un movimiento
 	for pc in [[1, Vector2(0.71, -0.71), "Hook Kick"], [1, Vector2(1, 0), "Raiz"], [1, Vector2(-0.71, 0.71), "Touchdown Raiz"],
-			[2, Vector2(0, -1), "Front Handspring"], [2, Vector2(0, 1), "Back Walkover"], [2, Vector2(1, 0), "Valdez"]]:
+			[1, Vector2(0, 1), "Macaco"], [1, Vector2(0, -1), "Handstand"]]:
 		await place(Vector3(-35, 0.1, 35), Vector3.FORWARD)
 		moves.clear()
 		touch.salto_page = 0

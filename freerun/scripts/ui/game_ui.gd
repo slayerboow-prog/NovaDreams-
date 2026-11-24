@@ -56,7 +56,7 @@ const TUTORIAL := [
 	["Morado en el suelo: línea hacia abajo = Flic-flac", ["Back Handspring"]],
 	["Morado: línea hacia arriba = Rondada y, al recibir (¡ENLAZA!), línea abajo en el dorado", ["@roundoff_back"]],
 	["Botón pequeño junto a SALTO: página TRICKING. Línea arriba-derecha = Hook", ["Hook Kick"]],
-	["Página GIMNASIA: línea hacia arriba = Paloma (flic-flac adelante)", ["Front Handspring"]],
+	["Página TRICKING: línea hacia arriba = Pino (mantén el dedo para sostenerlo)", ["Handstand", "Handstand Push-off"]],
 	["Corre hacia un obstáculo y dibuja una U invertida en el dorado (o pulsa VAULT)", ["@vault"]],
 	["Junto a una pared alta: zigzag hacia arriba en el dorado = Escalada", ["Wall Climb", "Ledge Grab", "Cat Leap", "Mantle"]],
 	["Antes de caer desde alto: curva hacia abajo y adelante en el dorado = Rodar", ["Safety Roll", "Roll"]],

@@ -386,13 +386,6 @@ func _state_ground(dt: float) -> void:
 		if grab_buffer > 0.0 and _try_wall_climb():
 			grab_buffer = 0.0
 			return
-		# RODAR casi parado + joystick derecho: voltereta atrás al pino (↓) o valdez (↙ ↘)
-		if intent.action_pressed and spd <= 3.0 and intent.rot.length() > 0.5:
-			var rs := TouchControls.sector_of(intent.rot)
-			if rs in [-2, -1, -3]:
-				gestures.cancel()
-				_start_skill("ber" if rs == -2 else "valdez", 1 if rs != -3 else -1)
-				return
 		if not gesture_event.is_empty() and jump_buffer <= 0.0 and vault_buffer <= 0.0 and not _obstacle_ahead():
 			if _ground_gesture(gesture_event):
 				return
@@ -579,7 +572,7 @@ func _do_jump(kind: String, link := {}) -> void:
 	move_and_slide()
 
 ## Lo que hereda una acrobacia del movimiento anterior: el giro de un hook/raiz/scoot precarga
-## el tirabuzón; el barrido de pierna (crescent, aerial, td raiz) da la rotación horizontal que
+## el tirabuzón; el barrido de pierna (aerial, td raiz) da la rotación horizontal que
 ## convierte el salto en butterfly o en gainer aunque no haya carrera.
 func _apply_link_to_air(link: Dictionary) -> void:
 	tricks.takeoff_detail = String(link.from)
@@ -1162,12 +1155,10 @@ func _obstacle_ahead() -> bool:
 ## Tricking de suelo con el joystick derecho (sin SALTO). El intérprete de gestos decide:
 ##   FLICK (inclinar y soltar)   ← → rueda · ↙ ↘ rondada · ↓ flic-flac · ↑ paloma
 ##                                ↗ patada 360 / tornado · ↖ aerial (parado) / butterfly (carrera)
-##   MANTENER (0,5 s)             ↓ back walkover · ↑ pino (soltar = front walkover, SALTO = snap down)
+##   MANTENER (0,5 s)             ↑ pino (soltar o SALTO = snap down)
 ##                                ← → raiz · ↖ ↗ touchdown raiz · ↙ ↘ macaco
-##   ARCO por arriba              crescent (antihorario) / reverse crescent (horario)
 ##   ARCO por abajo               hook kick (gira hacia el sentido del arco)
 ##   CAMBIO DE DIRECCIÓN          scoot hacia el lado final
-##   RODAR casi parado + ↓ / ↙ ↘   back extension roll / valdez
 ## Cada habilidad tiene fases, apoyos y potencia propios (SkillLibrary) y transfiere su
 ## impulso al siguiente movimiento si se enlaza en la recepción (ChainSystem).
 func _ground_gesture(ev: Dictionary) -> bool:
@@ -1190,7 +1181,6 @@ func _ground_gesture(ev: Dictionary) -> bool:
 				return false        # modo gestos: esas habilidades están en las páginas de SALTO
 			var sec := int(ev.sector)
 			match sec:
-				-2: _start_skill("back_walkover", 1)
 				2: _start_skill("handstand", 1)
 				0, 4: _start_skill("raiz", 1 if sec == 0 else -1)
 				1, 3: _start_skill("td_raiz", 1 if sec == 1 else -1)
@@ -1208,9 +1198,8 @@ func _ground_gesture(ev: Dictionary) -> bool:
 					return true
 				return false
 			if String(ev.through) == "top":
-				_start_skill("crescent" if int(ev.dir) > 0 else "reverse_crescent", 1)
-			else:
-				_start_skill("hook", int(ev.dir))
+				return false          # (crescents eliminados)
+			_start_skill("hook", int(ev.dir))
 			return true
 		"change":
 			var to := int(ev.to)
@@ -1239,8 +1228,6 @@ func _ground_flick(sec: int) -> bool:
 			_start_skill("roundoff", 1 if sec == -1 else -1)
 		-2:
 			_start_skill("bhs", 1)
-		2:
-			_start_skill("fhs", 1)
 		1:
 			# Patada giratoria en el aire (360 / tornado / cheat 360 si viene de una entrada)
 			twist_lock = true
@@ -1292,8 +1279,8 @@ func _state_skill(dt: float) -> void:
 	var hold: bool = d.get("hold", false)
 	skill.s = float(skill.s) + dt / float(skill.dur)
 	if hold and skill.s >= 1.0:
-		# Pino: se mantiene mientras el joystick siga inclinado. Soltar = front walkover;
-		# SALTO = snap down (bloqueo de hombros y rebote).
+		# Pino: se mantiene mientras el joystick siga inclinado. Soltar o SALTO = bajada del pino
+		# (snap down: bloqueo de hombros y rebote).
 		skill.s = 1.0
 		skill.hold_t = float(skill.hold_t) + dt
 		if jump_buffer > 0.0:
@@ -1305,7 +1292,7 @@ func _state_skill(dt: float) -> void:
 			var held := float(skill.hold_t)
 			_finish_skill(false)
 			_emit_move("Handstand", 1.0, {"difficulty": float(d.difficulty) + minf(held, 2.0) * 0.2})
-			_start_skill("front_walkover", 1, 0.46)
+			_start_skill("pushoff", 1)
 			return
 	var smp := skill_sample()
 	var pw: Dictionary = skill.power

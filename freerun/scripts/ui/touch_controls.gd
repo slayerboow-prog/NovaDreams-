@@ -122,35 +122,27 @@ const RING_PAGES := [
 		["CORK", "cork", -2], ["AERIAL", "flip", 3], ["PATADA\n360", "kick", 0]]},
 	{"name": "SUELO", "buttons": [
 		["RONDADA", "skill", "roundoff"], ["FLIC-FLAC", "skill", "bhs"], ["RUEDA", "skill", "cartwheel"],
-		["PALOMA", "skill", "fhs"], ["MACACO", "skill", "macaco"], ["PINO", "skill", "handstand"],
+		["MACACO", "skill", "macaco"], ["PINO", "skill", "handstand"],
 		["ATRÁS", "flip", -2], ["CORK", "cork", -2]]},
 	{"name": "TRICKING", "buttons": [
-		["HOOK", "skill", "hook"], ["CRESCENT", "skill", "crescent"], ["CRESCENT\nINVERSA", "skill", "reverse_crescent"],
+		["HOOK", "skill", "hook"],
 		["RAIZ", "skill", "raiz"], ["TD RAIZ", "skill", "td_raiz"], ["MACACO", "skill", "macaco"],
 		["PATADA\n360", "kick", 0], ["CORK", "cork", -2]]},
-	{"name": "GIMNASIA", "buttons": [
-		["BACK\nWALKOVER", "skill", "back_walkover"], ["FRONT\nWALKOVER", "skill", "front_walkover"],
-		["VALDEZ", "skill", "valdez"], ["VOLTERETA\nAL PINO", "skill", "ber"], ["PINO", "skill", "handstand"],
-		["RONDADA", "skill", "roundoff"], ["FLIC-FLAC", "skill", "bhs"], ["ATRÁS", "flip", -2]]},
 ]
 ## Modo gestos (tres joysticks: movimiento azul, tirabuzones morado, mortales dorado).
 ## Joystick dorado (SALTO): tocar = salto · línea recta = mortal básico (↑ adelante, ↓ atrás,
 ## ← → lateral) · patrones dibujados = acrobacias (aerial, aerial twist, cork, cork 720, webster,
 ## gainer) y parkour (vault, kong, wall run, wall flip, escalada, agarre, cat leap, precisión,
 ## rodar, wall climb), ver GestureRecognizer. El botón pequeño junto a SALTO cambia de página:
-## en TRICKING y GIMNASIA las líneas rectas (8 direcciones) son habilidades de suelo.
+## en TRICKING las líneas rectas son habilidades de suelo (pino, hook, raiz, touchdown raiz, macaco).
 ## Joystick morado (GIRO): cada círculo = un tirabuzón (horario derecho, antihorario izquierdo;
 ## dos o tres seguidos = doble o triple; uno y otro al revés = combinado). En el suelo, una línea
 ## recta = rondada (↑), flic-flac (↓) o rueda (← →).
 const SALTO_PAGES := [
 	{"name": "MORTALES", "moves": {2: ["ADELANTE", "flip"], 0: ["LATERAL", "flip"], 4: ["LATERAL", "flip"], -2: ["ATRÁS", "flip"]}},
-	{"name": "TRICKING", "moves": {2: ["CRESCENT", "skill", "crescent:1"], 1: ["HOOK", "skill", "hook:1"],
-		3: ["CRESCENT INV.", "skill", "reverse_crescent:1"], 0: ["RAIZ", "skill", "raiz:1"], 4: ["RAIZ", "skill", "raiz:-1"],
+	{"name": "TRICKING", "moves": {2: ["PINO", "skill", "handstand:1"], 1: ["HOOK", "skill", "hook:1"],
+		0: ["RAIZ", "skill", "raiz:1"], 4: ["RAIZ", "skill", "raiz:-1"],
 		-1: ["TD RAIZ", "skill", "td_raiz:1"], -3: ["TD RAIZ", "skill", "td_raiz:-1"], -2: ["MACACO", "skill", "macaco:1"]}},
-	{"name": "GIMNASIA", "moves": {2: ["PALOMA", "skill", "fhs:1"], 1: ["FRONT WALKOVER", "skill", "front_walkover:1"],
-		3: ["PINO", "skill", "handstand:1"], -2: ["BACK WALKOVER", "skill", "back_walkover:1"],
-		0: ["VALDEZ", "skill", "valdez:1"], 4: ["VALDEZ", "skill", "valdez:-1"], -1: ["VOLTERETA PINO", "skill", "ber:1"],
-		-3: ["VOLTERETA PINO", "skill", "ber:1"]}},
 ]
 var salto_page := 0
 var context_provider: Callable          # () -> Dictionary: qué permite el entorno (PlayerController.gesture_context)
