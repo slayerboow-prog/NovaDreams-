@@ -38,15 +38,18 @@ const LEG_L2 := 0.45
 const SOLE := 0.05
 
 # Paleta de identidad propia: sudadera turquesa, pantalón carbón, zapatillas naranja.
-const COL_HOODIE := Color(0.12, 0.72, 0.68)
-const COL_HOODIE_DARK := Color(0.08, 0.5, 0.48)
-const COL_PANTS := Color(0.2, 0.21, 0.26)
-const COL_PANTS_DARK := Color(0.13, 0.14, 0.17)
-const COL_SKIN := Color(0.86, 0.66, 0.52)
-const COL_SKIN_DARK := Color(0.74, 0.54, 0.42)
-const COL_HAIR := Color(0.16, 0.11, 0.08)
+# Sudadera negra sin mangas con capucha y logo blanco, jogger cargo negro con franjas blancas,
+# muñequeras y zapatillas negras con suela blanca
+const COL_HOODIE := Color(0.075, 0.075, 0.085)
+const COL_HOODIE_DARK := Color(0.045, 0.045, 0.05)
+const COL_PANTS := Color(0.065, 0.065, 0.075)
+const COL_PANTS_DARK := Color(0.04, 0.04, 0.045)
+const COL_SKIN := Color(0.8, 0.58, 0.44)
+const COL_SKIN_DARK := Color(0.68, 0.47, 0.35)
+const COL_HAIR := Color(0.05, 0.04, 0.035)
 const COL_EYE := Color(0.08, 0.07, 0.07)
-const COL_SHOES := Color(1.0, 0.45, 0.15)
+const COL_SHOES := Color(0.07, 0.07, 0.08)
+const COL_STRIPE := Color(0.92, 0.92, 0.9)
 const COL_SOLE := Color(0.95, 0.95, 0.92)
 const COL_CAP := Color(0.95, 0.95, 0.92)
 
@@ -136,6 +139,12 @@ func _build() -> void:
 	# Sudadera: bolsillo canguro, capucha a la espalda y cordones (el tronco es la malla con piel)
 	details.append(_box(spine, Vector3(0.2, 0.085, 0.006), COL_HOODIE.lerp(COL_HOODIE_DARK, 0.45), Vector3(0, 0.085, -0.104), Vector3(-0.08, 0, 0), 0.9))
 	_ellipsoid(spine, Vector3(0.13, 0.085, 0.07), COL_HOODIE_DARK, Vector3(0, 0.47, 0.095), Vector3(0.35, 0, 0), 0.9)
+	# Logo blanco en la espalda: estrella de cuatro puntas con una punta larga hacia abajo
+	for k in 4:
+		var ang := float(k) * PI * 0.5
+		var ln := 0.11 if k == 2 else 0.06
+		details.append(_box(spine, Vector3(0.02, ln, 0.004), COL_STRIPE, Vector3(sin(ang) * ln * 0.5, 0.32 + cos(ang) * ln * 0.5, 0.122), Vector3(0, 0, -ang), 0.7))
+		details.append(_box(spine, Vector3(0.012, 0.045, 0.004), COL_STRIPE, Vector3(sin(ang + 0.785) * 0.022, 0.32 + cos(ang + 0.785) * 0.022, 0.122), Vector3(0, 0, -ang - 0.785), 0.7))
 	details.append(_capsule(spine, 0.006, 0.12, COL_SOLE, Vector3(-0.035, 0.385, -0.118), Vector3.ONE, Vector3(0.1, 0, 0)))
 	details.append(_capsule(spine, 0.006, 0.12, COL_SOLE, Vector3(0.035, 0.385, -0.118), Vector3.ONE, Vector3(0.1, 0, 0)))
 	var neck := _joint("neck", spine, Vector3(0, 0.54, 0))
@@ -176,6 +185,11 @@ func _build() -> void:
 		var x: float = side[1]
 		var hip := _joint("hip_" + sd, pelvis, Vector3(0.1 * x, -0.02, 0))
 		var knee := _joint("knee_" + sd, hip, Vector3(0, -0.43, 0))
+		# Jogger cargo: franja blanca por fuera del muslo y de la pierna, bolsillo cargo y correa en la rodilla
+		details.append(_box(hip, Vector3(0.012, 0.32, 0.014), COL_STRIPE, Vector3(0.1 * x, -0.22, 0.0), Vector3(0, 0, 0.084 * x), 0.8))
+		details.append(_box(knee, Vector3(0.011, 0.23, 0.013), COL_STRIPE, Vector3(0.066 * x, -0.185, 0.004), Vector3(0, 0, 0.08 * x), 0.8))
+		details.append(_box(hip, Vector3(0.03, 0.13, 0.1), COL_PANTS_DARK, Vector3(0.095 * x, -0.27, -0.005), Vector3(0, 0, 0.05 * x), 0.9))
+		details.append(_box(hip, Vector3(0.033, 0.012, 0.104), COL_STRIPE, Vector3(0.097 * x, -0.205, -0.005), Vector3(0, 0, 0.05 * x), 0.8))
 		# Zapatilla redondeada: talón, empeine, puntera, suela con canto y cordones
 		_ellipsoid(knee, Vector3(0.05, 0.05, 0.065), COL_SHOES, Vector3(0, -0.425, 0.03), Vector3.ZERO, 0.6, 14)
 		_ellipsoid(knee, Vector3(0.052, 0.04, 0.11), COL_SHOES, Vector3(0, -0.445, -0.06), Vector3.ZERO, 0.6, 14)
@@ -189,7 +203,8 @@ func _build() -> void:
 	skin_body.name = "SkinBody"
 	body.add_child(skin_body)
 	skin_body.build(joints, {"hoodie": COL_HOODIE, "hoodie_dark": COL_HOODIE_DARK, "pants": COL_PANTS,
-		"pants_dark": COL_PANTS_DARK, "skin": COL_SKIN, "sock": Color(0.92, 0.92, 0.9)})
+		"pants_dark": COL_PANTS_DARK, "skin": COL_SKIN, "sock": Color(0.92, 0.92, 0.9), "band": COL_STRIPE,
+		"wrist": Color(0.06, 0.06, 0.07)})
 	for mi in find_children("*", "MeshInstance3D", true, false):
 		(mi as MeshInstance3D).cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_ON
 	for mi in details:
