@@ -831,13 +831,13 @@ func _gather_pose(kind: String, rs: float, ph: float) -> Dictionary:
 		"front":
 			# Agrupado cerrado, cabeza metida, manos abrazando las espinillas
 			return {"spine": Vector3(-1.1, 0, 0), "neck": Vector3(-0.75, 0, 0),
-				"hip_l": Vector3(2.8, 0, -0.06), "hip_r": Vector3(2.78, 0, 0.06), "knee_l": Vector3(-2.85, 0, 0), "knee_r": Vector3(-2.82, 0, 0),
+				"hip_l": Vector3(1.6, 0, -0.06), "hip_r": Vector3(1.58, 0, 0.06), "knee_l": Vector3(-2.4, 0, 0), "knee_r": Vector3(-2.38, 0, 0),
 				"shoulder_l": Vector3(0.75, 0, 0.12), "shoulder_r": Vector3(0.75, 0, -0.12),
 				"elbow_l": Vector3(1.75, 0, 0), "elbow_r": Vector3(1.75, 0, 0)}
 		"webster":
 			# Mortal adelante a una pierna: tijera, la pierna de atrás llega tarde
 			return {"spine": Vector3(-0.9, 0, 0), "neck": Vector3(-0.5, 0, 0),
-				"hip_r": Vector3(2.45, 0, 0.05), "knee_r": Vector3(-2.55, 0, 0),
+				"hip_r": Vector3(1.7, 0, 0.05), "knee_r": Vector3(-2.3, 0, 0),
 				"hip_l": Vector3(0.6, 0, -0.05), "knee_l": Vector3(-1.9, 0, 0),
 				"shoulder_l": Vector3(0.9, 0, 0.1), "shoulder_r": Vector3(0.9, 0, -0.1),
 				"elbow_l": Vector3(1.5, 0, 0), "elbow_r": Vector3(1.5, 0, 0)}
@@ -845,8 +845,8 @@ func _gather_pose(kind: String, rs: float, ph: float) -> Dictionary:
 			# Sideflip real: bola cerrada. Rodillas al pecho, talones a los glúteos, manos
 			# agarrando las rodillas y cabeza metida; la pierna de atrás sube primero.
 			return {"spine": Vector3(-0.95, 0, 0.15 * rs), "neck": Vector3(-0.55, 0, 0.2 * rs),
-				"hip_l": Vector3(2.8, 0, 0.08 * rs), "hip_r": Vector3(2.78, 0, 0.08 * rs),
-				"knee_l": Vector3(-2.85, 0, 0), "knee_r": Vector3(-2.85, 0, 0),
+				"hip_l": Vector3(1.75, 0, 0.08 * rs), "hip_r": Vector3(1.73, 0, 0.08 * rs),
+				"knee_l": Vector3(-2.4, 0, 0), "knee_r": Vector3(-2.4, 0, 0),
 				"shoulder_l": Vector3(1.15, 0, 0.18), "shoulder_r": Vector3(1.15, 0, -0.18),
 				"elbow_l": Vector3(1.05, 0, 0), "elbow_r": Vector3(1.05, 0, 0)}
 		"aerial":
@@ -924,11 +924,13 @@ func _gather_pose(kind: String, rs: float, ph: float) -> Dictionary:
 				"elbow_l": Vector3(0.05, 0, 0), "elbow_r": Vector3(0.05, 0, 0),
 				"hip_l": Vector3(-0.5, 0, 0), "hip_r": Vector3(-0.15, 0, 0),
 				"knee_l": Vector3(-0.1, 0, 0), "knee_r": Vector3(-0.15, 0, 0)}
-	# Backflip: rodillas al pecho, talones a los glúteos, manos a las espinillas, espalda redonda
-	return {"spine": Vector3(-0.92, 0, 0), "neck": Vector3(-0.25, 0, 0),
-		"hip_l": Vector3(2.8, 0, -0.07), "hip_r": Vector3(2.76, 0, 0.07), "knee_l": Vector3(-2.85, 0, 0), "knee_r": Vector3(-2.82, 0, 0),
-		"shoulder_l": Vector3(1.0, 0, -0.12), "shoulder_r": Vector3(1.0, 0, 0.12),
-		"elbow_l": Vector3(1.35, 0, 0), "elbow_r": Vector3(1.35, 0, 0)}
+	# Backflip real (agrupado abierto): tronco casi recto, muslos horizontales con las rodillas a
+	# unos tres palmos del pecho, rodillas flexionadas ~105° con las espinillas colgando y las
+	# manos sobre las rodillas; la cabeza neutra, algo atrás buscando el giro
+	return {"spine": Vector3(-0.12, 0, 0), "neck": Vector3(0.12, 0, 0),
+		"hip_l": Vector3(1.55, 0, -0.1), "hip_r": Vector3(1.52, 0, 0.1), "knee_l": Vector3(-1.85, 0, 0), "knee_r": Vector3(-1.8, 0, 0),
+		"shoulder_l": Vector3(1.05, 0, -0.15), "shoulder_r": Vector3(1.05, 0, 0.15),
+		"elbow_l": Vector3(0.55, 0, 0), "elbow_r": Vector3(0.55, 0, 0)}
 
 ## Cork: patada de la pierna de atrás (derecha si cork_side = 1) con los brazos arriba.
 const CORK_KICK := {"spine": Vector3(0.22, 0, 0), "neck": Vector3(0.35, 0, 0),

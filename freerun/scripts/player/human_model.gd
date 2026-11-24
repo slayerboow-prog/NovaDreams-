@@ -11,6 +11,8 @@ const MAP := {
 	"shoulder_l": ["upperarm_l"], "elbow_l": ["lowerarm_l"], "shoulder_r": ["upperarm_r"], "elbow_r": ["lowerarm_r"],
 	"hip_l": ["thigh_l"], "knee_l": ["calf_l"], "hip_r": ["thigh_r"], "knee_r": ["calf_r"],
 }
+## Columna: cada vértebra toma una parte del giro de la espalda (curva redonda, no un bloque).
+const SPINE_FRAC := {"spine_01": 0.35, "spine_02": 0.7, "spine_03": 1.0}
 ## Hacia dónde va el segmento desde cada articulación (en su espacio local, reposo).
 const DIR := {"pelvis": Vector3.UP, "spine": Vector3.UP, "neck": Vector3.UP}
 
@@ -54,7 +56,7 @@ func build(joints: Dictionary) -> bool:
 			var bb := bg.basis.orthonormalized()
 			var align := Basis(Quaternion(bb.y.normalized(), dir_w)) if bb.y.normalized().dot(dir_w) > -0.999 else Basis(Vector3.RIGHT, PI)
 			var target := align * bb
-			_links.append([j, bi, jg.basis.inverse() * target])
+			_links.append([j, bi, jg.basis.inverse() * target, SPINE_FRAC.get(bn, 1.0)])
 			if bn == "pelvis":
 				_pelvis_bone = bi
 				_pelvis_off = jg.affine_inverse() * bg.origin
@@ -70,7 +72,14 @@ func sync() -> void:
 		var j: Node3D = l[0]
 		var bi: int = l[1]
 		var jg := j.global_transform.orthonormalized()
-		var b: Basis = sk_rot * (jg.basis * (l[2] as Basis))
+		var jb := jg.basis
+		var frac: float = l[3]
+		if frac < 1.0:
+			# Parte del giro de la espalda respecto a la pelvis
+			var pq := (_joints["pelvis"] as Node3D).global_transform.orthonormalized().basis.get_rotation_quaternion()
+			var rel := pq.inverse() * jb.get_rotation_quaternion()
+			jb = Basis(pq * Quaternion.IDENTITY.slerp(rel, frac))
+		var b: Basis = sk_rot * (jb * (l[2] as Basis))
 		var origin := skeleton.get_bone_global_pose(bi).origin
 		if bi == _pelvis_bone:
 			origin = sk_inv * (jg * _pelvis_off)
