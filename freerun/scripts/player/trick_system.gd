@@ -54,6 +54,8 @@ const QUARTER := PI * 0.5
 ## Fracción del vuelo en la que cada acrobacia completa su vuelta SIN agruparse. Agrupado
 ## (hasta ×tuck_mult, de forma progresiva) termina antes y queda tiempo para abrirse.
 ## Cada truco tiene su ritmo: el backflip es explosivo, el butterfly es amplio y lento.
+const CORK_TWIST_AT := 1.05          # ~60° de inversión antes de cerrar el tirabuzón del cork
+const CORK_TILT := 0.38               # inclinación del eje del cork (~22°)
 const COMPLETE_AT := {"back": 0.76, "front": 0.78, "side": 0.76, "aerial": 0.76, "cork": 0.78,
 	"butterfly": 0.72, "kick": 0.64,
 	# Suelo: el giro dura casi todo el vuelo (apoyo de manos, sin agrupar)
@@ -326,6 +328,17 @@ func step(dt: float, push: float, time_left: float, assist: float, t: MoveTuning
 		if ax == "twist" and twist_manual:
 			_step_manual_twist(dt)
 			continue
+		if ax == "twist" and style == "cork" and not settled.twist:
+			# Cork: primero sube la cadera y los hombros van atrás (inversión, como un cheat gainer);
+			# el tirabuzón se cierra después, rápido, y termina antes de abrirse para aterrizar.
+			var pg := absf(total.pitch)
+			if pg < CORK_TWIST_AT and absf(total.twist) < 0.01:
+				rate.twist = 0.0
+				continue
+			var tleft: float = goal.twist * twist_period - absf(total.twist)
+			var pleft := maxf(maxf(goal.pitch, 1) * TAU * 0.84 - pg, 0.4)
+			var tt := minf(pleft / maxf(absf(rate.pitch), 2.5), time_left * 0.8)
+			base.twist = clampf(tleft / maxf(tt, 0.08), base.twist, t.twist_rate_max * 1.8)
 		var period := twist_period if ax == "twist" else TAU
 		var window := deg_to_rad(lerpf(22.0, 70.0 if ax == "twist" else 120.0, assist) * (1.4 if drive < -0.4 else 1.0))
 		var prog: float = total[ax] * s
@@ -398,7 +411,12 @@ func _update_basis() -> void:
 		lean = -1.35 * sin(PI * frac)
 		if not settled.spin and absf(total.spin) > TAU - 0.05 and dir.twist != 0:
 			lean = -1.35
-	basis = (Basis(Vector3.UP, total.spin) * Basis(Vector3.RIGHT, total.pitch + lean)
+	# Cork: eje fuera de vertical (el cuerpo se inclina hacia el giro durante la inversión)
+	var tilt := 0.0
+	if style == "cork" and dir.twist != 0:
+		var fr := clampf(absf(total.pitch) / (TAU * maxf(goal.pitch, 1)), 0.0, 1.0)
+		tilt = CORK_TILT * float(dir.twist) * sin(PI * fr)
+	basis = (Basis(Vector3.UP, total.spin) * Basis(Vector3.BACK, tilt) * Basis(Vector3.RIGHT, total.pitch + lean)
 		* Basis(Vector3.BACK, -total.roll) * Basis(Vector3.UP, total.twist)).orthonormalized()
 
 ## Ángulo entre el "arriba" del cuerpo y la vertical.

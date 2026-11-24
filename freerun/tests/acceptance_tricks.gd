@@ -113,6 +113,7 @@ var max_tuck := 0.0
 var max_lead := 0.0
 var max_split := 0.0
 var max_scissor := 0.0
+var wrap_legs := 0.0                    # brazos cerrados al pecho con las piernas juntas (tirabuzón)
 var max_arms := 0.0                    # brazos por encima de la cabeza (apoyo de manos)
 var max_arch := 0.0                    # espalda arqueada (flic-flac, paloma)
 var skill_phases := {}                 # fases con nombre de las habilidades de suelo
@@ -149,6 +150,8 @@ func _sample() -> void:
 	max_lead = maxf(max_lead, maxf(hl.x, hr.x))
 	max_split = maxf(max_split, absf(hl.z - hr.z))
 	max_scissor = maxf(max_scissor, absf(hl.x - hr.x))
+	if absf(hl.x - hr.x) < 0.45:
+		wrap_legs = maxf(wrap_legs, rig.wrap_w)
 	max_arms = maxf(max_arms, minf((rig.pose.shoulder_l as Vector3).x, (rig.pose.shoulder_r as Vector3).x))
 	max_arch = maxf(max_arch, (rig.pose.spine as Vector3).x)
 
@@ -236,7 +239,7 @@ func seq(name: String, steps: Array, expect: Array) -> void:
 	moves.clear()
 	landings.clear()
 	phases = {}; kinds = {}; skill_phases = {}; hand_support = false
-	max_tuck = 0.0; max_lead = 0.0; max_split = 0.0; max_scissor = 0.0; max_arms = 0.0; max_arch = 0.0
+	max_tuck = 0.0; max_lead = 0.0; max_split = 0.0; max_scissor = 0.0; wrap_legs = 0.0; max_arms = 0.0; max_arch = 0.0
 	sampling = true
 	var max_rot := 0.0
 	var running := false
@@ -381,7 +384,7 @@ func trick(name: String, swipes: Array, running: bool, hold: String) -> void:
 		await frames(50)
 	var speed_before := player.speed()
 	phases = {}; kinds = {}
-	max_tuck = 0.0; max_lead = 0.0; max_split = 0.0; max_scissor = 0.0
+	max_tuck = 0.0; max_lead = 0.0; max_split = 0.0; max_scissor = 0.0; wrap_legs = 0.0
 	sampling = true
 	var jc := touch._jump_center()
 	var stick := hold.begins_with("stick")
@@ -526,7 +529,10 @@ func trick(name: String, swipes: Array, running: bool, hold: String) -> void:
 			shape_ok = max_lead > 2.2 and max_tuck > 1.5; shape_txt = "agrupado a una pierna %.2f/%.2f" % [max_lead, max_tuck]
 		"Webster":
 			shape_ok = max_lead > 2.2 and max_scissor > 1.0; shape_txt = "agrupado en tijera %.2f/%.2f" % [max_lead, max_scissor]
-		"Cork", "Cork 720", "Piru 720", "Double Cork", "Cheat Gainer", "Front Full", "Back Half", "Backflip Hyper":
+		"Cork", "Cork 720", "Double Cork":
+			# Cork: patada arriba al despegar y tirabuzón con piernas juntas y brazos cerrados al pecho
+			shape_ok = max_lead > 1.5 and wrap_legs > 0.6; shape_txt = "patada y giro con piernas juntas y brazos cerrados %.2f/%.2f" % [max_lead, wrap_legs]
+		"Piru 720", "Cheat Gainer", "Front Full", "Back Half", "Backflip Hyper":
 			shape_ok = max_tuck > 0.9; shape_txt = "semiagrupado con brazos cerrados %.2f" % max_tuck
 		_:
 			shape_ok = max_tuck > 1.8; shape_txt = "agrupado real (cadera %.2f rad)" % max_tuck

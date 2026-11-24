@@ -200,6 +200,14 @@ const POSES := {
 	"kick_load": {"spine": Vector3(-0.35, 0.4, 0.05), "neck": Vector3(0.2, -0.2, 0), "shoulder_l": Vector3(-0.7, 0, -0.4),
 		"shoulder_r": Vector3(1.1, 0, 0.5), "elbow_l": Vector3(0.6, 0, 0), "elbow_r": Vector3(0.8, 0, 0),
 		"hip_l": Vector3(0.55, 0, 0), "knee_l": Vector3(-1.0, 0, 0), "hip_r": Vector3(-0.95, 0, 0.1), "knee_r": Vector3(-1.35, 0, 0)},
+	# Cork quieto: pierna de impulso delante y flexionada, la de patada atrás de puntillas y
+	# brazos cargados atrás; luego patada arriba en diagonal por delante del cuerpo y brazos arriba.
+	"cork_set": {"spine": Vector3(-0.3, 0.35, 0), "neck": Vector3(0.15, -0.15, 0), "shoulder_l": Vector3(-0.95, 0, -0.35),
+		"shoulder_r": Vector3(-0.85, 0, 0.35), "elbow_l": Vector3(0.35, 0, 0), "elbow_r": Vector3(0.35, 0, 0),
+		"hip_l": Vector3(0.65, 0, -0.05), "knee_l": Vector3(-0.95, 0, 0), "hip_r": Vector3(-0.45, 0, 0.08), "knee_r": Vector3(-0.4, 0, 0)},
+	"cork_swing": {"spine": Vector3(0.25, -0.2, 0), "neck": Vector3(0.35, 0.1, 0), "shoulder_l": Vector3(2.9, 0, -0.25),
+		"shoulder_r": Vector3(2.8, 0, 0.3), "elbow_l": Vector3(0.1, 0, 0), "elbow_r": Vector3(0.15, 0, 0),
+		"hip_l": Vector3(-0.05, 0, 0), "knee_l": Vector3(-0.05, 0, 0), "hip_r": Vector3(2.05, 0, -0.3), "knee_r": Vector3(-0.1, 0, 0)},
 	"football_kick": {"spine": Vector3(0.3, -0.35, 0), "neck": Vector3(0.35, 0.15, 0), "shoulder_l": Vector3(2.6, 0, -0.6),
 		"shoulder_r": Vector3(1.7, 0, 0.9), "elbow_l": Vector3(0.3, 0, 0), "elbow_r": Vector3(0.5, 0, 0),
 		"hip_l": Vector3(0.2, 0, 0), "knee_l": Vector3(-0.45, 0, 0), "hip_r": Vector3(1.8, 0, -0.15), "knee_r": Vector3(-0.15, 0, 0)},
@@ -426,6 +434,17 @@ const SKILLS := {
 			[0.86, 0, 0.3, 3.1416, 0, 0.8, "land_one", 0.6, "paso de piernas y recepción"],
 			[1.0, 0, 0, 3.1416, 0, 0.92, "stand", 0.4, "de pie"]],
 		"contacts": {"hr": [[0.66, 0.8]], "fl": [[0.0, 0.38], [0.93, 1.0]], "fr": [[0.0, 0.28], [0.85, 1.0]]}},
+	# Cork quieto (standing cork): un único apoyo, la patada de la pierna de atrás da la elevación,
+	# bloqueo de cadera, despegue vertical y el tirabuzón empieza ya invertido (en el aire).
+	"cork_swing": {"name": "Cork", "dur": 0.44, "travel": Vector2(0, 1), "keep": 0.3, "leg": 0.0, "arm": 0.0,
+		"vmin": 0.0, "vmax": 2.0, "conv": 0.0, "rebound": 0.0, "land_drop": 0.0, "stability": 1.0,
+		"exit_yaw": 0.0, "link_at": 2.0, "window": 0.0, "difficulty": 0.0, "chain_start": 0.0,
+		"cork_takeoff": true, "rot": "patada en diagonal y despegue vertical",
+		"keys": [[0.0, 0, 0, 0, 0, 0.92, "stand", 0.1, "postura"],
+			[0.42, -0.05, 0, 0, 0, 0.8, "cork_set", 0.2, "carga: pierna de patada atrás y brazos atrás"],
+			[0.74, 0.12, 0, 0, 0, 0.93, "cork_swing", 0.3, "patada arriba en diagonal y brazos arriba"],
+			[1.0, 0.22, 0, 0, 0, 1.0, "cork_swing", 0.3, "bloqueo de cadera y despegue vertical"]],
+		"contacts": {"fl": [[0.0, 1.0]], "fr": [[0.0, 0.6]]}},
 	# ST: recepción a un pie tras un cork y patada inmediata para el siguiente cork (swing-through)
 	"st_entry": {"name": "ST", "dur": 0.36, "travel": Vector2(0, 1), "keep": 1.0, "leg": 1.0, "arm": 0.0,
 		"vmin": 3.5, "vmax": 8.5, "conv": 0.0, "rebound": 0.0, "land_drop": 0.0, "stability": 1.0,

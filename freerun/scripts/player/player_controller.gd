@@ -380,6 +380,12 @@ func _state_ground(dt: float) -> void:
 				return
 			if _try_wall_climb():
 				return
+			if cork_buffer > 0.0 and not chain.active() and t.jump_load_time > 0.0:
+				# Cork quieto o con un paso: carga, patada de la pierna de atrás y despegue vertical
+				cork_buffer = 0.0
+				flick_timer = 0.0
+				_start_skill("cork_swing", cork_side)
+				return
 			var kind := "run" if spd > 3.0 else "stand"
 			_prepare_side_turn(spd)
 			if side_turn <= 0.0 and not chain.active() and (land_impact > 0.3 or t.jump_load_time <= 0.0):
@@ -1058,7 +1064,8 @@ func _make_cork() -> void:
 func _cork_takeoff(side: int, via: String) -> void:
 	cork_side = side
 	jump_load = 0.0
-	velocity.y = t.jump_velocity + 0.6 + speed() * t.jump_speed_bonus
+	# Sin carrera la patada es la fuente principal de elevación: despegue vertical más alto
+	velocity.y = t.jump_velocity + (1.0 if via == "cork_swing" else 0.6) + speed() * t.jump_speed_bonus
 	_enter_air("run")
 	tricks.takeoff_detail = via
 	tricks.linked = true

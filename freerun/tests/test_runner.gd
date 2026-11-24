@@ -1674,6 +1674,39 @@ func t_cork_piru() -> void:
 		func(): return _f > 16 and player.state == PlayerController.State.GROUND)
 	check("Cork: el botón CORK salta en cork al momento (sin pasos previos)", "Cork" in moves and landings.size() > 0 and landings[-1].quality in ["perfect", "clean"],
 		"%s %s" % [moves, landings.map(func(l): return l.quality)])
+	# Cork quieto por fases: carga + patada (un apoyo) → despegue vertical → inversión →
+	# tirabuzón con piernas juntas y brazos cerrados → apertura bajando la pierna de patada
+	var rig: BodyRig = game.rig
+	await place(Vector3(-35, 0.1, 35), Vector3.FORWARD)
+	var y0 := player.global_position.y
+	var ck := {"swing": false, "kick": 0.0, "early_twist": 0.0, "wrap": 0.0, "legs_gap": 9.0, "peak": 0.0, "pitch_at_twist": -1.0, "open_kick_first": false}
+	await run(func(i, f):
+		i.stick_twist = true
+		i.jump_pressed = f == 0; i.flick = Vector2(0, -1) if f == 0 else Vector2.ZERO
+		i.cork_request = f == 0
+		if player.state == PlayerController.State.SKILL and player.skill.id == "cork_swing":
+			ck.swing = true
+		if player.state == PlayerController.State.AIR and player.tricks.style == "cork":
+			var tr := player.tricks
+			ck.peak = maxf(ck.peak, player.global_position.y - y0)
+			var tw := absf(float(tr.total.twist))
+			var pg := absf(float(tr.total.pitch))
+			if pg < deg_to_rad(45.0):
+				ck.early_twist = maxf(ck.early_twist, tw)
+				ck.kick = maxf(ck.kick, (rig.pose.hip_r as Vector3).x)
+			if ck.pitch_at_twist < 0.0 and tw > 0.05:
+				ck.pitch_at_twist = rad_to_deg(pg)
+			if tw > deg_to_rad(90.0) and tw < deg_to_rad(270.0):
+				ck.wrap = maxf(ck.wrap, rig.wrap_w)
+				ck.legs_gap = minf(ck.legs_gap, absf((rig.pose.hip_l as Vector3).x - (rig.pose.hip_r as Vector3).x) + absf((rig.pose.knee_l as Vector3).x))
+			if tr.all_settled() and (rig.pose.hip_l as Vector3).x > (rig.pose.hip_r as Vector3).x + 0.2:
+				ck.open_kick_first = true, 200,
+		func(): return _f > 20 and player.state == PlayerController.State.GROUND)
+	check("Cork quieto: carga y patada de la pierna de atrás antes de despegar (un solo apoyo)", ck.swing and ck.kick > 1.0, str(ck))
+	check("Cork quieto: primero se invierte y luego gira (tirabuzón a partir de ~60°)", ck.early_twist < 0.05 and ck.pitch_at_twist > 50.0, str(ck))
+	check("Cork quieto: gira con piernas juntas y brazos cerrados al pecho", ck.wrap > 0.6 and ck.legs_gap < 0.6, str(ck))
+	check("Cork quieto: abre bajando primero la pierna de patada y recibe limpio", ck.open_kick_first and "Cork" in moves and landings[-1].quality in ["perfect", "clean"],
+		"%s %s %s" % [ck, moves, landings.map(func(l): return l.quality)])
 	# Cork desde una altura: cayendo del borde, CORK empieza el cork en ese punto
 	await place(Vector3(-24.25, 5.75, -10.5), Vector3.FORWARD)
 	var hc := {"pressed": false, "y": 0.0}
