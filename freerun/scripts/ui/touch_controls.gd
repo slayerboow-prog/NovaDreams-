@@ -38,6 +38,7 @@ class TouchFrame:
 	var rot_flick := Vector2.ZERO
 	var skill := ""
 	var double := false
+	var cork := false
 
 var grab_label := "AGARRAR"           # SOLTAR cuando está colgado
 var context_label := "RODAR"
@@ -105,7 +106,7 @@ const RING_BUTTONS := [
 	["RODAR", "action", ""], ["AGARRAR", "grab", ""], ["VAULT", "vault", ""],
 	["MACACO", "skill", "macaco"], ["RUEDA", "skill", "cartwheel"], ["RONDADA", "skill", "roundoff"],
 	["FLIC-FLAC", "skill", "bhs"], ["PALOMA", "skill", "fhs"],
-	["ATRÁS", "flip", -2], ["CORK", "skill", "cork_entry"], ["ADELANTE", "flip", 2],
+	["ATRÁS", "flip", -2], ["CORK", "cork", -2], ["ADELANTE", "flip", 2],
 	["LATERAL\nIZQ.", "flip", 4], ["LATERAL\nDER.", "flip", 0], ["AERIAL /\nMARIPOSA", "flip", 3],
 ]
 const RING_JUMP_R := 86.0
@@ -361,12 +362,13 @@ func _on_touch(e: InputEventScreenTouch) -> void:
 			_flash["ring"] = 0.3
 			_flash["ring_i"] = rb
 			match String(bt[1]):
-				"flip", "flip2":
+				"flip", "flip2", "cork":
 					role = "ringflip"
 					if not air_mode:
 						_pending.jump_pressed = true
 					_emit_flick(sector_dir(int(bt[2])))
 					_pending.double = bt[1] == "flip2"
+					_pending.cork = bt[1] == "cork"
 				"skill":
 					role = "ringskill"
 					_pending.skill = String(bt[2])
@@ -702,7 +704,7 @@ func _draw_ring(font: Font, s: float, a: float, white: Color, dark: Color, accen
 		var hot: bool = held.has(i) or i == flash_i
 		var ring_col := white
 		match String(bt[1]):
-			"flip", "flip2": ring_col = Color(0.35, 0.95, 0.9, white.a)
+			"flip", "flip2", "cork": ring_col = Color(0.35, 0.95, 0.9, white.a)
 			"skill": ring_col = Color(1.0, 0.62, 0.25, white.a)
 			"vault": ring_col = Color(0.35, 0.65, 1.0, white.a)
 			"action": ring_col = Color(0.35, 0.95, 0.45, white.a)

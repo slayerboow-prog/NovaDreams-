@@ -426,21 +426,6 @@ const SKILLS := {
 			[0.86, 0, 0.3, 3.1416, 0, 0.8, "land_one", 0.6, "paso de piernas y recepción"],
 			[1.0, 0, 0, 3.1416, 0, 0.92, "stand", 0.4, "de pie"]],
 		"contacts": {"hr": [[0.66, 0.8]], "fl": [[0.0, 0.38], [0.93, 1.0]], "fr": [[0.0, 0.28], [0.85, 1.0]]}},
-	# Entrada de CORK: tres pasos hacia delante trazando una C (la dirección de carrera gira con
-	# cada paso) y en el tercero una patada como a un balón de fútbol: la pierna libre barre
-	# hacia delante y arriba y el cuerpo despega con toda esa inercia girando (curve = giro de la
-	# trayectoria; cork_takeoff = al terminar despega en cork).
-	"cork_entry": {"name": "Cork Entry", "dur": 0.8, "travel": Vector2(0, 1), "keep": 0.85, "leg": 3.2, "arm": 0.0,
-		"vmin": 4.0, "vmax": 8.5, "conv": 0.0, "rebound": 0.0, "land_drop": 0.0, "stability": 1.0,
-		"exit_yaw": 1.5, "curve": 1.2, "link_at": 2.0, "window": 0.0, "difficulty": 0.0, "chain_start": 0.0,
-		"cork_takeoff": true, "rot": "tres pasos en C y patada al balón",
-		"keys": [[0.0, 0, 0, 0, 0, 0.95, "stride_r", 1.0, "paso 1"],
-			[0.22, -0.1, 0, 0.3, 0, 0.9, "stride_l", 1.0, "paso 2 (curva en C)"],
-			[0.44, -0.12, 0, 0.65, 0, 0.88, "stride_r", 1.0, "paso 3"],
-			[0.64, -0.15, 0, 1.0, 0, 0.82, "kick_load", 0.85, "carga de la patada"],
-			[0.86, 0.2, 0, 1.35, 0, 0.9, "football_kick", 0.9, "patada al balón"],
-			[1.0, 0.35, 0, 1.5, 0, 0.98, "football_kick", 0.9, "despegue"]],
-		"contacts": {"fr": [[0.0, 0.12], [0.34, 0.56]], "fl": [[0.12, 0.34], [0.56, 1.0]]}},
 	# ST: recepción a un pie tras un cork y patada inmediata para el siguiente cork (swing-through)
 	"st_entry": {"name": "ST", "dur": 0.36, "travel": Vector2(0, 1), "keep": 1.0, "leg": 1.0, "arm": 0.0,
 		"vmin": 3.5, "vmax": 8.5, "conv": 0.0, "rebound": 0.0, "land_drop": 0.0, "stability": 1.0,

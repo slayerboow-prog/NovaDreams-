@@ -1566,7 +1566,7 @@ func t_glyphs() -> void:
 				missing[String.chr(c)] = true
 	check("Textos: la fuente tiene todos los caracteres (sin cuadrados en el móvil)", missing.is_empty(), str(missing.keys()))
 
-## PIRU (mortal atrás + tirabuzón suelto) · CORK (botón CORK: 3 pasos en C + patada al balón,
+## PIRU (mortal atrás + tirabuzón suelto) · CORK (botón CORK: salta en cork al momento o lo empieza en el aire,
 ## o el mismo giro dentro de un combo) · ST (caer a un pie y enlazar otro cork).
 func t_cork_piru() -> void:
 	# Piru: ATRÁS + una vuelta de GIRO, suelto
@@ -1578,36 +1578,38 @@ func t_cork_piru() -> void:
 		i.twist = 1.0 if f >= 10 and f < 36 else 0.0, 160,
 		func(): return _f > 16 and player.state == PlayerController.State.GROUND)
 	check("Piru: mortal atrás con tirabuzón de 360 suelto = PIRU", "Piru" in moves, str(moves))
-	# Cork con su entrada: tres pasos en C y patada al balón
-	await place(Vector3(-30, 0.1, 40), Vector3.FORWARD)
-	var cs := {"steps": 0, "last": "", "face0": player.facing, "face_take": Vector3.ZERO, "phases": {}}
+	# Cork con el botón CORK: salta en cork al momento
+	await place(Vector3(-35, 0.1, 35), Vector3.FORWARD)
 	await run(func(i, f):
 		i.stick_twist = true
-		i.skill_request = "cork_entry" if f == 0 else ""
-		if player.state == PlayerController.State.SKILL and player.skill.get("id", "") == "cork_entry":
-			var rig: BodyRig = game.rig
-			cs.phases[rig.last_phase] = true
-			for c in ["fl", "fr"]:
-				if rig.contact_w[c] > 0.99 and cs.last != c:
-					cs.last = c
-					cs.steps += 1
-		if player.state == PlayerController.State.AIR and cs.face_take == Vector3.ZERO:
-			cs.face_take = player.facing, 260,
-		func(): return _f > 30 and player.state == PlayerController.State.GROUND)
-	var turned := rad_to_deg((cs.face0 as Vector3).angle_to(cs.face_take))
-	check("Cork: entrada de 3 pasos en C y patada al balón (%d apoyos, gira %d°)" % [cs.steps, int(turned)],
-		cs.steps >= 4 and turned > 60.0 and cs.phases.has("patada al balón"), str(cs.phases.keys()))
-	check("Cork: despega con la inercia de la patada y sale el CORK", "Cork" in moves and landings.size() > 0 and landings[-1].quality in ["perfect", "clean"],
+		i.jump_pressed = f == 0; i.flick = Vector2(0, -1) if f == 0 else Vector2.ZERO
+		i.cork_request = f == 0
+		i.tuck = f < 10; i.jump_held = i.tuck, 160,
+		func(): return _f > 16 and player.state == PlayerController.State.GROUND)
+	check("Cork: el botón CORK salta en cork al momento (sin pasos previos)", "Cork" in moves and landings.size() > 0 and landings[-1].quality in ["perfect", "clean"],
 		"%s %s" % [moves, landings.map(func(l): return l.quality)])
+	# Cork desde una altura: cayendo del borde, CORK empieza el cork en ese punto
+	await place(Vector3(-24.25, 5.75, -10.5), Vector3.FORWARD)
+	var hc := {"pressed": false, "y": 0.0}
+	await run(func(i, f):
+		i.stick_twist = true
+		i.move = Vector2(0, 0.5) if not hc.pressed else Vector2.ZERO
+		if not hc.pressed and player.state == PlayerController.State.AIR and player.global_position.y < 5.3:
+			i.cork_request = true
+			hc.pressed = true
+			hc.y = player.global_position.y, 240,
+		func(): return hc.pressed and player.state != PlayerController.State.AIR)
+	check("Cork desde una altura: se decide en el aire, en el punto que quieras (%.1f m)" % hc.y,
+		"Cork" in moves, "%s %s" % [moves, landings.map(func(l): return [l.quality, int(l.error)])])
 	# ST: CORK pulsado durante el cork = cae a un pie y enlaza otro cork
-	await place(Vector3(-30, 0.1, 40), Vector3.FORWARD)
+	await place(Vector3(-35, 0.1, 40), Vector3.FORWARD)
 	var st := {"pressed": false}
 	await run(func(i, f):
 		i.stick_twist = true
-		i.move = Vector2(0.6, 0) if f == 0 else Vector2.ZERO      # la C hacia la derecha (zona libre)
-		i.skill_request = "cork_entry" if f == 0 else ""
+		i.jump_pressed = f == 0; i.flick = Vector2(0, -1) if f == 0 else Vector2.ZERO
+		i.cork_request = f == 0
 		if not st.pressed and player.state == PlayerController.State.AIR and player.tricks.air_time > 0.3:
-			i.skill_request = "cork_entry"
+			i.cork_request = true
 			st.pressed = true, 400,
 		func(): return st.pressed and moves.count("Cork") >= 2 and player.state == PlayerController.State.GROUND)
 	var order_ok := moves.size() >= 3 and moves[0] == "Cork" and moves[1] == "ST" and moves[2] == "Cork"

@@ -25,8 +25,8 @@ Cómo se usan:
 - **Mantener pulsado el botón de un mortal = el atleta sigue agrupado y girando**: doble, triple o las vueltas que permita la altura. Al soltar se abre y aterriza en la siguiente vuelta completa; con ayuda Alta o Media se abre solo si ya no queda altura para otra vuelta.
 - Corriendo, ATRÁS es gainer y ADELANTE, webster.
 - **PIRU**: mortal atrás con tirabuzón de 360 suelto (ATRÁS + una vuelta de GIRO; con más GIRO, Piru 540 / 720).
-- **CORK**: el mismo giro dentro de un combo (tras TD Raiz, raiz, hook, scoot, rondada/flic-flac). El botón **CORK** hace su entrada: **tres pasos hacia delante en forma de C** y, al tercero, **una patada como a un balón de fútbol**; con esa inercia despega en cork con tirabuzón de 360 (GIRO en el mismo sentido lo alarga a 540 / 720). La C se curva hacia donde empuja el joystick izquierdo.
-- **ST**: pulsa CORK durante un cork y caerá **a un pie** y, con la pierna libre, patea directamente otro cork (sin los tres pasos): Cork › ST › Cork…
+- **CORK**: el mismo giro dentro de un combo (tras TD Raiz, raiz, hook, scoot, rondada/flic-flac) o con el botón **CORK**: salta en cork al momento con tirabuzón de 360 (GIRO en el mismo sentido lo alarga a 540 / 720; el joystick izquierdo elige el sentido). Si ya estás en el aire —por ejemplo, saltando desde el borde de una altura— pulsar CORK empieza el cork justo en ese punto.
+- **ST**: pulsa CORK durante un cork y caerá **a un pie** y, con la pierna libre, patea directamente otro cork : Cork › ST › Cork…
 - La rueda, la rondada y el macaco van hacia el lado al que empuja el joystick izquierdo.
 - Pulsar un botón durante un movimiento lo deja en cola para la recepción. Por ejemplo, RONDADA → FLIC-FLAC → ATRÁS.
 - **Joystick izquierdo**: movimiento. **Joystick GIRO**: todos los tirabuzones y giros (¼ híper, ½, 1, cork, 720…). En el suelo, el joystick GIRO también hace los gestos de abajo (raiz, hook, walkovers, pino…).

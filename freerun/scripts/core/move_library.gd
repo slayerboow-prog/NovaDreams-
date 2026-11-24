@@ -104,7 +104,7 @@ const MOVES := [
 	{"name": "Double Gainer", "cat": "Gainers", "lvl": 4, "input": "Gainer + ↓ otra vez", "status": "ok"},
 	{"name": "Kong Gainer · Dash Gainer · Vault Gainer", "cat": "Gainers", "lvl": 3, "input": "JD ↓ durante el vault", "status": "ok"},
 	# --- Corks ---
-	{"name": "Cork / Corkscrew", "cat": "Corks", "lvl": 4, "input": "Botón CORK: 3 pasos en C y patada al balón (tirabuzón de 360 con su inercia); o ATRÁS + GIRO dentro de un combo (tras TD Raiz, raiz, hook, rondada...)", "status": "ok"},
+	{"name": "Cork / Corkscrew", "cat": "Corks", "lvl": 4, "input": "Botón CORK: salta en cork al momento (o, cayendo de una altura, lo empieza en ese punto); o ATRÁS + GIRO dentro de un combo (tras TD Raiz, raiz, hook, rondada...)", "status": "ok"},
 	{"name": "Cork 720", "cat": "Corks", "lvl": 4, "input": "Cork + GIRO en el mismo sentido", "status": "ok"},
 	{"name": "ST (recepción a un pie)", "cat": "Corks", "lvl": 4, "input": "Pulsa CORK durante un cork: cae a un pie y enlaza otro cork", "status": "ok"},
 	{"name": "Cork 540 · Cork 1080", "cat": "Corks", "lvl": 4, "input": "Cork + giros añadidos", "status": "parcial"},

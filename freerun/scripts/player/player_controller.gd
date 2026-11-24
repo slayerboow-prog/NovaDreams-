@@ -71,6 +71,7 @@ const TAKEOFF := {
 	"double_side": {"load": 0.17, "vy": 0.9, "fwd": 0.0},
 	"aerial": {"load": 0.16, "vy": -0.4, "fwd": 1.6},
 	"butterfly": {"load": 0.13, "vy": -0.3, "fwd": 0.4},
+	"cork": {"load": 0.12, "vy": 0.45, "fwd": 0.0},
 }
 var land_quality := ""                  # último aterrizaje (para la animación de recepción)
 var land_timer := 9.0                   # tiempo desde el último aterrizaje
@@ -95,6 +96,7 @@ var skill_serial := 0                   # cambia con cada habilidad (el rig reor
 var last_skill := {}                    # datos de la última habilidad (pruebas/HUD)
 var double_buffer := 0.0                # botonera: se pidió doble mortal hace poco
 var st_queued := false                  # CORK pulsado durante un cork: caer a un pie (ST) y enlazar otro
+var cork_buffer := 0.0                  # botón CORK pulsado hace poco (se aplica en el despegue)
 var cork_side := 1
 
 # Datos de la acción en curso
@@ -247,9 +249,12 @@ func _physics_process(dt: float) -> void:
 			chain_event_t = 0.45
 		elif state == State.GROUND or state == State.CRASH:
 			gesture_event = bev
-		elif state == State.AIR and intent.skill_request == "cork_entry" and tricks.style == "cork":
-			st_queued = true                 # ST: recepción a un pie y otro cork
 	double_buffer = 0.25 if intent.double_flip else maxf(0.0, double_buffer - dt)
+	if intent.cork_request:
+		cork_buffer = 0.25
+		cork_side = -1 if intent.move.x > 0.3 else 1     # el tirabuzón gira hacia donde empujas
+	elif jump_load <= 0.0:
+		cork_buffer = maxf(0.0, cork_buffer - dt)
 	if intent.respawn_pressed:
 		respawn()
 		return
@@ -410,6 +415,8 @@ func _prepare_side_turn(spd: float) -> void:
 
 ## Qué mortal sale con este salto (zona/botón pulsado) para elegir su despegue.
 func _flip_kind(spd: float) -> String:
+	if cork_buffer > 0.0:
+		return "cork"
 	if flick_timer <= 0.0:
 		return "jump"
 	var dbl := double_buffer > 0.0 or intent.double_flip
@@ -451,6 +458,9 @@ func _takeoff(kind: String) -> void:
 	if double_buffer > 0.0 and flick_timer > 0.0:
 		tricks.apply_flick(flick_buffer, false)       # botón DOBLE: otra vuelta pedida desde el despegue
 		double_buffer = 0.0
+	if cork_buffer > 0.0:
+		_make_cork()
+		cork_buffer = 0.0
 	if pre_twist > 0.0 and intent.stick_twist:
 		tricks.twist_input(pre_twist_dir, pre_twist, t)
 	pre_twist = 0.0
@@ -568,7 +578,15 @@ func _state_air(dt: float) -> void:
 	velocity.y = maxf(velocity.y - g * dt, -t.max_fall)
 	peak_y = maxf(peak_y, global_position.y)
 
-	if intent.flick != Vector2.ZERO:
+	if intent.cork_request:
+		# Botón CORK en el aire: durante un cork = ST (caer a un pie y enlazar otro); si no hay
+		# mortal (cayendo de una altura, desde el borde) empieza el cork justo en ese punto; durante
+		# un mortal atrás le añade el tirabuzón del cork.
+		if tricks.style == "cork":
+			st_queued = true
+		elif not tricks.active or tricks.style == "back":
+			_make_cork()
+	elif intent.flick != Vector2.ZERO:
 		tricks.apply_flick(intent.flick, not intent.stick_twist)
 		if intent.double_flip:
 			tricks.apply_flick(intent.flick, false)            # botón DOBLE en el aire: dos vueltas
@@ -833,8 +851,6 @@ func _ground_gesture(ev: Dictionary) -> bool:
 		"skill":
 			# Botón de la botonera. Lado (rueda, rondada, macaco): hacia donde empuja el joystick izquierdo
 			var side := -1 if intent.move.x < -0.3 else 1
-			if String(ev.id) == "cork_entry":
-				side = -1 if intent.move.x > 0.3 else 1      # la C se curva hacia donde empujas
 			_start_skill(String(ev.id), side)
 			return true
 		"flick", "double":
@@ -1012,6 +1028,17 @@ func _state_skill(dt: float) -> void:
 			return
 		_finish_skill(true)
 		_set_state(State.GROUND)
+
+## Convierte el salto/caída actual en un CORK: mortal atrás fuera de eje con tirabuzón de 360 que
+## arranca solo (el GIRO en el mismo sentido lo alarga a 540, 720...).
+func _make_cork() -> void:
+	if not tricks.active:
+		tricks.apply_flick(Vector2(0, -1))
+	tricks.style = "cork"
+	tricks.linked = true
+	tricks.twist_boost = 1.2
+	if tricks.dir.get("twist", 0) == 0:
+		tricks.apply_kick(cork_side)
 
 ## Despegue del CORK tras la entrada (tres pasos en C y patada al balón) o tras un ST: la patada
 ## da la inercia (salto algo más alto y la carrera de la curva) y el tirabuzón de 360 arranca solo;
