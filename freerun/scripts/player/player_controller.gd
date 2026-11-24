@@ -827,7 +827,7 @@ func _tick_gestures(dt: float) -> void:
 	if air_grab_t > 0.0 and state == State.AIR:
 		grab_buffer = maxf(grab_buffer, 0.05)
 	wallflip_t = maxf(0.0, wallflip_t - dt)
-	if wallflip_t > 0.0 and state == State.WALLCLIMB and state_time > 0.15:
+	if wallflip_t > 0.0 and state == State.WALLCLIMB and state_time > 0.1:
 		intent.flick = Vector2(0, -1)          # wall flip: mortal atrás impulsándose en la pared
 		wallflip_t = 0.0
 	wallrun_hold_t = maxf(0.0, wallrun_hold_t - dt)
@@ -1632,7 +1632,7 @@ func _state_wallclimb(dt: float) -> void:
 		var stick: float = (hit.distance - (CAPSULE_RADIUS + 0.04)) * 10.0
 		velocity.x = -n.x * stick
 		velocity.z = -n.z * stick
-	if _try_ledge(true):
+	if intent.flick == Vector2.ZERO and _try_ledge(true):
 		return
 	if jump_buffer > 0.0 or intent.flick != Vector2.ZERO:
 		jump_buffer = 0.0

@@ -1996,6 +1996,8 @@ func t_gesture_patterns() -> void:
 	check("Tirabuzones: solo se aceptan las vueltas que caben en el tiempo de vuelo (%d de 5 en 0,6 s)" % fits, fits >= 1 and fits < 5, "")
 
 	# --- Patrones ejecutados por el atleta (mismas mecánicas que los botones) ---
+	var mode_before := Settings.trick_controls
+	Settings.trick_controls = 5
 	for pc in [[{"id": "cork", "loops": 1, "twist": 1}, ["Cork"]], [{"id": "cork720", "loops": 2, "twist": 1}, ["Cork 720"]],
 			[{"id": "aerial_twist", "loops": 1, "twist": 1}, ["Aerial Twist"]], [{"id": "webster"}, ["Webster", "Frontflip"]],
 			[{"id": "gainer", "loops": 1}, ["Gainer", "Backflip"]], [{"id": "aerial"}, ["Aerial"]]]:
@@ -2016,7 +2018,7 @@ func t_gesture_patterns() -> void:
 	await run(func(i, f):
 		i.stick_twist = true
 		if f == 0:
-			i.twist_loops = [1], 160,
+			i.twist_loops.append(1), 160,
 		func(): return _f > 30 and player.state == PlayerController.State.GROUND)
 	check("Círculo morado en el suelo = giro de 360 en el aire", "360 Kick" in moves, str(moves))
 	await place(Vector3(-35, 0.1, 35), Vector3.FORWARD)
@@ -2024,7 +2026,7 @@ func t_gesture_patterns() -> void:
 		i.stick_twist = true
 		i.jump_pressed = f == 0; i.flick = Vector2(0, -1) if f == 0 else Vector2.ZERO
 		if f == 14:
-			i.twist_loops = [1], 200,
+			i.twist_loops.append(1), 200,
 		func(): return _f > 30 and player.state == PlayerController.State.GROUND)
 	check("Mortal atrás + círculo morado = Piru (tirabuzón completo) y aterriza", "Piru" in moves and landings.size() > 0 and landings[-1].quality in ["perfect", "clean"],
 		"%s %s" % [moves, landings.map(func(l): return l.quality)])
@@ -2033,20 +2035,21 @@ func t_gesture_patterns() -> void:
 		i.stick_twist = true
 		i.jump_pressed = f == 0; i.flick = Vector2(0, -1) if f == 0 else Vector2.ZERO
 		if f == 8:
-			i.twist_loops = [1, 1, 1], 200,
+			i.twist_loops.append_array([1, 1, 1]), 200,
 		func(): return _f > 30 and player.state == PlayerController.State.GROUND)
 	check("Tres círculos en un mortal en el suelo: hace los que caben y no se estrella", landings.size() > 0 and landings[-1].quality != "crash",
 		"%s %s" % [moves, landings.map(func(l): return l.quality)])
 	# Parkour: patrones con obstáculo / pared
 	var park := func(start: Vector3, stick: float, sprint: bool, pat: Dictionary, at_z: float) -> void:
 		await place(start, Vector3.FORWARD)
-		var st := {"p": false}
+		var st := {"p": false, "f": 0}
 		await run(func(i, f):
 			i.move = Vector2(0, stick); i.sprint = sprint
 			if not st.p and player.global_position.z <= at_z:
 				i.pattern = pat
-				st.p = true, 260,
-			func(): return st.p and _f > 40 and player.state in [PlayerController.State.GROUND, PlayerController.State.HANG])
+				st.p = true
+				st.f = f, 300,
+			func(): return st.p and _f > st.f + 70 and player.state in [PlayerController.State.GROUND, PlayerController.State.HANG])
 	await park.call(Vector3(0, 0.1, -8), 1.0, true, {"id": "kong"}, -11.0)
 	check("Patrón KONG (dos arcos) con obstáculo = Kong Vault", "Kong Vault" in moves, str(moves))
 	await park.call(Vector3(0, 0.1, 2), 0.8, false, {"id": "vault"}, -4.0)
@@ -2064,10 +2067,9 @@ func t_gesture_patterns() -> void:
 	await run(func(i, f):
 		i.move = Vector2(0, 0.7)
 		if f == 25:
-			i.pattern = {"id": "precision"}
-		if landings.size() > 0 and pv.v == 9.0:
-			pv.v = player.speed(), 200,
+			i.pattern = {"id": "precision"}, 200,
 		func(): return landings.size() > 0 and _f > 30)
+	pv.v = player.speed()
 	check("Patrón PRECISIÓN = salta y clava la recepción (%.1f m/s al caer)" % pv.v, "Precision Jump" in moves and pv.v < 1.0, str(moves))
 	await place(Vector3(-35, 2.9, 35), Vector3.FORWARD)
 	await run(func(i, f):
@@ -2086,7 +2088,7 @@ func t_gesture_patterns() -> void:
 
 	# --- Táctil real: los tres joysticks ---
 	var touch: TouchControls = game.ui.touch
-	var old_mode := Settings.trick_controls
+	var old_mode := mode_before
 	Settings.trick_controls = 5
 	Settings.force_touch_ui = true
 	touch.visible = true
@@ -2100,6 +2102,7 @@ func t_gesture_patterns() -> void:
 	for tc in [["cork", "Cork"], ["webster", "Webster"], ["aerial", "Aerial"]]:
 		await place(Vector3(-35, 0.1, 35), Vector3.FORWARD)
 		touch.air_mode = false
+		jc = touch._jump_center(); jr = touch._jump_radius()
 		_draw_on(touch, 7, _gpts(tc[0], jc, jr * 0.9))
 		for k in 240:
 			await get_tree().physics_frame
@@ -2107,6 +2110,7 @@ func t_gesture_patterns() -> void:
 				break
 		check("Táctil: dibujar %s en el joystick dorado = %s" % [tc[0].to_upper(), tc[1]], tc[1] in moves or (tc[1] == "Webster" and "Frontflip" in moves), str(moves))
 	await place(Vector3(-35, 0.1, 35), Vector3.FORWARD)
+	rc = touch._rot_center()
 	_draw_on(touch, 8, _circle_pts(rc + Vector2(0, -20), 45, 1.08, 1))
 	for k in 150:
 		await get_tree().physics_frame
@@ -2114,6 +2118,7 @@ func t_gesture_patterns() -> void:
 			break
 	check("Táctil: círculo en el joystick morado (suelo) = giro de 360", "360 Kick" in moves, str(moves))
 	await place(Vector3(-35, 0.1, 35), Vector3.FORWARD)
+	rc = touch._rot_center()
 	_draw_on(touch, 8, [rc, rc + Vector2(0, -40), rc + Vector2(0, -90)])
 	for k in 120:
 		await get_tree().physics_frame
@@ -2123,6 +2128,7 @@ func t_gesture_patterns() -> void:
 	# Multitáctil: correr, mortal y tirabuzón a la vez, cada dedo en su joystick
 	game.router.enabled = false
 	touch.collect()
+	jc = touch._jump_center(); jr = touch._jump_radius(); rc = touch._rot_center()
 	var mv0 := touch._joy_idle()
 	var em := InputEventScreenTouch.new(); em.index = 1; em.position = mv0; em.pressed = true
 	touch._on_touch(em)
@@ -2142,7 +2148,7 @@ func t_gesture_patterns() -> void:
 	check("Un dedo que empieza en un joystick no activa otro", fr2.flick == Vector2.ZERO and fr2.pattern.is_empty() and not fr2.jump_pressed, "flick %s %s" % [fr2.flick, fr2.pattern])
 	# Salto de precisión: línea corta hacia arriba y un toque
 	_draw_on(touch, 2, [jc, jc + Vector2(0, -20), jc + Vector2(0, -40)])
-	touch._process(0.1)
+	touch._time += 0.1
 	_draw_on(touch, 2, [jc])
 	var fr3 := touch.collect()
 	check("Táctil: línea corta + toque = salto de precisión", String(fr3.pattern.get("id", "")) == "precision", str(fr3.pattern))
@@ -2153,8 +2159,6 @@ func t_gesture_patterns() -> void:
 	var okc: bool = touch.train_done.has("cork") and touch.train_last.ok
 	touch.train_i = TouchControls.TRAIN.map(func(x): return x[0]).find("webster")
 	_draw_on(touch, 2, [jc, jc + Vector2(0, -45), jc + Vector2(0, -95)])
-	await frames(2)
-	touch._process(0.4)
 	check("Práctica: el gesto pedido se marca como hecho y uno distinto se avisa", okc and not touch.train_last.ok and not touch.train_done.has("webster"), str(touch.train_last))
 	touch.train_i = TouchControls.TRAIN.map(func(x): return x[0]).find("twist_2")
 	_draw_on(touch, 3, _circle_pts(rc, 45, 2.05, 1))

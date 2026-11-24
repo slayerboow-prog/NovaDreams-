@@ -414,7 +414,12 @@ class LoopCounter:
 			return 0
 		var h := atan2(-d.y, d.x)
 		if heading != INF:
-			acc += wrapf(h - heading, -PI, PI)
+			var dh := wrapf(h - heading, -PI, PI)
+			if absf(dh) > 2.5:
+				acc = 0.0                    # vuelta atrás brusca (cambio de sentido): empieza otro círculo
+				since = 0.0
+			else:
+				acc += dh
 		heading = h
 		since += d.length() / radius
 		last = p
