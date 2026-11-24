@@ -23,6 +23,7 @@ func _ready() -> void:
 	game.camera.set_process(false)
 	player.camera_yaw = 0.0
 	game.router.scripted = _drive
+	Settings.trick_controls = 0             # las pruebas de doble joystick lo necesitan; la botonera se prueba aparte
 	player.move_performed.connect(func(n, _q, _i): moves.append(n))
 	player.landed.connect(func(r): landings.append(r))
 	player.bailed.connect(func(r): bails.append(r))
@@ -104,6 +105,7 @@ func _run_all() -> void:
 	await t_wheel_twist()
 	await t_wheel_no_twist()
 	await t_touch_layout()
+	await t_ring_buttons()
 	await t_landing_feel()
 	await t_new_tricks()
 	await t_gestures()
@@ -907,7 +909,8 @@ func t_touch_layout() -> void:
 		if TouchControls.sector_of(v) != pair[1]:
 			problems.append("sector %d° -> %d (esperado %d)" % [int(pair[0]), TouchControls.sector_of(v), pair[1]])
 	var old_mode := Settings.trick_controls
-	for combo in [[0, Vector2(1560, 720)], [0, Vector2(1280, 720)], [0, Vector2(960, 720)], [3, Vector2(1560, 720)], [3, Vector2(1280, 720)], [3, Vector2(960, 720)]]:
+	for combo in [[0, Vector2(1560, 720)], [0, Vector2(1280, 720)], [0, Vector2(960, 720)], [3, Vector2(1560, 720)], [3, Vector2(1280, 720)], [3, Vector2(960, 720)],
+			[4, Vector2(1560, 720)], [4, Vector2(1542, 720)], [4, Vector2(1280, 720)], [4, Vector2(960, 720)]]:
 		Settings.trick_controls = combo[0]
 		var sz: Vector2 = combo[1]
 		for sc in [1.0, 1.4]:
@@ -1434,3 +1437,81 @@ func t_vault_hands() -> void:
 			func(): return r.p and _f > 5 and player.state == PlayerController.State.GROUND)
 		check("%s: manos apoyadas sobre el obstáculo (deriva < 8 cm, %d fotogramas)" % [c[0], r.frames],
 			c[0] in moves and r.frames >= 3 and r.drift < 0.08 and r.below > -0.03, "%s deriva %.3f bajo %.3f" % [moves, r.drift, r.below])
+
+## Botonera (esquema por defecto): SALTO grande y arco de 3/4 de círculo con un botón por
+## movimiento, abajo a la derecha; joystick de movimiento y joystick GIRO. Toques reales.
+func t_ring_buttons() -> void:
+	var touch: TouchControls = game.ui.touch
+	var old_mode := Settings.trick_controls
+	Settings.trick_controls = 4
+	Settings.force_touch_ui = true
+	touch.visible = true
+	touch.size = Vector2(1542, 720)
+	var n := TouchControls.RING_BUTTONS.size()
+	# Geometría: arco de 270° alrededor del SALTO, abajo a la derecha
+	var jc := touch._jump_center()
+	var first := touch.ring_button_center(0)
+	var last := touch.ring_button_center(n - 1)
+	var top := touch.ring_button_center(n / 2)
+	check("Botonera: SALTO abajo a la derecha y %d botones en 3/4 de círculo" % n,
+		jc.x > touch.size.x * 0.7 and jc.y > touch.size.y * 0.55 and first.x < jc.x and first.y > jc.y and last.x > jc.x and last.y > jc.y and top.y < jc.y - 100,
+		"salto %s primero %s último %s" % [jc, first, last])
+	var press := func(idx: int, on: bool) -> void:
+		var e := InputEventScreenTouch.new()
+		e.index = 5
+		e.position = touch.ring_button_center(idx)
+		e.pressed = on
+		touch._on_touch(e)
+	var find := func(label: String) -> int:
+		for i in n:
+			if String(TouchControls.RING_BUTTONS[i][0]).replace("\n", " ") == label:
+				return i
+		return -1
+	game.router.scripted = Callable()            # entrada real: el táctil
+	for c in [["ATRÁS", "Backflip"], ["ADELANTE", "Frontflip"], ["DOBLE ATRÁS", "Double Backflip"], ["LATERAL ▶", "Sideflip"],
+			["RONDADA", "Round-off"], ["FLIC-FLAC", "Back Handspring"], ["RUEDA", "Cartwheel"], ["PALOMA", "Front Handspring"], ["MACACO", "Macaco"]]:
+		var bi: int = find.call(c[0])
+		player.set_spawn(Transform3D(Basis(), Vector3(-35, 0.1, 35)), Vector3.FORWARD)
+		player.respawn()
+		player.camera_yaw = 0.0
+		await frames(20)
+		moves.clear(); landings.clear()
+		press.call(bi, true)
+		var held := 0
+		for k in 220:
+			await get_tree().physics_frame
+			var tr := player.tricks
+			var need := TAU * (2.0 if c[1].begins_with("Double") else 1.0) - deg_to_rad(100)
+			if held == 0 and (k > 40 or maxf(absf(tr.total_pitch), absf(tr.total_roll)) > need):
+				press.call(bi, false)                  # suelta el botón: se abre y aterriza
+				held = 1
+			if k > 30 and player.state == PlayerController.State.GROUND:
+				break
+		if held == 0:
+			press.call(bi, false)
+		await frames(10)
+		check("Botonera: botón %s = %s" % [c[0].replace("\n", " "), c[1]], c[1] in moves and landings.all(func(l): return l.quality in ["perfect", "clean"]),
+			"%s %s" % [moves, landings.map(func(l): return l.quality)])
+	# Enlace con botones: RONDADA → FLIC-FLAC (pulsado durante la rondada) → ATRÁS (en la recepción)
+	player.set_spawn(Transform3D(Basis(), Vector3(-35, 0.1, 40)), Vector3.FORWARD)
+	player.respawn()
+	await frames(20)
+	moves.clear(); landings.clear()
+	var st := {"step": 0}
+	for k in 400:
+		if st.step == 0:
+			press.call(find.call("RONDADA"), true); press.call(find.call("RONDADA"), false); st.step = 1
+		elif st.step == 1 and player.state == PlayerController.State.SKILL and player.skill.id == "roundoff" and player.skill.s > 0.5:
+			press.call(find.call("FLIC-FLAC"), true); press.call(find.call("FLIC-FLAC"), false); st.step = 2
+		elif st.step == 2 and player.state == PlayerController.State.SKILL and player.skill.id == "bhs" and player.skill.get("linked", false):
+			press.call(find.call("ATRÁS"), true); st.step = 3; st.t = k
+		elif st.step == 3 and k - int(st.t) > 14:
+			press.call(find.call("ATRÁS"), false); st.step = 4
+		await get_tree().physics_frame
+		if st.step == 4 and player.state == PlayerController.State.GROUND and k > 60:
+			break
+	check("Botonera: enlace RONDADA → FLIC-FLAC → ATRÁS con botones", moves.size() >= 3 and moves[0] == "Round-off" and moves[1] == "Back Handspring" and moves[2] in ["Backflip", "Gainer"], str(moves))
+	touch.size = touch.get_viewport_rect().size
+	game.router.scripted = _drive
+	Settings.trick_controls = old_mode
+	Settings.force_touch_ui = false

@@ -36,6 +36,8 @@ class TouchFrame:
 	var grab_held := false
 	var camera_recenter := false
 	var rot_flick := Vector2.ZERO
+	var skill := ""
+	var double := false
 
 var grab_label := "AGARRAR"           # SOLTAR cuando está colgado
 var context_label := "RODAR"
@@ -80,15 +82,62 @@ func _joy_idle() -> Vector2:
 func _mirror(x: float) -> float:
 	return x if not Settings.left_handed else size.x - x
 
-## trick_controls: 0 doble joystick · 1 solo gestos · 2 solo cruceta · 3 gestos + cruceta
+## trick_controls: 0 doble joystick · 1 solo gestos · 2 solo cruceta · 3 gestos + cruceta · 4 botonera
 func gestures_enabled() -> bool:
-	return Settings.trick_controls != 2
+	return Settings.trick_controls != 2 and Settings.trick_controls != 4
 
 func pad_enabled() -> bool:
-	return Settings.trick_controls >= 2
+	return Settings.trick_controls in [2, 3]
 
+## Joystick GIRO presente (doble joystick y botonera): los tirabuzones son solo suyos.
 func stick_enabled() -> bool:
-	return Settings.trick_controls == 0
+	return Settings.trick_controls == 0 or Settings.trick_controls == 4
+
+## Botonera: SALTO grande abajo a la derecha y un arco de 3/4 de círculo con un botón por
+## movimiento (mortales, movimientos de suelo y de parkour).
+func ring_enabled() -> bool:
+	return Settings.trick_controls == 4
+
+## [rótulo, tipo, valor]. Tipos: flip (sector de la acrobacia), flip2 (doble), skill (habilidad de
+## suelo), vault / grab / action. Orden: del botón de abajo a la izquierda, por arriba, hasta abajo
+## a la derecha (270°).
+const RING_BUTTONS := [
+	["RODAR", "action", ""], ["AGARRAR", "grab", ""], ["VAULT", "vault", ""],
+	["MACACO", "skill", "macaco"], ["RUEDA", "skill", "cartwheel"], ["RONDADA", "skill", "roundoff"],
+	["FLIC-FLAC", "skill", "bhs"], ["PALOMA", "skill", "fhs"],
+	["ATRÁS", "flip", -2], ["DOBLE\nATRÁS", "flip2", -2], ["ADELANTE", "flip", 2], ["DOBLE\nADELANTE", "flip2", 2],
+	["LATERAL\n◀", "flip", 4], ["LATERAL\n▶", "flip", 0], ["AERIAL /\nMARIPOSA", "flip", 3],
+]
+const RING_JUMP_R := 86.0
+const RING_R := 212.0
+const RING_BTN_R := 33.0
+const RING_A0 := 225.0               # grados (matemáticos, y arriba): abajo a la izquierda
+const RING_SPAN := 270.0
+
+func _ring_center() -> Vector2:
+	var s := _s()
+	return Vector2(_mirror(size.x - 250.0 * s), size.y - 192.0 * s)
+
+func ring_button_center(i: int) -> Vector2:
+	var n := RING_BUTTONS.size()
+	var ang := deg_to_rad(RING_A0 - RING_SPAN * float(i) / float(n - 1))
+	var v := Vector2(cos(ang), -sin(ang)) * RING_R * _s()
+	if Settings.left_handed:
+		v.x = -v.x
+	return _ring_center() + v
+
+func ring_button_radius() -> float:
+	return RING_BTN_R * _s()
+
+func ring_button_at(p: Vector2) -> int:
+	var best := -1
+	var bd := ring_button_radius() * 1.06
+	for i in RING_BUTTONS.size():
+		var d := p.distance_to(ring_button_center(i))
+		if d < bd:
+			bd = d
+			best = i
+	return best
 
 # Distribución ergonómica para el pulgar derecho (arco alrededor de la esquina inferior):
 #   SALTO grande en la esquina, cruceta de trucos a su izquierda, RODAR encima del salto.
@@ -107,19 +156,28 @@ const SMALL_R := 62.0                 # VAULT, AGARRAR, RODAR
 
 func _jump_center() -> Vector2:
 	var s := _s()
+	if ring_enabled():
+		return _ring_center()
 	if stick_enabled():
 		return Vector2(_mirror(size.x - 300.0 * s), maxf(size.y - 430.0 * s, _jump_radius() * 1.03 + 8.0))
 	return Vector2(_mirror(size.x - 158.0 * s), size.y - 158.0 * s)
 
 func _jump_radius() -> float:
+	if ring_enabled():
+		return RING_JUMP_R * _s()
 	return (STICK_JUMP_R if stick_enabled() else JUMP_R) * _s()
 
 func _rot_center() -> Vector2:
 	var s := _s()
+	if ring_enabled():
+		# Justo a la izquierda del arco de botones (sin invadir el joystick de movimiento)
+		var off := (RING_R + RING_BTN_R * 1.06 + 112.0 * 1.08 + 12.0) * s
+		var cx := _ring_center().x + (off if Settings.left_handed else -off)
+		return Vector2(cx, size.y - 150.0 * s)
 	return Vector2(_mirror(size.x - 520.0 * s), size.y - 195.0 * s)
 
 func _rot_radius() -> float:
-	return ROT_R * _s()
+	return (112.0 if ring_enabled() else ROT_R) * _s()
 
 ## Recorrido del joystick derecho hasta la inclinación máxima (configurable con la sensibilidad).
 func _rot_travel() -> float:
@@ -180,12 +238,22 @@ func _pad_radius() -> float:
 
 ## Radios de pulsación (algo mayores que el dibujo para acertar con el pulgar sin mirar).
 func hit_radii() -> Dictionary:
+	if ring_enabled():
+		var hr := {"jump": _jump_radius() * 1.04, "rot": _rot_radius() * 1.08}
+		for i in RING_BUTTONS.size():
+			hr["ring_%d" % i] = ring_button_radius() * 1.06
+		return hr
 	var small := 1.15 if stick_enabled() else 1.2
 	return {"jump": _jump_radius() * (1.03 if stick_enabled() else 1.12), "action": _action_radius() * small, "pad": _pad_radius() * 1.08,
 		"rot": _rot_radius() * 1.08, "vault": _small_radius() * 1.15, "grab": _small_radius() * 1.15}
 
 ## Zonas táctiles activas en el modo actual (las pruebas comprueban que no se solapan).
 func zones() -> Dictionary:
+	if ring_enabled():
+		var zr := {"jump": _jump_center(), "rot": _rot_center()}
+		for i in RING_BUTTONS.size():
+			zr["ring_%d" % i] = ring_button_center(i)
+		return zr
 	var z := {"jump": _jump_center(), "action": _action_center()}
 	if pad_enabled():
 		z["pad"] = _pad_center()
@@ -220,6 +288,8 @@ func collect() -> TouchFrame:
 			"flipw":
 				f.jump_held = true
 				f.tuck = true
+			"ringflip":
+				f.tuck = true            # mantener el botón del mortal = agrupado
 			"action":
 				f.action_held = true
 			"pad":
@@ -283,7 +353,33 @@ func _on_touch(e: InputEventScreenTouch) -> void:
 		var role := ""
 		var info := {"start": p, "pos": p, "time": _time, "flicked": false, "anchor": p, "sector": 99}
 		var hr := hit_radii()
-		if p.distance_to(_jump_center()) < hr.jump and stick_enabled() \
+		var rb := ring_button_at(p) if ring_enabled() else -1
+		if rb >= 0:
+			# Botonera: cada botón es un movimiento
+			var bt: Array = RING_BUTTONS[rb]
+			info.sector = rb
+			_flash["ring"] = 0.3
+			_flash["ring_i"] = rb
+			match String(bt[1]):
+				"flip", "flip2":
+					role = "ringflip"
+					if not air_mode:
+						_pending.jump_pressed = true
+					_emit_flick(sector_dir(int(bt[2])))
+					_pending.double = bt[1] == "flip2"
+				"skill":
+					role = "ringskill"
+					_pending.skill = String(bt[2])
+				"vault":
+					role = "vault"
+					_pending.vault_pressed = true
+				"grab":
+					role = "grab"
+					_pending.grab_pressed = true
+				"action":
+					role = "action"
+					_pending.action_pressed = true
+		elif p.distance_to(_jump_center()) < hr.jump and stick_enabled() and not ring_enabled() \
 				and p.distance_to(_jump_center()) > _jump_radius() * WHEEL_CORE:
 			# Rueda: zona de mortal = salta y hace ese mortal (en el aire: lo empieza o suma otra
 			# vuelta). Mantener el dedo = agruparse; soltar = abrirse.
@@ -300,15 +396,15 @@ func _on_touch(e: InputEventScreenTouch) -> void:
 			role = "jump"
 			_pending.jump_pressed = true
 			_flash["jump"] = 0.15
-		elif p.distance_to(_action_center()) < hr.action:
+		elif not ring_enabled() and p.distance_to(_action_center()) < hr.action:
 			role = "action"
 			_pending.action_pressed = true
 			_flash["action"] = 0.15
-		elif stick_enabled() and p.distance_to(_vault_center()) < hr.vault:
+		elif stick_enabled() and not ring_enabled() and p.distance_to(_vault_center()) < hr.vault:
 			role = "vault"
 			_pending.vault_pressed = true
 			_flash["vault"] = 0.15
-		elif stick_enabled() and p.distance_to(_grab_center()) < hr.grab:
+		elif stick_enabled() and not ring_enabled() and p.distance_to(_grab_center()) < hr.grab:
 			role = "grab"
 			_pending.grab_pressed = true
 			_flash["grab"] = 0.15
@@ -468,7 +564,7 @@ func _process(dt: float) -> void:
 	if size != vs:
 		size = vs
 	for k in _flash.keys():
-		if k == "sector" or k == "wheel_sec":
+		if k == "sector" or k == "wheel_sec" or k == "ring_i":
 			continue
 		_flash[k] -= dt
 		if _flash[k] <= 0.0:
@@ -477,6 +573,8 @@ func _process(dt: float) -> void:
 		_flash.erase("sector")
 	if not _flash.has("wheel"):
 		_flash.erase("wheel_sec")
+	if not _flash.has("ring"):
+		_flash.erase("ring_i")
 	queue_redraw()
 
 func _draw() -> void:
@@ -505,7 +603,9 @@ func _draw() -> void:
 	for f in _fingers.values():
 		if f.role == "jump":
 			jheld = true
-	if stick_enabled():
+	if ring_enabled():
+		_draw_ring(font, s, a, white, dark, accent, jheld)
+	elif stick_enabled():
 		_draw_wheel(font, s, a, white, dark, accent)
 	else:
 		draw_circle(jc, _jump_radius(), accent if (jheld or _flash.has("jump")) else dark)
@@ -513,6 +613,11 @@ func _draw() -> void:
 		_label(font, jc + Vector2(0, -10 * s), "SALTO", 40 * s, white)
 		if gestures_enabled():
 			_label(font, jc + Vector2(0, 36 * s), "desliza = truco", 19 * s, Color(1, 1, 1, a + 0.15))
+	if ring_enabled():
+		_draw_rot_stick(font, s, a, white, dark, accent)
+		_draw_camera_hint(font, s, a)
+		_draw_ring_hint(font, s)
+		return
 	# RODAR (y, en los modos clásicos, acción contextual)
 	var ac := _action_center()
 	var roll_ring := Color(0.35, 0.95, 0.45, white.a) if stick_enabled() else white
@@ -581,6 +686,47 @@ func _draw_camera_hint(font: Font, s: float, a: float) -> void:
 	_label(font, c, "<   CÁMARA   >", 22 * s, col)
 	_label(font, c + Vector2(0, 26 * s), "arrastra aquí · doble toque = detrás", 15 * s, col)
 
+## Botonera: SALTO grande y el arco de botones (cada uno con su movimiento). Colores por familia:
+## mortales (turquesa), suelo (naranja), parkour (azul/verde).
+func _draw_ring(font: Font, s: float, a: float, white: Color, dark: Color, accent: Color, jheld: bool) -> void:
+	var jc := _jump_center()
+	var held := {}
+	for f in _fingers.values():
+		if f.role in ["ringflip", "ringskill", "vault", "grab", "action"]:
+			held[int(f.get("sector", -1))] = true
+	var flash_i: int = _flash.get("ring_i", -1)
+	var br := ring_button_radius()
+	for i in RING_BUTTONS.size():
+		var bt: Array = RING_BUTTONS[i]
+		var c := ring_button_center(i)
+		var hot: bool = held.has(i) or i == flash_i
+		var ring_col := white
+		match String(bt[1]):
+			"flip", "flip2": ring_col = Color(0.35, 0.95, 0.9, white.a)
+			"skill": ring_col = Color(1.0, 0.62, 0.25, white.a)
+			"vault": ring_col = Color(0.35, 0.65, 1.0, white.a)
+			"action": ring_col = Color(0.35, 0.95, 0.45, white.a)
+		draw_circle(c, br, accent if hot else dark)
+		draw_arc(c, br, 0, TAU, 32, ring_col, 3.0 * s, true)
+		var lbl := String(bt[0])
+		if bt[1] == "grab":
+			lbl = grab_label
+		var lines := lbl.split("\n")
+		var fs := (11.0 if lines.size() > 1 or lbl.length() > 7 else 13.0) * s
+		for li in lines.size():
+			_label(font, c + Vector2(0, (li - (lines.size() - 1) * 0.5) * fs * 1.05), lines[li], fs, white)
+	draw_circle(jc, _jump_radius(), accent if (jheld or _flash.has("jump")) else dark)
+	draw_arc(jc, _jump_radius(), 0, TAU, 64, white, 4.0 * s, true)
+	_label(font, jc, "SALTO", 30 * s, white)
+
+func _draw_ring_hint(font: Font, s: float) -> void:
+	if _hint_time >= 9.0:
+		return
+	var hc := Vector2(size.x * 0.5, size.y * 0.16)
+	var ha := clampf(1.0 - (_hint_time - 7.0) / 2.0, 0.0, 1.0)
+	_label(font, hc, "Cada botón del arco es un movimiento: mortales, rondada, flic-flac, vault... (mantén = agrupado)", 22 * s, Color(1, 1, 1, ha))
+	_label(font, hc + Vector2(0, 34 * s), "Joystick GIRO = tirabuzones (¼ híper, ½, 1, cork) · pulsa botones en la recepción para enlazar", 22 * s, Color(1, 1, 1, ha))
+
 ## Rueda SALTO / MORTALES: centro SALTO y 4 zonas (ADELANTE, ATRÁS, LATERAL ← →).
 func _draw_wheel(font: Font, s: float, a: float, white: Color, dark: Color, accent: Color) -> void:
 	var jc := _jump_center()
@@ -639,7 +785,8 @@ func _draw_rot_stick(font: Font, s: float, a: float, white: Color, dark: Color, 
 		draw_colored_polygon(pts, accent if hot else Color(1, 1, 1, a * 0.13))
 		_label(font, base + Vector2(side * rr * 0.84, 0), "GIRO" if side == 1 else "GIRO", 15 * s, white)
 	_label(font, base + Vector2(0, -rr * 0.82), "¼ · ½ · 1", 14 * s, Color(1, 1, 1, white.a * 0.8))
-	_label(font, base + Vector2(0, rr + 18 * s), "suelo: soltar · mantener · arco", 13 * s, Color(1, 1, 1, white.a * 0.75))
+	if not ring_enabled():
+		_label(font, base + Vector2(0, rr + 18 * s), "suelo: soltar · mantener · arco", 13 * s, Color(1, 1, 1, white.a * 0.75))
 	draw_arc(base, rr, 0, TAU, 64, Color(white, white.a * 0.8), 3.0 * s, true)
 	# Mando
 	var knob := base + Vector2(_rot_vec.x, -_rot_vec.y) * _rot_travel()

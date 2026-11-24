@@ -71,6 +71,7 @@ var chain_event_t := 0.0
 var skill := {}                         # habilidad de suelo en curso (SkillLibrary)
 var skill_serial := 0                   # cambia con cada habilidad (el rig reorienta sin giros raros)
 var last_skill := {}                    # datos de la última habilidad (pruebas/HUD)
+var double_buffer := 0.0                # botonera: se pidió doble mortal hace poco
 
 # Datos de la acción en curso
 var vault := {}
@@ -213,6 +214,15 @@ func _physics_process(dt: float) -> void:
 	if not gesture_event.is_empty() and state == State.SKILL and gesture_event.type != "release":
 		chain_event = gesture_event
 		chain_event_t = 0.45
+	# Botonera: botón de un movimiento de suelo (como un gesto: en una habilidad queda en cola)
+	if intent.skill_request != "":
+		var bev := {"type": "skill", "id": intent.skill_request}
+		if state == State.SKILL:
+			chain_event = bev
+			chain_event_t = 0.45
+		elif state == State.GROUND or state == State.CRASH:
+			gesture_event = bev
+	double_buffer = 0.25 if intent.double_flip else maxf(0.0, double_buffer - dt)
 	if intent.respawn_pressed:
 		respawn()
 		return
@@ -383,6 +393,9 @@ func _takeoff(kind: String) -> void:
 		tricks.apply_flick(TouchControls.sector_dir(TouchControls.sector_of(intent.rot)))
 	if kick_timer > 0.0:
 		tricks.apply_kick(_kick_dir())
+	if double_buffer > 0.0 and flick_timer > 0.0:
+		tricks.apply_flick(flick_buffer, false)       # botón DOBLE: otra vuelta pedida desde el despegue
+		double_buffer = 0.0
 	flick_timer = 0.0
 	kick_timer = 0.0
 
@@ -491,6 +504,8 @@ func _state_air(dt: float) -> void:
 
 	if intent.flick != Vector2.ZERO:
 		tricks.apply_flick(intent.flick, not intent.stick_twist)
+		if intent.double_flip:
+			tricks.apply_flick(intent.flick, false)            # botón DOBLE en el aire: dos vueltas
 	if intent.kick:
 		tricks.apply_kick(_kick_dir())
 	if twist_lock and absf(intent.twist) < 0.3:
@@ -740,6 +755,11 @@ func _obstacle_ahead() -> bool:
 ## impulso al siguiente movimiento si se enlaza en la recepción (ChainSystem).
 func _ground_gesture(ev: Dictionary) -> bool:
 	match String(ev.type):
+		"skill":
+			# Botón de la botonera. Lado (rueda, rondada, macaco): hacia donde empuja el joystick izquierdo
+			var side := -1 if intent.move.x < -0.3 else 1
+			_start_skill(String(ev.id), side)
+			return true
 		"flick", "double":
 			return _ground_flick(int(ev.sector))
 		"hold":
@@ -875,6 +895,7 @@ func _state_skill(dt: float) -> void:
 		# SALTO un poco antes de recibir: queda en cola (con su zona de la rueda) para el rebote
 		skill.jump_q = true
 		skill.jump_flick = intent.flick
+		skill.jump_double = intent.double_flip
 	if skill.linked:
 		if skill.get("jump_q", false):
 			skill.jump_q = false
@@ -882,6 +903,8 @@ func _state_skill(dt: float) -> void:
 			if skill.jump_flick != Vector2.ZERO:
 				flick_buffer = skill.jump_flick
 				flick_timer = 0.25
+			if skill.get("jump_double", false):
+				double_buffer = 0.25
 		# Enlace en la recepción: SALTO (mortal con rebote) o un gesto (siguiente habilidad)
 		if jump_buffer > 0.0:
 			jump_buffer = 0.0
