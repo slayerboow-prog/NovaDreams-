@@ -225,6 +225,7 @@ func _process(dt: float) -> void:
 	_yaw = lerp_angle(_yaw, yaw_target, 1.0 - exp(-20.0 * dt))
 	rotation.y = _yaw
 	var smp := {}
+	var ground_contacts := {}
 
 	match st:
 		PlayerController.State.GROUND:
@@ -246,6 +247,21 @@ func _process(dt: float) -> void:
 				drop = _load_pose(target)
 				blend_speed = 34.0
 			var c := player.land_impact
+			var big := float(player.last_landing.get("impact", 0.0)) > 9.0 and player.land_timer < 0.7 \
+				and player.land_quality in ["perfect", "clean"]
+			if c > 0.0 and big:
+				# Caída grande: recepción a cuatro apoyos (como en el vídeo de referencia). Cuclillas
+				# profundas, tronco adelante, mirada al frente y las dos manos clavadas en el suelo.
+				var k4 := _smooth(c / 0.35)
+				drop += 0.66 * k4
+				_apply(target, {"spine": Vector3(-1.15, 0, 0), "neck": Vector3(0.7, 0, 0),
+					"hip_l": Vector3(1.75, 0, -0.18), "hip_r": Vector3(1.7, 0, 0.18),
+					"knee_l": Vector3(-2.3, 0, 0), "knee_r": Vector3(-2.25, 0, 0),
+					"shoulder_l": Vector3(1.0, 0, -0.2), "shoulder_r": Vector3(1.0, 0, 0.2),
+					"elbow_l": Vector3(0.25, 0, 0), "elbow_r": Vector3(0.25, 0, 0)}, k4)
+				var hw := _smooth((c - 0.15) / 0.25)
+				ground_contacts = {"hl": hw, "hr": hw}
+				c = 0.0
 			if c > 0.0:
 				# Recepción: piernas y tronco absorben el impacto (más profunda cuanto más fuerte).
 				drop += 0.34 * c
@@ -268,6 +284,14 @@ func _process(dt: float) -> void:
 						target.shoulder_l.z -= 1.1 * c; target.shoulder_r.z += 1.1 * c
 						target.spine.z = 0.25 * w * c
 						target.spine.x -= 0.3 * c
+			# Tras recibir: brazos abiertos a los lados buscando el equilibrio (oscilan y se recogen)
+			var lt := player.land_timer
+			if lt > 0.08 and lt < 1.1 and spd < 4.0 and player.jump_load <= 0.0:
+				var wb := _smooth((lt - 0.08) / 0.18) * _smooth((1.1 - lt) / 0.45)
+				var wob := sin(lt * 9.0) * 0.18 * (1.1 - lt)
+				_apply(target, {"shoulder_l": Vector3(0.35 + wob, 0, -1.2 - wob), "shoulder_r": Vector3(0.3 - wob, 0, 1.2 - wob),
+					"elbow_l": Vector3(0.25, 0, 0), "elbow_r": Vector3(0.25, 0, 0)}, wb)
+				target.spine.z += wob * 0.4 * wb
 		PlayerController.State.AIR:
 			_air_pose(target)
 			blend_speed = 22.0
@@ -347,7 +371,7 @@ func _process(dt: float) -> void:
 	if st == PlayerController.State.VAULT:
 		_vault_support()
 	else:
-		_solve_contacts(smp.get("contacts", {}), dt)
+		_solve_contacts(smp.get("contacts", ground_contacts), dt)
 
 ## Apoyos de manos de cada vault sobre el obstáculo: [mano, desde, hasta, avance sobre el
 ## obstáculo (0 = borde de delante, 1 = borde de detrás), lateral]. La mano se clava en la

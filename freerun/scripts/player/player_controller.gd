@@ -212,7 +212,8 @@ func _physics_process(dt: float) -> void:
 	ledge_cooldown = maxf(0.0, ledge_cooldown - dt)
 	wall_cooldown = maxf(0.0, wall_cooldown - dt)
 	stun = maxf(0.0, stun - dt)
-	land_impact = move_toward(land_impact, 0.0, dt * 3.0)
+	# Las caídas grandes se absorben más despacio (recepción a cuatro apoyos)
+	land_impact = move_toward(land_impact, 0.0, dt * (1.5 if float(last_landing.get("impact", 0.0)) > 9.0 else 3.0))
 	land_timer += dt
 	jump_buffer = t.jump_buffer_time if intent.jump_pressed else maxf(0.0, jump_buffer - dt)
 	roll_buffer = t.roll_window if intent.action_pressed else maxf(0.0, roll_buffer - dt)

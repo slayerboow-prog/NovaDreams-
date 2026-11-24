@@ -97,6 +97,7 @@ func _run_all() -> void:
 	await t_wall_run()
 	await t_ledge_climb()
 	await t_drop_hard_vs_roll()
+	await t_reference_landings()
 	await t_precision()
 	await t_water()
 	await t_touch()
@@ -1610,3 +1611,21 @@ func t_cork_piru() -> void:
 	var order_ok := moves.size() >= 3 and moves[0] == "Cork" and moves[1] == "ST" and moves[2] == "Cork"
 	check("ST: cae a un pie y enlaza otro cork (Cork › ST › Cork)", order_ok and landings.all(func(l): return l.quality in ["perfect", "clean"]),
 		"%s %s" % [moves, landings.map(func(l): return l.quality)])
+
+## Como en el vídeo de referencia: una caída grande se recibe a cuatro apoyos (manos al suelo)
+## y, tras recibir, los brazos se abren a los lados para equilibrarse.
+func t_reference_landings() -> void:
+	var rig: BodyRig = game.rig
+	await place(Vector3(-35, 2.9, 35), Vector3.FORWARD)
+	var r := {"hands": 0, "gap": 9.0, "arms_out": 0.0, "imp": 0.0}
+	await run(func(i, f):
+		if landings.size() > 0:
+			r.imp = landings[-1].impact
+			if rig.contact_w.hl > 0.9 and rig.contact_w.hr > 0.9:
+				r.hands += 1
+				r.gap = minf(r.gap, maxf(rig.limb_end("hl").y, rig.limb_end("hr").y) - rig.ground_y)
+			r.arms_out = maxf(r.arms_out, absf((rig.pose.shoulder_l as Vector3).z)), 120,
+		func(): return landings.size() > 0 and player.land_timer > 1.0)
+	check("Caída grande (%.1f m/s): recepción a cuatro apoyos con las manos en el suelo" % r.imp,
+		r.imp > 9.0 and r.hands >= 5 and r.gap < 0.1 and landings[-1].quality in ["perfect", "clean"], "frames %d hueco %.2f %s" % [r.hands, r.gap, landings.map(func(l): return l.quality)])
+	check("Tras recibir, brazos abiertos a los lados para equilibrarse", r.arms_out > 0.8, "%.2f" % r.arms_out)
