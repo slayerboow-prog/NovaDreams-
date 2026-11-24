@@ -16,10 +16,12 @@ Atajos: `godot --path freerun -- --mode=freerun` salta el menú (`tricking`, `wa
 
 ## Controles
 
-**Móvil (iPhone / Android) — BOTONERA (por defecto)**: abajo a la derecha, **SALTO grande en el centro** y un **arco de 3/4 de círculo con 14 botones, uno por movimiento**:
-- RODAR, AGARRAR y VAULT (parkour);
-- MACACO, RUEDA, RONDADA, FLIC-FLAC y PALOMA (suelo, con apoyo real de manos);
-- ATRÁS, CORK, ADELANTE, LATERAL IZQ. y DER. y AERIAL / MARIPOSA (mortales).
+**Móvil (iPhone / Android) — BOTONERA (por defecto)**: abajo a la derecha, **SALTO grande en el centro** y un **arco de 3/4 de círculo con 15 botones que se puede girar**. Fijos en todas las páginas: RODAR, AGARRAR, VAULT y **CAMBIAR**. Los otros 11 botones cambian según la página:
+- **1 · MORTALES**: macaco, rueda, rondada, flic-flac, paloma, atrás, cork, adelante, lateral izq./der., aerial/mariposa.
+- **2 · TRICKING**: hook, crescent, crescent inversa, raiz, TD raiz, scoot, atrás, cork, piru, patada 360, mariposa.
+- **3 · GIMNASIA**: back walkover, front walkover, pino (se sostiene mientras mantienes el botón), valdez, voltereta al pino, rueda, rondada, flic-flac, paloma, macaco, atrás.
+
+**Girar la rueda**: toca CAMBIAR (siguiente página) o desliza el dedo sobre CAMBIAR hacia arriba (siguiente) o hacia abajo (anterior). Los botones entran girando por el arco y encima se ve el nombre de la página.
 
 Cómo se usan:
 - **Mantener pulsado el botón de un mortal = el atleta sigue agrupado y girando**: doble, triple o las vueltas que permita la altura. Al soltar se abre y aterriza en la siguiente vuelta completa; con ayuda Alta o Media se abre solo si ya no queda altura para otra vuelta.

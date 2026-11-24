@@ -1454,13 +1454,14 @@ func t_ring_buttons() -> void:
 	Settings.force_touch_ui = true
 	touch.visible = true
 	touch.size = Vector2(1542, 720)
-	var n := TouchControls.RING_BUTTONS.size()
+	touch.ring_page = 0
+	var n := touch.ring_buttons().size()
 	# Geometría: arco de 270° alrededor del SALTO, abajo a la derecha
 	var jc := touch._jump_center()
 	var first := touch.ring_button_center(0)
 	var last := touch.ring_button_center(n - 1)
 	var top := touch.ring_button_center(n / 2)
-	check("Botonera: SALTO abajo a la derecha y %d botones en 3/4 de círculo" % n,
+	check("Botonera: SALTO abajo a la derecha y %d botones en 3/4 de círculo (con CAMBIAR)" % n,
 		jc.x > touch.size.x * 0.7 and jc.y > touch.size.y * 0.55 and first.x < jc.x and first.y > jc.y and last.x > jc.x and last.y > jc.y and top.y < jc.y - 100,
 		"salto %s primero %s último %s" % [jc, first, last])
 	var press := func(idx: int, on: bool) -> void:
@@ -1471,7 +1472,7 @@ func t_ring_buttons() -> void:
 		touch._on_touch(e)
 	var find := func(label: String) -> int:
 		for i in n:
-			if String(TouchControls.RING_BUTTONS[i][0]).replace("\n", " ") == label:
+			if String(touch.ring_buttons()[i][0]).replace("\n", " ") == label:
 				return i
 		return -1
 	game.router.scripted = Callable()            # entrada real: el táctil
@@ -1540,6 +1541,56 @@ func t_ring_buttons() -> void:
 		if st.step == 4 and player.state == PlayerController.State.GROUND and k > 60:
 			break
 	check("Botonera: enlace RONDADA → FLIC-FLAC → ATRÁS con botones", moves.size() >= 3 and moves[0] == "Round-off" and moves[1] == "Back Handspring" and moves[2] in ["Backflip", "Gainer"], str(moves))
+	# Páginas de la rueda: CAMBIAR (tocar = siguiente; deslizar arriba/abajo) y botones nuevos
+	var cam: int = find.call("CAMBIAR")
+	press.call(cam, true); press.call(cam, false)
+	var p1 := touch.ring_page
+	var e2 := InputEventScreenTouch.new(); e2.index = 6; e2.position = touch.ring_button_center(cam); e2.pressed = true
+	touch._on_touch(e2)
+	var dr := InputEventScreenDrag.new(); dr.index = 6; dr.position = e2.position + Vector2(0, 80); dr.relative = Vector2(0, 80)
+	touch._on_drag(dr)
+	e2.pressed = false; e2.position = dr.position
+	touch._on_touch(e2)
+	check("Botonera: CAMBIAR gira la rueda (tocar = siguiente, deslizar abajo = anterior)", p1 == 1 and touch.ring_page == 0, "tras tocar %d, tras deslizar %d" % [p1, touch.ring_page])
+	for c in [[1, "HOOK", "Hook Kick"], [1, "PIRU", "Piru"], [1, "PATADA 360", "360 Kick"], [1, "MARIPOSA", "Butterfly Kick"],
+			[2, "BACK WALKOVER", "Back Walkover"], [2, "VOLTERETA AL PINO", "Back Extension Roll"]]:
+		touch.ring_page = c[0]
+		player.set_spawn(Transform3D(Basis(), Vector3(-35, 0.1, 35)), Vector3.FORWARD)
+		player.respawn()
+		await frames(20)
+		moves.clear(); landings.clear()
+		var bi3: int = find.call(c[1])
+		press.call(bi3, true)
+		var rel3 := false
+		for k in 260:
+			await get_tree().physics_frame
+			if not rel3 and (k > 30 or maxf(absf(player.tricks.total_pitch), absf(player.tricks.total_spin)) > TAU - deg_to_rad(100)):
+				press.call(bi3, false); rel3 = true
+			if k > 40 and player.state == PlayerController.State.GROUND and not moves.is_empty():
+				break
+		if not rel3:
+			press.call(bi3, false)
+		await frames(10)
+		check("Botonera página %s: botón %s = %s" % [TouchControls.RING_PAGES[c[0]].name, c[1], c[2]], c[2] in moves, str(moves))
+	# PINO mantenido: sigue en el pino mientras se mantiene el botón; al soltar, front walkover
+	touch.ring_page = 2
+	player.set_spawn(Transform3D(Basis(), Vector3(-35, 0.1, 35)), Vector3.FORWARD)
+	player.respawn()
+	await frames(20)
+	moves.clear()
+	var pb: int = find.call("PINO")
+	press.call(pb, true)
+	var held_f := 0
+	for k in 200:
+		await get_tree().physics_frame
+		if player.state == PlayerController.State.SKILL and player.skill.get("id", "") == "handstand" and float(player.skill.s) >= 1.0:
+			held_f += 1
+		if k == 150:
+			press.call(pb, false)
+	for k in 120:
+		await get_tree().physics_frame
+	check("Botonera: PINO mantenido se sostiene y al soltar sale el front walkover", held_f > 40 and "Front Walkover" in moves, "pino %d %s" % [held_f, moves])
+	touch.ring_page = 0
 	touch.size = touch.get_viewport_rect().size
 	game.router.scripted = _drive
 	Settings.trick_controls = old_mode
@@ -1550,8 +1601,8 @@ func t_ring_buttons() -> void:
 func t_glyphs() -> void:
 	var font := ThemeDB.fallback_font
 	var texts: Array[String] = []
-	for b in TouchControls.RING_BUTTONS:
-		texts.append(String(b[0]))
+	for lbl in TouchControls.all_ring_labels():
+		texts.append(String(lbl))
 	for st in GameUI.TUTORIAL:
 		texts.append(MoveNames.safe(String(st[0])))
 	var lib := MoveNames.safe(MoveLibrary.bbcode())

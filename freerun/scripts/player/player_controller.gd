@@ -97,6 +97,7 @@ var last_skill := {}                    # datos de la última habilidad (pruebas
 var double_buffer := 0.0                # botonera: se pidió doble mortal hace poco
 var st_queued := false                  # CORK pulsado durante un cork: caer a un pie (ST) y enlazar otro
 var cork_buffer := 0.0                  # botón CORK pulsado hace poco (se aplica en el despegue)
+var butterfly_buffer := 0.0             # botón MARIPOSA pulsado hace poco
 var cork_side := 1
 
 # Datos de la acción en curso
@@ -250,6 +251,10 @@ func _physics_process(dt: float) -> void:
 		elif state == State.GROUND or state == State.CRASH:
 			gesture_event = bev
 	double_buffer = 0.25 if intent.double_flip else maxf(0.0, double_buffer - dt)
+	if intent.butterfly_request:
+		butterfly_buffer = 0.25
+	elif jump_load <= 0.0:
+		butterfly_buffer = maxf(0.0, butterfly_buffer - dt)
 	if intent.cork_request:
 		cork_buffer = 0.25
 		cork_side = -1 if intent.move.x > 0.3 else 1     # el tirabuzón gira hacia donde empujas
@@ -424,7 +429,7 @@ func _flip_kind(spd: float) -> String:
 		-2, -1, -3: return "double_back" if dbl else "back"
 		2, 1: return "double_front" if dbl else "front"
 		0, 4: return "double_side" if dbl else "side"
-		3: return "butterfly" if spd > 4.0 else "aerial"
+		3: return "butterfly" if spd > 4.0 or butterfly_buffer > 0.0 else "aerial"
 	return "jump"
 
 func _takeoff(kind: String) -> void:
@@ -447,6 +452,11 @@ func _takeoff(kind: String) -> void:
 	if target == "jump" and not lp.is_empty():
 		# Rebote limpio sin acrobacia (punch): "Round-off Rebound", "Back Handspring Rebound"...
 		_emit_move(String(lp.name) + " Rebound", 1.0, {"difficulty": 0.4 + 0.3 * float(lp.timing), "chain": true})
+	if butterfly_buffer > 0.0:
+		# Botón MARIPOSA: el barrido de piernas da la rotación horizontal aunque no haya carrera
+		tricks.takeoff_speed = maxf(tricks.takeoff_speed, 4.5)
+		tricks.travel_speed = maxf(tricks.travel_speed, 4.5)
+		butterfly_buffer = 0.0
 	# Gesto hecho justo antes de saltar (o durante la flexión): el mortal arranca en el despegue.
 	if flick_timer > 0.0:
 		tricks.apply_flick(flick_buffer)
@@ -587,6 +597,8 @@ func _state_air(dt: float) -> void:
 		elif not tricks.active or tricks.style == "back":
 			_make_cork()
 	elif intent.flick != Vector2.ZERO:
+		if intent.butterfly_request and not tricks.active:
+			tricks.takeoff_speed = maxf(tricks.takeoff_speed, 4.5)
 		tricks.apply_flick(intent.flick, not intent.stick_twist)
 		if intent.double_flip:
 			tricks.apply_flick(intent.flick, false)            # botón DOBLE en el aire: dos vueltas
@@ -947,7 +959,7 @@ func _state_skill(dt: float) -> void:
 			_finish_skill(false)
 			_start_skill("pushoff", 1)
 			return
-		if intent.rot.length() < 0.3 or skill.hold_t > 5.0:
+		if (intent.rot.length() < 0.3 and not intent.skill_hold) or skill.hold_t > 5.0:
 			var held := float(skill.hold_t)
 			_finish_skill(false)
 			_emit_move("Handstand", 1.0, {"difficulty": float(d.difficulty) + minf(held, 2.0) * 0.2})

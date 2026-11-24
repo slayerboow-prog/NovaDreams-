@@ -173,6 +173,8 @@ func _read_intent(_dt: float) -> void:
 			intent.skill_request = t.skill
 		intent.double_flip = intent.double_flip or t.double
 		intent.cork_request = intent.cork_request or t.cork
+		intent.butterfly_request = intent.butterfly_request or t.butterfly
+		intent.skill_hold = t.skill_hold
 		if touch.stick_enabled():
 			# Doble joystick: los mortales van en la rueda de SALTO y el joystick derecho es el GIRO
 			intent.stick_twist = true

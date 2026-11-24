@@ -26,6 +26,8 @@ var rot := Vector2.ZERO         # joystick derecho analógico (x derecha, y arri
 var skill_request := ""         # botonera: botón de un movimiento de suelo (rondada, flic-flac...)
 var double_flip := false        # botonera: botón de doble mortal
 var cork_request := false       # botonera: botón CORK (salta en cork o, en el aire, lo empieza; en un cork = ST)
+var butterfly_request := false  # botonera: botón MARIPOSA (butterfly aunque no haya carrera)
+var skill_hold := false         # botonera: botón de habilidad mantenido (PINO: sigue en el pino)
 
 func clear_edges() -> void:
 	jump_pressed = false
@@ -41,6 +43,7 @@ func clear_edges() -> void:
 	skill_request = ""
 	double_flip = false
 	cork_request = false
+	butterfly_request = false
 
 func copy_from(o: InputIntent) -> void:
 	move = o.move; sprint = o.sprint; jump_pressed = o.jump_pressed; jump_held = o.jump_held
@@ -49,3 +52,4 @@ func copy_from(o: InputIntent) -> void:
 	vault_pressed = o.vault_pressed; grab_pressed = o.grab_pressed; grab_held = o.grab_held
 	twist = o.twist; stick_twist = o.stick_twist; rot_flick = o.rot_flick
 	skill_request = o.skill_request; double_flip = o.double_flip; cork_request = o.cork_request
+	butterfly_request = o.butterfly_request; skill_hold = o.skill_hold
