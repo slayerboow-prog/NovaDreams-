@@ -1464,6 +1464,36 @@ func t_ring_buttons() -> void:
 	check("Botonera: SALTO abajo a la derecha y %d botones en 3/4 de círculo (con CAMBIAR)" % n,
 		jc.x > touch.size.x * 0.7 and jc.y > touch.size.y * 0.55 and first.x < jc.x and first.y > jc.y and last.x > jc.x and last.y > jc.y and top.y < jc.y - 100,
 		"salto %s primero %s último %s" % [jc, first, last])
+	# Accesos rápidos neón: a la izquierda, sin pisar joystick, rueda ni fila de parkour
+	var s := touch._s()
+	var qok := true
+	var qinfo := ""
+	var others: Array = [[touch._joy_idle(), TouchControls.JOY_R * s], [jc, touch._jump_radius()],
+		[touch._park_center(0), TouchControls.PARK_R * s], [touch._rot_center(), 60.0 * s]]
+	for i in n:
+		others.append([touch.ring_button_center(i), touch.ring_button_radius()])
+	for qi in TouchControls.QUICK.size():
+		var qc := touch.quick_center(qi)
+		if qc.x > touch.size.x * 0.35 or qc.y < 0 or qc.y > touch.size.y:
+			qok = false; qinfo += "fuera %d %s; " % [qi, qc]
+		for o in others:
+			if qc.distance_to(o[0]) < 32.0 * s + float(o[1]):
+				qok = false; qinfo += "solapa %d con %s; " % [qi, o[0]]
+		if touch.quick_at(qc) != qi:
+			qok = false; qinfo += "no detecta %d; " % qi
+	check("Botonera neón: 4 accesos rápidos a la izquierda sin solapar controles", qok, qinfo)
+	var got: Array[String] = []
+	var cb := func(id: String) -> void: got.append(id)
+	touch.quick_action.connect(cb)
+	var qe := InputEventScreenTouch.new()
+	qe.index = 6
+	qe.position = touch.quick_center(3)
+	qe.pressed = true
+	touch._on_touch(qe)
+	qe.pressed = false
+	touch._on_touch(qe)
+	touch.quick_action.disconnect(cb)
+	check("Botonera neón: tocar REAPARECER emite su acción", got == ["respawn"], str(got))
 	var press := func(idx: int, on: bool) -> void:
 		var e := InputEventScreenTouch.new()
 		e.index = 5
@@ -1471,9 +1501,13 @@ func t_ring_buttons() -> void:
 		e.pressed = on
 		touch._on_touch(e)
 	var find := func(label: String) -> int:
-		for i in n:
-			if String(touch.ring_buttons()[i][0]).replace("\n", " ") == label:
-				return i
+		# Busca el botón en la página actual; si no está, gira la rueda a su página
+		for k in 2:
+			var btns: Array = touch.ring_buttons()
+			for i in btns.size():
+				if String(btns[i][0]).replace("\n", " ") == label:
+					return i
+			touch.ring_page = maxi(TouchControls.page_of(label), 0)
 		return -1
 	game.router.scripted = Callable()            # entrada real: el táctil
 	for c in [["ATRÁS", "Backflip"], ["ADELANTE", "Frontflip"], ["LATERAL DER.", "Sideflip"],
@@ -1542,6 +1576,7 @@ func t_ring_buttons() -> void:
 			break
 	check("Botonera: enlace RONDADA → FLIC-FLAC → ATRÁS con botones", moves.size() >= 3 and moves[0] == "Round-off" and moves[1] == "Back Handspring" and moves[2] in ["Backflip", "Gainer"], str(moves))
 	# Páginas de la rueda: CAMBIAR (tocar = siguiente; deslizar arriba/abajo) y botones nuevos
+	touch.ring_page = 0
 	var cam: int = find.call("CAMBIAR")
 	press.call(cam, true); press.call(cam, false)
 	var p1 := touch.ring_page
@@ -1552,8 +1587,8 @@ func t_ring_buttons() -> void:
 	e2.pressed = false; e2.position = dr.position
 	touch._on_touch(e2)
 	check("Botonera: CAMBIAR gira la rueda (tocar = siguiente, deslizar abajo = anterior)", p1 == 1 and touch.ring_page == 0, "tras tocar %d, tras deslizar %d" % [p1, touch.ring_page])
-	for c in [[1, "HOOK", "Hook Kick"], [1, "PIRU", "Piru"], [1, "PATADA 360", "360 Kick"], [1, "MARIPOSA", "Butterfly Kick"],
-			[2, "BACK WALKOVER", "Back Walkover"], [2, "VOLTERETA AL PINO", "Back Extension Roll"]]:
+	for c in [[2, "HOOK", "Hook Kick"], [0, "PIRU", "Piru"], [0, "PATADA 360", "360 Kick"], [2, "MARIPOSA", "Butterfly Kick"],
+			[3, "BACK WALKOVER", "Back Walkover"], [3, "VOLTERETA AL PINO", "Back Extension Roll"]]:
 		touch.ring_page = c[0]
 		player.set_spawn(Transform3D(Basis(), Vector3(-35, 0.1, 35)), Vector3.FORWARD)
 		player.respawn()
@@ -1573,7 +1608,7 @@ func t_ring_buttons() -> void:
 		await frames(10)
 		check("Botonera página %s: botón %s = %s" % [TouchControls.RING_PAGES[c[0]].name, c[1], c[2]], c[2] in moves, str(moves))
 	# PINO mantenido: sigue en el pino mientras se mantiene el botón; al soltar, front walkover
-	touch.ring_page = 2
+	touch.ring_page = 1
 	player.set_spawn(Transform3D(Basis(), Vector3(-35, 0.1, 35)), Vector3.FORWARD)
 	player.respawn()
 	await frames(20)

@@ -16,10 +16,11 @@ Atajos: `godot --path freerun -- --mode=freerun` salta el menú (`tricking`, `wa
 
 ## Controles
 
-**Móvil (iPhone / Android) — BOTONERA (por defecto)**: abajo a la derecha, **SALTO grande en el centro** y un **arco de 3/4 de círculo con 15 botones que se puede girar**. Fijos en todas las páginas: RODAR, AGARRAR, VAULT y **CAMBIAR**. Los otros 11 botones cambian según la página:
-- **1 · MORTALES**: macaco, rueda, rondada, flic-flac, paloma, atrás, cork, adelante, lateral izq./der., aerial/mariposa.
-- **2 · TRICKING**: hook, crescent, crescent inversa, raiz, TD raiz, scoot, atrás, cork, piru, patada 360, mariposa.
-- **3 · GIMNASIA**: back walkover, front walkover, pino (se sostiene mientras mantienes el botón), valdez, voltereta al pino, rueda, rondada, flic-flac, paloma, macaco, atrás.
+**Móvil (iPhone / Android) — BOTONERA (por defecto)**: abajo a la derecha, **SALTO grande en el centro** y un **arco de 3/4 de círculo con 8 botones grandes por página y CAMBIAR**, que se puede girar. VAULT, AGARRAR y RODAR van en una fila abajo, entre el joystick de movimiento y el joystick GIRO (no tapan al atleta). Páginas:
+- **1 · MORTALES**: atrás, adelante, lateral izq. y der., cork, piru, aerial/mariposa, patada 360.
+- **2 · SUELO**: rondada, flic-flac, rueda, paloma, macaco, pino (se sostiene mientras mantienes el botón), atrás, cork.
+- **3 · TRICKING**: hook, crescent, crescent inversa, raiz, TD raiz, scoot, mariposa, cork.
+- **4 · GIMNASIA**: back walkover, front walkover, valdez, voltereta al pino, pino, rondada, flic-flac, atrás.
 
 **Girar la rueda**: toca CAMBIAR (siguiente página) o desliza el dedo sobre CAMBIAR hacia arriba (siguiente) o hacia abajo (anterior). Los botones entran girando por el arco y encima se ve el nombre de la página.
 
