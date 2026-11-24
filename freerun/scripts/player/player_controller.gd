@@ -767,10 +767,18 @@ func _try_vault() -> bool:
 	var h: float = info.height
 	var d: float = info.dist
 	var depth: float = info.depth
+	if not info.mount and depth > LONG_TOP:
+		# Obstáculo muy largo: no se puede pasar entero por encima, se sube arriba
+		info.mount = true
+		depth = 0.9
 	var kind := "Speed Vault"
 	var ideal := Vector2(0.25, 1.3)
 	var speed_mult := 1.0
-	if info.mount:
+	if info.mount and spd > t.run_speed + 1.2 and h >= 0.55:
+		kind = "Kong Up"              # kong a precisión: cae de pie encima del obstáculo largo
+		ideal = Vector2(0.5, 1.9)
+		speed_mult = 0.8
+	elif info.mount:
 		kind = "Step Up" if h < 0.75 else "Climb Up"
 		ideal = Vector2(0.1, 1.2)
 		speed_mult = 0.75
@@ -821,9 +829,9 @@ func _try_vault() -> bool:
 		timing = 0.6
 		speed_mult *= 0.82
 	var top_y: float = info.top_y
-	var length := d + depth + 0.55
+	var length := d + depth + 0.85
 	if info.mount:
-		length = d + 0.55
+		length = d + (0.95 if kind == "Kong Up" else 0.55)
 	var exit_speed := maxf(spd * speed_mult, 3.5)
 	var duration := clampf(length / maxf(exit_speed, 4.0) * (1.25 if info.mount else 1.0), 0.28, 0.8)
 	if kind == "Turn Vault":
@@ -839,9 +847,12 @@ func _try_vault() -> bool:
 	elif kind == "Turn Vault":
 		peak = top_y + 0.32          # cadera alta sobre las manos para girar
 	if info.mount:
-		peak = top_y + 0.12
+		peak = top_y + (0.25 if kind == "Kong Up" else 0.12)
+	var ctrl := 2.0 * peak - 0.5 * (y0 + y1)
+	if not info.mount and kind not in ["Step Vault", "Turn Vault"]:
+		ctrl = _clear_ctrl(ctrl, y0, y1, top_y, d, depth, length)
 	vault = {"kind": kind, "p0": global_position, "dir": dir, "length": length, "duration": duration,
-		"y0": y0, "y1": y1, "ctrl": 2.0 * peak - 0.5 * (y0 + y1), "exit_speed": exit_speed,
+		"y0": y0, "y1": y1, "ctrl": ctrl, "exit_speed": exit_speed,
 		"mount": info.mount, "jump_queued": false, "flick": Vector2.ZERO, "top_y": top_y,
 		"front": d, "depth": depth}
 	facing = dir
@@ -890,13 +901,16 @@ func _try_dive_kong() -> bool:
 		return false
 	var mount: bool = info.mount
 	var depth: float = info.depth
+	if not mount and depth > LONG_TOP:
+		mount = true                 # obstáculo muy largo: kong y de pie encima
+		depth = 0.9
 	var dist := Vector3(global_position.x - takeoff_pos.x, 0.0, global_position.z - takeoff_pos.z).length() + d
 	if dist < 0.9:
 		return false
 	var kind := "Kong Up" if mount else "Dive Kong"
 	# Técnica: manos a la altura buena (ni rozando con los pies ni con los brazos al límite)
 	var timing := 1.0 if above > 0.25 and above < 1.15 else 0.7
-	var length := d + (0.55 if mount else depth + 0.55)
+	var length := d + (0.95 if mount else depth + 0.85)
 	var exit_speed := maxf(spd * 1.04, 4.0)
 	var duration := clampf(length / maxf(exit_speed, 4.0) * (1.15 if mount else 1.0), 0.3, 0.75)
 	var y0 := global_position.y
@@ -904,6 +918,8 @@ func _try_dive_kong() -> bool:
 	# La trayectoria sigue el vuelo que traía (misma velocidad vertical al apoyar las manos) y
 	# la cadera pasa por encima del borde
 	var ctrl := maxf(y0 + velocity.y * duration * 0.5, 2.0 * (top_y + 0.15 - 0.25 * (y0 + y1)))
+	if not mount:
+		ctrl = _clear_ctrl(ctrl, y0, y1, top_y, d, depth, length)
 	vault = {"kind": kind, "p0": global_position, "dir": dir, "length": length, "duration": duration,
 		"y0": y0, "y1": y1, "ctrl": ctrl, "exit_speed": exit_speed,
 		"mount": mount, "jump_queued": false, "flick": Vector2.ZERO, "top_y": top_y,
@@ -917,6 +933,19 @@ func _try_dive_kong() -> bool:
 	return true
 
 var last_dive_kong := 0.0
+
+## Obstáculo más largo que esto (m): no se pasa entero por encima, el vault termina arriba.
+const LONG_TOP := 2.2
+
+## Trayectoria de un vault que PASA el obstáculo: los pies quedan por encima de la parte de
+## arriba desde que la cadera pasa el borde de delante hasta que superan el borde de atrás
+## (no "aterriza" encima). Devuelve el punto de control de la curva que lo cumple.
+func _clear_ctrl(ctrl: float, y0: float, y1: float, top_y: float, front: float, depth: float, length: float) -> float:
+	for pt in [[front + 0.3, top_y - 0.05], [front + depth + 0.25, top_y + 0.06]]:
+		var se := clampf(float(pt[0]) / maxf(length, 0.01), 0.05, 0.95)
+		var need := (float(pt[1]) - (1.0 - se) * (1.0 - se) * y0 - se * se * y1) / (2.0 * se * (1.0 - se))
+		ctrl = maxf(ctrl, need)
+	return ctrl
 
 ## Hay un obstáculo saltable justo delante: el joystick derecho elige la variante del vault
 ## en vez de hacer un movimiento de suelo.

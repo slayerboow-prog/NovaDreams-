@@ -272,6 +272,32 @@ func t_kong_vault() -> void:
 	check("Kong Vault: reconocido", "Kong Vault" in moves, str(moves))
 	check("Kong Vault: supera la caja", player.global_position.z < -15.0, "z %.2f" % player.global_position.z)
 	check("Kong Vault: conserva sprint", player.speed() > 7.0, "vel %.2f" % player.speed())
+	check("Kong Vault: pasa el obstáculo (no se sube encima)", "Kong Vault" in moves and player.global_position.y < 0.3, "y %.2f %s" % [player.global_position.y, moves])
+	# Obstáculo muy largo (solo para la prueba): el kong termina de pie encima
+	var long_box := StaticBody3D.new()
+	var col := CollisionShape3D.new()
+	var bs := BoxShape3D.new(); bs.size = Vector3(2.0, 1.0, 4.0)
+	col.shape = bs
+	long_box.add_child(col)
+	long_box.position = Vector3(-35, 0.5, 20)
+	game.add_child(long_box)
+	await frames(2)
+	for mode in ["suelo", "plancha"]:
+		await place(Vector3(-35, 0.1, 32), Vector3.FORWARD)
+		var lb := {"p": false, "air": false, "kind": ""}
+		await run(func(i, f):
+			i.move = Vector2(0, 1.0); i.sprint = true
+			i.jump_pressed = not lb.p and player.global_position.z <= (22.9 if mode == "suelo" else 25.0)
+			lb.p = lb.p or i.jump_pressed
+			if player.state == PlayerController.State.VAULT:
+				lb.kind = player.vault.kind
+			lb.air = lb.air or player.state != PlayerController.State.GROUND
+			i.jump_held = true, 200,
+			func(): return lb.air and player.state == PlayerController.State.GROUND and player.land_timer > 0.1 or (lb.kind != "" and player.state == PlayerController.State.GROUND and _f > 60))
+		check("Obstáculo muy largo (%s): kong y queda de pie encima" % mode, lb.kind == "Kong Up" and player.global_position.y > 0.9,
+			"%s y %.2f %s" % [lb.kind, player.global_position.y, moves])
+	long_box.queue_free()
+	await frames(2)
 	# Kong → mortal atrás antes de caer: ATRÁS durante el kong = empuje de brazos y mortal
 	await place(Vector3(0, 0.1, -8), Vector3.FORWARD)
 	var kb := {"p": false}
