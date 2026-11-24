@@ -222,6 +222,8 @@ const RING_SLOTS := 9                # 8 botones + CAMBIAR
 
 func _ring_center() -> Vector2:
 	var s := _s()
+	if salto_pages_enabled():
+		return Vector2(_mirror(size.x - 190.0 * s), size.y - 185.0 * s)   # dorado en la esquina
 	return Vector2(_mirror(size.x - 255.0 * s), size.y - 195.0 * s)
 
 func ring_button_center(i: int, animated := false) -> Vector2:
@@ -257,6 +259,9 @@ func ring_button_at(p: Vector2) -> int:
 ## GIRO (debajo de los pies del atleta, sin taparlo); si no caben ahí, en fila encima del GIRO.
 func _park_center(i: int) -> Vector2:
 	var s := _s()
+	if salto_pages_enabled():
+		# Modo gestos: columna en la esquina superior derecha (debajo de la pausa), fuera del centro
+		return Vector2(_mirror(size.x - 58.0 * s), 140.0 * s + float(i) * 98.0 * s)
 	var rc := _rot_center()
 	var r := PARK_R * s * 1.1
 	var side := -1.0 if not Settings.left_handed else 1.0
@@ -302,6 +307,10 @@ func _jump_radius() -> float:
 
 func _rot_center() -> Vector2:
 	var s := _s()
+	if salto_pages_enabled():
+		# Modo gestos: el morado pegado al dorado, a su izquierda y algo más arriba
+		var gx := _ring_center().x + (290.0 * s if Settings.left_handed else -290.0 * s)
+		return Vector2(gx, size.y - 215.0 * s)
 	if ring_enabled():
 		# Justo a la izquierda del arco de botones (sin invadir el joystick de movimiento)
 		var off := (RING_R + RING_BTN_R * 1.06 + 112.0 * 1.08 + 14.0) * s

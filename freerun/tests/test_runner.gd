@@ -2147,7 +2147,7 @@ func t_gesture_patterns() -> void:
 	var fr2 := touch.collect()
 	check("Un dedo que empieza en un joystick no activa otro", fr2.flick == Vector2.ZERO and fr2.pattern.is_empty() and not fr2.jump_pressed, "flick %s %s" % [fr2.flick, fr2.pattern])
 	# Salto de precisión: línea corta hacia arriba y un toque
-	_draw_on(touch, 2, [jc, jc + Vector2(0, -20), jc + Vector2(0, -40)])
+	_draw_on(touch, 2, [jc, jc + Vector2(0, -26), jc + Vector2(0, -52)])
 	touch._time += 0.1
 	_draw_on(touch, 2, [jc])
 	var fr3 := touch.collect()
