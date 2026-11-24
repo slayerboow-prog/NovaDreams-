@@ -38,20 +38,27 @@ const LEG_L2 := 0.45
 const SOLE := 0.05
 
 # Paleta de identidad propia: sudadera turquesa, pantalón carbón, zapatillas naranja.
-const COL_HOODIE := Color(0.12, 0.72, 0.68)
-const COL_HOODIE_DARK := Color(0.08, 0.5, 0.48)
-const COL_PANTS := Color(0.2, 0.21, 0.26)
-const COL_PANTS_DARK := Color(0.13, 0.14, 0.17)
-const COL_SKIN := Color(0.86, 0.66, 0.52)
-const COL_SKIN_DARK := Color(0.74, 0.54, 0.42)
-const COL_HAIR := Color(0.16, 0.11, 0.08)
+# Sudadera negra sin mangas con capucha y logo blanco, jogger cargo negro con franjas blancas,
+# muñequeras y zapatillas negras con suela blanca
+const COL_HOODIE := Color(0.075, 0.075, 0.085)
+const COL_HOODIE_DARK := Color(0.045, 0.045, 0.05)
+const COL_PANTS := Color(0.065, 0.065, 0.075)
+const COL_PANTS_DARK := Color(0.04, 0.04, 0.045)
+const COL_SKIN := Color(0.8, 0.58, 0.44)
+const COL_SKIN_DARK := Color(0.68, 0.47, 0.35)
+const COL_HAIR := Color(0.05, 0.04, 0.035)
 const COL_EYE := Color(0.08, 0.07, 0.07)
-const COL_SHOES := Color(1.0, 0.45, 0.15)
+const COL_SHOES := Color(0.07, 0.07, 0.08)
+const COL_STRIPE := Color(0.92, 0.92, 0.9)
 const COL_SOLE := Color(0.95, 0.95, 0.92)
 const COL_CAP := Color(0.95, 0.95, 0.92)
 
 func setup(p: PlayerController) -> void:
 	player = p
+	# El muñeco se anima en cada fotograma (_process): sin interpolación física, para que las piezas
+	# rígidas (cabeza, manos, zapatillas) y la piel se dibujen en la misma pose. Con interpolación
+	# las piezas iban un paso por detrás de la piel y en movimientos rápidos se separaban.
+	physics_interpolation_mode = Node.PHYSICS_INTERPOLATION_MODE_OFF
 	pivot = Node3D.new()
 	pivot.position.y = COM_HEIGHT
 	add_child(pivot)
@@ -132,6 +139,12 @@ func _build() -> void:
 	# Sudadera: bolsillo canguro, capucha a la espalda y cordones (el tronco es la malla con piel)
 	details.append(_box(spine, Vector3(0.2, 0.085, 0.006), COL_HOODIE.lerp(COL_HOODIE_DARK, 0.45), Vector3(0, 0.085, -0.104), Vector3(-0.08, 0, 0), 0.9))
 	_ellipsoid(spine, Vector3(0.13, 0.085, 0.07), COL_HOODIE_DARK, Vector3(0, 0.47, 0.095), Vector3(0.35, 0, 0), 0.9)
+	# Logo blanco en la espalda: estrella de cuatro puntas con una punta larga hacia abajo
+	for k in 4:
+		var ang := float(k) * PI * 0.5
+		var ln := 0.11 if k == 2 else 0.06
+		details.append(_box(spine, Vector3(0.02, ln, 0.004), COL_STRIPE, Vector3(sin(ang) * ln * 0.5, 0.32 + cos(ang) * ln * 0.5, 0.122), Vector3(0, 0, -ang), 0.7))
+		details.append(_box(spine, Vector3(0.012, 0.045, 0.004), COL_STRIPE, Vector3(sin(ang + 0.785) * 0.022, 0.32 + cos(ang + 0.785) * 0.022, 0.122), Vector3(0, 0, -ang - 0.785), 0.7))
 	details.append(_capsule(spine, 0.006, 0.12, COL_SOLE, Vector3(-0.035, 0.385, -0.118), Vector3.ONE, Vector3(0.1, 0, 0)))
 	details.append(_capsule(spine, 0.006, 0.12, COL_SOLE, Vector3(0.035, 0.385, -0.118), Vector3.ONE, Vector3(0.1, 0, 0)))
 	var neck := _joint("neck", spine, Vector3(0, 0.54, 0))
@@ -172,6 +185,11 @@ func _build() -> void:
 		var x: float = side[1]
 		var hip := _joint("hip_" + sd, pelvis, Vector3(0.1 * x, -0.02, 0))
 		var knee := _joint("knee_" + sd, hip, Vector3(0, -0.43, 0))
+		# Jogger cargo: franja blanca por fuera del muslo y de la pierna, bolsillo cargo y correa en la rodilla
+		details.append(_box(hip, Vector3(0.012, 0.32, 0.014), COL_STRIPE, Vector3(0.1 * x, -0.22, 0.0), Vector3(0, 0, 0.084 * x), 0.8))
+		details.append(_box(knee, Vector3(0.011, 0.23, 0.013), COL_STRIPE, Vector3(0.066 * x, -0.185, 0.004), Vector3(0, 0, 0.08 * x), 0.8))
+		details.append(_box(hip, Vector3(0.03, 0.13, 0.1), COL_PANTS_DARK, Vector3(0.095 * x, -0.27, -0.005), Vector3(0, 0, 0.05 * x), 0.9))
+		details.append(_box(hip, Vector3(0.033, 0.012, 0.104), COL_STRIPE, Vector3(0.097 * x, -0.205, -0.005), Vector3(0, 0, 0.05 * x), 0.8))
 		# Zapatilla redondeada: talón, empeine, puntera, suela con canto y cordones
 		_ellipsoid(knee, Vector3(0.05, 0.05, 0.065), COL_SHOES, Vector3(0, -0.425, 0.03), Vector3.ZERO, 0.6, 14)
 		_ellipsoid(knee, Vector3(0.052, 0.04, 0.11), COL_SHOES, Vector3(0, -0.445, -0.06), Vector3.ZERO, 0.6, 14)
@@ -185,7 +203,8 @@ func _build() -> void:
 	skin_body.name = "SkinBody"
 	body.add_child(skin_body)
 	skin_body.build(joints, {"hoodie": COL_HOODIE, "hoodie_dark": COL_HOODIE_DARK, "pants": COL_PANTS,
-		"pants_dark": COL_PANTS_DARK, "skin": COL_SKIN, "sock": Color(0.92, 0.92, 0.9)})
+		"pants_dark": COL_PANTS_DARK, "skin": COL_SKIN, "sock": Color(0.92, 0.92, 0.9), "band": COL_STRIPE,
+		"wrist": Color(0.06, 0.06, 0.07)})
 	for mi in find_children("*", "MeshInstance3D", true, false):
 		(mi as MeshInstance3D).cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_ON
 	for mi in details:
@@ -198,7 +217,9 @@ var skin_body: SkinBody
 ## Muelle de la pose: frecuencia relativa a blend_speed y amortiguamiento (<1 = leve rebote).
 const SPRING_W := 1.9
 const SPRING_ZETA := 0.86
-const JOINT_LAG := {"elbow_l": 0.8, "elbow_r": 0.8, "knee_l": 0.85, "knee_r": 0.85, "neck": 0.75}
+# Las rodillas van algo por DELANTE de la cadera (en un mortal suben dobladas hacia el pecho, no
+# salen estiradas hacia delante); codos y cuello van un poco por detrás del tronco.
+const JOINT_LAG := {"elbow_l": 0.8, "elbow_r": 0.8, "knee_l": 1.25, "knee_r": 1.25, "neck": 0.75}
 var _pose_vel := {}
 
 func _base_pose() -> Dictionary:
@@ -296,7 +317,8 @@ func _process(dt: float) -> void:
 						target.spine.x -= 0.3 * c
 			# Tras recibir: brazos abiertos a los lados buscando el equilibrio (oscilan y se recogen)
 			var lt := player.land_timer
-			if lt > 0.08 and lt < 1.1 and spd < 4.0 and player.jump_load <= 0.0:
+			var shaky := float(player.last_landing.get("impact", 0.0)) > 9.0 or player.land_quality in ["sloppy", "hard"]
+			if shaky and lt > 0.08 and lt < 1.1 and spd < 4.0 and player.jump_load <= 0.0:
 				var wb := _smooth((lt - 0.08) / 0.18) * _smooth((1.1 - lt) / 0.45)
 				var wob := sin(lt * 9.0) * 0.18 * (1.1 - lt)
 				_apply(target, {"shoulder_l": Vector3(0.35 + wob, 0, -1.2 - wob), "shoulder_r": Vector3(0.3 - wob, 0, 1.2 - wob),
@@ -539,7 +561,10 @@ func _solve_contacts(contacts: Dictionary, _dt: float, extra := {}, extra_target
 			_limb_ik(c, plants[c], w)
 		else:
 			plants.erase(c)
-		# Nunca por debajo del suelo
+		# Nunca por debajo del suelo (en el aire solo al bajar: al despegar el cuerpo sube y gira,
+		# y fijar el pie al suelo estiraba una pierna hacia atrás como si se quedara enganchada)
+		if player.state == PlayerController.State.AIR and player.velocity.y > -1.0:
+			continue
 		end = limb_end(c)
 		var floor_y := ground_y + (HAND_R if c.begins_with("h") else SOLE * 0.6)
 		if end.y < floor_y:
@@ -918,8 +943,8 @@ func _cork_legs(v: Dictionary) -> Dictionary:
 ## Fase 5 · APERTURA: el cuerpo se alarga (frena el giro) y las piernas buscan el suelo.
 const OPEN_POSE := {"spine": Vector3(-0.05, 0, 0), "neck": Vector3(0.1, 0, 0),
 	"hip_l": Vector3(0.22, 0, -0.05), "hip_r": Vector3(0.18, 0, 0.05), "knee_l": Vector3(-0.22, 0, 0), "knee_r": Vector3(-0.18, 0, 0),
-	"shoulder_l": Vector3(1.55, 0, -0.75), "shoulder_r": Vector3(1.55, 0, 0.75),
-	"elbow_l": Vector3(0.3, 0, 0), "elbow_r": Vector3(0.3, 0, 0)}
+	"shoulder_l": Vector3(0.95, 0, -1.0), "shoulder_r": Vector3(0.95, 0, 1.0),
+	"elbow_l": Vector3(0.45, 0, 0), "elbow_r": Vector3(0.45, 0, 0)}
 
 ## Fase 6 · RECEPCIÓN: piernas flexionadas listas para absorber, brazos delante para equilibrar.
 const RECEPTION := {"spine": Vector3(-0.3, 0, 0), "neck": Vector3(0.15, 0, 0),

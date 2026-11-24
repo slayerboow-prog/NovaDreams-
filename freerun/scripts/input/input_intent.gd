@@ -28,8 +28,14 @@ var double_flip := false        # botonera: botón de doble mortal
 var cork_request := false       # botonera: botón CORK (salta en cork o, en el aire, lo empieza; en un cork = ST)
 var butterfly_request := false  # botonera: botón MARIPOSA (butterfly aunque no haya carrera)
 var skill_hold := false         # botonera: botón de habilidad mantenido (PINO: sigue en el pino)
+var pattern := {}               # modo gestos: patrón reconocido en el joystick dorado (GestureRecognizer)
+var twist_loops: Array[int] = []  # modo gestos: círculos completados en el joystick morado (+1 horario)
+var giro_sector := 99           # modo gestos: línea recta en el joystick morado (movimientos de suelo)
 
 func clear_edges() -> void:
+	pattern = {}
+	twist_loops = []
+	giro_sector = 99
 	jump_pressed = false
 	action_pressed = false
 	flick = Vector2.ZERO
@@ -53,3 +59,4 @@ func copy_from(o: InputIntent) -> void:
 	twist = o.twist; stick_twist = o.stick_twist; rot_flick = o.rot_flick
 	skill_request = o.skill_request; double_flip = o.double_flip; cork_request = o.cork_request
 	butterfly_request = o.butterfly_request; skill_hold = o.skill_hold
+	pattern = o.pattern; twist_loops = o.twist_loops; giro_sector = o.giro_sector

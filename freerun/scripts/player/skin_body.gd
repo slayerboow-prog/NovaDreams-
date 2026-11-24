@@ -41,6 +41,21 @@ func build(joints: Dictionary, colors: Dictionary) -> void:
 	mesh_instance.skeleton = mesh_instance.get_path_to(skeleton)
 	mesh_instance.skin = skeleton.create_skin_from_rest_transforms()
 	mesh_instance.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_ON
+	# Las piezas rígidas (cabeza, manos, zapatillas, capucha...) se enganchan a los huesos del
+	# esqueleto: así se mueven exactamente a la vez que la piel (si siguieran a las articulaciones,
+	# en movimientos rápidos la piel iría un instante por detrás y la mano o la zapatilla se separaban).
+	for n in order:
+		var j: Node3D = joints[n]
+		var att := BoneAttachment3D.new()
+		att.name = "Att_" + n
+		att.bone_name = n
+		skeleton.add_child(att)
+		for c in j.get_children():
+			if c is MeshInstance3D:
+				var xf: Transform3D = (c as Node3D).transform
+				j.remove_child(c)
+				att.add_child(c)
+				(c as Node3D).transform = xf
 
 ## Copia la pose actual de las articulaciones al esqueleto (después de la IK).
 func sync() -> void:
@@ -49,6 +64,9 @@ func sync() -> void:
 		var i: int = _bone[n]
 		skeleton.set_bone_pose_position(i, j.position)
 		skeleton.set_bone_pose_rotation(i, j.quaternion)
+	# Aplica la pose ya (no al final del fotograma): sin esto la piel iba un fotograma por detrás
+	skeleton.force_update_all_bone_transforms()
+	skeleton.notification(Skeleton3D.NOTIFICATION_UPDATE_SKELETON)   # sube la piel al render ya
 
 ## Tela: color por vértice (sudadera, pantalón, piel), relieve de tejido y borde de luz suave.
 func _fabric_material() -> StandardMaterial3D:
@@ -87,6 +105,8 @@ func _make_mesh(c: Dictionary) -> ArrayMesh:
 	var pants_d: Color = c.pants_dark
 	var skin: Color = c.skin
 	var sock: Color = c.sock
+	var band: Color = c.get("band", c.pants_dark)
+	var wrist: Color = c.get("wrist", c.skin)
 	# Torso (de la entrepierna al cuello): cadera, cintura, pecho, hombros
 	_loft(st, Vector3.ZERO, [
 		[0.80, 0.12, 0.095, 0.01, {"pelvis": 1.0}, pants],
@@ -119,40 +139,45 @@ func _make_mesh(c: Dictionary) -> ArrayMesh:
 		var x: float = side[1]
 		var sh := "shoulder_" + sd
 		var el := "elbow_" + sd
-		# Brazo: deltoides, bíceps, codo, antebrazo que se afina, puño de la manga y muñeca
+		# Brazo al descubierto (sudadera sin mangas): sisa en el hombro, deltoides, bíceps marcado,
+		# codo, antebrazo musculado que se afina y muñequera
 		_loft(st, Vector3(0.23 * x, 0, 0), [
-			[1.532, 0.0, 0.0, 0.0, {sh: 1.0}, hood],                 # hombro redondeado (cúpula)
-			[1.527, 0.028, 0.028, 0.0, {sh: 1.0}, hood],
-			[1.512, 0.047, 0.047, 0.0, {sh: 1.0}, hood],
-			[1.48, 0.058, 0.056, 0.0, {sh: 1.0}, hood],
-			[1.42, 0.055, 0.053, 0.0, {sh: 1.0}, hood],
-			[1.33, 0.052, 0.05, -0.006, {sh: 1.0}, hood],
-			[1.255, 0.046, 0.045, -0.003, {sh: 1.0}, hood],
-			[1.205, 0.043, 0.043, 0.0, {sh: 0.55, el: 0.45}, hood],
-			[1.16, 0.044, 0.044, 0.0, {sh: 0.15, el: 0.85}, hood],
-			[1.09, 0.041, 0.039, -0.003, {el: 1.0}, hood],
-			[1.03, 0.036, 0.034, 0.0, {el: 1.0}, hood],
-			[1.022, 0.043, 0.041, 0.0, {el: 1.0}, hood_d],          # puño
-			[1.0, 0.041, 0.039, 0.0, {el: 1.0}, hood_d],
+			[1.535, 0.0, 0.0, 0.0, {sh: 1.0}, skin],                 # hombro redondeado (cúpula)
+			[1.53, 0.034, 0.034, 0.0, {sh: 1.0}, skin],
+			[1.512, 0.058, 0.056, 0.0, {sh: 1.0}, skin],
+			[1.48, 0.069, 0.066, 0.0, {sh: 1.0}, skin],               # deltoides
+			[1.42, 0.066, 0.064, 0.0, {sh: 1.0}, skin],
+			[1.35, 0.062, 0.066, -0.01, {sh: 1.0}, skin],             # bíceps
+			[1.275, 0.054, 0.056, -0.005, {sh: 1.0}, skin],
+			[1.205, 0.046, 0.047, 0.0, {sh: 0.55, el: 0.45}, skin],
+			[1.16, 0.05, 0.049, 0.0, {sh: 0.15, el: 0.85}, skin],
+			[1.1, 0.05, 0.045, -0.004, {el: 1.0}, skin],            # antebrazo
+			[1.03, 0.034, 0.03, 0.0, {el: 1.0}, skin],
 			[1.0, 0.031, 0.027, 0.0, {el: 1.0}, skin],
+			[0.995, 0.036, 0.032, 0.0, {el: 1.0}, wrist],            # muñequera
+			[0.96, 0.036, 0.032, 0.0, {el: 1.0}, wrist],
+			[0.955, 0.029, 0.024, 0.0, {el: 1.0}, skin],
 			[0.95, 0.029, 0.023, 0.0, {el: 1.0}, skin],
 		], false, false)
 		var hp := "hip_" + sd
 		var kn := "knee_" + sd
 		# Pierna: muslo, rodilla, gemelo, tobillo (calcetín dentro de la zapatilla)
 		_loft(st, Vector3(0.1 * x, 0, 0), [
-			[1.0, 0.088, 0.088, 0.005, {"pelvis": 0.55, hp: 0.45}, pants],
-			[0.93, 0.095, 0.096, 0.005, {"pelvis": 0.15, hp: 0.85}, pants],
-			[0.84, 0.092, 0.091, 0.0, {hp: 1.0}, pants],
-			[0.74, 0.083, 0.083, -0.004, {hp: 1.0}, pants],
-			[0.62, 0.071, 0.071, -0.004, {hp: 1.0}, pants],
-			[0.535, 0.063, 0.065, -0.004, {hp: 0.55, kn: 0.45}, pants],
-			[0.475, 0.061, 0.063, 0.0, {hp: 0.12, kn: 0.88}, pants],
-			[0.40, 0.064, 0.069, 0.01, {kn: 1.0}, pants],
-			[0.30, 0.058, 0.061, 0.008, {kn: 1.0}, pants],
-			[0.18, 0.048, 0.049, 0.0, {kn: 1.0}, pants],
-			[0.125, 0.047, 0.048, 0.0, {kn: 1.0}, pants_d],          # bajo del pantalón
-			[0.105, 0.047, 0.048, 0.0, {kn: 1.0}, pants_d],
+			[1.0, 0.092, 0.092, 0.005, {"pelvis": 0.55, hp: 0.45}, pants],
+			[0.93, 0.101, 0.102, 0.005, {"pelvis": 0.15, hp: 0.85}, pants],
+			[0.84, 0.1, 0.099, 0.0, {hp: 1.0}, pants],
+			[0.74, 0.092, 0.092, -0.004, {hp: 1.0}, pants],
+			[0.62, 0.081, 0.081, -0.004, {hp: 1.0}, pants],
+			[0.535, 0.073, 0.075, -0.004, {hp: 0.55, kn: 0.45}, pants],
+			[0.49, 0.072, 0.075, 0.0, {hp: 0.2, kn: 0.8}, pants],
+			[0.485, 0.075, 0.078, 0.0, {hp: 0.15, kn: 0.85}, band],   # correa de la rodilla
+			[0.455, 0.075, 0.078, 0.0, {hp: 0.05, kn: 0.95}, band],
+			[0.45, 0.071, 0.075, 0.0, {kn: 1.0}, pants],
+			[0.38, 0.07, 0.075, 0.01, {kn: 1.0}, pants],
+			[0.28, 0.064, 0.067, 0.008, {kn: 1.0}, pants],
+			[0.18, 0.054, 0.055, 0.0, {kn: 1.0}, pants],
+			[0.15, 0.044, 0.046, 0.0, {kn: 1.0}, pants_d],          # puño elástico del jogger
+			[0.105, 0.043, 0.045, 0.0, {kn: 1.0}, pants_d],
 			[0.105, 0.038, 0.04, 0.0, {kn: 1.0}, sock],
 			[0.05, 0.036, 0.038, 0.0, {kn: 1.0}, sock],
 		], false, false)

@@ -111,6 +111,7 @@ func _run_all() -> void:
 	await t_touch_layout()
 	await t_ring_buttons()
 	await t_salto_giro_sticks()
+	await t_gesture_patterns()
 	await t_landing_feel()
 	await t_new_tricks()
 	await t_gestures()
@@ -1248,7 +1249,6 @@ func t_ground_skills() -> void:
 		["Hook Kick", ["arc", PI, TAU], 0, "any", false, false],
 		["Crescent Kick", ["arc", 0.0, PI], 0, "any", false, false],
 		["Reverse Crescent Kick", ["arc", PI, 0.0], 0, "any", false, false],
-		["Scoot", ["change", Vector2(-1, 0), Vector2(1, 0)], 0, "side", false, false],
 		["Back Extension Roll", ["roll", Vector2(0, -1)], 0, "back", false, true],
 		["Valdez", ["roll", Vector2(0.7, -0.7)], 0, "back", false, true],
 	]
@@ -1406,32 +1406,14 @@ func t_chains() -> void:
 		["Macaco → Flic-flac", [["now", ["hold", RO, 34]], ["link", ["flick", D]]], 0, ["Macaco", "Back Handspring"]],
 		["Macaco → Backflip", [["now", ["hold", RO, 34]], ["link", ["jump", D]]], 0, ["Macaco", "@back"]],
 		["Raiz → Cork", [["now", ["hold", Vector2(1, 0), 34]], ["link", ["jump", D, 20]]], 0, ["Raiz", "Cork"]],
-		["TD Raiz → Butterfly Twist", [["now", ["hold", Vector2(0.7, 0.7), 34]], ["link", ["flick", Vector2(-0.7, 0.7)]], ["now", ["twist", -1.0, 20, 14]]], 0, ["Touchdown Raiz", "@btwist"]],
-		["Scoot → B-Twist", [["now", ["flick", Vector2.ZERO]]], 0, []],
-		["Aerial → Butterfly Kick", [["now", ["flick", Vector2(-0.7, 0.7)]], ["link", ["flick", Vector2(-0.7, 0.7)]]], 0, ["Aerial", "Butterfly Kick"]],
+		["Aerial → Aerial", [["now", ["flick", Vector2(-0.7, 0.7)]], ["link", ["flick", Vector2(-0.7, 0.7)]]], 0, ["Aerial", "Aerial"]],
 		["Rueda → Backflip", [["now", ["flick", Vector2(1, 0)]], ["link", ["jump", D]]], 0, ["Cartwheel", "@back"]],
 		["Crescent → Swing Gainer", [["now", ["arc", 0.0, PI]], ["link", ["jump", D]]], 0, ["Crescent Kick", "Swing Gainer"]],
 	]
 	for c in cases:
-		if c[0] == "Scoot → B-Twist":
-			continue                      # se prueba aparte (gesto de cambio de dirección)
 		await place(Vector3(-35, 0.1, 40), Vector3.FORWARD)
 		var st: Dictionary = await chain_run(c[1], c[2])
 		_check_chain(c[0], c[3], st)
-	# Scoot → B-Twist: cambio de dirección ← → y en la ventana ↖ con GIRO
-	await place(Vector3(-35, 0.1, 40), Vector3.FORWARD)
-	var sc := {"t": -1, "b": -1}
-	await run(func(i, f):
-		i.stick_twist = true
-		if f < 5: i.rot = Vector2(-1, 0)
-		elif f >= 6 and f < 11: i.rot = Vector2(1, 0)
-		if sc.b < 0 and player.chain.active() and player.chain.from_id() == "scoot": sc.b = f
-		if sc.b >= 0:
-			var k: int = f - sc.b
-			if k < 8: i.rot = Vector2(-0.7, 0.7)
-			i.twist = -1.0 if k >= 20 and k < 44 else 0.0, 300,
-		func(): return sc.b >= 0 and _f > sc.b + 30 and player.state == PlayerController.State.GROUND)
-	_check_chain("Scoot → B-Twist", ["Scoot", "@btwist"], {"peaks": []})
 	# Rebote: la rondada da más altura al backflip que un backflip parado (sin multiplicar a lo loco)
 	await place(Vector3(-35, 0.1, 40), Vector3.FORWARD)
 	var plain: Dictionary = await chain_run([["now", ["jump", D]]], 0)
@@ -1548,13 +1530,14 @@ func t_ring_buttons() -> void:
 				qok = false; qinfo += "solapa %d con %s; " % [qi, o[0]]
 		if touch.quick_at(qc) != qi:
 			qok = false; qinfo += "no detecta %d; " % qi
-	check("Botonera neón: 4 accesos rápidos a la izquierda sin solapar controles", qok, qinfo)
+	check("Botonera neón: %d accesos rápidos a la izquierda sin solapar controles" % TouchControls.QUICK.size(), qok, qinfo)
 	var got: Array[String] = []
 	var cb := func(id: String) -> void: got.append(id)
 	touch.quick_action.connect(cb)
 	var qe := InputEventScreenTouch.new()
 	qe.index = 6
-	qe.position = touch.quick_center(3)
+	var ri := TouchControls.QUICK.map(func(q): return q[2]).find("respawn")
+	qe.position = touch.quick_center(ri)
 	qe.pressed = true
 	touch._on_touch(qe)
 	qe.pressed = false
@@ -1621,8 +1604,10 @@ func t_ring_buttons() -> void:
 			press.call(bi2, false)
 		await frames(10)
 		var ok_land: bool = landings.size() > 0 and landings.all(func(l): return l.quality in ["perfect", "clean"])
-		check("Botonera: mantener ATRÁS %s = %s" % ["y soltar" if c[2] == 0 else "sin soltar nunca", c[1] if c[2] == 0 else "gira lo que permite la altura y aterriza"],
-			(c[1] in moves if c[2] == 0 else moves.any(func(m): return m.contains("Backflip"))) and ok_land, "%s %s" % [moves, landings.map(func(l): return [l.quality, int(l.error)])])
+		# En suelo plano la altura de un mortal real no da para dos vueltas: sale un mortal limpio
+		# (los dobles salen con rebote de rondada/flic-flac o desde alturas)
+		check("Botonera: mantener ATRÁS %s = gira lo que permite la altura y aterriza limpio" % ["y soltar" if c[2] == 0 else "sin soltar nunca"],
+			moves.any(func(m): return m.contains("Backflip")) and ok_land, "%s %s" % [moves, landings.map(func(l): return [l.quality, int(l.error)])])
 	# Enlace con botones: RONDADA → FLIC-FLAC (pulsado durante la rondada) → ATRÁS (en la recepción)
 	player.set_spawn(Transform3D(Basis(), Vector3(-35, 0.1, 40)), Vector3.FORWARD)
 	player.respawn()
@@ -1658,7 +1643,7 @@ func t_ring_buttons() -> void:
 	e2.pressed = false; e2.position = dr.position
 	touch._on_touch(e2)
 	check("Botonera: CAMBIAR gira la rueda (tocar = siguiente, deslizar abajo = anterior)", p1 == 1 and touch.ring_page == 0, "tras tocar %d, tras deslizar %d" % [p1, touch.ring_page])
-	for c in [[2, "HOOK", "Hook Kick"], [0, "PATADA 360", "360 Kick"], [2, "MARIPOSA", "Butterfly Kick"],
+	for c in [[2, "HOOK", "Hook Kick"], [0, "PATADA 360", "360 Kick"], [2, "MACACO", "Macaco"],
 			[3, "BACK WALKOVER", "Back Walkover"], [3, "VOLTERETA AL PINO", "Back Extension Roll"]]:
 		touch.ring_page = c[0]
 		player.set_spawn(Transform3D(Basis(), Vector3(-35, 0.1, 35)), Vector3.FORWARD)
@@ -1819,8 +1804,7 @@ func t_salto_giro_sticks() -> void:
 	check("Modo gestos: sin rueda de botones de movimientos (todo con SALTO y GIRO)", touch.ring_buttons().is_empty(), str(touch.ring_buttons().size()))
 	game.router.scripted = Callable()            # entrada real: el táctil
 	var no_twist := {"max": 0.0}
-	for c in [[Vector2(0, -1), "Frontflip"], [Vector2(0.71, -0.71), "Aerial"], [Vector2(-1, 0), "Sideflip"], [Vector2(1, 0), "Sideflip"],
-			[Vector2(0, 1), "Backflip"], [Vector2(0.71, 0.71), "Gainer"], [Vector2(-0.71, 0.71), "Gainer"]]:
+	for c in [[Vector2(0, -1), "Frontflip"], [Vector2(-1, 0), "Sideflip"], [Vector2(1, 0), "Sideflip"], [Vector2(0, 1), "Backflip"]]:
 		await place(Vector3(-35, 0.1, 35), Vector3.FORWARD)
 		moves.clear(); landings.clear()
 		touch.air_mode = false
@@ -1843,13 +1827,48 @@ func t_salto_giro_sticks() -> void:
 				break
 		if not released:
 			e.pressed = false; touch._on_touch(e)
-		check("SALTO deslizando %s = %s" % [str(c[0]), c[1]], c[1] in moves and landings.size() > 0 and landings[-1].quality in ["perfect", "clean"],
+		check("SALTO: línea recta %s = %s" % [str(c[0]), c[1]], c[1] in moves and landings.size() > 0 and landings[-1].quality in ["perfect", "clean"],
 			"%s %s" % [moves, landings.map(func(l): return l.quality)])
 	check("SALTO nunca añade tirabuzones (giro máximo %.2f rad)" % no_twist.max, no_twist.max < 0.05, "")
+	# Páginas de SALTO: el botón dorado cambia de página y cada dirección dibujada es un movimiento
+	for pc in [[1, Vector2(0.71, -0.71), "Hook Kick"], [1, Vector2(1, 0), "Raiz"], [1, Vector2(-0.71, 0.71), "Touchdown Raiz"],
+			[2, Vector2(0, -1), "Front Handspring"], [2, Vector2(0, 1), "Back Walkover"], [2, Vector2(1, 0), "Valdez"]]:
+		await place(Vector3(-35, 0.1, 35), Vector3.FORWARD)
+		moves.clear()
+		touch.salto_page = 0
+		var sw := InputEventScreenTouch.new(); sw.index = 8; sw.position = touch.salto_swap_center(); sw.pressed = true
+		for t in int(pc[0]):
+			sw.pressed = true; touch._on_touch(sw)
+			sw.pressed = false; touch._on_touch(sw)
+		var pjc := touch._jump_center()
+		var pe := InputEventScreenTouch.new(); pe.index = 7; pe.position = pjc; pe.pressed = true
+		touch._on_touch(pe)
+		var pdr := InputEventScreenDrag.new(); pdr.index = 7; pdr.position = pjc + (pc[1] as Vector2) * 90.0
+		touch._on_drag(pdr)
+		pe.pressed = false; pe.position = pdr.position
+		touch._on_touch(pe)
+		for k in 150:
+			await get_tree().physics_frame
+			if pc[2] in moves:
+				break
+		check("SALTO página %s, dibujar %s = %s (sin saltar)" % [TouchControls.SALTO_PAGES[pc[0]].name, str(pc[1]), pc[2]],
+			touch.salto_page == int(pc[0]) and pc[2] in moves, "%s pág %d" % [moves, touch.salto_page])
+	# En una página de habilidades, tocar SALTO sin dibujar sigue siendo un salto
+	await place(Vector3(-35, 0.1, 35), Vector3.FORWARD)
+	touch.salto_page = 1
+	var te := InputEventScreenTouch.new(); te.index = 7; te.position = touch._jump_center(); te.pressed = true
+	touch._on_touch(te)
+	await frames(2)
+	te.pressed = false; touch._on_touch(te)
+	var went_air := false
+	for k in 60:
+		await get_tree().physics_frame
+		went_air = went_air or player.state == PlayerController.State.AIR
+	check("Página de habilidades: tocar SALTO sin dibujar = salto", went_air, "")
+	touch.salto_page = 0
 	game.router.scripted = _drive
 	# Joystick GIRO en el suelo
 	for g in [["arriba", [Vector2(0, 1)], "Round-off"], ["abajo", [Vector2(0, -1)], "Back Handspring"], ["lado", [Vector2(1, 0)], "Cartwheel"],
-			["semicírculo desde abajo", [Vector2(0, -1), Vector2(0.7, -0.7), Vector2(1, 0), Vector2(0.7, 0.7), Vector2(0, 1)], "Scoot"],
 			["semicírculo desde arriba", [Vector2(0, 1), Vector2(0.7, 0.7), Vector2(1, 0), Vector2(0.7, -0.7), Vector2(0, -1)], "Macaco"]]:
 		await place(Vector3(-35, 0.1, 35), Vector3.FORWARD)
 		moves.clear()
@@ -1861,6 +1880,306 @@ func t_salto_giro_sticks() -> void:
 			func(): return _f > 20 and g[2] in moves)
 		check("GIRO %s = %s" % [g[0], g[2]], g[2] in moves, str(moves))
 	Settings.trick_controls = old_mode
+
+## Trazo de ejemplo de un gesto (GestureRecognizer.preview_points) en píxeles de pantalla.
+func _gpts(id: String, center: Vector2, r: float, mirror := false, n := 40) -> Array:
+	var out := []
+	for q in GestureRecognizer.resample(GestureRecognizer.preview_points(id), n):
+		out.append(center + Vector2(-q.x if mirror else q.x, -q.y) * r)
+	return out
+
+## Círculos dibujados con el dedo (d = +1 horario en pantalla), algo ovalados y temblorosos.
+func _circle_pts(center: Vector2, r: float, turns: float, d: int, squash := 1.0, wobble := 0.0) -> Array:
+	var out := []
+	var n := int(36 * turns)
+	for i in n + 1:
+		var a := -PI * 0.5 + float(d) * TAU * float(i) / 36.0
+		var rr := r * (1.0 + wobble * sin(float(i) * 1.7))
+		out.append(center + Vector2(cos(a) * rr, sin(a) * rr * squash))
+	return out
+
+## Dibuja un trazo con un dedo (pulsar, arrastrar por los puntos y, si release, soltar).
+func _draw_on(touch: TouchControls, idx: int, pts: Array, release := true) -> void:
+	var e := InputEventScreenTouch.new(); e.index = idx; e.position = pts[0]; e.pressed = true
+	touch._on_touch(e)
+	for k in range(1, pts.size()):
+		var d := InputEventScreenDrag.new(); d.index = idx; d.position = pts[k]; d.relative = pts[k] - pts[k - 1]
+		touch._on_drag(d)
+	if release:
+		e.pressed = false; e.position = pts[pts.size() - 1]
+		touch._on_touch(e)
+
+func _loop_events(pts: Array) -> Array:
+	var lc := GestureRecognizer.LoopCounter.new(110.0)
+	for p in pts:
+		lc.feed(p)
+	return lc.events
+
+## Sistema de gestos de los tres joysticks: reconocimiento de patrones (dorado), círculos
+## (morado), contexto físico, multitáctil y práctica de gestos.
+func t_gesture_patterns() -> void:
+	# --- Reconocedor: trazos imperfectos (escala, proporción, giro y temblor distintos) ---
+	var rng := RandomNumberGenerator.new(); rng.seed = 11
+	var expect := {"front": "front", "back": "back", "side_l": "side", "side_r": "side", "cork": "cork", "cork720": "cork720",
+		"aerial_twist": "aerial_twist", "gainer": "gainer"}
+	for id in GestureRecognizer.TEMPLATES.keys():
+		expect[id] = id
+	var worst := {"id": "", "rate": 1.0}
+	var tot := {"ok": 0, "n": 0}
+	for id in expect.keys():
+		var ok := 0
+		for n in 30:
+			var sc := rng.randf_range(0.8, 1.25); var ax := rng.randf_range(0.85, 1.15); var rot := deg_to_rad(rng.randf_range(-8, 8))
+			var mirror := n % 2 == 1
+			var wob := Vector2(rng.randf_range(-0.03, 0.03), rng.randf_range(-0.03, 0.03))
+			var scr := PackedVector2Array()
+			var k := 0
+			for q in GestureRecognizer.resample(GestureRecognizer.preview_points(id), rng.randi_range(25, 60)):
+				var v := Vector2((-q.x if mirror else q.x) * ax, q.y).rotated(rot) * sc + wob * sin(float(k) * 0.4)
+				k += 1
+				scr.append(Vector2(600, 400) + Vector2(v.x, -v.y) * 95.0)
+			if String(GestureRecognizer.recognize_salto(scr, 95.0, {}).id) == expect[id]:
+				ok += 1
+		tot.ok += ok; tot.n += 30
+		if ok / 30.0 < worst.rate:
+			worst = {"id": id, "rate": ok / 30.0}
+	check("Joystick dorado: %d/%d trazos imperfectos bien reconocidos (peor: %s %d%%)" % [tot.ok, tot.n, worst.id, int(worst.rate * 100.0)],
+		tot.ok >= tot.n * 0.95 and worst.rate >= 0.8, "")
+	var tiny := PackedVector2Array([Vector2(600, 400), Vector2(604, 402), Vector2(601, 405), Vector2(603, 401)])
+	check("Joystick dorado: un toque o un temblor = salto (no acrobacia)", GestureRecognizer.recognize_salto(tiny, 95.0).id == "tap", "")
+	var circ := GestureRecognizer.recognize_salto(PackedVector2Array(_circle_pts(Vector2(600, 400), 60, 1.0, 1)), 95.0)
+	check("Joystick dorado: un círculo solo no es ningún mortal (los círculos son del morado)", circ.id == "", str(circ))
+	# Garabatos al azar (movimientos accidentales): pocos deben pasar por un patrón
+	var hits := 0
+	for n in 60:
+		var scr := PackedVector2Array([Vector2(600, 400)])
+		var dirv := Vector2.RIGHT.rotated(rng.randf() * TAU)
+		for k in 14:
+			dirv = dirv.rotated(rng.randf_range(-1.6, 1.6))
+			scr.append(scr[scr.size() - 1] + dirv * rng.randf_range(10, 30))
+		var r := GestureRecognizer.recognize_salto(scr, 95.0)
+		if r.kind in ["pattern", "parkour"]:
+			hits += 1
+	check("Garabatos al azar: %d de 60 se toman por un patrón complejo" % hits, hits <= 15, "")
+	# --- Joystick morado: círculos = tirabuzones ---
+	var c0 := Vector2(800, 450)
+	check("Morado: círculo horario = tirabuzón derecho", _loop_events(_circle_pts(c0, 55, 1.05, 1)) == [1], str(_loop_events(_circle_pts(c0, 55, 1.05, 1))))
+	check("Morado: círculo antihorario = tirabuzón izquierdo", _loop_events(_circle_pts(c0, 55, 1.05, -1)) == [-1], "")
+	check("Morado: dos círculos = doble tirabuzón", _loop_events(_circle_pts(c0, 50, 2.05, 1)) == [1, 1], str(_loop_events(_circle_pts(c0, 50, 2.05, 1))))
+	check("Morado: tres círculos = triple tirabuzón", _loop_events(_circle_pts(c0, 45, 3.05, -1)) == [-1, -1, -1], str(_loop_events(_circle_pts(c0, 45, 3.05, -1))))
+	var combo := _circle_pts(c0, 50, 1.0, 1) + _circle_pts(c0, 50, 1.05, -1)
+	check("Morado: círculo horario y otro antihorario = combinado", _loop_events(combo) == [1, -1], str(_loop_events(combo)))
+	check("Morado: círculo imperfecto (ovalado y tembloroso) también cuenta", _loop_events(_circle_pts(c0, 60, 1.05, 1, 0.6, 0.12)) == [1], "")
+	check("Morado: tres cuartos de círculo no cuentan", _loop_events(_circle_pts(c0, 55, 0.75, 1)).is_empty(), "")
+	var jit := []
+	for k in 40:
+		jit.append(c0 + Vector2(rng.randf_range(-4, 4), rng.randf_range(-4, 4)))
+	check("Morado: un temblor del dedo no es un tirabuzón", _loop_events(jit).is_empty(), str(_loop_events(jit)))
+	var gname := GestureRecognizer.twist_name([1, -1])
+	check("Morado: nombre del combinado", gname == "TIRABUZÓN COMBINADO", gname)
+	# Tirabuzón combinado en el sistema de acrobacias: una vuelta a un lado y otra al otro
+	var ts := TrickSystem.new()
+	ts.reset("stand", 0.0)
+	var a1 := ts.add_twist_turn(1, 3.0, player.t)
+	var a2 := ts.add_twist_turn(-1, 3.0, player.t)
+	var flipped := {"v": false}
+	for k in 300:
+		ts.step(1.0 / 60.0, 0.0, 3.0 - k / 60.0, 1.0, player.t)
+		flipped.v = flipped.v or (ts.dir.twist == -1)
+	var ev := ts.evaluate()
+	check("Tirabuzón combinado: gira a un lado, cambia de sentido y suma dos vueltas", a1 and a2 and flipped.v and int(ev.get("twist_halves", 0)) == 4 and String(ev.get("name", "")).contains("Combinado"), str(ev))
+	ts.reset("stand", 0.0)
+	var fits := 0
+	for k in 5:
+		if ts.add_twist_turn(1, 0.6, player.t):
+			fits += 1
+	check("Tirabuzones: solo se aceptan las vueltas que caben en el tiempo de vuelo (%d de 5 en 0,6 s)" % fits, fits >= 1 and fits < 5, "")
+
+	# --- Patrones ejecutados por el atleta (mismas mecánicas que los botones) ---
+	var mode_before := Settings.trick_controls
+	Settings.trick_controls = 5
+	for pc in [[{"id": "cork", "loops": 1, "twist": 1}, ["Cork"]], [{"id": "cork720", "loops": 2, "twist": 1}, ["Cork 720"]],
+			[{"id": "aerial_twist", "loops": 1, "twist": 1}, ["Aerial Twist"]], [{"id": "webster"}, ["Webster", "Frontflip"]],
+			[{"id": "gainer", "loops": 1}, ["Gainer", "Backflip"]], [{"id": "aerial"}, ["Aerial"]]]:
+		await place(Vector3(-35, 0.1, 35), Vector3.FORWARD)
+		var pat: Dictionary = pc[0]
+		await run(func(i, f):
+			i.stick_twist = true
+			if f == 0:
+				i.pattern = pat, 240,
+			func(): return _f > 30 and player.state == PlayerController.State.GROUND and not moves.is_empty())
+		var hit := false
+		for m in pc[1]:
+			hit = hit or m in moves
+		check("Patrón %s = %s" % [String(pat.id).to_upper(), pc[1][0]], hit and landings.size() > 0 and landings[-1].quality in ["perfect", "clean"],
+			"%s %s" % [moves, landings.map(func(l): return l.quality)])
+	# Círculo en el suelo = salto con giro de 360; durante un mortal = tirabuzón añadido
+	await place(Vector3(-35, 0.1, 35), Vector3.FORWARD)
+	await run(func(i, f):
+		i.stick_twist = true
+		if f == 0:
+			i.twist_loops.append(1), 160,
+		func(): return _f > 30 and player.state == PlayerController.State.GROUND)
+	check("Círculo morado en el suelo = giro de 360 en el aire", "360 Kick" in moves, str(moves))
+	await place(Vector3(-35, 0.1, 35), Vector3.FORWARD)
+	await run(func(i, f):
+		i.stick_twist = true
+		i.jump_pressed = f == 0; i.flick = Vector2(0, -1) if f == 0 else Vector2.ZERO
+		if f == 14:
+			i.twist_loops.append(1), 200,
+		func(): return _f > 30 and player.state == PlayerController.State.GROUND)
+	check("Mortal atrás + círculo morado = Piru (tirabuzón completo) y aterriza", "Piru" in moves and landings.size() > 0 and landings[-1].quality in ["perfect", "clean"],
+		"%s %s" % [moves, landings.map(func(l): return l.quality)])
+	await place(Vector3(-35, 0.1, 35), Vector3.FORWARD)
+	await run(func(i, f):
+		i.stick_twist = true
+		i.jump_pressed = f == 0; i.flick = Vector2(0, -1) if f == 0 else Vector2.ZERO
+		if f == 8:
+			i.twist_loops.append_array([1, 1, 1]), 200,
+		func(): return _f > 30 and player.state == PlayerController.State.GROUND)
+	check("Tres círculos en un mortal en el suelo: hace los que caben y no se estrella", landings.size() > 0 and landings[-1].quality != "crash",
+		"%s %s" % [moves, landings.map(func(l): return l.quality)])
+	# Parkour: patrones con obstáculo / pared
+	var park := func(start: Vector3, stick: float, sprint: bool, pat: Dictionary, at_z: float) -> void:
+		await place(start, Vector3.FORWARD)
+		var st := {"p": false, "f": 0}
+		await run(func(i, f):
+			i.move = Vector2(0, stick); i.sprint = sprint
+			if not st.p and player.global_position.z <= at_z:
+				i.pattern = pat
+				st.p = true
+				st.f = f, 300,
+			func(): return st.p and _f > st.f + 70 and player.state in [PlayerController.State.GROUND, PlayerController.State.HANG])
+	await park.call(Vector3(0, 0.1, -8), 1.0, true, {"id": "kong"}, -11.0)
+	check("Patrón KONG (dos arcos) con obstáculo = Kong Vault", "Kong Vault" in moves, str(moves))
+	await park.call(Vector3(0, 0.1, 2), 0.8, false, {"id": "vault"}, -4.0)
+	check("Patrón VAULT (U invertida) con obstáculo = vault", moves.any(func(m): return String(m).ends_with("Vault")), str(moves))
+	await park.call(Vector3(0, 0.1, -34.5), 0.8, false, {"id": "climb"}, -34.0)
+	check("Patrón ESCALADA junto a la pared = Wall Climb", "Wall Climb" in moves, str(moves))
+	await park.call(Vector3(0, 0.1, -34.5), 0.8, false, {"id": "wall_flip"}, -34.0)
+	check("Patrón WALL FLIP junto a la pared = trepa y mortal atrás desde la pared", "Wall Climb" in moves and ("Wall Flip" in moves or "Wall Gainer" in moves), str(moves))
+	await park.call(Vector3(11.0, 0.1, 3), 1.0, true, {"id": "wall_run"}, 1.0)
+	check("Patrón WALL RUN con pared al lado = Wall Run", "Wall Run" in moves, str(moves))
+	await park.call(Vector3(0, 0.1, -32.0), 0.9, false, {"id": "cat_leap"}, -33.4)
+	check("Patrón CAT LEAP hacia la pared = se agarra", "Cat Leap" in moves or "Ledge Grab" in moves or "Wall Climb" in moves, str(moves))
+	await place(Vector3(-35, 0.1, 35), Vector3.FORWARD)
+	var pv := {"v": 9.0}
+	await run(func(i, f):
+		i.move = Vector2(0, 0.7)
+		if f == 25:
+			i.pattern = {"id": "precision"}, 200,
+		func(): return landings.size() > 0 and _f > 30)
+	pv.v = player.speed()
+	check("Patrón PRECISIÓN = salta y clava la recepción (%.1f m/s al caer)" % pv.v, "Precision Jump" in moves and pv.v < 1.0, str(moves))
+	await place(Vector3(-35, 2.9, 35), Vector3.FORWARD)
+	await run(func(i, f):
+		i.move = Vector2(0, 0.6)
+		if f == 3:
+			i.pattern = {"id": "roll"}, 160,
+		func(): return landings.size() > 0 and _f > 40)
+	check("Patrón RODAR en el aire = voltereta al aterrizar", "Safety Roll" in moves or "Roll" in moves, str(moves))
+	# Contexto: sin obstáculo ni pared, el patrón de parkour no se ejecuta y dice por qué
+	await place(Vector3(-35, 0.1, 35), Vector3.FORWARD)
+	var ctx := player.gesture_context()
+	var vres := GestureRecognizer.recognize_salto(PackedVector2Array(_gpts("vault", Vector2(600, 400), 90)), 95.0, {"ctx": ctx})
+	check("Sin obstáculo delante, la U invertida no hace un vault (y explica el motivo)", vres.id != "vault" or (not vres.ok and vres.reason != ""), str(vres))
+	var wres := GestureRecognizer.recognize_salto(PackedVector2Array(_gpts("climb", Vector2(600, 400), 90)), 95.0, {"ctx": ctx})
+	check("Sin pared, el zigzag de escalada no se ejecuta (motivo: %s)" % wres.get("reason", ""), not wres.ok, str(wres))
+
+	# --- Táctil real: los tres joysticks ---
+	var touch: TouchControls = game.ui.touch
+	var old_mode := mode_before
+	Settings.trick_controls = 5
+	Settings.force_touch_ui = true
+	touch.visible = true
+	touch.size = Vector2(1542, 720)
+	touch.salto_page = 0
+	game.router.scripted = Callable()
+	var jc := touch._jump_center()
+	var jr := touch._jump_radius()
+	var rc := touch._rot_center()
+	check("Joystick morado algo más arriba que el dorado (y a su izquierda)", rc.y < jc.y and rc.x < jc.x, "%s %s" % [rc, jc])
+	for tc in [["cork", "Cork"], ["webster", "Webster"], ["aerial", "Aerial"]]:
+		await place(Vector3(-35, 0.1, 35), Vector3.FORWARD)
+		touch.air_mode = false
+		jc = touch._jump_center(); jr = touch._jump_radius()
+		_draw_on(touch, 7, _gpts(tc[0], jc, jr * 0.9))
+		for k in 240:
+			await get_tree().physics_frame
+			if k > 30 and player.state == PlayerController.State.GROUND and not moves.is_empty():
+				break
+		check("Táctil: dibujar %s en el joystick dorado = %s" % [tc[0].to_upper(), tc[1]], tc[1] in moves or (tc[1] == "Webster" and "Frontflip" in moves), str(moves))
+	await place(Vector3(-35, 0.1, 35), Vector3.FORWARD)
+	rc = touch._rot_center()
+	_draw_on(touch, 8, _circle_pts(rc + Vector2(0, -20), 45, 1.08, 1))
+	for k in 150:
+		await get_tree().physics_frame
+		if k > 30 and player.state == PlayerController.State.GROUND and not moves.is_empty():
+			break
+	check("Táctil: círculo en el joystick morado (suelo) = giro de 360", "360 Kick" in moves, str(moves))
+	await place(Vector3(-35, 0.1, 35), Vector3.FORWARD)
+	rc = touch._rot_center()
+	_draw_on(touch, 8, [rc, rc + Vector2(0, -40), rc + Vector2(0, -90)])
+	for k in 120:
+		await get_tree().physics_frame
+		if "Round-off" in moves:
+			break
+	check("Táctil: línea hacia arriba en el morado (suelo) = rondada", "Round-off" in moves, str(moves))
+	# Multitáctil: correr, mortal y tirabuzón a la vez, cada dedo en su joystick
+	game.router.enabled = false
+	touch.collect()
+	jc = touch._jump_center(); jr = touch._jump_radius(); rc = touch._rot_center()
+	var mv0 := touch._joy_idle()
+	var em := InputEventScreenTouch.new(); em.index = 1; em.position = mv0; em.pressed = true
+	touch._on_touch(em)
+	var dm := InputEventScreenDrag.new(); dm.index = 1; dm.position = mv0 + Vector2(0, -90); dm.relative = Vector2(0, -90)
+	touch._on_drag(dm)
+	_draw_on(touch, 2, [jc, jc + Vector2(0, -40), jc + Vector2(0, -90)])
+	_draw_on(touch, 3, _circle_pts(rc + Vector2(0, -20), 45, 1.08, -1), false)
+	var fr := touch.collect()
+	check("Multitáctil: joystick azul, dorado y morado a la vez (correr + mortal + tirabuzón)",
+		fr.move.y > 0.5 and fr.flick.y > 0.5 and fr.twist_loops == [-1], "move %s flick %s loops %s" % [fr.move, fr.flick, fr.twist_loops])
+	var e3 := InputEventScreenTouch.new(); e3.index = 3; e3.position = rc; e3.pressed = false
+	touch._on_touch(e3)
+	em.pressed = false; touch._on_touch(em)
+	# Un dedo que empieza en el morado no activa el dorado aunque pase por encima
+	_draw_on(touch, 4, [rc, (rc + jc) * 0.5, jc, jc + Vector2(0, -80)])
+	var fr2 := touch.collect()
+	check("Un dedo que empieza en un joystick no activa otro", fr2.flick == Vector2.ZERO and fr2.pattern.is_empty() and not fr2.jump_pressed, "flick %s %s" % [fr2.flick, fr2.pattern])
+	# Salto de precisión: línea corta hacia arriba y un toque
+	_draw_on(touch, 2, [jc, jc + Vector2(0, -26), jc + Vector2(0, -52)])
+	touch._time += 0.1
+	_draw_on(touch, 2, [jc])
+	var fr3 := touch.collect()
+	check("Táctil: línea corta + toque = salto de precisión", String(fr3.pattern.get("id", "")) == "precision", str(fr3.pattern))
+	# Práctica de gestos
+	touch.toggle_training(true)
+	touch.train_i = TouchControls.TRAIN.map(func(x): return x[0]).find("cork")
+	_draw_on(touch, 2, _gpts("cork", jc, jr * 0.9))
+	var okc: bool = touch.train_done.has("cork") and touch.train_last.ok
+	touch.train_i = TouchControls.TRAIN.map(func(x): return x[0]).find("webster")
+	_draw_on(touch, 2, [jc, jc + Vector2(0, -45), jc + Vector2(0, -95)])
+	check("Práctica: el gesto pedido se marca como hecho y uno distinto se avisa", okc and not touch.train_last.ok and not touch.train_done.has("webster"), str(touch.train_last))
+	touch.train_i = TouchControls.TRAIN.map(func(x): return x[0]).find("twist_2")
+	_draw_on(touch, 3, _circle_pts(rc, 45, 2.05, 1))
+	check("Práctica: doble tirabuzón dibujado en el morado", touch.train_done.has("twist_2"), str(touch.train_last))
+	var ids := TouchControls.TRAIN.map(func(x): return x[0])
+	var missing := []
+	for need in ["front", "back", "side_l", "side_r", "aerial", "aerial_twist", "cork", "cork720", "webster", "gainer", "twist_r", "twist_l",
+			"twist_2", "twist_3", "twist_combo", "vault", "kong", "wall_run", "wall_flip", "climb", "ledge_grab", "cat_leap", "precision", "roll", "wall_climb"]:
+		if not need in ids:
+			missing.append(need)
+	check("Práctica: están todos los gestos pedidos (%d)" % ids.size(), missing.is_empty(), str(missing))
+	touch.toggle_training(false)
+	game.router.enabled = true
+	collect_cleanup(touch)
+	game.router.scripted = _drive
+	Settings.trick_controls = old_mode
+
+func collect_cleanup(touch: TouchControls) -> void:
+	touch._fingers.clear()
+	touch._await_tap = {}
+	touch.collect()
 
 ## Como en el vídeo de referencia: una caída grande se recibe a cuatro apoyos (manos al suelo)
 ## y, tras recibir, los brazos se abren a los lados para equilibrarse.

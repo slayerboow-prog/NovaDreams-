@@ -42,26 +42,24 @@ var theme_res: Theme
 
 # Tutorial opcional (menú de pausa): cada paso avanza al detectar el movimiento real.
 const TUTORIAL := [
-	["Corre: inclina el joystick izquierdo (a fondo = sprint)", ["@run"]],
+	["Corre: inclina el joystick azul (a fondo = sprint)", ["@run"]],
 	["Mueve la cámara: arrastra en una zona libre (doble toque = detrás del atleta)", ["@camera"]],
-	["Toca SALTO", ["@air"]],
-	["Desliza desde SALTO hacia abajo = Mortal atrás (mantén el dedo = agrupado)", ["Backflip", "Gainer"]],
-	["Desliza desde SALTO hacia arriba = Mortal adelante", ["Frontflip", "Webster"]],
-	["Desliza desde SALTO a un lado = Mortal lateral", ["Sideflip"]],
-	["Desliza desde SALTO en diagonal hacia abajo = Gainer (mortal atrás avanzando)", ["Gainer"]],
-	["Desliza desde SALTO en diagonal hacia arriba = Aerial (con carrera, Butterfly)", ["Aerial", "Butterfly Kick"]],
-	["Desliza hacia abajo y mantén el dedo: sigue girando = Doble mortal atrás", ["Double Backflip", "Double Gainer"]],
-	["En un mortal, joystick GIRO a un lado: suéltalo en ¼ (híper), ½ o 1 giro", ["@twist"]],
-	["Mortal atrás + una vuelta de GIRO = Piru", ["Piru", "Piru 540", "Piru 720", "Cork", "Cork 540", "Cork 720"]],
-	["En el suelo, GIRO a un lado = Rueda con apoyo de manos", ["Cartwheel"]],
-	["En el suelo, GIRO hacia abajo = Flic-flac", ["Back Handspring"]],
-	["GIRO hacia arriba = Rondada y, al recibir (¡ENLAZA!), desliza SALTO abajo", ["@roundoff_back"]],
-	["GIRO en semicírculo empezando abajo = Scoot", ["Scoot"]],
-	["GIRO en semicírculo empezando arriba = Macaco", ["Macaco"]],
-	["MANTÉN GIRO arriba = Pino; suéltalo = Front Walkover", ["Front Walkover", "Handstand"]],
-	["Corre hacia un obstáculo y pulsa VAULT", ["@vault"]],
-	["Salta hacia un borde alto y pulsa AGARRAR", ["Ledge Grab", "Cat Leap", "Mantle"]],
-	["Pulsa RODAR justo antes de caer desde alto (o corriendo)", ["Safety Roll", "Roll"]],
+	["Toca el joystick dorado (SALTO)", ["@air"]],
+	["Dorado: línea hacia abajo = Mortal atrás (deja el dedo quieto = agrupado)", ["Backflip", "Gainer"]],
+	["Dorado: línea hacia arriba = Mortal adelante", ["Frontflip", "Webster"]],
+	["Dorado: línea a un lado = Mortal lateral", ["Sideflip"]],
+	["Dorado: arco lateral que sube y baja = Aerial", ["Aerial", "Double Aerial"]],
+	["Dorado: diagonal hacia arriba y un círculo pequeño = Cork", ["Cork", "Cork 540", "Cork 720"]],
+	["Dorado: hacia abajo y una vuelta ovalada = Gainer", ["Gainer", "Backflip"]],
+	["Mortal atrás y, en el aire, un círculo en el joystick morado = Piru", ["Piru", "Piru 540", "Piru 720", "Cork", "Cork 720"]],
+	["Morado en el suelo: línea a un lado = Rueda con apoyo de manos", ["Cartwheel"]],
+	["Morado en el suelo: línea hacia abajo = Flic-flac", ["Back Handspring"]],
+	["Morado: línea hacia arriba = Rondada y, al recibir (¡ENLAZA!), línea abajo en el dorado", ["@roundoff_back"]],
+	["Botón pequeño junto a SALTO: página TRICKING. Línea arriba-derecha = Hook", ["Hook Kick"]],
+	["Página GIMNASIA: línea hacia arriba = Paloma (flic-flac adelante)", ["Front Handspring"]],
+	["Corre hacia un obstáculo y dibuja una U invertida en el dorado (o pulsa VAULT)", ["@vault"]],
+	["Junto a una pared alta: zigzag hacia arriba en el dorado = Escalada", ["Wall Climb", "Ledge Grab", "Cat Leap", "Mantle"]],
+	["Antes de caer desde alto: curva hacia abajo y adelante en el dorado = Rodar", ["Safety Roll", "Roll"]],
 ]
 var tutorial_step := -1
 var _last_move := ""
@@ -392,6 +390,10 @@ func _build_pause() -> void:
 	box.add_child(_button("Reiniciar", func(): restart_requested.emit()))
 	box.add_child(_button("Movimientos", func(): open_library()))
 	box.add_child(_button("Tutorial de controles", func(): start_tutorial()))
+	box.add_child(_button("Práctica de gestos", func():
+		resume_requested.emit()
+		Settings.trick_controls = 5
+		touch.toggle_training(true)))
 	box.add_child(_button("Ajustes", func(): open_settings()))
 	box.add_child(_button("Menú principal", func(): menu_requested.emit()))
 	pause_menu.visible = false
@@ -429,6 +431,8 @@ func _on_quick_action(id: String) -> void:
 			open_library()
 		"tutorial":
 			start_tutorial()
+		"training":
+			touch.toggle_training()
 		"settings":
 			game.set_paused(true)
 			open_settings()

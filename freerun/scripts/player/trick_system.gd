@@ -49,6 +49,9 @@ var linked := false                  # sale de un enlace (rondada, flic-flac, ho
 ## girando (doble, triple... lo que permita la altura). Con ayuda se abre solo si ya no queda
 ## altura para otra vuelta completa.
 var keep_spinning := false
+var twist_queue: Array[int] = []     # tirabuzón combinado: sentidos pendientes tras la vuelta actual
+var twist_extra_halves := 0          # medias vueltas ya hechas en sentidos anteriores (combinado)
+var twist_combined := false
 const QUARTER := PI * 0.5
 
 ## Fracción del vuelo en la que cada acrobacia completa su vuelta SIN agruparse. Agrupado
@@ -110,6 +113,9 @@ func reset(kind := "run", speed := 0.0) -> void:
 	travel_speed = absf(speed)
 	twist_boost = 1.0
 	linked = false
+	twist_queue.clear()
+	twist_extra_halves = 0
+	twist_combined = false
 
 func has_rotation() -> bool:
 	if not active:
@@ -167,10 +173,7 @@ func apply_flick(d: Vector2, allow_twist := true) -> void:
 				_start_axis("pitch", -1); _start_axis("twist", 1); twist_period = PI
 				goal.twist = 2; style = "front"
 			3:
-				if takeoff_speed > 4.0:
-					_start_axis("spin", 1); style = "butterfly"
-				else:
-					_start_axis("roll", -1); style = "aerial"
+				_start_axis("roll", -1); style = "aerial"      # (sin butterfly: eliminado)
 	else:
 		if not allow_twist and horizontal and dir.roll == 0:
 			return                           # zona LATERAL durante un mortal adelante/atrás: no gira
@@ -199,7 +202,7 @@ func apply_flick(d: Vector2, allow_twist := true) -> void:
 	active = true
 
 ## Joystick SALTO (modo gestos): solo mortales, nunca tirabuzones. Por ángulo (x derecha, y arriba):
-##   ↑ mortal adelante (webster con carrera) · ↗ ↖ aerial hacia ese lado (butterfly con carrera)
+##   ↑ mortal adelante · ↗ webster (adelante a una pierna) · ↖ aerial
 ##   ← → mortal lateral · ↓ mortal atrás · ↘ ↙ gainer (mortal atrás avanzando)
 ## Durante un mortal, la misma dirección = otra vuelta; otra dirección no cambia el giro.
 func apply_salto(d: Vector2) -> void:
@@ -215,7 +218,7 @@ func apply_salto(d: Vector2) -> void:
 	if any:
 		var ax := primary_axis()
 		var same: bool = (ax == "pitch" and ((sector in [-2, -1, -3] and dir.pitch == 1) or (sector == 2 and dir.pitch == -1))) \
-			or (ax == "roll" and sector in [0, 4, 1, 3]) or (ax == "spin" and sector in [1, 3])
+			or (ax == "pitch" and sector == 1 and dir.pitch == -1) or (ax == "roll" and sector in [0, 4, 3])
 		if same and ax != "twist":
 			settled[ax] = false
 			goal[ax] += 1
@@ -226,12 +229,11 @@ func apply_salto(d: Vector2) -> void:
 	match sector:
 		2:
 			_start_axis("pitch", -1); style = "front"
-		1, 3:
-			var sd := 1 if sector == 1 else -1
-			if takeoff_speed > 4.0:
-				_start_axis("spin", -sd); style = "butterfly"
-			else:
-				_start_axis("roll", sd); style = "aerial"
+		1:
+			_start_axis("pitch", -1); style = "front"
+			takeoff_speed = maxf(takeoff_speed, 4.5)      # webster: mortal adelante a una pierna
+		3:
+			_start_axis("roll", -1); style = "aerial"
 		0, 4:
 			_start_axis("roll", 1 if sector == 0 else -1); style = "side"
 		-2:
@@ -285,6 +287,67 @@ func apply_kick(d := 1) -> void:
 	flicks += 1
 	active = true
 
+## Círculo dibujado en el joystick morado (modo gestos): una vuelta entera de tirabuzón en el
+## sentido del círculo (d = +1 horario / derecha). Sin mortal = giro de 360 sobre el eje largo.
+## El mismo sentido otra vez = doble, triple...; el sentido contrario = tirabuzón combinado (al
+## terminar la vuelta en curso cambia de sentido). Solo se acepta si da tiempo antes de caer.
+func add_twist_turn(d: int, time_left: float, t: MoveTuning) -> bool:
+	var any := false
+	for ax in AXES:
+		if dir[ax] != 0:
+			any = true
+	var left := 0.0
+	if dir.twist != 0:
+		left = maxf(goal.twist * twist_period - absf(total.twist), 0.0) + TAU * twist_queue.size()
+	var cap := t.twist_rate_max * 1.6
+	if left + TAU > maxf(time_left - 0.12, 0.0) * cap:
+		return false                         # no da tiempo a otra vuelta: no se empieza
+	if dir.twist == 0:
+		twist_period = PI
+		_start_axis("twist", d)
+		goal.twist = 2
+		if not any:
+			style = "kick"
+	elif dir.twist == d and twist_queue.is_empty():
+		goal.twist += int(round(TAU / twist_period))
+		settled.twist = false
+		if not _recal.has("twist"):
+			_recal.append("twist")
+	else:
+		twist_queue.append(d)
+	flicks += 1
+	active = true
+	return true
+
+## Medias vueltas de tirabuzón añadidas (aerial twist, cork 720).
+func add_twist_halves(n: int, d: int) -> void:
+	if n <= 0:
+		return
+	if dir.twist == 0:
+		twist_period = PI
+		_start_axis("twist", 1 if d >= 0 else -1)
+		goal.twist = n
+	else:
+		goal.twist += int(n * PI / twist_period)
+		settled.twist = false
+		if not _recal.has("twist"):
+			_recal.append("twist")
+	active = true
+
+## Tirabuzón combinado: la vuelta en curso terminó y queda otra en sentido contrario.
+func _next_twist_segment() -> void:
+	var k := roundf(total.twist / TAU)
+	twist_extra_halves += int(absf(k)) * 2
+	total.twist -= k * TAU
+	dir.twist = twist_queue.pop_front()
+	goal.twist = 2
+	twist_period = PI
+	settled.twist = false
+	rate.twist = 0.0
+	twist_combined = true
+	if not _recal.has("twist"):
+		_recal.append("twist")
+
 ## Joystick GIRO (eje x, -1..1): tirabuzón sobre el eje largo para CUALQUIER mortal.
 ## Mantenerlo inclinado gira (más inclinado = más rápido); al soltarlo el giro termina en el
 ## cuarto de vuelta más cercano: ¼ (hyper), ½, ¾, 1 (full), 1½, 2... Sin mortal = pirueta.
@@ -336,6 +399,8 @@ func step(dt: float, push: float, time_left: float, assist: float, t: MoveTuning
 		return
 	if drive > 0.5:
 		tuck_time += dt
+	if not twist_queue.is_empty() and dir.twist != 0 and settled.twist:
+		_next_twist_segment()
 	time_left = maxf(time_left, 0.25)
 	for ax in _new_axes:
 		var period := TAU
@@ -404,13 +469,13 @@ func step(dt: float, push: float, time_left: float, assist: float, t: MoveTuning
 			elif not can_more and assist > 0.25:
 				force_spot = true
 		if settled[ax]:
-			if held and not force_spot:
+			if held and not force_spot and ax != "twist":   # el tirabuzón hace solo las vueltas pedidas
 				settled[ax] = false
 			else:
 				rate[ax] = 0.0
 				continue
 		var goal_ok: bool = next_stop >= goal[ax] * period - 0.001
-		var spot := (not held or force_spot) and rem < window and goal_ok
+		var spot: bool = (not held or force_spot or ax == "twist") and rem < window and goal_ok
 		if spot:
 			spotting = true
 			# Frenado suave hasta quedar exactamente en vertical
@@ -487,7 +552,7 @@ func counts() -> Dictionary:
 		"pn": int(floor((absf(total.pitch) + deg_to_rad(50.0)) / TAU)),
 		"rn": int(floor((absf(total.roll) + deg_to_rad(50.0)) / TAU)),
 		"sn": int(floor((absf(total.spin) + deg_to_rad(50.0)) / TAU)),
-		"th": int(floor((absf(total.twist) + deg_to_rad(40.0)) / PI)),
+		"th": int(floor((absf(total.twist) + deg_to_rad(40.0)) / PI)) + twist_extra_halves,
 	}
 
 static func trick_name(pn: int, rn: int, sn: int, th: int, back: bool, moving: bool, wall: bool,
@@ -588,6 +653,8 @@ func evaluate() -> Dictionary:
 		return {}
 	if tq > 0 and tq % 2 == 1:
 		name += " Hyper" if tq == 1 else " +¼"    # cuarto de vuelta: aterriza de lado
+	if twist_combined:
+		name += " Combinado"                       # tirabuzón en un sentido y luego en el otro
 	var difficulty: float = 1.0 + (c.pn - 1) * 1.8 + c.th * 0.6
 	if c.pn == 0:
 		difficulty = 0.9 + (c.rn + c.sn - 1) * 1.6 + c.th * 0.6
