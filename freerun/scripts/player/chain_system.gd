@@ -1,7 +1,7 @@
 class_name ChainSystem
 extends RefCounted
 ## Encadenamiento de movimientos: al recibir con los pies tras una habilidad (rondada,
-## flic-flac, macaco, raiz...) o una acrobacia preparatoria (aerial, patadas), se abre una
+## flic-flac, macaco, scoot...) o una acrobacia preparatoria (aerial, patadas), se abre una
 ## ventana de enlace con la POTENCIA que deja ese movimiento: velocidad y dirección de salida,
 ## rebote vertical disponible y rotación (giro) acumulada.
 ##
@@ -24,10 +24,10 @@ const CHAINS := {
 	"pushoff": {"flip_back": "rebote", "bhs": "rebote"},
 	"macaco": {"bhs": "rebote", "flip_back": "rebote", "macaco": "carrera"},
 	"cartwheel": {"flip_back": "rebote", "roundoff": "carrera"},
-	"raiz": {"flip_back": "giro", "raiz": "giro", "td_raiz": "giro"},
 	"td_raiz": {"butterfly": "giro", "flip_back": "giro", "kick": "giro"},
-	"hook": {"flip_back": "giro", "kick": "giro"},
-	"scoot": {"butterfly": "giro", "raiz": "giro", "td_raiz": "giro", "kick": "giro", "macaco": "giro", "flip_back": "giro"},
+	"scoot": {"butterfly": "giro", "td_raiz": "giro", "kick": "giro", "macaco": "giro", "flip_back": "giro"},
+	"one_foot": {"flip_back": "rebote", "flip_front": "rebote", "flip_side": "rebote", "kick": "giro", "butterfly": "giro",
+		"cartwheel": "carrera", "roundoff": "carrera", "macaco": "carrera", "bhs": "rebote", "scoot": "giro", "td_raiz": "giro"},
 	"spin_entry": {"cartwheel": "carrera", "roundoff": "carrera"},
 	"aerial": {"butterfly": "barrido", "aerial": "carrera"},
 	"kick": {"flip_back": "giro", "kick": "giro"},

@@ -622,7 +622,7 @@ static func trick_name(pn: int, rn: int, sn: int, th: int, back: bool, moving: b
 			return "Double Aerial" if rn >= 2 else "Aerial"
 		if th >= 4: return "Aerial Double Twist"
 		if th >= 2: return "Sideflip Twist" if st == "side" else "Aerial Twist"
-		if th == 1: return "Raiz"
+		if th == 1: return "Sideflip Half"
 		if rn >= 2: return "Double Sideflip"
 		if wall: return "Wall Sideflip"
 		return "Sideflip"

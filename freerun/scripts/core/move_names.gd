@@ -78,6 +78,9 @@ const ES := {
 	"Barrel Roll": "Voltereta de barril", "Side Roll": "Voltereta lateral", "Back Roll": "Voltereta atrás",
 	"Palm Spin Gainer": "Mortal atrás con giro de palma", "Cast Gainer": "Mortal atrás lanzado",
 	# Gimnasia, tricking y enlaces de potencia
+	"Sideflip Half": "Mortal lateral con medio giro", "Sideflip Twist": "Mortal lateral con tirabuzón",
+	"One-Foot Landing": "Recepción a un pie", "3-Step 360": "Vuelta de 3 pasos (360)",
+	"Palm Half": "Palm flip con medio giro", "Palm Full": "Palm flip con tirabuzón", "Palm Double Full": "Palm flip con doble tirabuzón",
 	"Front Walkover": "Paso adelante (walkover)", "Back Walkover": "Paso atrás (walkover)",
 	"Valdez": "Valdez", "Back Extension Roll": "Voltereta atrás al pino", "Handstand Push-off": "Bajada del pino con rebote",
 	"Aerial Cartwheel": "Rueda sin manos", "Hook Kick": "Patada de gancho", "Crescent Kick": "Patada creciente",

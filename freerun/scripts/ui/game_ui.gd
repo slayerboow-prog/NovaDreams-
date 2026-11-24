@@ -46,7 +46,7 @@ const TUTORIAL := [
 	["Corre: inclina el joystick azul (a fondo = sprint)", ["@run"]],
 	["Mueve la cámara: arrastra en una zona libre (doble toque = detrás del atleta)", ["@camera"]],
 	["Toca el joystick dorado (SALTO)", ["@air"]],
-	["Botón ATRÁS: 1.ª pulsación salta · 2.ª agrupa y gira · 3.ª abre para aterrizar", ["Backflip", "Gainer"]],
+	["SALTO y, en el aire, botón ATRÁS = mortal atrás · otra pulsación = abre para aterrizar", ["Backflip", "Gainer"]],
 	["Botón ADELANTE: igual, hacia delante", ["Frontflip", "Webster"]],
 	["Botón LATERAL: mortal lateral (empuja el azul a la izquierda para el otro lado)", ["Sideflip"]],
 	["Mortal y, en el aire, inclina el morado a un lado: tirabuzón (atrás + giro = Piru)", ["Piru", "Piru 540", "Piru 720", "Front Full", "Sideflip Twist"]],
@@ -54,8 +54,6 @@ const TUTORIAL := [
 	["Dorado: diagonal hacia arriba y un círculo pequeño = Cork", ["Cork", "Cork 540", "Cork 720"]],
 	["Morado en el suelo: línea a un lado = Rueda · abajo = Flic-flac", ["Cartwheel", "Back Handspring"]],
 	["Morado: línea hacia arriba = Rondada y, al recibir (¡ENLAZA!), botón ATRÁS", ["@roundoff_back"]],
-	["Morado: arco por abajo = Hook · arco por arriba = Macaco", ["Hook Kick", "Macaco"]],
-	["Morado: un círculo y diagonal arriba = 360 + rueda fuerte (entrada de potencia)", ["3-Step 360", "Cartwheel"]],
 	["Corre hacia un obstáculo y dibuja una U invertida en el dorado (o pulsa VAULT)", ["@vault"]],
 	["Junto a una pared: línea arriba y un círculo en el dorado = Palm Flip", ["Palm Flip", "Palm Full", "Palm Half"]],
 	["Antes de caer desde alto: curva hacia abajo y adelante en el dorado = Rodar", ["Safety Roll", "Roll"]],
@@ -80,6 +78,7 @@ func setup(g: Node) -> void:
 	_build_hud()
 	_build_main_menu()
 	_build_pause()
+	_build_replay()
 	_build_settings()
 	_build_library()
 	_build_rotate_overlay()
@@ -100,6 +99,10 @@ func _build_rotate_overlay() -> void:
 	add_child(rotate_overlay)
 
 func _process(_dt: float) -> void:
+	if replay_ui and replay_ui.visible and game and game.replay.playing:
+		_rp_sync = true
+		_rp_slider.value = game.replay.progress()
+		_rp_sync = false
 	if rotate_overlay:
 		var vs := get_viewport().get_visible_rect().size
 		var portrait := vs.y > vs.x * 1.05 and _touch_wanted()
@@ -399,6 +402,9 @@ func _build_pause() -> void:
 		resume_requested.emit()
 		Settings.trick_controls = 5
 		touch.toggle_training(true)))
+	box.add_child(_button("Ver repetición", func():
+		resume_requested.emit()
+		_on_quick_action("replay")))
 	box.add_child(_button("Ajustes", func(): open_settings()))
 	box.add_child(_button("Menú principal", func(): menu_requested.emit()))
 	pause_menu.visible = false
@@ -443,6 +449,15 @@ func _on_quick_action(id: String) -> void:
 			open_settings()
 		"respawn":
 			respawn_requested.emit()
+		"camera":
+			game.camera.cycle_view()
+			touch.view_label = CameraRig.VIEW_NAMES[game.camera.view]
+			popup("Cámara: " + touch.view_label, ACCENT)
+		"replay":
+			if game.replay.can_start():
+				game.start_replay()
+			else:
+				popup("Aún no hay nada que repetir", Color(1, 0.7, 0.4))
 
 func start_tutorial() -> void:
 	tutorial_step = 0
@@ -570,6 +585,88 @@ func show_main_menu(v: bool) -> void:
 	main_menu.visible = v
 	if menu_back_btn:
 		menu_back_btn.visible = v and game != null and String(game.get("last_mode")) != ""
+
+# ---------------------------------------------------------------- repetición
+
+var replay_ui: Control
+var _rp_play: Button
+var _rp_speed: Button
+var _rp_view: Button
+var _rp_slider: HSlider
+var _rp_sync := false
+
+func _build_replay() -> void:
+	replay_ui = Control.new()
+	replay_ui.theme = theme_res
+	replay_ui.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	replay_ui.mouse_filter = Control.MOUSE_FILTER_STOP
+	replay_ui.visible = false
+	add_child(replay_ui)
+	# Arrastrar en cualquier parte = mover la cámara libre alrededor del atleta
+	replay_ui.gui_input.connect(func(ev: InputEvent):
+		if ev is InputEventScreenDrag:
+			game.replay.orbit(ev.relative)
+		elif ev is InputEventMouseMotion and (ev.button_mask & MOUSE_BUTTON_MASK_LEFT) != 0:
+			game.replay.orbit(ev.relative)
+		elif ev is InputEventMouseButton and ev.pressed and ev.button_index == MOUSE_BUTTON_WHEEL_UP:
+			game.replay.zoom(0.9)
+		elif ev is InputEventMouseButton and ev.pressed and ev.button_index == MOUSE_BUTTON_WHEEL_DOWN:
+			game.replay.zoom(1.1))
+	var title := _label("REPETICIÓN  ·  arrastra para mover la cámara  ·  graba con la grabación de pantalla del móvil", 18, Color(1, 0.92, 0.55), HORIZONTAL_ALIGNMENT_CENTER)
+	title.set_anchors_preset(Control.PRESET_CENTER_TOP)
+	title.grow_horizontal = Control.GROW_DIRECTION_BOTH
+	title.position.y = 14
+	title.add_theme_color_override("font_outline_color", Color.BLACK)
+	title.add_theme_constant_override("outline_size", 6)
+	title.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	replay_ui.add_child(title)
+	var bar := VBoxContainer.new()
+	bar.set_anchors_and_offsets_preset(Control.PRESET_BOTTOM_WIDE)
+	bar.offset_top = -132
+	bar.offset_left = 24
+	bar.offset_right = -24
+	bar.offset_bottom = -12
+	replay_ui.add_child(bar)
+	_rp_slider = HSlider.new()
+	_rp_slider.min_value = 0.0
+	_rp_slider.max_value = 1.0
+	_rp_slider.step = 0.001
+	_rp_slider.custom_minimum_size.y = 34
+	_rp_slider.value_changed.connect(func(v: float):
+		if not _rp_sync:
+			game.replay.paused = true
+			game.replay.seek(v)
+			_refresh_replay())
+	bar.add_child(_rp_slider)
+	var row := HBoxContainer.new()
+	row.alignment = BoxContainer.ALIGNMENT_CENTER
+	row.add_theme_constant_override("separation", 10)
+	bar.add_child(row)
+	_rp_play = _button("PAUSA", func(): game.replay.toggle_pause(), 130)
+	row.add_child(_rp_play)
+	row.add_child(_button("INICIO", func(): game.replay.restart(), 120))
+	_rp_speed = _button("x1", func(): game.replay.cycle_speed(), 90)
+	row.add_child(_rp_speed)
+	_rp_view = _button("CÁMARA: LIBRE", func(): game.replay.cycle_view(), 230)
+	row.add_child(_rp_view)
+	row.add_child(_button("-", func(): game.replay.zoom(1.2), 60))
+	row.add_child(_button("+", func(): game.replay.zoom(0.8), 60))
+	row.add_child(_button("SALIR", func(): game.stop_replay(), 120))
+	game.replay.changed.connect(_refresh_replay)
+
+func _refresh_replay() -> void:
+	if replay_ui == null:
+		return
+	var rp: Replay = game.replay
+	_rp_play.text = "PLAY" if rp.paused else "PAUSA"
+	_rp_speed.text = "x%s" % ("1" if rp.speed == 1.0 else ("0.5" if rp.speed == 0.5 else "0.25"))
+	_rp_view.text = "CÁMARA: " + String(Replay.VIEWS[rp.view])
+
+func show_replay(v: bool) -> void:
+	replay_ui.visible = v
+	hud.visible = not v
+	touch.visible = (not v) and _touch_wanted()
+	_refresh_replay()
 
 func show_pause(v: bool) -> void:
 	pause_menu.visible = v

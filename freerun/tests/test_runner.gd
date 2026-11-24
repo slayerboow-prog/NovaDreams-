@@ -114,6 +114,7 @@ func _run_all() -> void:
 	await t_gesture_patterns()
 	await t_human_model()
 	await t_air_control()
+	await t_one_foot_replay_cameras()
 	await t_landing_feel()
 	await t_new_tricks()
 	await t_gestures()
@@ -1083,7 +1084,7 @@ func t_new_tricks() -> void:
 		[TS.trick_name(1, 0, 0, 4, true, false, false, "back"), "Piru 720"],
 		[TS.trick_name(1, 0, 0, 1, false, false, false, "front"), "Arabian"],
 		[TS.trick_name(1, 0, 0, 2, false, false, false, "front"), "Front Full"],
-		[TS.trick_name(0, 1, 0, 1, false, true, false, "side"), "Raiz"],
+		[TS.trick_name(0, 1, 0, 1, false, true, false, "side"), "Sideflip Half"],
 		[TS.trick_name(0, 0, 1, 2, false, true, false, "butterfly"), "Butterfly Twist"],
 		[TS.trick_name(0, 0, 0, 4, false, true, false, "kick"), "Cheat 720"],
 		[TS.trick_name(2, 0, 0, 4, true, true, false, "cork"), "Double Cork"],
@@ -1242,10 +1243,6 @@ func t_ground_skills() -> void:
 		["Round-off", ["flick", Vector2(0.7, -0.7)], 50, "fwd", true, true],
 		["Back Handspring", ["flick", Vector2(0, -1)], 0, "back", false, true],
 		["Cartwheel", ["flick", Vector2(1, 0)], 0, "side", false, true],
-		["Macaco", ["hold", Vector2(0.7, -0.7), 34], 0, "back", false, true],
-		["Raiz", ["hold", Vector2(1, 0), 34], 0, "side", true, false],
-		["Touchdown Raiz", ["hold", Vector2(0.7, 0.7), 34], 0, "side", true, true],
-		["Hook Kick", ["arc", PI, TAU], 0, "any", false, false],
 	]
 	for c in cases:
 		await place(Vector3(-35, 0.1, 35), Vector3.FORWARD)
@@ -1269,16 +1266,6 @@ func t_ground_skills() -> void:
 		check(tag + "manos y pies nunca atraviesan el suelo", r.min_limb > -0.02, "mín %.3f" % r.min_limb)
 		check(tag + "fases visibles (%d)" % r.phases.size(), r.phases.size() >= 4, str(r.phases.keys()))
 		check(tag + "termina de pie con control", player.state == PlayerController.State.GROUND, PlayerController.STATE_NAMES[player.state])
-	# Pino: se mantiene mientras el joystick sigue arriba; SALTO = snap down (Handstand Push-off)
-	await place(Vector3(-35, 0.1, 35), Vector3.FORWARD)
-	var hs := {"held": 0}
-	await run(func(i, f):
-		i.rot = Vector2(0, 1) if f < 140 else Vector2.ZERO
-		i.jump_pressed = f == 140
-		if player.skill.get("id", "") == "handstand" and player.skill.s >= 1.0: hs.held += 1, 260,
-		func(): return _f > 150 and player.state == PlayerController.State.GROUND)
-	check("Pino: se mantiene en equilibrio mientras se sostiene el joystick", hs.held > 40, "frames %d" % hs.held)
-	check("Pino + SALTO = Handstand Push-off (snap down)", "Handstand Push-off" in moves, str(moves))
 	# Flic-flac ≠ backflip: el backflip no apoya las manos
 	await place(Vector3(-35, 0.1, 35), Vector3.FORWARD)
 	var bf := {"hands": 0}
@@ -1396,11 +1383,6 @@ func t_chains() -> void:
 		["Rondada → Flic-flac → Flic-flac → Double Backflip", [["now", ["flick", RO]], ["mid", ["flick", D]], ["mid", ["flick", D]], ["link", ["jump", D, 0, true]]], 55, ["Round-off", "Back Handspring", "Back Handspring", "@double"]],
 		["Rondada → Flic-flac → Cork", [["now", ["flick", RO]], ["mid", ["flick", D]], ["link", ["jump", D, 26]]], 55, ["Round-off", "Back Handspring", "Cork"]],
 		["Rondada → Flic-flac → Double Cork", [["now", ["flick", RO]], ["mid", ["flick", D]], ["link", ["jump", D, 26, true]]], 55, ["Round-off", "Back Handspring", "Double Cork"]],
-		["Hook → Cork", [["now", ["arc", PI, TAU]], ["link", ["jump", D, 20]]], 0, ["Hook Kick", "Cork"]],
-		["Hook → Double Cork", [["now", ["arc", PI, TAU]], ["link", ["jump", D, 20, true]]], 0, ["Hook Kick", "Double Cork"]],
-		["Macaco → Flic-flac", [["now", ["hold", RO, 34]], ["link", ["flick", D]]], 0, ["Macaco", "Back Handspring"]],
-		["Macaco → Backflip", [["now", ["hold", RO, 34]], ["link", ["jump", D]]], 0, ["Macaco", "@back"]],
-		["Raiz → Cork", [["now", ["hold", Vector2(1, 0), 34]], ["link", ["jump", D, 20]]], 0, ["Raiz", "Cork"]],
 		["Aerial → Aerial", [["now", ["flick", Vector2(-0.7, 0.7)]], ["link", ["flick", Vector2(-0.7, 0.7)]]], 0, ["Aerial", "Aerial"]],
 		["Rueda → Backflip", [["now", ["flick", Vector2(1, 0)]], ["link", ["jump", D]]], 0, ["Cartwheel", "@back"]],
 	]
@@ -1555,7 +1537,7 @@ func t_ring_buttons() -> void:
 		return -1
 	game.router.scripted = Callable()            # entrada real: el táctil
 	for c in [["ATRÁS", "Backflip"], ["ADELANTE", "Frontflip"], ["LATERAL DER.", "Sideflip"],
-			["RONDADA", "Round-off"], ["FLIC-FLAC", "Back Handspring"], ["RUEDA", "Cartwheel"], ["MACACO", "Macaco"]]:
+			["RONDADA", "Round-off"], ["FLIC-FLAC", "Back Handspring"], ["RUEDA", "Cartwheel"]]:
 		var bi: int = find.call(c[0])
 		player.set_spawn(Transform3D(Basis(), Vector3(-35, 0.1, 35)), Vector3.FORWARD)
 		player.respawn()
@@ -1637,7 +1619,7 @@ func t_ring_buttons() -> void:
 	e2.pressed = false; e2.position = dr.position
 	touch._on_touch(e2)
 	check("Botonera: CAMBIAR gira la rueda (tocar = siguiente, deslizar abajo = anterior)", p1 == 1 and touch.ring_page == 0, "tras tocar %d, tras deslizar %d" % [p1, touch.ring_page])
-	for c in [[2, "HOOK", "Hook Kick"], [0, "PATADA 360", "360 Kick"], [2, "MACACO", "Macaco"]]:
+	for c in [[0, "PATADA 360", "360 Kick"]]:
 		touch.ring_page = c[0]
 		player.set_spawn(Transform3D(Basis(), Vector3(-35, 0.1, 35)), Vector3.FORWARD)
 		player.respawn()
@@ -1656,24 +1638,6 @@ func t_ring_buttons() -> void:
 			press.call(bi3, false)
 		await frames(10)
 		check("Botonera página %s: botón %s = %s" % [TouchControls.RING_PAGES[c[0]].name, c[1], c[2]], c[2] in moves, str(moves))
-	# PINO mantenido: sigue en el pino mientras se mantiene el botón; al soltar, bajada del pino
-	touch.ring_page = 1
-	player.set_spawn(Transform3D(Basis(), Vector3(-35, 0.1, 35)), Vector3.FORWARD)
-	player.respawn()
-	await frames(20)
-	moves.clear()
-	var pb: int = find.call("PINO")
-	press.call(pb, true)
-	var held_f := 0
-	for k in 200:
-		await get_tree().physics_frame
-		if player.state == PlayerController.State.SKILL and player.skill.get("id", "") == "handstand" and float(player.skill.s) >= 1.0:
-			held_f += 1
-		if k == 150:
-			press.call(pb, false)
-	for k in 120:
-		await get_tree().physics_frame
-	check("Botonera: PINO mantenido se sostiene y al soltar baja del pino", held_f > 40 and "Handstand Push-off" in moves, "pino %d %s" % [held_f, moves])
 	touch.ring_page = 0
 	touch.size = touch.get_viewport_rect().size
 	game.router.scripted = _drive
@@ -1796,46 +1760,74 @@ func t_salto_giro_sticks() -> void:
 	touch.size = Vector2(1542, 720)
 	check("Modo gestos: sin rueda de botones de movimientos (todo con SALTO y GIRO)", touch.ring_buttons().is_empty(), str(touch.ring_buttons().size()))
 	game.router.scripted = Callable()            # entrada real: el táctil
-	# Botones de mortal estilo Madness: 1.ª carga y salta · 2.ª agrupa y gira · 3.ª abre
+	# Botones de mortal estilo Madness: 1.ª pulsación = mortal directo (agrupado) · 2.ª = abre
 	var tapb := func(i: int, idx := 11) -> void:
 		var e := InputEventScreenTouch.new(); e.index = idx; e.position = touch.flip_button_center(i); e.pressed = true
+		touch._on_touch(e)
+		e.pressed = false; touch._on_touch(e)
+	var tapj := func() -> void:
+		var e := InputEventScreenTouch.new(); e.index = 14; e.position = touch._jump_center(); e.pressed = true
 		touch._on_touch(e)
 		e.pressed = false; touch._on_touch(e)
 	for bc in [[0, "Backflip"], [1, "Frontflip"], [2, "Sideflip"]]:
 		await place(Vector3(-35, 0.1, 35), Vector3.FORWARD)
 		moves.clear(); landings.clear()
-		var st := {"stage": 0, "maxpitch": 0.0}
-		tapb.call(int(bc[0]))
+		var st := {"stage": 0, "tucked": false}
+		tapj.call()                                              # SALTO
 		for k in 240:
 			await get_tree().physics_frame
 			var tp: float = maxf(absf(player.tricks.total_pitch), absf(player.tricks.total_roll))
-			if st.stage == 0 and player.state == PlayerController.State.AIR and player.tricks.air_time > 0.06:
-				tapb.call(int(bc[0])); st.stage = 1                       # 2.ª: agrupa
-			elif st.stage == 1 and tp > TAU - deg_to_rad(120):
-				tapb.call(int(bc[0])); st.stage = 2                       # 3.ª: abre
+			if st.stage == 0 and player.state == PlayerController.State.AIR:
+				tapb.call(int(bc[0])); st.stage = 1                       # en el aire: mortal directo
+			elif st.stage == 1 and tp > 0.3:
+				st.tucked = player.mad_stage == 2
+				st.stage = 2
+			elif st.stage == 2 and tp > TAU - deg_to_rad(120):
+				tapb.call(int(bc[0])); st.stage = 3                       # 2.ª: abre
 			if k > 30 and player.state == PlayerController.State.GROUND and not moves.is_empty():
 				break
-		check("Botón %s: carga, agrupa y abre = %s limpio" % [TouchControls.FLIP_BTNS[bc[0]][0], bc[1]], bc[1] in moves and landings.size() > 0 and landings[-1].quality in ["perfect", "clean"] and st.stage == 2,
-			"%s %s etapa %d" % [moves, landings.map(func(l): return l.quality), st.stage])
-	# Solo la 1.ª pulsación: salto sin mortal
-	await place(Vector3(-35, 0.1, 35), Vector3.FORWARD)
-	moves.clear()
-	tapb.call(0)
-	var rotated := {"v": 0.0}
-	for k in 90:
-		await get_tree().physics_frame
-		rotated.v = maxf(rotated.v, absf(player.tricks.total_pitch))
-	check("Botón de mortal: una sola pulsación = salto sin girar", rotated.v < 0.05, "%.2f" % rotated.v)
-	# Botón ATRÁS + morado inclinado a la derecha en el aire = Piru (tirabuzón)
+		check("SALTO + botón %s: mortal directo agrupado y la 2.ª pulsación abre = %s limpio" % [TouchControls.FLIP_BTNS[bc[0]][0], bc[1]], bc[1] in moves and st.tucked
+			and landings.size() > 0 and landings[-1].quality in ["perfect", "clean"] and st.stage == 3,
+			"%s %s etapa %d agrupado %s" % [moves, landings.map(func(l): return l.quality), st.stage, st.tucked])
+	# Sin SALTO: el botón solo da un saltito y el mortal no se completa (no cae de pie)
 	await place(Vector3(-35, 0.1, 35), Vector3.FORWARD)
 	moves.clear(); landings.clear()
 	tapb.call(0)
+	var peak := {"y": 0.0}
+	for k in 120:
+		await get_tree().physics_frame
+		peak.y = maxf(peak.y, player.global_position.y)
+		if k > 10 and landings.size() > 0:
+			break
+	check("Botón de mortal sin SALTO: saltito sin impulso (%.2f m) y no cae limpio" % peak.y, peak.y < 0.6 and landings.size() > 0
+		and not (landings[-1].quality in ["perfect", "clean"]), "%s %s" % [moves, landings.map(func(l): return l.quality)])
+	# Impulso en SALTO: mantenerlo antes de soltar = salto más alto
+	var hgt := []
+	for hold in [0.0, 0.3]:
+		await place(Vector3(-35, 0.1, 35), Vector3.FORWARD)
+		var jc0 := touch._jump_center()
+		var je := InputEventScreenTouch.new(); je.index = 13; je.position = jc0; je.pressed = true
+		touch._on_touch(je)
+		touch._time += hold
+		je.pressed = false; touch._on_touch(je)
+		var top := {"y": 0.0}
+		for k in 90:
+			await get_tree().physics_frame
+			top.y = maxf(top.y, player.global_position.y)
+		hgt.append(top.y)
+	check("SALTO: mantenerlo antes de soltar da impulso (%.2f m frente a %.2f m)" % [hgt[1], hgt[0]], hgt[1] > hgt[0] + 0.1, str(hgt))
+	# Botón ATRÁS + morado inclinado a la derecha en el aire = Piru (tirabuzón)
+	await place(Vector3(-35, 0.1, 35), Vector3.FORWARD)
+	moves.clear(); landings.clear()
+	tapj.call()
 	var pst := {"stage": 0}
+	await frames(1)
 	var te := InputEventScreenTouch.new(); te.index = 12
 	for k in 240:
 		await get_tree().physics_frame
 		if pst.stage == 0 and player.state == PlayerController.State.AIR and player.tricks.air_time > 0.06:
-			tapb.call(0); pst.stage = 1
+			pst.stage = 1
+			tapb.call(0)
 			touch.air_mode = true
 			var rcc := touch._rot_center()
 			te.position = rcc; te.pressed = true; touch._on_touch(te)
@@ -1848,34 +1840,28 @@ func t_salto_giro_sticks() -> void:
 		te.pressed = false; touch._on_touch(te)
 	touch.air_mode = false
 	check("Botón ATRÁS + morado inclinado en el aire = Piru", "Piru" in moves, "%s %s" % [moves, landings.map(func(l): return l.quality)])
-	# Joystick morado en el suelo: habilidades de tricking y entradas de potencia dibujadas
+	# Tricking de suelo desactivado por ahora: el morado no lo ejecuta
+	await place(Vector3(-35, 0.1, 35), Vector3.FORWARD)
+	touch.air_mode = false
+	moves.clear()
+	var rcd := touch._rot_center()
+	var gpd := []
+	for q in GestureRecognizer.resample(GestureRecognizer.giro_preview("g_macaco"), 40):
+		gpd.append(rcd + Vector2(q.x, -q.y) * touch._rot_radius() * 0.8)
+	var gde := InputEventScreenTouch.new(); gde.index = 9; gde.position = gpd[0]; gde.pressed = true
+	touch._on_touch(gde)
+	for k in range(1, gpd.size()):
+		var gdd := InputEventScreenDrag.new(); gdd.index = 9; gdd.position = gpd[k]; touch._on_drag(gdd)
+	gde.pressed = false; gde.position = gpd[gpd.size() - 1]; touch._on_touch(gde)
+	for k in 90:
+		await get_tree().physics_frame
+	check("Tricking de suelo desactivado: el macaco dibujado no se ejecuta", not ("Macaco" in moves) and player.state != PlayerController.State.SKILL, str(moves))
 	touch.salto_page = 0
-	for gc in [["g_raiz", ["Raiz"]], ["g_td_raiz", ["Touchdown Raiz"]], ["g_macaco", ["Macaco"]], ["g_hook", ["Hook Kick"]],
-			["g_scoot", ["Scoot"]], ["g_scoot_power", ["Scoot"]], ["g_scoot_macaco", ["Scoot", "Macaco"]],
-			["g_spin_lateral", ["3-Step 360", "Cartwheel"]]]:
-		await place(Vector3(-35, 0.1, 35), Vector3.FORWARD)
-		touch.air_mode = false
-		moves.clear()
-		var rc := touch._rot_center()
-		var gp := []
-		for q in GestureRecognizer.resample(GestureRecognizer.giro_preview(gc[0]), 40):
-			gp.append(rc + Vector2(q.x, -q.y) * touch._rot_radius() * 0.8)
-		var ge := InputEventScreenTouch.new(); ge.index = 9; ge.position = gp[0]; ge.pressed = true
-		touch._on_touch(ge)
-		for k in range(1, gp.size()):
-			var gd := InputEventScreenDrag.new(); gd.index = 9; gd.position = gp[k]; touch._on_drag(gd)
-		ge.pressed = false; ge.position = gp[gp.size() - 1]; touch._on_touch(ge)
-		var need: Array = gc[1]
-		for k in 240:
-			await get_tree().physics_frame
-			if need.all(func(m): return m in moves):
-				break
-		check("Joystick morado: dibujar %s = %s" % [gc[0].trim_prefix("g_"), " + ".join(need)], need.all(func(m): return m in moves), str(moves))
 	touch.salto_page = 0
 	game.router.scripted = _drive
 	# Joystick GIRO en el suelo
 	for g in [["arriba", [Vector2(0, 1)], "Round-off"], ["abajo", [Vector2(0, -1)], "Back Handspring"], ["lado", [Vector2(1, 0)], "Cartwheel"],
-			["semicírculo desde arriba", [Vector2(0, 1), Vector2(0.7, 0.7), Vector2(1, 0), Vector2(0.7, -0.7), Vector2(0, -1)], "Macaco"]]:
+			]:
 		await place(Vector3(-35, 0.1, 35), Vector3.FORWARD)
 		moves.clear()
 		var path: Array = g[1]
@@ -1885,6 +1871,81 @@ func t_salto_giro_sticks() -> void:
 			i.rot = path[idx] if idx < path.size() else Vector2.ZERO, 160,
 			func(): return _f > 20 and g[2] in moves)
 		check("GIRO %s = %s" % [g[0], g[2]], g[2] in moves, str(moves))
+	Settings.trick_controls = old_mode
+
+## Botón 1 PIE (recepción a un pie y combos a un pie), repetición con cámara libre y cámaras.
+func t_one_foot_replay_cameras() -> void:
+	var old_mode := Settings.trick_controls
+	Settings.trick_controls = 5
+	# Mortal atrás + 1 PIE en el aire: cae a un pie; en la ventana, otro mortal atrás enlazado
+	await place(Vector3(-35, 0.1, 35), Vector3.FORWARD)
+	var st := {"stage": 0, "one": false, "linked": false}
+	await run(func(i, f):
+		i.stick_twist = true
+		if st.stage == 0:
+			i.jump_pressed = true; i.flick = Vector2(0, -1); i.tuck = true; i.jump_held = true
+			st.stage = 1
+		elif st.stage == 1:
+			i.tuck = player.tricks.air_time < 0.35; i.jump_held = i.tuck
+			if player.state == PlayerController.State.AIR and player.tricks.air_time > 0.2:
+				i.one_foot = true
+				st.stage = 2
+		elif st.stage == 2:
+			if player.state == PlayerController.State.SKILL and player.skill.get("id", "") == "one_foot":
+				st.one = true
+				if player.skill.get("linked", false):
+					i.jump_pressed = true; i.flick = Vector2(0, -1); i.tuck = true; i.jump_held = true
+					st.stage = 3
+		else:
+			i.tuck = player.tricks.air_time < 0.35; i.jump_held = i.tuck
+		st.linked = st.linked or (st.stage == 3 and player.state == PlayerController.State.AIR and player.tricks.linked), 300,
+		func(): return st.stage == 3 and _f > 60 and player.state == PlayerController.State.GROUND and moves.count("Backflip") + moves.count("Gainer") >= 2)
+	check("Botón 1 PIE: cae a un pie y enlaza otro mortal sin apoyar el otro pie", st.one and "One-Foot Landing" in moves and st.linked
+		and moves.count("Backflip") + moves.count("Gainer") >= 2, "%s %s" % [moves, landings.map(func(l): return l.quality)])
+	# Repetición: reproduce lo grabado y al salir el atleta vuelve a su sitio
+	await place(Vector3(-35, 0.1, 35), Vector3.FORWARD)
+	await run(func(i, f):
+		i.jump_pressed = f == 0; i.flick = Vector2(0, -1) if f == 0 else Vector2.ZERO
+		i.tuck = f > 3 and f < 26; i.jump_held = i.tuck, 120,
+		func(): return _f > 30 and player.state == PlayerController.State.GROUND)
+	var live := player.global_position
+	var rp: Replay = game.replay
+	var started := rp.start()
+	var ys := []
+	for k in 50:
+		await get_tree().process_frame
+		ys.append(player.global_position.y)
+	var moved: bool = ys.max() - ys.min() > 0.3
+	var views_ok := true
+	for v in 4:
+		rp.view = v
+		await get_tree().process_frame
+		views_ok = views_ok and get_viewport().get_camera_3d() == rp.cam
+	rp.view = 0
+	rp.orbit(Vector2(60, 20))
+	game.stop_replay()
+	await frames(3)
+	check("Repetición: reproduce el mortal grabado con cámara libre, POV, dron y seguir, y al salir todo vuelve", started and moved and views_ok
+		and player.global_position.distance_to(live) < 0.05 and not rp.playing and player.is_physics_processing(), "start %s mov %s vistas %s" % [started, moved, views_ok])
+	# Cámaras de juego: normal, POV (en la cabeza, delante de la cara) y dron (alto)
+	var cr: CameraRig = game.camera
+	var cam_proc := cr.is_processing()
+	cr.set_process(true)                         # (las pruebas la tienen parada; en el juego siempre corre)
+	cr.set_view(1)
+	await frames(3)
+	await get_tree().process_frame
+	var head := (game.rig.joints["neck"] as Node3D).global_position
+	var pov_ok: bool = get_viewport().get_camera_3d() == cr.alt_cam and cr.alt_cam.global_position.distance_to(head) < 0.45
+	cr.set_view(2)
+	for k in 90:
+		await get_tree().process_frame
+	var dron_ok: bool = cr.alt_cam.global_position.y > player.global_position.y + 4.0
+	cr.set_view(0)
+	await get_tree().process_frame
+	cr.set_process(cam_proc)
+	check("Cámaras de juego: POV en la cabeza y dron por encima (%.1f m)" % (cr.alt_cam.global_position.y - player.global_position.y), pov_ok and dron_ok and get_viewport().get_camera_3d() == cr.cam, "pov %s dron %s" % [pov_ok, dron_ok])
+	check("Eliminados hook y raiz (no hay habilidad ni gesto)", not SkillLibrary.SKILLS.has("hook") and not SkillLibrary.SKILLS.has("raiz")
+		and not GestureRecognizer.GIRO_TEMPLATES.has("hook"), "")
 	Settings.trick_controls = old_mode
 
 ## Control en el aire durante los mortales: en el sitio sin joystick, o llevándolo con el joystick.
@@ -2223,17 +2284,11 @@ func t_gesture_patterns() -> void:
 	touch.train_i = TouchControls.TRAIN.map(func(x): return x[0]).find("webster")
 	_draw_on(touch, 2, [jc, jc + Vector2(0, -45), jc + Vector2(0, -95)])
 	check("Práctica: el gesto pedido se marca como hecho y uno distinto se avisa", okc and not touch.train_last.ok and not touch.train_done.has("webster"), str(touch.train_last))
-	touch.train_i = TouchControls.TRAIN.map(func(x): return x[0]).find("g_macaco")
-	var mp := []
-	for q in GestureRecognizer.resample(GestureRecognizer.giro_preview("g_macaco"), 40):
-		mp.append(rc + Vector2(q.x, -q.y) * touch._rot_radius() * 0.8)
-	_draw_on(touch, 3, mp)
-	check("Práctica: macaco dibujado en el morado", touch.train_done.has("g_macaco"), str(touch.train_last))
 	var ids := TouchControls.TRAIN.map(func(x): return x[0])
 	var missing := []
 	for need in ["aerial", "aerial_twist", "cork", "cork720", "webster", "gainer", "palm", "speed", "reverse",
 			"vault", "kong", "wall_run", "wall_flip", "climb", "ledge_grab", "cat_leap", "precision", "roll", "wall_climb",
-			"g_raiz", "g_td_raiz", "g_macaco", "g_hook", "g_scoot", "g_pino", "g_scoot_power", "g_scoot_macaco", "g_spin_lateral"]:
+			]:
 		if not need in ids:
 			missing.append(need)
 	check("Práctica: están todos los gestos pedidos (%d)" % ids.size(), missing.is_empty(), str(missing))

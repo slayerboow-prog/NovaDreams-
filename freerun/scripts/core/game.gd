@@ -10,6 +10,7 @@ var level_info := {}
 var player: PlayerController
 var rig: BodyRig
 var camera: CameraRig
+var replay: Replay
 var router: InputRouter
 var combo := ComboSystem.new()
 var flow := FlowSystem.new()
@@ -48,6 +49,11 @@ func _ready() -> void:
 	camera.name = "CameraRig"
 	add_child(camera)
 	camera.setup(player, router)
+	camera.rig = rig
+	replay = Replay.new()
+	replay.name = "Replay"
+	add_child(replay)
+	replay.setup(self)
 
 	ui = GameUI.new()
 	ui.process_mode = Node.PROCESS_MODE_ALWAYS
@@ -151,7 +157,16 @@ func apply_graphics() -> void:
 			vp.msaa_3d = Viewport.MSAA_2X
 			env.environment.fog_enabled = true
 
-var last_mode := ""                   # modo que se estaba jugando (botón «Volver al juego» del menú)
+var last_mode := ""
+
+## Repetición de los últimos segundos (cámara libre, POV, dron, cámara lenta).
+func start_replay() -> void:
+	if replay.start():
+		ui.show_replay(true)
+
+func stop_replay() -> void:
+	replay.stop()
+	ui.show_replay(false)                   # modo que se estaba jugando (botón «Volver al juego» del menú)
 
 func show_menu() -> void:
 	if mode:
