@@ -38,6 +38,9 @@ class TouchFrame:
 	var rot_flick := Vector2.ZERO
 	var skill := ""
 	var double := false
+	var cork := false
+	var butterfly := false
+	var skill_hold := false
 
 var grab_label := "AGARRAR"           # SOLTAR cuando está colgado
 var context_label := "RODAR"
@@ -98,29 +101,69 @@ func stick_enabled() -> bool:
 func ring_enabled() -> bool:
 	return Settings.trick_controls == 4
 
-## [rótulo, tipo, valor]. Tipos: flip (sector de la acrobacia), flip2 (doble), skill (habilidad de
-## suelo), vault / grab / action. Orden: del botón de abajo a la izquierda, por arriba, hasta abajo
-## a la derecha (270°).
-const RING_BUTTONS := [
-	["RODAR", "action", ""], ["AGARRAR", "grab", ""], ["VAULT", "vault", ""],
-	["MACACO", "skill", "macaco"], ["RUEDA", "skill", "cartwheel"], ["RONDADA", "skill", "roundoff"],
-	["FLIC-FLAC", "skill", "bhs"], ["PALOMA", "skill", "fhs"],
-	["ATRÁS", "flip", -2], ["CORK", "skill", "cork_entry"], ["ADELANTE", "flip", 2],
-	["LATERAL\nIZQ.", "flip", 4], ["LATERAL\nDER.", "flip", 0], ["AERIAL /\nMARIPOSA", "flip", 3],
+## [rótulo, tipo, valor]. Tipos: flip (sector de la acrobacia), cork, piru, kick (patada 360),
+## butterfly, skill (habilidad de suelo), vault / grab / action, change (CAMBIAR de página).
+## El arco va del botón de abajo a la izquierda, por arriba, hasta abajo a la derecha (270°):
+## RODAR, AGARRAR y VAULT fijos, 11 botones que cambian con la página y CAMBIAR al final.
+const RING_FIXED := [["RODAR", "action", ""], ["AGARRAR", "grab", ""], ["VAULT", "vault", ""]]
+const RING_CHANGE := ["CAMBIAR", "change", ""]
+const RING_PAGES := [
+	{"name": "MORTALES", "buttons": [
+		["MACACO", "skill", "macaco"], ["RUEDA", "skill", "cartwheel"], ["RONDADA", "skill", "roundoff"],
+		["FLIC-FLAC", "skill", "bhs"], ["PALOMA", "skill", "fhs"],
+		["ATRÁS", "flip", -2], ["CORK", "cork", -2], ["ADELANTE", "flip", 2],
+		["LATERAL\nIZQ.", "flip", 4], ["LATERAL\nDER.", "flip", 0], ["AERIAL /\nMARIPOSA", "flip", 3]]},
+	{"name": "TRICKING", "buttons": [
+		["HOOK", "skill", "hook"], ["CRESCENT", "skill", "crescent"], ["CRESCENT\nINVERSA", "skill", "reverse_crescent"],
+		["RAIZ", "skill", "raiz"], ["TD RAIZ", "skill", "td_raiz"], ["SCOOT", "skill", "scoot"],
+		["ATRÁS", "flip", -2], ["CORK", "cork", -2], ["PIRU", "piru", -2],
+		["PATADA\n360", "kick", 0], ["MARIPOSA", "butterfly", 3]]},
+	{"name": "GIMNASIA", "buttons": [
+		["BACK\nWALKOVER", "skill", "back_walkover"], ["FRONT\nWALKOVER", "skill", "front_walkover"],
+		["PINO", "skill", "handstand"], ["VALDEZ", "skill", "valdez"], ["VOLTERETA\nAL PINO", "skill", "ber"],
+		["RUEDA", "skill", "cartwheel"], ["RONDADA", "skill", "roundoff"], ["FLIC-FLAC", "skill", "bhs"],
+		["PALOMA", "skill", "fhs"], ["MACACO", "skill", "macaco"], ["ATRÁS", "flip", -2]]},
 ]
+var ring_page := 0
+var _ring_anim := 0.0                 # giro animado de la rueda al cambiar de página (-1..1 → 0)
+
+func ring_buttons() -> Array:
+	var out: Array = RING_FIXED.duplicate()
+	out.append_array(RING_PAGES[ring_page].buttons)
+	out.append(RING_CHANGE)
+	return out
+
+static func all_ring_labels() -> Array:
+	var out := []
+	for b in RING_FIXED: out.append(String(b[0]))
+	out.append(String(RING_CHANGE[0]))
+	for pg in RING_PAGES:
+		out.append(String(pg.name))
+		for b in pg.buttons: out.append(String(b[0]))
+	return out
+
+## Gira la rueda a otra página (+1 siguiente, -1 anterior).
+func ring_turn(d: int) -> void:
+	ring_page = posmod(ring_page + d, RING_PAGES.size())
+	_ring_anim = float(d)
+	_flash["page"] = 1.2
+
 const RING_JUMP_R := 86.0
-const RING_R := 212.0
-const RING_BTN_R := 35.0
+const RING_R := 216.0
+const RING_BTN_R := 33.0
 const RING_A0 := 225.0               # grados (matemáticos, y arriba): abajo a la izquierda
 const RING_SPAN := 270.0
 
 func _ring_center() -> Vector2:
 	var s := _s()
-	return Vector2(_mirror(size.x - 250.0 * s), size.y - 192.0 * s)
+	return Vector2(_mirror(size.x - 252.0 * s), size.y - 192.0 * s)
 
-func ring_button_center(i: int) -> Vector2:
-	var n := RING_BUTTONS.size()
-	var ang := deg_to_rad(RING_A0 - RING_SPAN * float(i) / float(n - 1))
+func ring_button_center(i: int, animated := false) -> Vector2:
+	var n := ring_buttons().size()
+	var a_deg := RING_A0 - RING_SPAN * float(i) / float(n - 1)
+	if animated and i >= RING_FIXED.size() and i < n - 1:
+		a_deg += _ring_anim * 55.0          # los botones de la página entran girando por el arco
+	var ang := deg_to_rad(a_deg)
 	var v := Vector2(cos(ang), -sin(ang)) * RING_R * _s()
 	if Settings.left_handed:
 		v.x = -v.x
@@ -132,7 +175,7 @@ func ring_button_radius() -> float:
 func ring_button_at(p: Vector2) -> int:
 	var best := -1
 	var bd := ring_button_radius() * 1.06
-	for i in RING_BUTTONS.size():
+	for i in ring_buttons().size():
 		var d := p.distance_to(ring_button_center(i))
 		if d < bd:
 			bd = d
@@ -240,7 +283,7 @@ func _pad_radius() -> float:
 func hit_radii() -> Dictionary:
 	if ring_enabled():
 		var hr := {"jump": _jump_radius() * 1.04, "rot": _rot_radius() * 1.08}
-		for i in RING_BUTTONS.size():
+		for i in ring_buttons().size():
 			hr["ring_%d" % i] = ring_button_radius() * 1.06
 		return hr
 	var small := 1.15 if stick_enabled() else 1.2
@@ -251,7 +294,7 @@ func hit_radii() -> Dictionary:
 func zones() -> Dictionary:
 	if ring_enabled():
 		var zr := {"jump": _jump_center(), "rot": _rot_center()}
-		for i in RING_BUTTONS.size():
+		for i in ring_buttons().size():
 			zr["ring_%d" % i] = ring_button_center(i)
 		return zr
 	var z := {"jump": _jump_center(), "action": _action_center()}
@@ -290,6 +333,8 @@ func collect() -> TouchFrame:
 				f.tuck = true
 			"ringflip":
 				f.tuck = true            # mantener el botón del mortal = agrupado
+			"ringskill":
+				f.skill_hold = true      # mantener PINO = sigue en el pino
 			"action":
 				f.action_held = true
 			"pad":
@@ -356,17 +401,28 @@ func _on_touch(e: InputEventScreenTouch) -> void:
 		var rb := ring_button_at(p) if ring_enabled() else -1
 		if rb >= 0:
 			# Botonera: cada botón es un movimiento
-			var bt: Array = RING_BUTTONS[rb]
+			var bt: Array = ring_buttons()[rb]
 			info.sector = rb
 			_flash["ring"] = 0.3
 			_flash["ring_i"] = rb
 			match String(bt[1]):
-				"flip", "flip2":
+				"flip", "flip2", "cork", "piru", "butterfly":
 					role = "ringflip"
 					if not air_mode:
 						_pending.jump_pressed = true
 					_emit_flick(sector_dir(int(bt[2])))
 					_pending.double = bt[1] == "flip2"
+					_pending.cork = bt[1] == "cork"
+					_pending.kick = bt[1] == "piru"          # mortal atrás + tirabuzón de 360
+					_pending.butterfly = bt[1] == "butterfly"
+				"kick":
+					role = "ringflip"
+					if not air_mode:
+						_pending.jump_pressed = true
+					_pending.kick = true
+				"change":
+					role = "ringchange"
+					info["turned"] = false
 				"skill":
 					role = "ringskill"
 					_pending.skill = String(bt[2])
@@ -452,6 +508,9 @@ func _on_touch(e: InputEventScreenTouch) -> void:
 			return
 		if f.role == "move":
 			_joy_vec = Vector2.ZERO
+		elif f.role == "ringchange":
+			if not f.get("turned", false):
+				ring_turn(1)                      # tocar CAMBIAR = siguiente página
 		elif f.role == "rot":
 			_rot_vec = Vector2.ZERO
 			if f.max < 0.3 and _time - f.time < 0.3:
@@ -471,6 +530,12 @@ func _on_drag(e: InputEventScreenDrag) -> void:
 		return
 	f.pos = e.position
 	match f.role:
+		"ringchange":
+			# Deslizar sobre CAMBIAR: arriba = siguiente página, abajo = anterior
+			var dy: float = e.position.y - (f.start as Vector2).y
+			if not f.get("turned", false) and absf(dy) > 34.0 * _s():
+				ring_turn(1 if dy < 0.0 else -1)
+				f["turned"] = true
 		"move":
 			var r := JOY_R * 0.8 * _s()
 			var d: Vector2 = e.position - _joy_base
@@ -575,6 +640,7 @@ func _process(dt: float) -> void:
 		_flash.erase("wheel_sec")
 	if not _flash.has("ring"):
 		_flash.erase("ring_i")
+	_ring_anim = move_toward(_ring_anim, 0.0, dt * 5.0)
 	queue_redraw()
 
 func _draw() -> void:
@@ -692,17 +758,20 @@ func _draw_ring(font: Font, s: float, a: float, white: Color, dark: Color, accen
 	var jc := _jump_center()
 	var held := {}
 	for f in _fingers.values():
-		if f.role in ["ringflip", "ringskill", "vault", "grab", "action"]:
+		if f.role in ["ringflip", "ringskill", "vault", "grab", "action", "ringchange"]:
 			held[int(f.get("sector", -1))] = true
 	var flash_i: int = _flash.get("ring_i", -1)
 	var br := ring_button_radius()
-	for i in RING_BUTTONS.size():
-		var bt: Array = RING_BUTTONS[i]
-		var c := ring_button_center(i)
+	var btns := ring_buttons()
+	var page_a := clampf(1.0 - absf(_ring_anim), 0.0, 1.0)
+	for i in btns.size():
+		var bt: Array = btns[i]
+		var c := ring_button_center(i, true)
 		var hot: bool = held.has(i) or i == flash_i
 		var ring_col := white
 		match String(bt[1]):
-			"flip", "flip2": ring_col = Color(0.35, 0.95, 0.9, white.a)
+			"flip", "flip2", "cork", "piru", "kick", "butterfly": ring_col = Color(0.35, 0.95, 0.9, white.a)
+			"change": ring_col = Color(1.0, 0.9, 0.3, white.a)
 			"skill": ring_col = Color(1.0, 0.62, 0.25, white.a)
 			"vault": ring_col = Color(0.35, 0.65, 1.0, white.a)
 			"action": ring_col = Color(0.35, 0.95, 0.45, white.a)
@@ -718,6 +787,11 @@ func _draw_ring(font: Font, s: float, a: float, white: Color, dark: Color, accen
 	draw_circle(jc, _jump_radius(), accent if (jheld or _flash.has("jump")) else dark)
 	draw_arc(jc, _jump_radius(), 0, TAU, 64, white, 4.0 * s, true)
 	_label(font, jc, "SALTO", 30 * s, white)
+	# Página actual de la rueda (más visible justo después de cambiar)
+	var pa := minf(1.0, 0.55 + float(_flash.get("page", 0.0)))
+	var top := ring_button_center(int(btns.size() / 2))
+	_label(font, top + Vector2(0, -ring_button_radius() - 18 * s), "%s  %d/%d" % [RING_PAGES[ring_page].name, ring_page + 1, RING_PAGES.size()], 17 * s, Color(1, 0.9, 0.3, pa))
+	var _unused := page_a
 
 func _draw_ring_hint(font: Font, s: float) -> void:
 	if _hint_time >= 9.0:
@@ -725,7 +799,7 @@ func _draw_ring_hint(font: Font, s: float) -> void:
 	var hc := Vector2(size.x * 0.5, size.y * 0.16)
 	var ha := clampf(1.0 - (_hint_time - 7.0) / 2.0, 0.0, 1.0)
 	_label(font, hc, "Cada botón del arco es un movimiento. Mantén el botón del mortal = sigue girando (doble, triple...)", 22 * s, Color(1, 1, 1, ha))
-	_label(font, hc + Vector2(0, 34 * s), "Joystick GIRO = tirabuzones (¼ híper, ½, 1, cork) · pulsa botones en la recepción para enlazar", 22 * s, Color(1, 1, 1, ha))
+	_label(font, hc + Vector2(0, 34 * s), "CAMBIAR (tocar o deslizar arriba/abajo) gira la rueda: MORTALES · TRICKING · GIMNASIA · Joystick GIRO = tirabuzones", 22 * s, Color(1, 1, 1, ha))
 
 ## Rueda SALTO / MORTALES: centro SALTO y 4 zonas (ADELANTE, ATRÁS, LATERAL ← →).
 func _draw_wheel(font: Font, s: float, a: float, white: Color, dark: Color, accent: Color) -> void:

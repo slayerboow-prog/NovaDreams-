@@ -1454,13 +1454,14 @@ func t_ring_buttons() -> void:
 	Settings.force_touch_ui = true
 	touch.visible = true
 	touch.size = Vector2(1542, 720)
-	var n := TouchControls.RING_BUTTONS.size()
+	touch.ring_page = 0
+	var n := touch.ring_buttons().size()
 	# Geometría: arco de 270° alrededor del SALTO, abajo a la derecha
 	var jc := touch._jump_center()
 	var first := touch.ring_button_center(0)
 	var last := touch.ring_button_center(n - 1)
 	var top := touch.ring_button_center(n / 2)
-	check("Botonera: SALTO abajo a la derecha y %d botones en 3/4 de círculo" % n,
+	check("Botonera: SALTO abajo a la derecha y %d botones en 3/4 de círculo (con CAMBIAR)" % n,
 		jc.x > touch.size.x * 0.7 and jc.y > touch.size.y * 0.55 and first.x < jc.x and first.y > jc.y and last.x > jc.x and last.y > jc.y and top.y < jc.y - 100,
 		"salto %s primero %s último %s" % [jc, first, last])
 	var press := func(idx: int, on: bool) -> void:
@@ -1471,7 +1472,7 @@ func t_ring_buttons() -> void:
 		touch._on_touch(e)
 	var find := func(label: String) -> int:
 		for i in n:
-			if String(TouchControls.RING_BUTTONS[i][0]).replace("\n", " ") == label:
+			if String(touch.ring_buttons()[i][0]).replace("\n", " ") == label:
 				return i
 		return -1
 	game.router.scripted = Callable()            # entrada real: el táctil
@@ -1540,6 +1541,56 @@ func t_ring_buttons() -> void:
 		if st.step == 4 and player.state == PlayerController.State.GROUND and k > 60:
 			break
 	check("Botonera: enlace RONDADA → FLIC-FLAC → ATRÁS con botones", moves.size() >= 3 and moves[0] == "Round-off" and moves[1] == "Back Handspring" and moves[2] in ["Backflip", "Gainer"], str(moves))
+	# Páginas de la rueda: CAMBIAR (tocar = siguiente; deslizar arriba/abajo) y botones nuevos
+	var cam: int = find.call("CAMBIAR")
+	press.call(cam, true); press.call(cam, false)
+	var p1 := touch.ring_page
+	var e2 := InputEventScreenTouch.new(); e2.index = 6; e2.position = touch.ring_button_center(cam); e2.pressed = true
+	touch._on_touch(e2)
+	var dr := InputEventScreenDrag.new(); dr.index = 6; dr.position = e2.position + Vector2(0, 80); dr.relative = Vector2(0, 80)
+	touch._on_drag(dr)
+	e2.pressed = false; e2.position = dr.position
+	touch._on_touch(e2)
+	check("Botonera: CAMBIAR gira la rueda (tocar = siguiente, deslizar abajo = anterior)", p1 == 1 and touch.ring_page == 0, "tras tocar %d, tras deslizar %d" % [p1, touch.ring_page])
+	for c in [[1, "HOOK", "Hook Kick"], [1, "PIRU", "Piru"], [1, "PATADA 360", "360 Kick"], [1, "MARIPOSA", "Butterfly Kick"],
+			[2, "BACK WALKOVER", "Back Walkover"], [2, "VOLTERETA AL PINO", "Back Extension Roll"]]:
+		touch.ring_page = c[0]
+		player.set_spawn(Transform3D(Basis(), Vector3(-35, 0.1, 35)), Vector3.FORWARD)
+		player.respawn()
+		await frames(20)
+		moves.clear(); landings.clear()
+		var bi3: int = find.call(c[1])
+		press.call(bi3, true)
+		var rel3 := false
+		for k in 260:
+			await get_tree().physics_frame
+			if not rel3 and (k > 30 or maxf(absf(player.tricks.total_pitch), absf(player.tricks.total_spin)) > TAU - deg_to_rad(100)):
+				press.call(bi3, false); rel3 = true
+			if k > 40 and player.state == PlayerController.State.GROUND and not moves.is_empty():
+				break
+		if not rel3:
+			press.call(bi3, false)
+		await frames(10)
+		check("Botonera página %s: botón %s = %s" % [TouchControls.RING_PAGES[c[0]].name, c[1], c[2]], c[2] in moves, str(moves))
+	# PINO mantenido: sigue en el pino mientras se mantiene el botón; al soltar, front walkover
+	touch.ring_page = 2
+	player.set_spawn(Transform3D(Basis(), Vector3(-35, 0.1, 35)), Vector3.FORWARD)
+	player.respawn()
+	await frames(20)
+	moves.clear()
+	var pb: int = find.call("PINO")
+	press.call(pb, true)
+	var held_f := 0
+	for k in 200:
+		await get_tree().physics_frame
+		if player.state == PlayerController.State.SKILL and player.skill.get("id", "") == "handstand" and float(player.skill.s) >= 1.0:
+			held_f += 1
+		if k == 150:
+			press.call(pb, false)
+	for k in 120:
+		await get_tree().physics_frame
+	check("Botonera: PINO mantenido se sostiene y al soltar sale el front walkover", held_f > 40 and "Front Walkover" in moves, "pino %d %s" % [held_f, moves])
+	touch.ring_page = 0
 	touch.size = touch.get_viewport_rect().size
 	game.router.scripted = _drive
 	Settings.trick_controls = old_mode
@@ -1550,8 +1601,8 @@ func t_ring_buttons() -> void:
 func t_glyphs() -> void:
 	var font := ThemeDB.fallback_font
 	var texts: Array[String] = []
-	for b in TouchControls.RING_BUTTONS:
-		texts.append(String(b[0]))
+	for lbl in TouchControls.all_ring_labels():
+		texts.append(String(lbl))
 	for st in GameUI.TUTORIAL:
 		texts.append(MoveNames.safe(String(st[0])))
 	var lib := MoveNames.safe(MoveLibrary.bbcode())
@@ -1566,7 +1617,7 @@ func t_glyphs() -> void:
 				missing[String.chr(c)] = true
 	check("Textos: la fuente tiene todos los caracteres (sin cuadrados en el móvil)", missing.is_empty(), str(missing.keys()))
 
-## PIRU (mortal atrás + tirabuzón suelto) · CORK (botón CORK: 3 pasos en C + patada al balón,
+## PIRU (mortal atrás + tirabuzón suelto) · CORK (botón CORK: salta en cork al momento o lo empieza en el aire,
 ## o el mismo giro dentro de un combo) · ST (caer a un pie y enlazar otro cork).
 func t_cork_piru() -> void:
 	# Piru: ATRÁS + una vuelta de GIRO, suelto
@@ -1578,36 +1629,38 @@ func t_cork_piru() -> void:
 		i.twist = 1.0 if f >= 10 and f < 36 else 0.0, 160,
 		func(): return _f > 16 and player.state == PlayerController.State.GROUND)
 	check("Piru: mortal atrás con tirabuzón de 360 suelto = PIRU", "Piru" in moves, str(moves))
-	# Cork con su entrada: tres pasos en C y patada al balón
-	await place(Vector3(-30, 0.1, 40), Vector3.FORWARD)
-	var cs := {"steps": 0, "last": "", "face0": player.facing, "face_take": Vector3.ZERO, "phases": {}}
+	# Cork con el botón CORK: salta en cork al momento
+	await place(Vector3(-35, 0.1, 35), Vector3.FORWARD)
 	await run(func(i, f):
 		i.stick_twist = true
-		i.skill_request = "cork_entry" if f == 0 else ""
-		if player.state == PlayerController.State.SKILL and player.skill.get("id", "") == "cork_entry":
-			var rig: BodyRig = game.rig
-			cs.phases[rig.last_phase] = true
-			for c in ["fl", "fr"]:
-				if rig.contact_w[c] > 0.99 and cs.last != c:
-					cs.last = c
-					cs.steps += 1
-		if player.state == PlayerController.State.AIR and cs.face_take == Vector3.ZERO:
-			cs.face_take = player.facing, 260,
-		func(): return _f > 30 and player.state == PlayerController.State.GROUND)
-	var turned := rad_to_deg((cs.face0 as Vector3).angle_to(cs.face_take))
-	check("Cork: entrada de 3 pasos en C y patada al balón (%d apoyos, gira %d°)" % [cs.steps, int(turned)],
-		cs.steps >= 4 and turned > 60.0 and cs.phases.has("patada al balón"), str(cs.phases.keys()))
-	check("Cork: despega con la inercia de la patada y sale el CORK", "Cork" in moves and landings.size() > 0 and landings[-1].quality in ["perfect", "clean"],
+		i.jump_pressed = f == 0; i.flick = Vector2(0, -1) if f == 0 else Vector2.ZERO
+		i.cork_request = f == 0
+		i.tuck = f < 10; i.jump_held = i.tuck, 160,
+		func(): return _f > 16 and player.state == PlayerController.State.GROUND)
+	check("Cork: el botón CORK salta en cork al momento (sin pasos previos)", "Cork" in moves and landings.size() > 0 and landings[-1].quality in ["perfect", "clean"],
 		"%s %s" % [moves, landings.map(func(l): return l.quality)])
+	# Cork desde una altura: cayendo del borde, CORK empieza el cork en ese punto
+	await place(Vector3(-24.25, 5.75, -10.5), Vector3.FORWARD)
+	var hc := {"pressed": false, "y": 0.0}
+	await run(func(i, f):
+		i.stick_twist = true
+		i.move = Vector2(0, 0.5) if not hc.pressed else Vector2.ZERO
+		if not hc.pressed and player.state == PlayerController.State.AIR and player.global_position.y < 5.3:
+			i.cork_request = true
+			hc.pressed = true
+			hc.y = player.global_position.y, 240,
+		func(): return hc.pressed and player.state != PlayerController.State.AIR)
+	check("Cork desde una altura: se decide en el aire, en el punto que quieras (%.1f m)" % hc.y,
+		"Cork" in moves, "%s %s" % [moves, landings.map(func(l): return [l.quality, int(l.error)])])
 	# ST: CORK pulsado durante el cork = cae a un pie y enlaza otro cork
-	await place(Vector3(-30, 0.1, 40), Vector3.FORWARD)
+	await place(Vector3(-35, 0.1, 40), Vector3.FORWARD)
 	var st := {"pressed": false}
 	await run(func(i, f):
 		i.stick_twist = true
-		i.move = Vector2(0.6, 0) if f == 0 else Vector2.ZERO      # la C hacia la derecha (zona libre)
-		i.skill_request = "cork_entry" if f == 0 else ""
+		i.jump_pressed = f == 0; i.flick = Vector2(0, -1) if f == 0 else Vector2.ZERO
+		i.cork_request = f == 0
 		if not st.pressed and player.state == PlayerController.State.AIR and player.tricks.air_time > 0.3:
-			i.skill_request = "cork_entry"
+			i.cork_request = true
 			st.pressed = true, 400,
 		func(): return st.pressed and moves.count("Cork") >= 2 and player.state == PlayerController.State.GROUND)
 	var order_ok := moves.size() >= 3 and moves[0] == "Cork" and moves[1] == "ST" and moves[2] == "Cork"

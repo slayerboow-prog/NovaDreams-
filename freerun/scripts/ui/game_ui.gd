@@ -50,7 +50,7 @@ const TUTORIAL := [
 	["Mantén ATRÁS pulsado: sigue girando = Doble mortal atrás", ["Double Backflip", "Double Gainer"]],
 	["En un mortal, joystick GIRO a un lado: suéltalo en ¼ (híper), ½ o 1 giro", ["@twist"]],
 	["Botón ATRÁS y GIRO una vuelta = Piru (mortal atrás con tirabuzón)", ["Piru", "Piru 540", "Piru 720"]],
-	["Botón CORK: 3 pasos en C y patada al balón = Sacacorchos", ["Cork", "Cork 540", "Cork 720"]],
+	["Botón CORK = Sacacorchos (también en el aire, saltando desde una altura)", ["Cork", "Cork 540", "Cork 720"]],
 	["Botón RUEDA = Rueda con apoyo de manos", ["Cartwheel"]],
 	["Botón FLIC-FLAC = Flic-flac: apoyo de manos", ["Back Handspring"]],
 	["Botón RONDADA y, al recibir (¡ENLAZA!), botón ATRÁS = Mortal atrás con rebote", ["@roundoff_back"]],

@@ -860,10 +860,10 @@ func _gather_pose(kind: String, rs: float, ph: float) -> Dictionary:
 		"elbow_l": Vector3(1.35, 0, 0), "elbow_r": Vector3(1.35, 0, 0)}
 
 ## Fase 5 · APERTURA: el cuerpo se alarga (frena el giro) y las piernas buscan el suelo.
-const OPEN_POSE := {"spine": Vector3(-0.12, 0, 0), "neck": Vector3(0.12, 0, 0),
-	"hip_l": Vector3(0.45, 0, -0.06), "hip_r": Vector3(0.4, 0, 0.06), "knee_l": Vector3(-0.45, 0, 0), "knee_r": Vector3(-0.4, 0, 0),
-	"shoulder_l": Vector3(1.75, 0, -0.45), "shoulder_r": Vector3(1.75, 0, 0.45),
-	"elbow_l": Vector3(0.35, 0, 0), "elbow_r": Vector3(0.35, 0, 0)}
+const OPEN_POSE := {"spine": Vector3(-0.05, 0, 0), "neck": Vector3(0.1, 0, 0),
+	"hip_l": Vector3(0.22, 0, -0.05), "hip_r": Vector3(0.18, 0, 0.05), "knee_l": Vector3(-0.22, 0, 0), "knee_r": Vector3(-0.18, 0, 0),
+	"shoulder_l": Vector3(1.55, 0, -0.75), "shoulder_r": Vector3(1.55, 0, 0.75),
+	"elbow_l": Vector3(0.3, 0, 0), "elbow_r": Vector3(0.3, 0, 0)}
 
 ## Fase 6 · RECEPCIÓN: piernas flexionadas listas para absorber, brazos delante para equilibrar.
 const RECEPTION := {"spine": Vector3(-0.3, 0, 0), "neck": Vector3(0.15, 0, 0),
@@ -925,11 +925,8 @@ func _trick_pose(p: Dictionary, tr: TrickSystem) -> void:
 		_apply(p, g, 1.0 - open * 0.6)       # la tijera sigue hasta casi aterrizar
 	else:
 		_apply(p, g, gather * (1.0 - open))
-		# Vuelta ya completada pero queda vuelo: el atleta no se queda tieso, mantiene las
-		# rodillas recogidas (medio agrupado) y solo extiende las piernas al buscar el suelo.
-		if open > 0.0 and kind in ["back", "front", "side", "gainer", "webster", "twist", "cork"]:
-			var compact := clampf((ttg - 0.22) / 0.2, 0.0, 1.0)
-			_apply(p, g, gather * open * 0.55 * compact)
+		# Vuelta completada: se abre estirando las piernas hacia el suelo (no se queda "sentado"
+		# en el aire); las rodillas solo se flexionan justo antes de tocar el suelo (RECEPTION).
 	_apply(p, _impulse_pose(kind, rs), imp)
 	_apply(p, RECEPTION, rec)
 	# Agrupado de verdad: las manos agarran las espinillas mientras el cuerpo está cerrado
@@ -993,6 +990,12 @@ func _load_pose(p: Dictionary) -> float:
 			vals.hip_l = Vector3(-0.45 * down, 0, -0.05); vals.knee_l = Vector3(-0.15 * down, 0, 0)
 			var ax := lerpf(lerpf(2.4, 0.4, down), -0.6, swing)
 			vals.shoulder_l = Vector3(ax, 0, -0.5); vals.shoulder_r = Vector3(ax, 0, 0.5)
+		"cork":
+			# Cork: carga girada (hombros contra cadera) para lanzar el tirabuzón fuera de eje
+			var cs := float(player.cork_side)
+			vals.spine = Vector3(-0.4 * down, 0.6 * cs * down, 0)
+			vals.shoulder_l = Vector3(lerpf(0.9, 2.6, swing), 0, lerpf(-0.9 if cs > 0 else 0.2, -0.4, swing))
+			vals.shoulder_r = Vector3(lerpf(-0.6, 2.2, swing), 0, lerpf(0.9 if cs < 0 else -0.2, 0.5, swing))
 		"butterfly":
 			# Carga baja y girada, brazos lanzados hacia el lado del giro
 			vals.spine = Vector3(-0.9 * down, 0.6 * down, 0)
