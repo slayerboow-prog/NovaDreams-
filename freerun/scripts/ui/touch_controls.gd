@@ -116,20 +116,55 @@ const RING_CHANGE := ["CAMBIAR", "change", ""]
 const RING_PAGES := [
 	{"name": "MORTALES", "buttons": [
 		["ATRÁS", "flip", -2], ["ADELANTE", "flip", 2], ["LATERAL\nIZQ.", "flip", 4], ["LATERAL\nDER.", "flip", 0],
-		["CORK", "cork", -2], ["AERIAL /\nMARIPOSA", "flip", 3], ["PATADA\n360", "kick", 0]]},
+		["CORK", "cork", -2], ["AERIAL", "flip", 3], ["PATADA\n360", "kick", 0]]},
 	{"name": "SUELO", "buttons": [
 		["RONDADA", "skill", "roundoff"], ["FLIC-FLAC", "skill", "bhs"], ["RUEDA", "skill", "cartwheel"],
 		["PALOMA", "skill", "fhs"], ["MACACO", "skill", "macaco"], ["PINO", "skill", "handstand"],
 		["ATRÁS", "flip", -2], ["CORK", "cork", -2]]},
 	{"name": "TRICKING", "buttons": [
 		["HOOK", "skill", "hook"], ["CRESCENT", "skill", "crescent"], ["CRESCENT\nINVERSA", "skill", "reverse_crescent"],
-		["RAIZ", "skill", "raiz"], ["TD RAIZ", "skill", "td_raiz"], ["SCOOT", "skill", "scoot"],
-		["MARIPOSA", "butterfly", 3], ["CORK", "cork", -2]]},
+		["RAIZ", "skill", "raiz"], ["TD RAIZ", "skill", "td_raiz"], ["MACACO", "skill", "macaco"],
+		["PATADA\n360", "kick", 0], ["CORK", "cork", -2]]},
 	{"name": "GIMNASIA", "buttons": [
 		["BACK\nWALKOVER", "skill", "back_walkover"], ["FRONT\nWALKOVER", "skill", "front_walkover"],
 		["VALDEZ", "skill", "valdez"], ["VOLTERETA\nAL PINO", "skill", "ber"], ["PINO", "skill", "handstand"],
 		["RONDADA", "skill", "roundoff"], ["FLIC-FLAC", "skill", "bhs"], ["ATRÁS", "flip", -2]]},
 ]
+## Modo gestos: SALTO tiene páginas; en cada una, dibujar una dirección desde SALTO hace un
+## movimiento (8 direcciones; sector: 2 ↑ · 1 ↗ · 0 → · -1 ↘ · -2 ↓ · -3 ↙ · 4 ← · 3 ↖).
+## El botón pequeño junto a SALTO cambia de página. Tocar SALTO sin dibujar = salto normal.
+## Ningún movimiento de aquí está en el joystick GIRO (rondada, flic-flac, rueda, macaco y los
+## tirabuzones son solo del GIRO).
+const SALTO_PAGES := [
+	{"name": "MORTALES", "moves": {2: ["ADELANTE", "flip"], 1: ["WEBSTER", "flip"], 3: ["AERIAL", "flip"],
+		0: ["LATERAL", "flip"], 4: ["LATERAL", "flip"], -2: ["ATRÁS", "flip"], -1: ["GAINER", "flip"], -3: ["GAINER", "flip"]}},
+	{"name": "TRICKING", "moves": {2: ["CRESCENT", "skill", "crescent:1"], 1: ["HOOK", "skill", "hook:1"],
+		3: ["CRESCENT INV.", "skill", "reverse_crescent:1"], 0: ["RAIZ", "skill", "raiz:1"], 4: ["RAIZ", "skill", "raiz:-1"],
+		-1: ["TD RAIZ", "skill", "td_raiz:1"], -3: ["TD RAIZ", "skill", "td_raiz:-1"]}},
+	{"name": "GIMNASIA", "moves": {2: ["PALOMA", "skill", "fhs:1"], 1: ["FRONT WALKOVER", "skill", "front_walkover:1"],
+		3: ["PINO", "skill", "handstand:1"], -2: ["BACK WALKOVER", "skill", "back_walkover:1"],
+		0: ["VALDEZ", "skill", "valdez:1"], 4: ["VALDEZ", "skill", "valdez:-1"], -1: ["VOLTERETA PINO", "skill", "ber:1"],
+		-3: ["VOLTERETA PINO", "skill", "ber:1"]}},
+]
+var salto_page := 0
+
+func salto_pages_enabled() -> bool:
+	return Settings.trick_controls == 5
+
+## Botón pequeño para cambiar de página de SALTO (arriba a la izquierda de SALTO).
+func salto_swap_center() -> Vector2:
+	var v := Vector2(-1.6, -1.8) * RING_JUMP_R * _s()
+	if Settings.left_handed:
+		v.x = -v.x
+	return _jump_center() + v
+
+func salto_swap_radius() -> float:
+	return 34.0 * _s()
+
+func salto_turn(d := 1) -> void:
+	salto_page = posmod(salto_page + d, SALTO_PAGES.size())
+	_flash["salto_page"] = 1.2
+
 var ring_page := 0
 var _ring_anim := 0.0                 # giro animado de la rueda al cambiar de página (-1..1 → 0)
 
@@ -376,8 +411,11 @@ func collect() -> TouchFrame:
 	for fd in _fingers.values():
 		match fd.role:
 			"jump":
-				f.jump_held = true
-				f.tuck = f.tuck or fd.flicked
+				if fd.get("skill_hold", false):
+					f.skill_hold = true      # PINO dibujado desde SALTO: sigue en el pino mientras mantienes
+				else:
+					f.jump_held = true
+					f.tuck = f.tuck or fd.flicked
 			"flipw":
 				f.jump_held = true
 				f.tuck = true
@@ -504,9 +542,15 @@ func _on_touch(e: InputEventScreenTouch) -> void:
 			_emit_flick(sector_dir(sec))
 			_flash["wheel"] = 0.3
 			_flash["wheel_sec"] = sec
+		elif salto_pages_enabled() and p.distance_to(salto_swap_center()) < salto_swap_radius() * 1.15:
+			role = "salto_swap"
+			salto_turn(1)
 		elif p.distance_to(_jump_center()) < hr.jump:
 			role = "jump"
-			_pending.jump_pressed = true
+			# En las páginas de habilidades de suelo el salto sale al soltar sin dibujar
+			if not salto_pages_enabled() or salto_page == 0 or air_mode:
+				_pending.jump_pressed = true
+				info["jumped"] = true
 			_flash["jump"] = 0.15
 		elif p.distance_to(_action_center()) < hr.action:
 			role = "action"
@@ -567,6 +611,8 @@ func _on_touch(e: InputEventScreenTouch) -> void:
 		elif f.role == "ringchange":
 			if not f.get("turned", false):
 				ring_turn(1)                      # tocar CAMBIAR = siguiente página
+		elif f.role == "jump" and not f.get("jumped", false) and not f.flicked:
+			_pending.jump_pressed = true         # tocar SALTO sin dibujar = salto
 		elif f.role == "rot":
 			_rot_vec = Vector2.ZERO
 			if f.max < 0.3 and _time - f.time < 0.3:
@@ -673,9 +719,20 @@ func _jump_swipe(f: Dictionary, pos: Vector2) -> void:
 	var disp: Vector2 = pos - f.anchor
 	if disp.length() > _flick_px() * 0.8:
 		var sec := sector_of(Vector2(disp.x, -disp.y))
-		_emit_flick(sector_dir(sec))
 		f.sector = sec
 		f.flicked = true
+		if salto_pages_enabled() and salto_page != 0:
+			var mv: Array = SALTO_PAGES[salto_page].moves.get(sec, [])
+			if mv.is_empty():
+				return
+			if air_mode:
+				return                  # las habilidades de suelo no salen en el aire
+			_pending.skill = String(mv[2])
+			f["skill_hold"] = String(mv[2]).begins_with("handstand")
+			_flash["jump_sec"] = sec
+			_flash["jump_swipe"] = 0.35
+			return
+		_emit_flick(sector_dir(sec))
 		_flash["jump_sec"] = sec
 		_flash["jump_swipe"] = 0.35
 
@@ -887,12 +944,43 @@ func _draw_ring(font: Font, s: float, a: float, white: Color, dark: Color, accen
 		var dv: Vector2 = d[1]
 		Neon._chevron(self, jc + dv * jr * 0.8, jr * (0.11 if hot2 else 0.08), dv,
 			Color(Neon.GOLD, al) if hot2 else Color(1, 1, 1, 0.55 * al), jr * (0.05 if hot2 else 0.035))
+	if salto_pages_enabled():
+		_draw_salto_page(font, s, al, jc, jr)
 	# Página actual de la rueda (más visible justo después de cambiar)
 	if btns.is_empty():
 		return
 	var pa := minf(1.0, 0.55 + float(_flash.get("page", 0.0)))
 	var top := ring_button_center(int(btns.size() / 2))
 	_label(font, top + Vector2(0, -br - 20 * s), "%s  %d/%d" % [RING_PAGES[ring_page].name, ring_page + 1, RING_PAGES.size()], 20 * s, Color(Neon.GOLD, pa))
+
+## Etiqueta con fondo oscuro y borde de color (legible sobre cualquier fondo).
+func _pill(font: Font, pos: Vector2, txt: String, fs: float, border: Color, al: float, hot := false) -> void:
+	var s := _s()
+	var tw := font.get_string_size(txt, HORIZONTAL_ALIGNMENT_LEFT, -1, int(fs)).x
+	var rect := Rect2(pos - Vector2(tw * 0.5 + 7 * s, fs * 0.72), Vector2(tw + 14 * s, fs * 1.44))
+	draw_rect(rect, Color(Neon.NAVY, 0.78 * al))
+	draw_rect(rect, Color(border, 0.9 * al), false, 1.5 * s)
+	_label(font, pos, txt, fs, Color(Neon.GOLD, al) if hot else Color(1, 1, 1, al))
+
+## Movimientos de la página de SALTO alrededor del botón y botón de cambiar página.
+func _draw_salto_page(font: Font, s: float, al: float, jc: Vector2, jr: float) -> void:
+	var pg: Dictionary = SALTO_PAGES[salto_page]
+	var js: int = int(_flash.get("jump_sec", 99))
+	var done := {}
+	for sec in pg.moves.keys():
+		var mv: Array = pg.moves[sec]
+		var dv := sector_dir(int(sec))
+		var pos := jc + Vector2(dv.x, -dv.y) * jr * 1.45
+		var hot := js == int(sec)
+		var txt := String(mv[0])
+		_pill(font, pos, txt, (15.0 if txt.length() < 10 else 12.5) * s, Neon.GOLD if hot else Neon.PURPLE, al, hot)
+	var sc := salto_swap_center()
+	var sr := salto_swap_radius()
+	Neon.button(self, sc, sr, Neon.GOLD, _flash.has("salto_page"), al)
+	Neon.icon(self, "swap", sc + Vector2(0, -sr * 0.2), sr * 0.4, Color(1, 1, 1, al))
+	_label(font, sc + Vector2(0, sr * 0.45), "%d/%d" % [salto_page + 1, SALTO_PAGES.size()], 11 * s, Color(1, 1, 1, al))
+	var pa := minf(1.0, 0.6 + float(_flash.get("salto_page", 0.0)))
+	_label(font, sc + Vector2(0, -sr - 16 * s), pg.name, 18 * s, Color(Neon.GOLD, pa))
 
 ## Accesos rápidos (botonera): columna a la izquierda si cabe sobre el joystick; si no, fila arriba.
 const QUICK := [["MOVIMIENTOS", "list", "library"], ["TUTORIAL", "star", "tutorial"], ["AJUSTES", "gear", "settings"], ["REAPARECER", "respawn", "respawn"]]
@@ -957,8 +1045,8 @@ func _draw_ring_hint(font: Font, s: float) -> void:
 		return
 	var hc := Vector2(size.x * 0.5, size.y * 0.16)
 	var ha := clampf(1.0 - (_hint_time - 7.0) / 2.0, 0.0, 1.0)
-	_label(font, hc, "SALTO es un joystick: arriba adelante · diagonal arriba aerial · lado lateral · abajo atrás · diagonal abajo gainer", 22 * s, Color(1, 1, 1, ha))
-	_label(font, hc + Vector2(0, 34 * s), "GIRO en el suelo: arriba rondada · abajo flic-flac · lado rueda · semicírculo desde abajo scoot, desde arriba macaco", 22 * s, Color(1, 1, 1, ha))
+	_label(font, hc, "Dibuja una dirección desde SALTO: cada página (botón dorado junto a SALTO) tiene 8 movimientos", 22 * s, Color(1, 1, 1, ha))
+	_label(font, hc + Vector2(0, 34 * s), "GIRO en el suelo: arriba rondada · abajo flic-flac · lado rueda · semicírculo desde arriba macaco", 22 * s, Color(1, 1, 1, ha))
 	_label(font, hc + Vector2(0, 68 * s), "Mantén el dedo tras deslizar = sigue girando · en el aire, GIRO = tirabuzones", 20 * s, Color(1, 1, 1, ha * 0.9))
 
 ## Rueda SALTO / MORTALES: centro SALTO y 4 zonas (ADELANTE, ATRÁS, LATERAL ← →).
@@ -1031,11 +1119,13 @@ func _draw_rot_stick(font: Font, s: float, a: float, white: Color, dark: Color, 
 			_label(font, base + Vector2(side * rr * 0.84, 0), "GIRO", 15 * s, white)
 	if ring_enabled() and not air_mode:
 		# En el suelo el GIRO hace movimientos: ↑ rondada · ↓ flic-flac · ← → rueda ·
-		# semicírculo desde abajo = scoot, desde arriba = macaco
-		var lc := Color(1, 1, 1, white.a * 0.85)
-		_label(font, base + Vector2(0, -rr - 12 * s), "RONDADA", 13 * s, lc)
-		_label(font, base + Vector2(0, rr + 12 * s), "FLIC-FLAC", 13 * s, lc)
-		_label(font, base + Vector2(0, -rr * 0.82), "RUEDA a los lados", 11 * s, Color(1, 1, 1, white.a * 0.7))
+		# semicírculo desde arriba = macaco
+		var la := clampf(a + 0.35, 0.5, 1.0)
+		_pill(font, base + Vector2(0, -rr - 14 * s), "RONDADA", 14 * s, Neon.PURPLE, la)
+		_pill(font, base + Vector2(0, rr + 14 * s), "FLIC-FLAC", 14 * s, Neon.PURPLE, la)
+		_pill(font, base + Vector2(-rr - 30 * s, 0), "RUEDA", 13 * s, Neon.PURPLE, la)
+		_pill(font, base + Vector2(rr + 30 * s, 0), "RUEDA", 13 * s, Neon.PURPLE, la)
+		_pill(font, base + Vector2(rr * 0.78, -rr * 0.86), "MACACO arco", 11 * s, Neon.PURPLE, la)
 	else:
 		_label(font, base + Vector2(0, -rr * 0.82), "¼ · ½ · 1", 14 * s, Color(1, 1, 1, white.a * 0.8))
 	if not ring_enabled():

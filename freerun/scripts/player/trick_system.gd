@@ -167,10 +167,7 @@ func apply_flick(d: Vector2, allow_twist := true) -> void:
 				_start_axis("pitch", -1); _start_axis("twist", 1); twist_period = PI
 				goal.twist = 2; style = "front"
 			3:
-				if takeoff_speed > 4.0:
-					_start_axis("spin", 1); style = "butterfly"
-				else:
-					_start_axis("roll", -1); style = "aerial"
+				_start_axis("roll", -1); style = "aerial"      # (sin butterfly: eliminado)
 	else:
 		if not allow_twist and horizontal and dir.roll == 0:
 			return                           # zona LATERAL durante un mortal adelante/atrás: no gira
@@ -199,7 +196,7 @@ func apply_flick(d: Vector2, allow_twist := true) -> void:
 	active = true
 
 ## Joystick SALTO (modo gestos): solo mortales, nunca tirabuzones. Por ángulo (x derecha, y arriba):
-##   ↑ mortal adelante (webster con carrera) · ↗ ↖ aerial hacia ese lado (butterfly con carrera)
+##   ↑ mortal adelante · ↗ webster (adelante a una pierna) · ↖ aerial
 ##   ← → mortal lateral · ↓ mortal atrás · ↘ ↙ gainer (mortal atrás avanzando)
 ## Durante un mortal, la misma dirección = otra vuelta; otra dirección no cambia el giro.
 func apply_salto(d: Vector2) -> void:
@@ -215,7 +212,7 @@ func apply_salto(d: Vector2) -> void:
 	if any:
 		var ax := primary_axis()
 		var same: bool = (ax == "pitch" and ((sector in [-2, -1, -3] and dir.pitch == 1) or (sector == 2 and dir.pitch == -1))) \
-			or (ax == "roll" and sector in [0, 4, 1, 3]) or (ax == "spin" and sector in [1, 3])
+			or (ax == "pitch" and sector == 1 and dir.pitch == -1) or (ax == "roll" and sector in [0, 4, 3])
 		if same and ax != "twist":
 			settled[ax] = false
 			goal[ax] += 1
@@ -226,12 +223,11 @@ func apply_salto(d: Vector2) -> void:
 	match sector:
 		2:
 			_start_axis("pitch", -1); style = "front"
-		1, 3:
-			var sd := 1 if sector == 1 else -1
-			if takeoff_speed > 4.0:
-				_start_axis("spin", -sd); style = "butterfly"
-			else:
-				_start_axis("roll", sd); style = "aerial"
+		1:
+			_start_axis("pitch", -1); style = "front"
+			takeoff_speed = maxf(takeoff_speed, 4.5)      # webster: mortal adelante a una pierna
+		3:
+			_start_axis("roll", -1); style = "aerial"
 		0, 4:
 			_start_axis("roll", 1 if sector == 0 else -1); style = "side"
 		-2:

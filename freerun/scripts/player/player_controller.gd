@@ -218,7 +218,8 @@ func _physics_process(dt: float) -> void:
 	wall_cooldown = maxf(0.0, wall_cooldown - dt)
 	stun = maxf(0.0, stun - dt)
 	# Las caídas grandes se absorben más despacio (recepción a cuatro apoyos)
-	land_impact = move_toward(land_impact, 0.0, dt * (1.5 if float(last_landing.get("impact", 0.0)) > 9.0 else 3.0))
+	# Amortiguación de la recepción: dura ~0,35-0,5 s (las rodillas bajan y suben, no es un golpe seco)
+	land_impact = move_toward(land_impact, 0.0, dt * (1.3 if float(last_landing.get("impact", 0.0)) > 9.0 else 1.7))
 	land_timer += dt
 	jump_buffer = t.jump_buffer_time if intent.jump_pressed else maxf(0.0, jump_buffer - dt)
 	roll_buffer = t.roll_window if intent.action_pressed else maxf(0.0, roll_buffer - dt)
@@ -446,7 +447,8 @@ func _flip_kind(spd: float) -> String:
 	if gesture_sticks():
 		match TouchControls.sector_of(flick_buffer):
 			2: return "front"
-			1, 3: return "butterfly" if spd > 4.0 else "aerial"
+			1: return "front"
+			3: return "aerial"
 			0, 4: return "side"
 			-2: return "back"
 			-1, -3: return "gainer"
@@ -455,7 +457,7 @@ func _flip_kind(spd: float) -> String:
 		-2, -1, -3: return "double_back" if dbl else "back"
 		2, 1: return "double_front" if dbl else "front"
 		0, 4: return "double_side" if dbl else "side"
-		3: return "butterfly" if spd > 4.0 or butterfly_buffer > 0.0 else "aerial"
+		3: return "aerial"
 	return "jump"
 
 func _takeoff(kind: String) -> void:
@@ -991,13 +993,19 @@ func _ground_gesture(ev: Dictionary) -> bool:
 		"skill":
 			# Botón de la botonera. Lado (rueda, rondada, macaco): hacia donde empuja el joystick izquierdo
 			var side := -1 if intent.move.x < -0.3 else 1
-			_start_skill(String(ev.id), side)
+			var id := String(ev.id)
+			if id.contains(":"):
+				side = int(id.get_slice(":", 1))      # dirección dibujada en SALTO (izquierda/derecha)
+				id = id.get_slice(":", 0)
+			_start_skill(id, side)
 			return true
 		"flick", "double":
 			if Settings.trick_controls >= 4:
 				return _giro_flick(int(ev.sector))
 			return _ground_flick(int(ev.sector))
 		"hold":
+			if gesture_sticks():
+				return false        # modo gestos: esas habilidades están en las páginas de SALTO
 			var sec := int(ev.sector)
 			match sec:
 				-2: _start_skill("back_walkover", 1)
@@ -1013,9 +1021,6 @@ func _ground_gesture(ev: Dictionary) -> bool:
 				# macaco (el lado sale del sentido del giro del pulgar)
 				var from := int(ev.from)
 				var sd := 1 if int(ev.dir) > 0 else -1
-				if from in [-2, -1, -3]:
-					_start_skill("scoot", sd)
-					return true
 				if from in [2, 1, 3]:
 					_start_skill("macaco", -sd)
 					return true
@@ -1027,8 +1032,7 @@ func _ground_gesture(ev: Dictionary) -> bool:
 			return true
 		"change":
 			var to := int(ev.to)
-			_start_skill("scoot", 1 if to in [0, 1, -1] else -1)
-			return true
+			return false          # (scoot eliminado)
 	return false
 
 ## Botonera, joystick GIRO en el suelo: ↑ rondada · ↓ flic-flac · ← → rueda lateral.

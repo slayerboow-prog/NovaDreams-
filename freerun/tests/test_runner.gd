@@ -1248,7 +1248,6 @@ func t_ground_skills() -> void:
 		["Hook Kick", ["arc", PI, TAU], 0, "any", false, false],
 		["Crescent Kick", ["arc", 0.0, PI], 0, "any", false, false],
 		["Reverse Crescent Kick", ["arc", PI, 0.0], 0, "any", false, false],
-		["Scoot", ["change", Vector2(-1, 0), Vector2(1, 0)], 0, "side", false, false],
 		["Back Extension Roll", ["roll", Vector2(0, -1)], 0, "back", false, true],
 		["Valdez", ["roll", Vector2(0.7, -0.7)], 0, "back", false, true],
 	]
@@ -1406,32 +1405,14 @@ func t_chains() -> void:
 		["Macaco → Flic-flac", [["now", ["hold", RO, 34]], ["link", ["flick", D]]], 0, ["Macaco", "Back Handspring"]],
 		["Macaco → Backflip", [["now", ["hold", RO, 34]], ["link", ["jump", D]]], 0, ["Macaco", "@back"]],
 		["Raiz → Cork", [["now", ["hold", Vector2(1, 0), 34]], ["link", ["jump", D, 20]]], 0, ["Raiz", "Cork"]],
-		["TD Raiz → Butterfly Twist", [["now", ["hold", Vector2(0.7, 0.7), 34]], ["link", ["flick", Vector2(-0.7, 0.7)]], ["now", ["twist", -1.0, 20, 14]]], 0, ["Touchdown Raiz", "@btwist"]],
-		["Scoot → B-Twist", [["now", ["flick", Vector2.ZERO]]], 0, []],
-		["Aerial → Butterfly Kick", [["now", ["flick", Vector2(-0.7, 0.7)]], ["link", ["flick", Vector2(-0.7, 0.7)]]], 0, ["Aerial", "Butterfly Kick"]],
+		["Aerial → Aerial", [["now", ["flick", Vector2(-0.7, 0.7)]], ["link", ["flick", Vector2(-0.7, 0.7)]]], 0, ["Aerial", "Aerial"]],
 		["Rueda → Backflip", [["now", ["flick", Vector2(1, 0)]], ["link", ["jump", D]]], 0, ["Cartwheel", "@back"]],
 		["Crescent → Swing Gainer", [["now", ["arc", 0.0, PI]], ["link", ["jump", D]]], 0, ["Crescent Kick", "Swing Gainer"]],
 	]
 	for c in cases:
-		if c[0] == "Scoot → B-Twist":
-			continue                      # se prueba aparte (gesto de cambio de dirección)
 		await place(Vector3(-35, 0.1, 40), Vector3.FORWARD)
 		var st: Dictionary = await chain_run(c[1], c[2])
 		_check_chain(c[0], c[3], st)
-	# Scoot → B-Twist: cambio de dirección ← → y en la ventana ↖ con GIRO
-	await place(Vector3(-35, 0.1, 40), Vector3.FORWARD)
-	var sc := {"t": -1, "b": -1}
-	await run(func(i, f):
-		i.stick_twist = true
-		if f < 5: i.rot = Vector2(-1, 0)
-		elif f >= 6 and f < 11: i.rot = Vector2(1, 0)
-		if sc.b < 0 and player.chain.active() and player.chain.from_id() == "scoot": sc.b = f
-		if sc.b >= 0:
-			var k: int = f - sc.b
-			if k < 8: i.rot = Vector2(-0.7, 0.7)
-			i.twist = -1.0 if k >= 20 and k < 44 else 0.0, 300,
-		func(): return sc.b >= 0 and _f > sc.b + 30 and player.state == PlayerController.State.GROUND)
-	_check_chain("Scoot → B-Twist", ["Scoot", "@btwist"], {"peaks": []})
 	# Rebote: la rondada da más altura al backflip que un backflip parado (sin multiplicar a lo loco)
 	await place(Vector3(-35, 0.1, 40), Vector3.FORWARD)
 	var plain: Dictionary = await chain_run([["now", ["jump", D]]], 0)
@@ -1621,8 +1602,10 @@ func t_ring_buttons() -> void:
 			press.call(bi2, false)
 		await frames(10)
 		var ok_land: bool = landings.size() > 0 and landings.all(func(l): return l.quality in ["perfect", "clean"])
-		check("Botonera: mantener ATRÁS %s = %s" % ["y soltar" if c[2] == 0 else "sin soltar nunca", c[1] if c[2] == 0 else "gira lo que permite la altura y aterriza"],
-			(c[1] in moves if c[2] == 0 else moves.any(func(m): return m.contains("Backflip"))) and ok_land, "%s %s" % [moves, landings.map(func(l): return [l.quality, int(l.error)])])
+		# En suelo plano la altura de un mortal real no da para dos vueltas: sale un mortal limpio
+		# (los dobles salen con rebote de rondada/flic-flac o desde alturas)
+		check("Botonera: mantener ATRÁS %s = gira lo que permite la altura y aterriza limpio" % ["y soltar" if c[2] == 0 else "sin soltar nunca"],
+			moves.any(func(m): return m.contains("Backflip")) and ok_land, "%s %s" % [moves, landings.map(func(l): return [l.quality, int(l.error)])])
 	# Enlace con botones: RONDADA → FLIC-FLAC (pulsado durante la rondada) → ATRÁS (en la recepción)
 	player.set_spawn(Transform3D(Basis(), Vector3(-35, 0.1, 40)), Vector3.FORWARD)
 	player.respawn()
@@ -1658,7 +1641,7 @@ func t_ring_buttons() -> void:
 	e2.pressed = false; e2.position = dr.position
 	touch._on_touch(e2)
 	check("Botonera: CAMBIAR gira la rueda (tocar = siguiente, deslizar abajo = anterior)", p1 == 1 and touch.ring_page == 0, "tras tocar %d, tras deslizar %d" % [p1, touch.ring_page])
-	for c in [[2, "HOOK", "Hook Kick"], [0, "PATADA 360", "360 Kick"], [2, "MARIPOSA", "Butterfly Kick"],
+	for c in [[2, "HOOK", "Hook Kick"], [0, "PATADA 360", "360 Kick"], [2, "MACACO", "Macaco"],
 			[3, "BACK WALKOVER", "Back Walkover"], [3, "VOLTERETA AL PINO", "Back Extension Roll"]]:
 		touch.ring_page = c[0]
 		player.set_spawn(Transform3D(Basis(), Vector3(-35, 0.1, 35)), Vector3.FORWARD)
@@ -1819,7 +1802,7 @@ func t_salto_giro_sticks() -> void:
 	check("Modo gestos: sin rueda de botones de movimientos (todo con SALTO y GIRO)", touch.ring_buttons().is_empty(), str(touch.ring_buttons().size()))
 	game.router.scripted = Callable()            # entrada real: el táctil
 	var no_twist := {"max": 0.0}
-	for c in [[Vector2(0, -1), "Frontflip"], [Vector2(0.71, -0.71), "Aerial"], [Vector2(-1, 0), "Sideflip"], [Vector2(1, 0), "Sideflip"],
+	for c in [[Vector2(0, -1), "Frontflip"], [Vector2(0.71, -0.71), "Webster"], [Vector2(-0.71, -0.71), "Aerial"], [Vector2(-1, 0), "Sideflip"], [Vector2(1, 0), "Sideflip"],
 			[Vector2(0, 1), "Backflip"], [Vector2(0.71, 0.71), "Gainer"], [Vector2(-0.71, 0.71), "Gainer"]]:
 		await place(Vector3(-35, 0.1, 35), Vector3.FORWARD)
 		moves.clear(); landings.clear()
@@ -1846,10 +1829,45 @@ func t_salto_giro_sticks() -> void:
 		check("SALTO deslizando %s = %s" % [str(c[0]), c[1]], c[1] in moves and landings.size() > 0 and landings[-1].quality in ["perfect", "clean"],
 			"%s %s" % [moves, landings.map(func(l): return l.quality)])
 	check("SALTO nunca añade tirabuzones (giro máximo %.2f rad)" % no_twist.max, no_twist.max < 0.05, "")
+	# Páginas de SALTO: el botón dorado cambia de página y cada dirección dibujada es un movimiento
+	for pc in [[1, Vector2(0.71, -0.71), "Hook Kick"], [1, Vector2(1, 0), "Raiz"], [1, Vector2(-0.71, 0.71), "Touchdown Raiz"],
+			[2, Vector2(0, -1), "Front Handspring"], [2, Vector2(0, 1), "Back Walkover"], [2, Vector2(1, 0), "Valdez"]]:
+		await place(Vector3(-35, 0.1, 35), Vector3.FORWARD)
+		moves.clear()
+		touch.salto_page = 0
+		var sw := InputEventScreenTouch.new(); sw.index = 8; sw.position = touch.salto_swap_center(); sw.pressed = true
+		for t in int(pc[0]):
+			sw.pressed = true; touch._on_touch(sw)
+			sw.pressed = false; touch._on_touch(sw)
+		var pjc := touch._jump_center()
+		var pe := InputEventScreenTouch.new(); pe.index = 7; pe.position = pjc; pe.pressed = true
+		touch._on_touch(pe)
+		var pdr := InputEventScreenDrag.new(); pdr.index = 7; pdr.position = pjc + (pc[1] as Vector2) * 90.0
+		touch._on_drag(pdr)
+		pe.pressed = false; pe.position = pdr.position
+		touch._on_touch(pe)
+		for k in 150:
+			await get_tree().physics_frame
+			if pc[2] in moves:
+				break
+		check("SALTO página %s, dibujar %s = %s (sin saltar)" % [TouchControls.SALTO_PAGES[pc[0]].name, str(pc[1]), pc[2]],
+			touch.salto_page == int(pc[0]) and pc[2] in moves, "%s pág %d" % [moves, touch.salto_page])
+	# En una página de habilidades, tocar SALTO sin dibujar sigue siendo un salto
+	await place(Vector3(-35, 0.1, 35), Vector3.FORWARD)
+	touch.salto_page = 1
+	var te := InputEventScreenTouch.new(); te.index = 7; te.position = touch._jump_center(); te.pressed = true
+	touch._on_touch(te)
+	await frames(2)
+	te.pressed = false; touch._on_touch(te)
+	var went_air := false
+	for k in 60:
+		await get_tree().physics_frame
+		went_air = went_air or player.state == PlayerController.State.AIR
+	check("Página de habilidades: tocar SALTO sin dibujar = salto", went_air, "")
+	touch.salto_page = 0
 	game.router.scripted = _drive
 	# Joystick GIRO en el suelo
 	for g in [["arriba", [Vector2(0, 1)], "Round-off"], ["abajo", [Vector2(0, -1)], "Back Handspring"], ["lado", [Vector2(1, 0)], "Cartwheel"],
-			["semicírculo desde abajo", [Vector2(0, -1), Vector2(0.7, -0.7), Vector2(1, 0), Vector2(0.7, 0.7), Vector2(0, 1)], "Scoot"],
 			["semicírculo desde arriba", [Vector2(0, 1), Vector2(0.7, 0.7), Vector2(1, 0), Vector2(0.7, -0.7), Vector2(0, -1)], "Macaco"]]:
 		await place(Vector3(-35, 0.1, 35), Vector3.FORWARD)
 		moves.clear()

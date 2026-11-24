@@ -100,5 +100,5 @@ static func jump_target(sector: int, travel_speed: float) -> String:
 		0, 4:
 			return "flip_side"
 		3:
-			return "butterfly" if travel_speed > 3.0 else "aerial"
+			return "aerial"
 	return "kick"

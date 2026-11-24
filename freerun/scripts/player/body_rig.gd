@@ -52,6 +52,10 @@ const COL_CAP := Color(0.95, 0.95, 0.92)
 
 func setup(p: PlayerController) -> void:
 	player = p
+	# El muñeco se anima en cada fotograma (_process): sin interpolación física, para que las piezas
+	# rígidas (cabeza, manos, zapatillas) y la piel se dibujen en la misma pose. Con interpolación
+	# las piezas iban un paso por detrás de la piel y en movimientos rápidos se separaban.
+	physics_interpolation_mode = Node.PHYSICS_INTERPOLATION_MODE_OFF
 	pivot = Node3D.new()
 	pivot.position.y = COM_HEIGHT
 	add_child(pivot)
@@ -198,7 +202,9 @@ var skin_body: SkinBody
 ## Muelle de la pose: frecuencia relativa a blend_speed y amortiguamiento (<1 = leve rebote).
 const SPRING_W := 1.9
 const SPRING_ZETA := 0.86
-const JOINT_LAG := {"elbow_l": 0.8, "elbow_r": 0.8, "knee_l": 0.85, "knee_r": 0.85, "neck": 0.75}
+# Las rodillas van algo por DELANTE de la cadera (en un mortal suben dobladas hacia el pecho, no
+# salen estiradas hacia delante); codos y cuello van un poco por detrás del tronco.
+const JOINT_LAG := {"elbow_l": 0.8, "elbow_r": 0.8, "knee_l": 1.25, "knee_r": 1.25, "neck": 0.75}
 var _pose_vel := {}
 
 func _base_pose() -> Dictionary:
@@ -296,7 +302,8 @@ func _process(dt: float) -> void:
 						target.spine.x -= 0.3 * c
 			# Tras recibir: brazos abiertos a los lados buscando el equilibrio (oscilan y se recogen)
 			var lt := player.land_timer
-			if lt > 0.08 and lt < 1.1 and spd < 4.0 and player.jump_load <= 0.0:
+			var shaky := float(player.last_landing.get("impact", 0.0)) > 9.0 or player.land_quality in ["sloppy", "hard"]
+			if shaky and lt > 0.08 and lt < 1.1 and spd < 4.0 and player.jump_load <= 0.0:
 				var wb := _smooth((lt - 0.08) / 0.18) * _smooth((1.1 - lt) / 0.45)
 				var wob := sin(lt * 9.0) * 0.18 * (1.1 - lt)
 				_apply(target, {"shoulder_l": Vector3(0.35 + wob, 0, -1.2 - wob), "shoulder_r": Vector3(0.3 - wob, 0, 1.2 - wob),
@@ -539,7 +546,10 @@ func _solve_contacts(contacts: Dictionary, _dt: float, extra := {}, extra_target
 			_limb_ik(c, plants[c], w)
 		else:
 			plants.erase(c)
-		# Nunca por debajo del suelo
+		# Nunca por debajo del suelo (en el aire solo al bajar: al despegar el cuerpo sube y gira,
+		# y fijar el pie al suelo estiraba una pierna hacia atrás como si se quedara enganchada)
+		if player.state == PlayerController.State.AIR and player.velocity.y > -1.0:
+			continue
 		end = limb_end(c)
 		var floor_y := ground_y + (HAND_R if c.begins_with("h") else SOLE * 0.6)
 		if end.y < floor_y:
@@ -918,8 +928,8 @@ func _cork_legs(v: Dictionary) -> Dictionary:
 ## Fase 5 · APERTURA: el cuerpo se alarga (frena el giro) y las piernas buscan el suelo.
 const OPEN_POSE := {"spine": Vector3(-0.05, 0, 0), "neck": Vector3(0.1, 0, 0),
 	"hip_l": Vector3(0.22, 0, -0.05), "hip_r": Vector3(0.18, 0, 0.05), "knee_l": Vector3(-0.22, 0, 0), "knee_r": Vector3(-0.18, 0, 0),
-	"shoulder_l": Vector3(1.55, 0, -0.75), "shoulder_r": Vector3(1.55, 0, 0.75),
-	"elbow_l": Vector3(0.3, 0, 0), "elbow_r": Vector3(0.3, 0, 0)}
+	"shoulder_l": Vector3(0.95, 0, -1.0), "shoulder_r": Vector3(0.95, 0, 1.0),
+	"elbow_l": Vector3(0.45, 0, 0), "elbow_r": Vector3(0.45, 0, 0)}
 
 ## Fase 6 · RECEPCIÓN: piernas flexionadas listas para absorber, brazos delante para equilibrar.
 const RECEPTION := {"spine": Vector3(-0.3, 0, 0), "neck": Vector3(0.15, 0, 0),

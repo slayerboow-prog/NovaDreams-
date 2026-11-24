@@ -41,6 +41,21 @@ func build(joints: Dictionary, colors: Dictionary) -> void:
 	mesh_instance.skeleton = mesh_instance.get_path_to(skeleton)
 	mesh_instance.skin = skeleton.create_skin_from_rest_transforms()
 	mesh_instance.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_ON
+	# Las piezas rígidas (cabeza, manos, zapatillas, capucha...) se enganchan a los huesos del
+	# esqueleto: así se mueven exactamente a la vez que la piel (si siguieran a las articulaciones,
+	# en movimientos rápidos la piel iría un instante por detrás y la mano o la zapatilla se separaban).
+	for n in order:
+		var j: Node3D = joints[n]
+		var att := BoneAttachment3D.new()
+		att.name = "Att_" + n
+		att.bone_name = n
+		skeleton.add_child(att)
+		for c in j.get_children():
+			if c is MeshInstance3D:
+				var xf: Transform3D = (c as Node3D).transform
+				j.remove_child(c)
+				att.add_child(c)
+				(c as Node3D).transform = xf
 
 ## Copia la pose actual de las articulaciones al esqueleto (después de la IK).
 func sync() -> void:
@@ -49,6 +64,9 @@ func sync() -> void:
 		var i: int = _bone[n]
 		skeleton.set_bone_pose_position(i, j.position)
 		skeleton.set_bone_pose_rotation(i, j.quaternion)
+	# Aplica la pose ya (no al final del fotograma): sin esto la piel iba un fotograma por detrás
+	skeleton.force_update_all_bone_transforms()
+	skeleton.notification(Skeleton3D.NOTIFICATION_UPDATE_SKELETON)   # sube la piel al render ya
 
 ## Tela: color por vértice (sudadera, pantalón, piel), relieve de tejido y borde de luz suave.
 func _fabric_material() -> StandardMaterial3D:
