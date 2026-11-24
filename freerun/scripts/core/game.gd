@@ -151,8 +151,11 @@ func apply_graphics() -> void:
 			vp.msaa_3d = Viewport.MSAA_2X
 			env.environment.fog_enabled = true
 
+var last_mode := ""                   # modo que se estaba jugando (botón «Volver al juego» del menú)
+
 func show_menu() -> void:
 	if mode:
+		last_mode = mode.id
 		mode.stop()
 		mode = null
 	in_menu = true

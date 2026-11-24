@@ -32,13 +32,14 @@ const NAMES := {
 	"vault": "VAULT", "kong": "KONG VAULT", "wall_run": "WALL RUN", "wall_flip": "WALL FLIP",
 	"climb": "ESCALADA", "ledge_grab": "AGARRE DE BORDE", "cat_leap": "CAT LEAP",
 	"precision": "SALTO DE PRECISIÓN", "roll": "RODAR", "wall_climb": "WALL CLIMB",
+	"palm": "PALM FLIP", "speed": "PASAVALLAS", "reverse": "REVERSO",
 }
 
 ## Contexto que necesita cada movimiento de parkour (lo comprueba el jugador).
 const NEEDS := {
 	"vault": "obstacle", "kong": "obstacle", "wall_run": "wall_any", "wall_flip": "wall_front",
 	"climb": "wall_front", "wall_climb": "wall_front", "cat_leap": "wall_front",
-	"ledge_grab": "ledge", "roll": "roll",
+	"ledge_grab": "ledge", "roll": "roll", "palm": "wall_front", "speed": "obstacle", "reverse": "obstacle",
 }
 const NEED_TEXT := {
 	"obstacle": "no hay obstáculo delante", "wall_front": "no hay pared delante",
@@ -68,6 +69,10 @@ const TEMPLATES := {
 	"cat_leap": [[-0.6, 0.8], [-0.3, 0.1], [0.0, -0.6], [0.3, 0.1], [0.6, 0.8], [0.56, 0.97], [0.44, 1.0]],
 	# J ascendente: gancho abajo y subida recta (y mantener el dedo al final)
 	"ledge_grab": [[-0.5, -0.45], [-0.44, -0.8], [-0.22, -1.0], [0.05, -0.97], [0.2, -0.75], [0.25, -0.35], [0.25, 0.3], [0.25, 1.0]],
+	# Pasavallas (speed vault): sube y pasa de lado (Γ)
+	"speed": [[0.0, -1.0], [0.0, -0.2], [0.0, 0.45], [0.08, 0.8], [0.35, 0.95], [0.7, 0.97], [1.0, 0.97]],
+	# Reverso (reverse vault): de abajo arriba rodeando por un lado, la media vuelta
+	"reverse": [[0.0, -1.0], [0.4, -0.78], [0.6, -0.3], [0.62, 0.15], [0.45, 0.6], [0.0, 1.0]],
 	# Curva hacia abajo y hacia delante (la voltereta)
 	"roll": [[0.0, 1.0], [0.35, 0.78], [0.55, 0.35], [0.58, -0.1], [0.42, -0.6], [0.0, -1.0]],
 }
@@ -367,6 +372,9 @@ static func _loop_move(pre: PackedVector2Array, count: int, twist: int) -> Dicti
 	# Entrada curva (arco lateral) = aerial twist · entrada recta en diagonal hacia arriba = cork
 	if pturn >= deg_to_rad(75.0) and bulge >= 0.08 * ch.length():
 		return {"id": "aerial_twist", "side": side, "loops": count, "twist": twist}
+	if absf(ang - 90.0) < 20.0 and straight >= 0.7:
+		# Línea hacia arriba y un círculo: manos a la pared y mortal atrás (palm flip)
+		return {"id": "palm", "side": side, "loops": count, "twist": twist}
 	if ang >= 18.0 and ang <= 162.0 and straight >= 0.7 and absf(ang - 90.0) >= 12.0:
 		return {"id": "cork720" if count >= 2 else "cork", "side": side, "loops": count, "twist": twist}
 	if (absf(ang) <= 35.0 or absf(ang) >= 145.0) and bulge >= 0.12 * ch.length():
@@ -457,6 +465,9 @@ static func preview_points(id: String) -> PackedVector2Array:
 		"side_l": out = PackedVector2Array([Vector2(0.8, 0), Vector2(-0.8, 0)])
 		"side_r": out = PackedVector2Array([Vector2(-0.8, 0), Vector2(0.8, 0)])
 		"precision": out = PackedVector2Array([Vector2(0, -0.5), Vector2(0, 0.2)])
+		"palm":
+			out = PackedVector2Array([Vector2(0, -0.85), Vector2(0, 0.25)])
+			_add_circles(out, Vector2(0, 0.25), 0.3, 1, -1)
 		"cork", "cork720":
 			out = PackedVector2Array([Vector2(-0.7, -0.8), Vector2(0.15, 0.2)])
 			_add_circles(out, Vector2(0.15, 0.2), 0.3, 2 if id == "cork720" else 1, 1)

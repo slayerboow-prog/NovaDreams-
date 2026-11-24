@@ -45,6 +45,8 @@ class TouchFrame:
 	var twist_loops: Array[int] = []       # modo gestos: círculos completados en el joystick morado
 	var giro_sector := 99                  # modo gestos: línea recta en el joystick morado
 	var giro := {}                         # modo gestos: trazo del joystick morado en el suelo
+	var flip_press := 99                   # botón de mortal pulsado (sector)
+	var flip_held := false
 
 var grab_label := "AGARRAR"           # SOLTAR cuando está colgado
 var context_label := "RODAR"
@@ -140,7 +142,7 @@ const RING_PAGES := [
 ## dos o tres seguidos = doble o triple; uno y otro al revés = combinado). En el suelo, una línea
 ## recta = rondada (↑), flic-flac (↓) o rueda (← →).
 const SALTO_PAGES := [
-	{"name": "MORTALES", "moves": {2: ["ADELANTE", "flip"], 0: ["LATERAL", "flip"], 4: ["LATERAL", "flip"], -2: ["ATRÁS", "flip"]}},
+	{"name": "MORTALES", "moves": {}},       # los mortales básicos van en sus botones
 ]
 var salto_page := 0
 var context_provider: Callable          # () -> Dictionary: qué permite el entorno (PlayerController.gesture_context)
@@ -151,6 +153,23 @@ var _jump_hold_until := 0.0             # el salto de un toque se mantiene un in
 const PRECISION_LEN := 0.6              # línea más corta que esto (radios) + toque = precisión
 const PRECISION_WAIT := 0.3             # s para el toque del salto de precisión
 signal gesture_recognized(info: Dictionary)
+
+## Botones de mortal en arco encima del joystick dorado: [rótulo, sector, icono, ángulo (grados)]
+const FLIP_BTNS := [["ATRÁS", -2, "back", 100.0], ["ADELANTE", 2, "front", 140.0], ["LATERAL", 0, "side_r", 60.0]]
+const FLIP_R := 40.0
+
+func flip_button_center(i: int) -> Vector2:
+	var a := deg_to_rad(float(FLIP_BTNS[i][3]))
+	var v := Vector2(cos(a), -sin(a)) * _jump_radius() * 1.7
+	if Settings.left_handed:
+		v.x = -v.x
+	return _jump_center() + v
+
+func flip_button_at(p: Vector2) -> int:
+	for i in FLIP_BTNS.size():
+		if p.distance_to(flip_button_center(i)) < FLIP_R * _s() * 1.12:
+			return i
+	return -1
 
 func salto_pages_enabled() -> bool:
 	return Settings.trick_controls == 5
@@ -251,7 +270,7 @@ func _park_center(i: int) -> Vector2:
 	var s := _s()
 	if salto_pages_enabled():
 		# Modo gestos: columna en la esquina superior derecha (debajo de la pausa), fuera del centro
-		return Vector2(_mirror(size.x - 58.0 * s), 140.0 * s + float(i) * 98.0 * s)
+		return Vector2(_mirror(size.x - 58.0 * s), 118.0 * s + float(i) * 96.0 * s)
 	var rc := _rot_center()
 	var r := PARK_R * s * 1.1
 	var side := -1.0 if not Settings.left_handed else 1.0
@@ -384,6 +403,9 @@ func hit_radii() -> Dictionary:
 			"vault": PARK_R * _s() * 1.1, "grab": PARK_R * _s() * 1.1, "action": PARK_R * _s() * 1.1}
 		for i in ring_buttons().size():
 			hr["ring_%d" % i] = ring_button_radius() * 1.06
+		if salto_pages_enabled():
+			for i in FLIP_BTNS.size():
+				hr["flip_%d" % i] = FLIP_R * _s() * 1.12
 		return hr
 	var small := 1.15 if stick_enabled() else 1.2
 	return {"jump": _jump_radius() * (1.03 if stick_enabled() else 1.12), "action": _action_radius() * small, "pad": _pad_radius() * 1.08,
@@ -393,6 +415,9 @@ func hit_radii() -> Dictionary:
 func zones() -> Dictionary:
 	if ring_enabled():
 		var zr := {"jump": _jump_center(), "rot": _rot_center(), "vault": _vault_center(), "grab": _grab_center(), "action": _action_center()}
+		if salto_pages_enabled():
+			for i in FLIP_BTNS.size():
+				zr["flip_%d" % i] = flip_button_center(i)
 		for i in ring_buttons().size():
 			zr["ring_%d" % i] = ring_button_center(i)
 		return zr
@@ -447,6 +472,8 @@ func collect() -> TouchFrame:
 				f.tuck = true
 			"grab":
 				f.grab_held = true
+			"flipbtn":
+				f.flip_held = true
 			"twist":
 				if fd.get("skill_hold", false):
 					f.skill_hold = true      # PINO: sigue en el pino mientras mantienes el dedo
@@ -568,6 +595,17 @@ func _on_touch(e: InputEventScreenTouch) -> void:
 		elif salto_pages_enabled() and SALTO_PAGES.size() > 1 and p.distance_to(salto_swap_center()) < salto_swap_radius() * 1.15:
 			role = "salto_swap"
 			salto_turn(1)
+		elif salto_pages_enabled() and flip_button_at(p) >= 0:
+			# Botón de mortal (estilo Madness): carga · agrupa · abre
+			role = "flipbtn"
+			var fb: Array = FLIP_BTNS[flip_button_at(p)]
+			var fsec: int = fb[1]
+			if fsec == 0 and _joy_vec.x < -0.3:
+				fsec = 4                          # lateral hacia la izquierda si empujas a la izquierda
+			_pending.flip_press = fsec
+			info.sector = flip_button_at(p)
+			_flash["flipbtn"] = 0.25
+			_flash["flipbtn_i"] = flip_button_at(p)
 		elif training and _train_button_at(p) >= 0:
 			role = "train_btn"
 			_train_button(_train_button_at(p))
@@ -605,6 +643,8 @@ func _on_touch(e: InputEventScreenTouch) -> void:
 			lc.feed(p)
 			info["lc"] = lc
 			info["path"] = [p]
+			if air_mode:
+				info["air_origin"] = p            # en el aire: joystick con el centro donde apoyas el dedo
 		elif stick_enabled() and p.distance_to(_rot_center()) < hr.rot:
 			# Joystick flotante: el origen es donde se apoya el pulgar (sin giro accidental al tocar)
 			role = "rot"
@@ -658,6 +698,7 @@ func _on_touch(e: InputEventScreenTouch) -> void:
 				_salto_execute(GestureRecognizer.recognize_salto(PackedVector2Array(f.path), _jump_radius(), _salto_opts()), f)
 			_add_trail(f.path, Neon.GOLD)
 		elif f.role == "twist":
+			_rot_vec = Vector2.ZERO
 			if not f.get("committed", false):
 				_twist_release(f, p)
 		elif f.role == "jump" and not f.get("jumped", false) and not f.flicked:
@@ -707,11 +748,15 @@ func _on_drag(e: InputEventScreenDrag) -> void:
 				_jump_swipe(f, e.position)
 		"twist":
 			(f.path as Array).append(e.position)
-			var ev: int = (f.lc as GestureRecognizer.LoopCounter).feed(e.position)
-			if ev != 0 and air_mode:
-				_pending.twist_loops.append(ev)
-				_flash["twist_ok"] = 0.4
-				_toast(GestureRecognizer.twist_name((f.lc as GestureRecognizer.LoopCounter).events), Neon.PURPLE, "purple")
+			(f.lc as GestureRecognizer.LoopCounter).feed(e.position)
+			if air_mode:
+				# En el aire el morado es un joystick: izquierda = gira a la izquierda, derecha = a la
+				# derecha (tirabuzón de cualquier mortal; al soltar termina en el cuarto de vuelta)
+				if not f.has("air_origin"):
+					f["air_origin"] = e.position
+				var dv: Vector2 = e.position - (f.air_origin as Vector2)
+				_rot_vec = (Vector2(dv.x, -dv.y) / _rot_travel()).limit_length(1.0)
+				f["air_used"] = true
 		"pad":
 			pass   # la cruceta solo cuenta el toque: arrastrar el dedo no lanza trucos extra
 		"rot":
@@ -847,7 +892,8 @@ func _salto_execute(res: Dictionary, f: Dictionary) -> void:
 		if id == "front" and float(res.get("len", 1.0)) < PRECISION_LEN and not air_mode and not f.get("committed", false):
 			_await_tap = {"t": _time, "res": res}     # ¿toque enseguida? = salto de precisión
 			return
-		_salto_flip(res)
+		_toast("Mortales básicos: botones ATRÁS · ADELANTE · LATERAL", Color(1, 0.75, 0.4), "gold")
+		_train_check(res)
 		return
 	if kind in ["pattern", "parkour"]:
 		if not res.get("ok", false):
@@ -882,8 +928,8 @@ func _twist_release(f: Dictionary, p: Vector2) -> void:
 	var lc: GestureRecognizer.LoopCounter = f.lc
 	(f.path as Array).append(p)
 	_add_trail(f.path, Neon.PURPLE)
-	if air_mode:
-		_train_twist(lc.events)
+	_rot_vec = Vector2.ZERO
+	if air_mode or f.get("air_used", false):
 		return
 	var res := GestureRecognizer.recognize_giro(PackedVector2Array(f.path), _rot_radius())
 	var id := String(res.get("id", ""))
@@ -975,11 +1021,7 @@ func _gesture_rest_checks() -> void:
 		if rest < 0.09:
 			continue
 		var res := GestureRecognizer.recognize_salto(PackedVector2Array(path), _jump_radius(), _salto_opts())
-		if res.kind == "simple" and float(res.len) >= PRECISION_LEN:
-			fd["committed"] = true
-			fd["flicked"] = true
-			_salto_execute(res, fd)
-		elif res.get("id", "") == "ledge_grab" and res.get("ok", false):
+		if res.get("id", "") == "ledge_grab" and res.get("ok", false):
 			if rest < 0.15:
 				continue
 			fd["committed"] = true
@@ -991,21 +1033,12 @@ func _gesture_rest_checks() -> void:
 
 ## [id, nombre, joystick, cómo se dibuja]
 const TRAIN := [
-	["front", "MORTAL ADELANTE", "gold", "Desliza hacia arriba"],
-	["back", "MORTAL ATRÁS", "gold", "Desliza hacia abajo"],
-	["side_l", "LATERAL IZQUIERDO", "gold", "Desliza a la izquierda"],
-	["side_r", "LATERAL DERECHO", "gold", "Desliza a la derecha"],
 	["aerial", "AERIAL", "gold", "Arco lateral que sube y baja, sin cerrar"],
 	["aerial_twist", "AERIAL TWIST", "gold", "Arco lateral y un círculo pequeño al final"],
 	["cork", "CORK", "gold", "Diagonal hacia arriba y un círculo pequeño"],
 	["cork720", "CORK 720", "gold", "Diagonal hacia arriba y dos círculos pequeños"],
 	["webster", "WEBSTER", "gold", "Sube, cae por delante y retrocede un poco"],
 	["gainer", "GAINER", "gold", "Baja (hacia atrás) y da una vuelta ovalada"],
-	["twist_r", "TIRABUZÓN DERECHO", "purple", "Un círculo en sentido horario"],
-	["twist_l", "TIRABUZÓN IZQUIERDO", "purple", "Un círculo en sentido antihorario"],
-	["twist_2", "DOBLE TIRABUZÓN", "purple", "Dos círculos seguidos en el mismo sentido"],
-	["twist_3", "TRIPLE TIRABUZÓN", "purple", "Tres círculos seguidos (necesita altura)"],
-	["twist_combo", "TIRABUZÓN COMBINADO", "purple", "Un círculo horario y luego uno antihorario"],
 	["g_raiz", "RAIZ", "purple", "Línea en diagonal hacia arriba (lado = hacia donde dibujas)"],
 	["g_td_raiz", "TOUCHDOWN RAIZ", "purple", "Línea en diagonal hacia abajo"],
 	["g_macaco", "MACACO", "purple", "Arco por arriba (como un puente)"],
@@ -1015,6 +1048,9 @@ const TRAIN := [
 	["g_scoot_power", "SCOOT FUERTE", "purple", "Hoja abajo y barrido largo hacia arriba"],
 	["g_scoot_macaco", "SCOOT + MACACO FUERTE", "purple", "Hoja abajo, un círculo y hacia arriba"],
 	["g_spin_lateral", "360 + RUEDA FUERTE", "purple", "Un círculo y diagonal hacia arriba (3 pasos girando y rueda)"],
+	["palm", "PALM FLIP", "gold", "Línea hacia arriba y un círculo (pared delante)"],
+	["speed", "PASAVALLAS", "gold", "Sube y pasa de lado (Γ) (obstáculo delante)"],
+	["reverse", "REVERSO", "gold", "De abajo arriba rodeando por un lado (obstáculo delante)"],
 	["vault", "VAULT", "gold", "U invertida: sube, pasa por encima y baja (obstáculo delante)"],
 	["kong", "KONG VAULT", "gold", "Dos arcos seguidos (obstáculo con fondo y carrera)"],
 	["wall_run", "WALL RUN", "gold", "Diagonal hacia arriba que se curva adelante (pared al lado)"],
@@ -1112,7 +1148,21 @@ func _draw_training(font: Font, s: float) -> void:
 		Neon.button(self, bc, 20.0 * s, col if i < 2 else Color(1, 0.45, 0.4), false, 0.95)
 		_label(font, bc, ["<", ">", "X"][i], 18 * s, Color(1, 1, 1))
 
+func _draw_flip_buttons(font: Font, s: float) -> void:
+	var held := {}
+	for fd in _fingers.values():
+		if fd.role == "flipbtn":
+			held[int(fd.sector)] = true
+	for i in FLIP_BTNS.size():
+		var c := flip_button_center(i)
+		var r := FLIP_R * s
+		var hot: bool = held.has(i) or (_flash.has("flipbtn") and int(_flash.get("flipbtn_i", -1)) == i)
+		Neon.button(self, c, r, Neon.GOLD, hot, 0.95)
+		Neon.icon(self, String(FLIP_BTNS[i][2]), c + Vector2(0, -r * 0.2), r * 0.38, Color(1, 1, 1, 0.95))
+		_label(font, c + Vector2(0, r * 0.45), String(FLIP_BTNS[i][0]), 12 * s, Color(1, 1, 1, 0.95))
+
 func _draw_gesture_fx(font: Font, s: float) -> void:
+	_draw_flip_buttons(font, s)
 	# Estela luminosa que sigue exactamente al dedo mientras dibuja
 	for fd in _fingers.values():
 		if fd.role in ["jump", "twist"] and fd.has("path") and salto_pages_enabled():
@@ -1133,7 +1183,7 @@ func _draw_gesture_fx(font: Font, s: float) -> void:
 	if _flash.has("twist_ok"):
 		draw_arc(_rot_center(), _rot_radius() * 1.1, 0, TAU, 64, Color(Neon.PURPLE, minf(1.0, _flash.twist_ok * 2.5)), 8.0 * s, true)
 	for t in _toasts:
-		var at: Vector2 = _jump_center() + Vector2(0, -_jump_radius() * 2.05) if t.joy == "gold" else _rot_center() + Vector2(0, -_rot_radius() * 1.75)
+		var at: Vector2 = _jump_center() + Vector2(0, -_jump_radius() * 2.65) if t.joy == "gold" else _rot_center() + Vector2(0, -_rot_radius() * 1.75)
 		var a2 := clampf(float(t.t) * 2.0, 0.0, 1.0)
 		var fs := 22.0 * s if String(t.text).length() < 22 else 16.0 * s
 		_pill(font, at + Vector2(0, -(1.1 - float(t.t)) * 18.0 * s), String(t.text), fs, t.col, a2, true)
@@ -1147,7 +1197,7 @@ func _process(dt: float) -> void:
 		if not _await_tap.is_empty() and _time - float(_await_tap.t) >= PRECISION_WAIT:
 			var res: Dictionary = _await_tap.res
 			_await_tap = {}
-			_salto_flip(res)                 # no hubo toque: era un mortal adelante
+			_toast("Mortales básicos: botones ATRÁS · ADELANTE · LATERAL", Color(1, 0.75, 0.4), "gold")
 	for t in _toasts.duplicate():
 		t.t -= dt
 		if t.t <= 0.0:
