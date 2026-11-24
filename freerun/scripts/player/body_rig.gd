@@ -19,6 +19,18 @@ var phase := 0.0
 var body_drop := 0.0
 var _tilt := Basis()
 var _yaw := 0.0
+var _serial := -1
+# Apoyos (IK): punto del suelo donde está plantada cada mano/pie y peso del apoyo
+var plants := {}
+var contact_w := {"hl": 0.0, "hr": 0.0, "fl": 0.0, "fr": 0.0}
+var ground_y := 0.0
+var ik_enabled := true
+const ARM_L1 := 0.29
+const ARM_L2 := 0.28
+const HAND_R := 0.055
+const LEG_L1 := 0.43
+const LEG_L2 := 0.45
+const SOLE := 0.05
 
 # Paleta de identidad propia: sudadera turquesa, pantalón carbón, zapatillas naranja.
 const COL_HOODIE := Color(0.12, 0.72, 0.68)
@@ -146,8 +158,16 @@ func _process(dt: float) -> void:
 	# Orientación horizontal
 	var fwd := player.facing
 	var yaw_target := atan2(-fwd.x, -fwd.z)
+	if player.skill_serial != _serial:
+		# Empieza o termina una habilidad: la orientación de salida ya va incluida en su giro
+		# (rondada, raiz...), así que se reorienta de golpe en vez de dar una vuelta extra.
+		_serial = player.skill_serial
+		_yaw = yaw_target
+		if st != PlayerController.State.SKILL:
+			_tilt = Basis()
 	_yaw = lerp_angle(_yaw, yaw_target, 1.0 - exp(-20.0 * dt))
 	rotation.y = _yaw
+	var smp := {}
 
 	match st:
 		PlayerController.State.GROUND:
@@ -224,16 +244,26 @@ func _process(dt: float) -> void:
 			tilt = Basis(Vector3.RIGHT, -TAU * _ease_in_out(s))
 			drop = sin(s * PI) * 0.45
 			blend_speed = 25.0
+		PlayerController.State.SKILL:
+			smp = player.skill_sample()
+			if not smp.is_empty():
+				_apply(target, smp.pose, 1.0)
+				tilt = smp.basis
+				drop = COM_HEIGHT - float(smp.com)
+				last_phase = String(smp.phase)
+				last_kind = String(player.skill.get("id", ""))
+			blend_speed = 30.0
 		PlayerController.State.CRASH:
+			# Cae de espaldas (desde ahí sale el kip-up)
 			var s := clampf(player.state_time / 0.35, 0.0, 1.0)
-			tilt = Basis(Vector3.RIGHT, -1.45 * s)
+			tilt = Basis(Vector3.RIGHT, 1.45 * s)
 			drop = 0.78 * s
 			target.shoulder_l.z = -1.3; target.shoulder_r.z = 1.2
 			target.shoulder_l.x = 0.4; target.hip_l.x = 0.3; target.knee_l.x = -0.6
 			target.hip_r.x = -0.1
 			if player.state_time > player.t.crash_time - 0.4:
 				var g := clampf((player.state_time - (player.t.crash_time - 0.4)) / 0.4, 0.0, 1.0)
-				tilt = Basis(Vector3.RIGHT, -1.45 * (1.0 - g))
+				tilt = Basis(Vector3.RIGHT, 1.45 * (1.0 - g))
 				drop = 0.78 * (1.0 - g)
 		PlayerController.State.SWIM:
 			phase += dt * 4.0
@@ -246,11 +276,95 @@ func _process(dt: float) -> void:
 	for name in joints.keys():
 		pose[name] = (pose[name] as Vector3).lerp(target[name], k)
 		(joints[name] as Node3D).rotation = pose[name]
-	body_drop = lerpf(body_drop, drop, 1.0 - exp(-18.0 * dt))
-	_tilt = _tilt.slerp(tilt, 1.0 - exp(-22.0 * dt)) if st != PlayerController.State.ROLL and st != PlayerController.State.VAULT else tilt
+	var direct := st in [PlayerController.State.ROLL, PlayerController.State.VAULT, PlayerController.State.SKILL]
+	body_drop = drop if st == PlayerController.State.SKILL else lerpf(body_drop, drop, 1.0 - exp(-18.0 * dt))
+	_tilt = tilt if direct else _tilt.slerp(tilt, 1.0 - exp(-22.0 * dt))
 	var trick_basis := player.tricks.basis if st in [PlayerController.State.AIR, PlayerController.State.SWIM] else Basis()
 	pivot.basis = (trick_basis * _tilt).orthonormalized()
 	pivot.position.y = COM_HEIGHT - body_drop
+	_solve_contacts(smp.get("contacts", {}), dt)
+
+# ------------------------------------------------------------------ apoyos (IK)
+
+## Apoyos reales: una mano/pie apoyado se fija en un punto del suelo y el brazo/pierna se
+## resuelve con IK de dos huesos mientras el cuerpo gira por encima. Además, ninguna mano ni
+## pie puede quedar por debajo del suelo en ningún estado.
+func _solve_contacts(contacts: Dictionary, _dt: float) -> void:
+	if not ik_enabled:
+		return
+	var gy := player.sensor.ground_below(player.global_position + Vector3.UP * 0.5)
+	ground_y = gy if gy != -INF else player.global_position.y - 100.0
+	for c in ["hl", "hr", "fl", "fr"]:
+		var w: float = contacts.get(c, 0.0)
+		contact_w[c] = w
+		var end := limb_end(c)
+		if w > 0.0:
+			if not plants.has(c):
+				var lift := HAND_R if c.begins_with("h") else SOLE
+				var pt := end
+				if c.begins_with("h"):
+					# La mano se apoya delante del hombro, en la dirección a la que apunta el brazo
+					var sh := (joints["shoulder_" + c.substr(1, 1)] as Node3D).global_position
+					var off := Vector2(end.x - sh.x, end.z - sh.z).limit_length(0.22)
+					pt = Vector3(sh.x + off.x, 0.0, sh.z + off.y)
+				plants[c] = Vector3(pt.x, ground_y + lift, pt.z)
+			if c.begins_with("f"):
+				# Pie apoyado: sigue la horizontal del cuerpo pero baja hasta el suelo
+				plants[c] = Vector3(end.x, ground_y + SOLE, end.z)
+			_limb_ik(c, plants[c], w)
+		else:
+			plants.erase(c)
+		# Nunca por debajo del suelo
+		end = limb_end(c)
+		var floor_y := ground_y + (HAND_R if c.begins_with("h") else SOLE * 0.6)
+		if end.y < floor_y:
+			_limb_ik(c, Vector3(end.x, floor_y, end.z), 1.0)
+
+## Posición en el mundo del extremo (centro de la mano / suela) de cada miembro.
+func limb_end(c: String) -> Vector3:
+	match c:
+		"hl": return (joints.elbow_l as Node3D).global_transform * Vector3(0, -ARM_L2, 0)
+		"hr": return (joints.elbow_r as Node3D).global_transform * Vector3(0, -ARM_L2, 0)
+		"fl": return (joints.knee_l as Node3D).global_transform * Vector3(0, -LEG_L2, 0)
+		"fr": return (joints.knee_r as Node3D).global_transform * Vector3(0, -LEG_L2, 0)
+	return Vector3.ZERO
+
+func _limb_ik(c: String, target: Vector3, w: float) -> void:
+	var side := "l" if c.ends_with("l") else "r"
+	if c.begins_with("h"):
+		var spine: Node3D = joints.spine
+		# El codo apunta hacia atrás del tronco (el antebrazo se flexiona hacia delante)
+		_ik(joints["shoulder_" + side], joints["elbow_" + side], target, ARM_L1, ARM_L2, spine.global_basis.z, 1.0, w)
+	else:
+		var pelvis: Node3D = joints.pelvis
+		# La rodilla apunta hacia delante (la pierna se flexiona hacia atrás)
+		_ik(joints["hip_" + side], joints["knee_" + side], target, LEG_L1, LEG_L2, -pelvis.global_basis.z, -1.0, w)
+
+## IK analítico de dos huesos. bend_sign +1: el segundo hueso se dobla hacia -Z local (codo);
+## -1: hacia +Z (rodilla). El resultado se mezcla con la pose (peso w).
+func _ik(upper: Node3D, lower: Node3D, target: Vector3, l1: float, l2: float, pole: Vector3, bend_sign: float, w: float) -> void:
+	var parent := upper.get_parent() as Node3D
+	var pg := parent.global_transform
+	var root := pg * upper.position
+	var v := target - root
+	if v.length() < 0.0001:
+		return
+	var dir := v.normalized()
+	var d := clampf(v.length(), 0.05, (l1 + l2) * 0.999)
+	var a := acos(clampf((l1 * l1 + d * d - l2 * l2) / (2.0 * l1 * d), -1.0, 1.0))
+	var bend := PI - acos(clampf((l1 * l1 + l2 * l2 - d * d) / (2.0 * l1 * l2), -1.0, 1.0))
+	var p := pole - dir * pole.dot(dir)
+	if p.length() < 0.001:
+		p = pg.basis.x - dir * pg.basis.x.dot(dir)
+	p = p.normalized()
+	var u := (dir * cos(a) + p * sin(a)).normalized()
+	var y := -u
+	var z := (p - u * p.dot(u)).normalized() * bend_sign
+	var x := y.cross(z).normalized()
+	var local := pg.basis.orthonormalized().inverse() * Basis(x, y, z)
+	upper.basis = upper.basis.orthonormalized().slerp(local.orthonormalized(), clampf(w, 0.0, 1.0))
+	var lr := lower.rotation
+	lower.rotation = Vector3(lerpf(lr.x, bend * bend_sign, w), lr.y * (1.0 - w), lr.z * (1.0 - w))
 
 func _ease_in_out(s: float) -> float:
 	return s * s * (3.0 - 2.0 * s)

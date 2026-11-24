@@ -12,6 +12,9 @@ signal flow_changed(value: float)
 const ENVIRONMENT := ["Speed Vault", "Lazy Vault", "Step Vault", "Kong Vault", "Dash Vault", "Double Kong",
 	"Kash Vault", "Reverse Vault", "Thief Vault", "Turn Vault", "Wall Run", "Wall Jump", "Wall Climb", "Wall Kick", "Tic Tac", "Cat Leap",
 	"Ledge Grab", "Climb Up", "Precision Jump", "Safety Roll", "Wall Flip", "Wall Gainer", "Step Up", "Mantle"]
+## Movimientos de preparación que dan potencia al siguiente (cuentan como enlace si se encadenan)
+const SETUPS := ["Round-off", "Back Handspring", "Macaco", "Hook Kick", "Raiz", "Touchdown Raiz", "Scoot",
+	"Crescent Kick", "Reverse Crescent Kick", "Handstand Push-off", "Cartwheel", "Front Handspring"]
 const BOOST_FROM := 60.0
 
 var value := 0.0
@@ -52,6 +55,8 @@ func on_move(move_name: String, quality: float, info: Dictionary) -> float:
 		gain = 5.0 + 5.0 * clampf(diff, 0.3, 2.5)
 		if move_name in ENVIRONMENT or move_name.begins_with("Kong") or move_name.begins_with("Dash"):
 			gain += 4.0                 # aprovechar el entorno vale más que otro mortal en plano
+		if info.get("chain", false):
+			gain += 3.0                 # enlace con potencia (rondada → flic-flac → mortal...)
 	elif reps == 1:
 		gain = 1.0
 	else:

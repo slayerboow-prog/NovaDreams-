@@ -7,12 +7,22 @@ extends Control
 var player: PlayerController
 var _alpha := 0.0
 var _last_name := ""
+var _skill_alpha := 0.0
+var _skill_text := ""
+var _skill_phase := ""
+var _skill_link := false
 
 func _ready() -> void:
 	set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	mouse_filter = Control.MOUSE_FILTER_IGNORE
 
 func _process(dt: float) -> void:
+	_skill_alpha = move_toward(_skill_alpha, 1.0 if player != null and player.state == PlayerController.State.SKILL else 0.0, dt * 6.0)
+	if player != null and player.state == PlayerController.State.SKILL:
+		var smp := player.skill_sample()
+		_skill_text = MoveNames.es(SkillLibrary.get_def(player.skill.id).name).to_upper()
+		_skill_phase = String(smp.get("phase", ""))
+		_skill_link = player.skill.get("linked", false)
 	var show := player != null and player.state == PlayerController.State.AIR and player.tricks.active
 	_alpha = move_toward(_alpha, 1.0 if show else 0.0, dt * (8.0 if show else 3.0))
 	if show:
@@ -20,7 +30,17 @@ func _process(dt: float) -> void:
 	queue_redraw()
 
 func _draw() -> void:
-	if _alpha <= 0.01 or player == null:
+	if player == null:
+		return
+	if _skill_alpha > 0.01:
+		# Habilidad de suelo: nombre, fase actual y aviso de la ventana de enlace
+		var f := get_theme_default_font()
+		var sx := size.x * 0.17
+		_text(f, Vector2(sx, size.y * 0.2), _skill_text, 40, Color(1, 1, 1, _skill_alpha))
+		_text(f, Vector2(sx, size.y * 0.2 + 40), _skill_phase, 22, Color(1, 0.85, 0.3, _skill_alpha))
+		if _skill_link:
+			_text(f, Vector2(sx, size.y * 0.2 + 74), "¡ENLAZA! rueda = mortal · joystick = siguiente", 20, Color(0.4, 1, 0.6, _skill_alpha))
+	if _alpha <= 0.01:
 		return
 	var tr := player.tricks
 	var font := get_theme_default_font()

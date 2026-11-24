@@ -544,7 +544,7 @@ func _draw() -> void:
 		var ha := clampf(1.0 - (_hint_time - 7.0) / 2.0, 0.0, 1.0)
 		if stick_enabled():
 			_label(font, hc, "Rueda de SALTO: ADELANTE · ATRÁS · LATERAL = mortales (mantén = agrupado)", 24 * s, Color(1, 1, 1, ha))
-			_label(font, hc + Vector2(0, 36 * s), "Joystick GIRO durante el mortal = ¼ (híper), ½ o tirabuzón · en el suelo: rueda, rondada, flic-flac", 24 * s, Color(1, 1, 1, ha))
+			_label(font, hc + Vector2(0, 36 * s), "Joystick GIRO durante el mortal = ¼ (híper), ½ o tirabuzón · en el suelo: soltar, mantener o arco", 24 * s, Color(1, 1, 1, ha))
 			_label(font, hc + Vector2(0, 72 * s), "Biblioteca de movimientos y tutorial: menú de pausa", 24 * s, Color(1, 1, 1, ha))
 			return
 		_label(font, hc, "Pulsa SALTO y desliza: abajo mortal atrás, arriba adelante, lados lateral", 24 * s, Color(1, 1, 1, ha))
@@ -639,7 +639,7 @@ func _draw_rot_stick(font: Font, s: float, a: float, white: Color, dark: Color, 
 		draw_colored_polygon(pts, accent if hot else Color(1, 1, 1, a * 0.13))
 		_label(font, base + Vector2(side * rr * 0.84, 0), "GIRO" if side == 1 else "GIRO", 15 * s, white)
 	_label(font, base + Vector2(0, -rr * 0.82), "¼ · ½ · 1", 14 * s, Color(1, 1, 1, white.a * 0.8))
-	_label(font, base + Vector2(0, rr + 18 * s), "en el suelo: rueda · rondada · flic-flac · paloma", 13 * s, Color(1, 1, 1, white.a * 0.75))
+	_label(font, base + Vector2(0, rr + 18 * s), "suelo: soltar · mantener · arco", 13 * s, Color(1, 1, 1, white.a * 0.75))
 	draw_arc(base, rr, 0, TAU, 64, Color(white, white.a * 0.8), 3.0 * s, true)
 	# Mando
 	var knob := base + Vector2(_rot_vec.x, -_rot_vec.y) * _rot_travel()

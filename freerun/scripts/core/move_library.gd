@@ -19,7 +19,7 @@ extends RefCounted
 
 const CATEGORIES := ["Vaults", "Precision", "Paredes", "Escalada", "Barras", "Rolls y recepciones",
 	"Mortales adelante y atrás", "Laterales", "Aerials y Websters", "Gainers", "Corks",
-	"Butterfly y patadas", "Handsprings", "Ruedas y rondadas", "Suelo", "Combos", "Avanzados"]
+	"Butterfly y patadas", "Tricking", "Handsprings", "Ruedas y rondadas", "Suelo", "Combos", "Avanzados"]
 
 const MOVES := [
 	# --- Vaults ---
@@ -89,16 +89,17 @@ const MOVES := [
 	{"name": "Sideflip", "cat": "Laterales", "lvl": 2, "input": "Rueda: LATERAL (corriendo se pone de lado y avanza girando)", "status": "ok"},
 	{"name": "Double Sideflip", "cat": "Laterales", "lvl": 4, "input": "Sideflip + volver a inclinar", "status": "ok"},
 	{"name": "Wall Sideflip", "cat": "Laterales", "lvl": 2, "input": "Desde la pared: rueda LATERAL", "status": "parcial"},
-	{"name": "Raiz", "cat": "Laterales", "lvl": 3, "input": "Sideflip + GIRO ½", "status": "parcial"},
-	{"name": "Touchdown Raiz", "cat": "Laterales", "lvl": 3, "input": "-", "status": "pendiente", "note": "apoyo de una mano"},
+	{"name": "Raiz", "cat": "Tricking", "lvl": 3, "input": "MANTÉN el joystick GIRO ← o → en el suelo", "status": "ok", "note": "vuelo lateral arqueado con media vuelta"},
+	{"name": "Touchdown Raiz", "cat": "Tricking", "lvl": 3, "input": "MANTÉN el joystick GIRO ↖ o ↗ en el suelo", "status": "ok", "note": "una mano toca el suelo antes que los pies"},
 	# --- Aerials y Websters ---
-	{"name": "Aerial (rueda sin manos)", "cat": "Aerials y Websters", "lvl": 2, "input": "Joystick GIRO ↖ en el suelo, parado", "status": "ok"},
+	{"name": "Aerial (rueda sin manos)", "cat": "Aerials y Websters", "lvl": 2, "input": "Joystick GIRO ↖ en el suelo, parado", "status": "ok", "note": "es la misma técnica que el Aerial Cartwheel"},
 	{"name": "Webster (front a una pierna)", "cat": "Aerials y Websters", "lvl": 1, "input": "Rueda: ADELANTE corriendo", "status": "ok"},
 	{"name": "Aerial Twist", "cat": "Aerials y Websters", "lvl": 3, "input": "Aerial + GIRO", "status": "parcial"},
 	{"name": "Double Aerial", "cat": "Aerials y Websters", "lvl": 4, "input": "Aerial + volver a inclinar", "status": "parcial"},
 	# --- Gainers ---
 	{"name": "Gainer (backflip avanzando)", "cat": "Gainers", "lvl": 2, "input": "Rueda: ATRÁS corriendo", "status": "ok"},
 	{"name": "Cheat Gainer / Kick the Moon", "cat": "Gainers", "lvl": 2, "input": "Gainer + GIRO ½", "status": "ok"},
+	{"name": "Swing Gainer", "cat": "Gainers", "lvl": 3, "input": "Crescent (arco por arriba) y en la recepción rueda ATRÁS", "status": "ok", "note": "interpretación: gainer con entrada de pierna en barrido"},
 	{"name": "Gainer Full / Gainer 360", "cat": "Gainers", "lvl": 4, "input": "Gainer + GIRO", "status": "ok"},
 	{"name": "Double Gainer", "cat": "Gainers", "lvl": 4, "input": "Gainer + ↓ otra vez", "status": "ok"},
 	{"name": "Kong Gainer · Dash Gainer · Vault Gainer", "cat": "Gainers", "lvl": 3, "input": "JD ↓ durante el vault", "status": "ok"},
@@ -109,14 +110,22 @@ const MOVES := [
 	{"name": "Double Cork · Triple Cork", "cat": "Corks", "lvl": 4, "input": "Cork + volver a inclinar", "status": "ok"},
 	# --- Butterfly y patadas ---
 	{"name": "Butterfly Kick", "cat": "Butterfly y patadas", "lvl": 2, "input": "Joystick GIRO ↖ en el suelo, corriendo", "status": "ok"},
-	{"name": "Butterfly Twist", "cat": "Butterfly y patadas", "lvl": 3, "input": "Butterfly + GIRO", "status": "parcial"},
+	{"name": "Butterfly Twist / B-Twist", "cat": "Butterfly y patadas", "lvl": 3, "input": "Butterfly + GIRO (mejor tras scoot o touchdown raiz)", "status": "ok"},
 	{"name": "360 Kick / Tornado Kick", "cat": "Butterfly y patadas", "lvl": 1, "input": "Joystick GIRO ↗ en el suelo, o SALTO + GIRO sin mortal", "status": "ok"},
+	{"name": "Cheat 360 Kick", "cat": "Butterfly y patadas", "lvl": 2, "input": "Joystick GIRO ↗ en la ventana de enlace de un scoot, hook o crescent", "status": "ok", "note": "el 360 con despegue de entrada (cheat)"},
+	{"name": "Hook Kick", "cat": "Tricking", "lvl": 2, "input": "Joystick GIRO en ARCO por abajo (← ↙ ↓ ↘ →)", "status": "ok", "note": "giro de entrada, cadera, extensión y gancho"},
+	{"name": "Crescent Kick", "cat": "Tricking", "lvl": 1, "input": "Joystick GIRO en ARCO por arriba, de derecha a izquierda", "status": "ok"},
+	{"name": "Reverse Crescent Kick", "cat": "Tricking", "lvl": 1, "input": "Joystick GIRO en ARCO por arriba, de izquierda a derecha", "status": "ok"},
+	{"name": "Scoot", "cat": "Tricking", "lvl": 2, "input": "Joystick GIRO: CAMBIO DE DIRECCIÓN (← y enseguida →)", "status": "ok", "note": "interpretación propia de la técnica (no verificada con vídeo)"},
+	{"name": "Master Scoot", "cat": "Tricking", "lvl": 3, "input": "-", "status": "pendiente", "note": "no he podido verificar su técnica: no se inventa"},
 	{"name": "540 Kick", "cat": "Butterfly y patadas", "lvl": 1, "input": "360 Kick + GIRO otra vez", "status": "ok"},
 	{"name": "720 · Cheat 720 · 900 · 1080", "cat": "Butterfly y patadas", "lvl": 3, "input": "Más toques de GIRO", "status": "parcial"},
 	{"name": "Axe Kick Aerial · Frisbee", "cat": "Butterfly y patadas", "lvl": 3, "input": "-", "status": "pendiente"},
 	# --- Handsprings ---
-	{"name": "Back Handspring (flic-flac)", "cat": "Handsprings", "lvl": 3, "input": "Joystick GIRO ↓ en el suelo (sin SALTO)", "status": "ok"},
-	{"name": "Front Handspring (paloma)", "cat": "Handsprings", "lvl": 2, "input": "Joystick GIRO ↑ en el suelo (sin SALTO)", "status": "ok"},
+	{"name": "Back Handspring (flic-flac)", "cat": "Handsprings", "lvl": 3, "input": "Joystick GIRO ↓ (inclinar y soltar) en el suelo", "status": "ok"},
+	{"name": "Front Handspring (paloma)", "cat": "Handsprings", "lvl": 2, "input": "Joystick GIRO ↑ (inclinar y soltar) en el suelo", "status": "ok"},
+	{"name": "Front Walkover", "cat": "Handsprings", "lvl": 2, "input": "MANTÉN GIRO ↑ (pino) y suéltalo", "status": "ok"},
+	{"name": "Back Walkover", "cat": "Handsprings", "lvl": 2, "input": "MANTÉN GIRO ↓ en el suelo", "status": "ok"},
 	{"name": "Side Handspring", "cat": "Handsprings", "lvl": 1, "input": "-", "status": "pendiente"},
 	{"name": "Back Handspring Twist", "cat": "Handsprings", "lvl": 3, "input": "Flic-flac + GIRO", "status": "parcial"},
 	# --- Ruedas y rondadas ---
@@ -124,13 +133,26 @@ const MOVES := [
 	{"name": "Round-off (rondada)", "cat": "Ruedas y rondadas", "lvl": 2, "input": "Joystick GIRO ↙ o ↘ en el suelo (sin SALTO)", "status": "ok"},
 	{"name": "One Arm Round-off", "cat": "Ruedas y rondadas", "lvl": 2, "input": "-", "status": "pendiente"},
 	# --- Suelo ---
-	{"name": "Kip-up", "cat": "Suelo", "lvl": 1, "input": "Tras una caída: SALTO", "status": "ok"},
-	{"name": "Macaco", "cat": "Suelo", "lvl": 1, "input": "-", "status": "pendiente", "note": "giro atrás sobre una mano desde agachado"},
-	{"name": "Scoot · Gumbi", "cat": "Suelo", "lvl": 2, "input": "-", "status": "pendiente"},
-	{"name": "Handstand", "cat": "Suelo", "lvl": 1, "input": "-", "status": "pendiente"},
+	{"name": "Kip-up", "cat": "Suelo", "lvl": 1, "input": "Tumbado tras una caída: SALTO o GIRO ↑", "status": "ok"},
+	{"name": "Macaco", "cat": "Suelo", "lvl": 2, "input": "MANTÉN GIRO ↙ o ↘ en el suelo", "status": "ok", "note": "giro atrás sobre una mano desde agachado"},
+	{"name": "Gumbi", "cat": "Suelo", "lvl": 2, "input": "-", "status": "pendiente"},
+	{"name": "Handstand (pino)", "cat": "Suelo", "lvl": 1, "input": "MANTÉN GIRO ↑: se sostiene mientras no sueltes", "status": "ok"},
+	{"name": "Handstand Push-off (snap down)", "cat": "Suelo", "lvl": 2, "input": "En el pino, SALTO", "status": "ok"},
+	{"name": "Valdez", "cat": "Suelo", "lvl": 2, "input": "Casi parado: RODAR con GIRO ↙ o ↘", "status": "ok"},
+	{"name": "Back Extension Roll", "cat": "Suelo", "lvl": 2, "input": "Casi parado: RODAR con GIRO ↓", "status": "ok"},
 	# --- Combos ---
-	{"name": "Round-off → Backflip", "cat": "Combos", "lvl": 3, "input": "Joystick GIRO ↙ en el suelo y al caer rueda ATRÁS (rebote más alto)", "status": "ok"},
-	{"name": "Round-off → Back Handspring → Backflip", "cat": "Combos", "lvl": 4, "input": "GIRO ↙ · GIRO ↓ (suelo) · rueda ATRÁS", "status": "ok"},
+	{"name": "Round-off → Backflip", "cat": "Combos", "lvl": 3, "input": "GIRO ↙ y en la recepción rueda ATRÁS (rebote más alto)", "status": "ok"},
+	{"name": "Round-off → Back Handspring → Backflip", "cat": "Combos", "lvl": 4, "input": "GIRO ↙ · GIRO ↓ durante la rondada · rueda ATRÁS", "status": "ok"},
+	{"name": "Round-off → Back Handspring → Double Backflip", "cat": "Combos", "lvl": 4, "input": "… rueda ATRÁS mantenida y ATRÁS otra vez en el aire", "status": "ok"},
+	{"name": "Round-off → BHS → BHS → Double Backflip", "cat": "Combos", "lvl": 4, "input": "GIRO ↙ · ↓ · ↓ · rueda ATRÁS ×2", "status": "ok"},
+	{"name": "Round-off → BHS → Cork / Double Cork", "cat": "Combos", "lvl": 4, "input": "… rueda ATRÁS + GIRO (y ATRÁS otra vez para el doble)", "status": "ok"},
+	{"name": "Hook → Cork / Double Cork", "cat": "Combos", "lvl": 4, "input": "Arco por abajo y en la recepción ATRÁS + GIRO (el giro del hook acelera el tirabuzón)", "status": "ok"},
+	{"name": "Macaco → Back Handspring / Backflip", "cat": "Combos", "lvl": 3, "input": "Macaco y en la recepción GIRO ↓ o rueda ATRÁS", "status": "ok"},
+	{"name": "Raiz → Cork", "cat": "Combos", "lvl": 4, "input": "Raiz y en la recepción ATRÁS + GIRO", "status": "ok"},
+	{"name": "TD Raiz → Butterfly Twist", "cat": "Combos", "lvl": 4, "input": "TD Raiz y en la recepción GIRO ↖ y luego GIRO lateral", "status": "ok"},
+	{"name": "Scoot → B-Twist", "cat": "Combos", "lvl": 4, "input": "Cambio de dirección y en la recepción GIRO ↖ + GIRO lateral", "status": "ok"},
+	{"name": "Cartwheel → Backflip", "cat": "Combos", "lvl": 3, "input": "Rueda y en la recepción rueda ATRÁS", "status": "ok"},
+	{"name": "Round-off / BHS Rebound", "cat": "Combos", "lvl": 2, "input": "En la recepción, SALTO sin mortal (rebote vertical)", "status": "ok"},
 	{"name": "Kong Vault → Frontflip (Kong Front)", "cat": "Combos", "lvl": 3, "input": "VAULT a sprint + JD ↑ durante el vault", "status": "ok"},
 	{"name": "Wall Run → Wall Flip", "cat": "Combos", "lvl": 2, "input": "Mantén SALTO en la pared + JD ↓", "status": "ok"},
 	{"name": "Aerial → Butterfly Kick", "cat": "Combos", "lvl": 3, "input": "Al caer del aerial, GIRO ↖ con carrera", "status": "ok"},
@@ -147,12 +169,16 @@ const MOVES := [
 const CATEGORY_ES := {"Vaults": "Pasavallas (vaults)", "Precision": "Precisión",
 	"Rolls y recepciones": "Volteretas y recepciones", "Aerials y Websters": "Ruedas sin manos y websters",
 	"Gainers": "Mortales atrás en carrera (gainers)", "Corks": "Sacacorchos (corks)",
-	"Butterfly y patadas": "Mariposas y patadas", "Handsprings": "Flic-flacs y palomas"}
+	"Butterfly y patadas": "Mariposas y patadas", "Handsprings": "Flic-flacs, palomas y walkovers",
+	"Tricking": "Tricking (patadas, raiz y entradas)"}
 const LEVELS := ["", "Documentado", "Implementado", "Probado técnicamente", "Inspeccionado visualmente", "Validado en móvil"]
 ## Revisados en capturas/vídeo de la partida (fotogramas de las fases del movimiento).
 const VISUALLY_INSPECTED := ["Backflip / Back Tuck", "Frontflip / Front Tuck", "Double Backflip", "Sideflip",
-	"Gainer (backflip avanzando)", "Back Handspring (flic-flac)", "Front Handspring (paloma)",
-	"Cartwheel (rueda)", "Round-off (rondada)", "Thief Vault", "Turn Vault"]
+	"Gainer (backflip avanzando)", "Thief Vault", "Turn Vault",
+	# Habilidades con apoyo real (capturas por fases tras el sistema de apoyos con IK)
+	"Round-off (rondada)", "Back Handspring (flic-flac)", "Front Handspring (paloma)", "Cartwheel (rueda)",
+	"Macaco", "Back Walkover", "Front Walkover", "Valdez", "Back Extension Roll", "Kip-up",
+	"Handstand (pino)", "Handstand Push-off (snap down)", "Raiz", "Touchdown Raiz", "Hook Kick"]
 ## Confirmados por el jugador en su móvil (vacío hasta tener esa confirmación).
 const MOBILE_VALIDATED: Array[String] = []
 

@@ -43,6 +43,9 @@ func _drive(intent: InputIntent, _frame: int) -> void:
 	intent.jump_held = false
 	intent.tuck = false
 	intent.action_held = false
+	intent.rot = Vector2.ZERO             # como el táctil: soltar el joystick lo devuelve al centro
+	intent.twist = 0.0
+	intent.stick_twist = false            # cada prueba de doble joystick lo activa explícitamente
 	if _script.is_valid():
 		_script.call(intent, _f)
 	_f += 1
@@ -99,9 +102,13 @@ func _run_all() -> void:
 	await t_dual_stick()
 	await t_new_controls()
 	await t_wheel_twist()
+	await t_wheel_no_twist()
 	await t_touch_layout()
 	await t_landing_feel()
 	await t_new_tricks()
+	await t_gestures()
+	await t_ground_skills()
+	await t_chains()
 	await t_vault_variants()
 	await t_combo_logic()
 	await t_flow()
@@ -640,60 +647,11 @@ func t_new_controls() -> void:
 	var grabbed := player.state == PlayerController.State.HANG and "Wall Climb" in moves
 	await run(func(i, f): i.grab_pressed = f == 20, 40)
 	check("AGARRAR: trepa la pared, se agarra al borde y AGARRAR otra vez lo suelta", grabbed and player.state != PlayerController.State.HANG, "%s %s" % [moves, PlayerController.STATE_NAMES[player.state]])
-	# Tricking de suelo con el joystick derecho (sin SALTO)
-	for c in [[Vector2(1, 0), "Cartwheel"], [Vector2(0.7, -0.7), "Round-off"], [Vector2(0, -1), "Back Handspring"], [Vector2(0, 1), "Front Handspring"]]:
-		await place(Vector3(-35, 0.1, 35), Vector3.FORWARD)
-		var z0 := player.global_position.z
-		var x0 := player.global_position.x
-		var flew := {"v": false}
-		await run(func(i, f):
-			i.flick = c[0] if f == 0 else Vector2.ZERO
-			i.rot = c[0] if f < 20 else Vector2.ZERO
-			flew.v = flew.v or player.state == PlayerController.State.AIR, 160,
-			func(): return flew.v and player.state == PlayerController.State.GROUND)
-		var extra := true
-		var info := ""
-		match c[1]:
-			"Cartwheel":
-				extra = player.global_position.x - x0 > 0.8; info = "avanza de lado %.2f" % (player.global_position.x - x0)
-			"Round-off":
-				extra = player.facing.dot(Vector3.FORWARD) < -0.6; info = "cae mirando atrás %.2f" % player.facing.dot(Vector3.FORWARD)
-			"Back Handspring":
-				extra = player.global_position.z - z0 > 1.0; info = "viaja hacia atrás %.2f" % (player.global_position.z - z0)
-			"Front Handspring":
-				extra = z0 - player.global_position.z > 1.0; info = "viaja hacia delante %.2f" % (z0 - player.global_position.z)
-		check("Suelo: joystick derecho %s = %s (aterriza bien, %s)" % [c[0], c[1], info],
-			c[1] in moves and extra and landings.size() > 0 and landings[-1].quality in ["perfect", "clean"], "%s %s" % [moves, landings.map(func(l): return l.quality)])
+	# Tricking de suelo: ver t_ground_skills (habilidades con apoyo real y enlaces)
 	# Sin SALTO y sin mantener el joystick (gesto suelto) no hay movimiento de suelo
 	await place(Vector3(-35, 0.1, 35), Vector3.FORWARD)
 	await run(func(i, f): i.flick = Vector2(1, 0) if f == 0 else Vector2.ZERO, 40)
 	check("Suelo: un gesto suelto no dispara la rueda (hay que inclinar el joystick)", moves.is_empty() and player.state == PlayerController.State.GROUND, str(moves))
-	# Round-off → Backflip: el rebote da más altura que un backflip parado
-	await place(Vector3(-35, 0.1, 35), Vector3.FORWARD)
-	var y_plain := player.global_position.y
-	var peak := {"v": -99.0, "phase": 0}
-	await run(func(i, f):
-		i.jump_pressed = f == 2; i.jump_held = f >= 2 and f < 6
-		i.flick = Vector2(0, -1) if f == 6 else Vector2.ZERO
-		peak.v = maxf(peak.v, player.global_position.y), 120,
-		func(): return _f > 10 and player.state == PlayerController.State.GROUND)
-	var plain_h: float = peak.v - y_plain
-	await place(Vector3(-35, 0.1, 35), Vector3.FORWARD)
-	var y0 := player.global_position.y
-	await run(func(i, f):
-		i.flick = Vector2(0.7, -0.7) if f == 0 else Vector2.ZERO
-		i.rot = Vector2(0.7, -0.7) if f < 20 else Vector2.ZERO, 160,
-		func(): return player.roundoff_timer > 0.0)
-	peak = {"v": -99.0}
-	await run(func(i, f):
-		i.jump_pressed = f == 0
-		i.jump_held = f < 4
-		i.flick = Vector2(0, -1) if f == 4 else Vector2.ZERO
-		peak.v = maxf(peak.v, player.global_position.y), 160,
-		func(): return _f > 10 and player.state == PlayerController.State.GROUND)
-	var combo_h: float = peak.v - y0
-	var back_after := moves.size() >= 2 and moves[0] == "Round-off" and (moves[1] in ["Backflip", "Gainer"])
-	check("Combo Round-off → Backflip: enlaza y salta más alto (%.2f m vs %.2f m)" % [combo_h, plain_h], back_after and combo_h > plain_h * 1.1, str(moves))
 	# Kong Vault → Frontflip: VAULT a sprint y joystick derecho ↑ durante el vault
 	await place(Vector3(0, 0.1, -8), Vector3.FORWARD)
 	st.p = false
@@ -723,7 +681,7 @@ func t_new_controls() -> void:
 		i.flick = Vector2(0, -1) if f == 2 else Vector2.ZERO
 		i.tuck = f >= 2, 200, func(): return player.state == PlayerController.State.CRASH)
 	var crashed := player.state == PlayerController.State.CRASH
-	await run(func(i, f): i.jump_pressed = f == 25, 60, func(): return "Kip-up" in moves)
+	await run(func(i, f): i.jump_pressed = f == 25, 120, func(): return "Kip-up" in moves)
 	check("Kip-up: SALTO tras una caída levanta al personaje", crashed and "Kip-up" in moves, "%s %s" % [crashed, moves])
 	await run(func(i, f): pass, 90, func(): return player.state == PlayerController.State.GROUND)
 
@@ -1109,3 +1067,347 @@ func t_vault_variants() -> void:
 			st.pressed = st.pressed or go, 200,
 			func(): return st.pressed and player.state == PlayerController.State.GROUND and player.global_position.z < v[6])
 		check("%s: gesto + salto ante el obstáculo, lo supera" % v[1], v[1] in moves and player.global_position.z < v[6], "%s z %.2f" % [str(moves), player.global_position.z])
+
+# ------------------------------------------------------------------ habilidades de suelo
+
+## Intérprete de gestos: flick, mantener, diagonal, arco, cambio de dirección, doble, soltar.
+func t_gestures() -> void:
+	var feed := func(g: GestureInterpreter, seq: Array) -> Array:
+		var evs := []
+		for v in seq:
+			var e: Dictionary = g.update(v, 1.0 / 60.0, true)
+			if not e.is_empty():
+				evs.append(e)
+		return evs
+	var rep := func(v: Vector2, n: int) -> Array:
+		var a := []
+		for k in n: a.append(v)
+		return a
+	var g := GestureInterpreter.new()
+	var e: Array = feed.call(g, rep.call(Vector2(0, -1), 10) + rep.call(Vector2.ZERO, 10))
+	check("Gestos: flick rápido ↓", e.size() == 1 and e[0].type == "flick" and e[0].sector == -2, str(e))
+	g = GestureInterpreter.new()
+	e = feed.call(g, rep.call(Vector2(0.7, 0.7), 10) + rep.call(Vector2.ZERO, 10))
+	check("Gestos: diagonal ↗ reconocida", e.size() == 1 and e[0].sector == 1, str(e))
+	g = GestureInterpreter.new()
+	e = feed.call(g, rep.call(Vector2(0, 1), 40) + rep.call(Vector2.ZERO, 10))
+	check("Gestos: dirección mantenida (hold) y liberación (release)", e.size() == 2 and e[0].type == "hold" and e[1].type == "release", str(e))
+	g = GestureInterpreter.new()
+	var arc := []
+	for k in 16: arc.append(Vector2.from_angle(lerpf(0.0, PI, k / 15.0)))
+	e = feed.call(g, arc + rep.call(Vector2.ZERO, 10))
+	check("Gestos: arco por arriba antihorario", e.size() == 1 and e[0].type == "arc" and e[0].through == "top" and e[0].dir == 1, str(e))
+	g = GestureInterpreter.new()
+	arc = []
+	for k in 16: arc.append(Vector2.from_angle(lerpf(PI, TAU, k / 15.0)))
+	e = feed.call(g, arc + rep.call(Vector2.ZERO, 10))
+	check("Gestos: arco por abajo", e.size() == 1 and e[0].type == "arc" and e[0].through == "bottom", str(e))
+	g = GestureInterpreter.new()
+	e = feed.call(g, rep.call(Vector2(-1, 0), 6) + [Vector2.ZERO] + rep.call(Vector2(1, 0), 6) + rep.call(Vector2.ZERO, 10))
+	check("Gestos: cambio de dirección ← → (no dos flicks)", e.size() == 1 and e[0].type == "change" and e[0].to == 0, str(e))
+	g = GestureInterpreter.new()
+	e = feed.call(g, rep.call(Vector2(0, -1), 6) + rep.call(Vector2.ZERO, 8) + rep.call(Vector2(0, -1), 6) + rep.call(Vector2.ZERO, 10))
+	check("Gestos: secuencia de dos flicks iguales = doble", e.size() == 2 and e[1].type == "double" and g.sequence().size() == 2, str(e))
+	g = GestureInterpreter.new()
+	e = []
+	for k in 20:
+		var ev: Dictionary = g.update(Vector2(0, -1) if k < 10 else Vector2.ZERO, 1.0 / 60.0, false)
+		if not ev.is_empty(): e.append(ev)
+	check("Gestos: un gesto que empieza en el aire no cuenta al aterrizar", e.is_empty(), str(e))
+
+## Ejecuta una habilidad con su gesto y mide lo que se ve: apoyo real de manos (la mano queda
+## clavada en el suelo), nada atraviesa el suelo, fases, desplazamiento y orientación final.
+func skill_probe(gesture: Array, pre_run := 0) -> Dictionary:
+	var rig: BodyRig = game.rig
+	var r := {"ids": [], "phases": {}, "hand_frames": 0, "hand_drift": 0.0, "hand_gap": 0.0, "min_limb": 99.0,
+		"start": player.global_position, "facing0": player.facing, "max_com": 0.0, "power": {}, "t0": -1, "dur": 0}
+	await run(func(i, f):
+		if f < pre_run or (pre_run > 0 and r.t0 < 0 and player.state == PlayerController.State.GROUND):
+			i.move = Vector2(0, 1); i.sprint = true      # sigue corriendo mientras hace el gesto
+		var k: int = f - pre_run
+		match String(gesture[0]):
+			"flick": i.rot = gesture[1] if k >= 0 and k < 10 else Vector2.ZERO
+			"hold": i.rot = gesture[1] if k >= 0 and k < int(gesture[2]) else Vector2.ZERO
+			"arc":
+				if k >= 0 and k <= 15: i.rot = Vector2.from_angle(lerpf(gesture[1], gesture[2], k / 15.0))
+			"change":
+				if k >= 0 and k < 5: i.rot = gesture[1]
+				elif k >= 6 and k < 11: i.rot = gesture[2]
+			"roll":
+				i.rot = gesture[1] if k >= 0 and k < 6 else Vector2.ZERO
+				i.action_pressed = k == 2
+		if player.state == PlayerController.State.SKILL:
+			if r.t0 < 0: r.t0 = f
+			r.dur = f - r.t0
+			var id: String = player.skill.id
+			if not r.ids.has(id): r.ids.append(id)
+			r.phases[rig.last_phase] = true
+			r.max_com = maxf(r.max_com, rig.pivot.position.y)
+			if r.power.is_empty(): r.power = player.skill.power
+			for c in ["hl", "hr"]:
+				if rig.contact_w[c] >= 0.99 and rig.plants.has(c):
+					r.hand_frames += 1
+					var end := rig.limb_end(c)
+					r.hand_drift = maxf(r.hand_drift, (end - (rig.plants[c] as Vector3)).length())
+		for c in ["hl", "hr", "fl", "fr"]:
+			var lim := rig.limb_end(c).y - rig.ground_y
+			r.min_limb = minf(r.min_limb, lim), 320 + pre_run,
+		func(): return r.t0 >= 0 and player.state == PlayerController.State.GROUND and _f > r.t0 + 5)
+	r.end = player.global_position
+	r.facing1 = player.facing
+	return r
+
+func t_ground_skills() -> void:
+	# [nombre, gesto, carrera, desplazamiento esperado ("back","fwd","side","any"), mira atrás al final, apoyos de mano]
+	var cases := [
+		["Round-off", ["flick", Vector2(0.7, -0.7)], 50, "fwd", true, true],
+		["Back Handspring", ["flick", Vector2(0, -1)], 0, "back", false, true],
+		["Front Handspring", ["flick", Vector2(0, 1)], 0, "fwd", false, true],
+		["Cartwheel", ["flick", Vector2(1, 0)], 0, "side", false, true],
+		["Macaco", ["hold", Vector2(0.7, -0.7), 34], 0, "back", false, true],
+		["Back Walkover", ["hold", Vector2(0, -1), 34], 0, "back", false, true],
+		["Front Walkover", ["hold", Vector2(0, 1), 34], 0, "fwd", false, true],
+		["Raiz", ["hold", Vector2(1, 0), 34], 0, "side", true, false],
+		["Touchdown Raiz", ["hold", Vector2(0.7, 0.7), 34], 0, "side", true, true],
+		["Hook Kick", ["arc", PI, TAU], 0, "any", false, false],
+		["Crescent Kick", ["arc", 0.0, PI], 0, "any", false, false],
+		["Reverse Crescent Kick", ["arc", PI, 0.0], 0, "any", false, false],
+		["Scoot", ["change", Vector2(-1, 0), Vector2(1, 0)], 0, "side", false, false],
+		["Back Extension Roll", ["roll", Vector2(0, -1)], 0, "back", false, true],
+		["Valdez", ["roll", Vector2(0.7, -0.7)], 0, "back", false, true],
+	]
+	for c in cases:
+		await place(Vector3(-35, 0.1, 35), Vector3.FORWARD)
+		var r: Dictionary = await skill_probe(c[1], c[2])
+		var name: String = c[0]
+		var tag := "Habilidad %s: " % name
+		check(tag + "se ejecuta y se reconoce", name in moves or (name == "Front Walkover" and "Front Walkover" in moves), "%s ids %s" % [moves, r.ids])
+		var d: Vector3 = r.end - r.start
+		var f0: Vector3 = r.facing0
+		var ok_dir := true
+		match String(c[3]):
+			"back": ok_dir = d.dot(f0) < -0.5
+			"fwd": ok_dir = d.dot(f0) > 0.5
+			"side": ok_dir = absf(d.dot(f0.cross(Vector3.UP))) > 0.5
+		check(tag + "desplazamiento coherente (%s)" % c[3], ok_dir, "d %s" % d)
+		if c[4]:
+			check(tag + "sale mirando atrás (media vuelta)", (r.facing1 as Vector3).dot(f0) < -0.7, "%.2f" % (r.facing1 as Vector3).dot(f0))
+		if c[5]:
+			check(tag + "apoyo real de manos (mano clavada en el suelo, deriva < 8 cm)", r.hand_frames > 4 and r.hand_drift < 0.08,
+				"frames %d deriva %.3f" % [r.hand_frames, r.hand_drift])
+		check(tag + "manos y pies nunca atraviesan el suelo", r.min_limb > -0.02, "mín %.3f" % r.min_limb)
+		check(tag + "fases visibles (%d)" % r.phases.size(), r.phases.size() >= 4, str(r.phases.keys()))
+		check(tag + "termina de pie con control", player.state == PlayerController.State.GROUND, PlayerController.STATE_NAMES[player.state])
+	# Pino: se mantiene mientras el joystick sigue arriba; SALTO = snap down (Handstand Push-off)
+	await place(Vector3(-35, 0.1, 35), Vector3.FORWARD)
+	var hs := {"held": 0}
+	await run(func(i, f):
+		i.rot = Vector2(0, 1) if f < 140 else Vector2.ZERO
+		i.jump_pressed = f == 140
+		if player.skill.get("id", "") == "handstand" and player.skill.s >= 1.0: hs.held += 1, 260,
+		func(): return _f > 150 and player.state == PlayerController.State.GROUND)
+	check("Pino: se mantiene en equilibrio mientras se sostiene el joystick", hs.held > 40, "frames %d" % hs.held)
+	check("Pino + SALTO = Handstand Push-off (snap down)", "Handstand Push-off" in moves, str(moves))
+	# Flic-flac ≠ backflip: el backflip no apoya las manos
+	await place(Vector3(-35, 0.1, 35), Vector3.FORWARD)
+	var bf := {"hands": 0}
+	await run(func(i, f):
+		i.jump_pressed = f == 0; i.flick = Vector2(0, -1) if f == 0 else Vector2.ZERO
+		i.tuck = f < 12; i.jump_held = f < 12
+		if game.rig.contact_w.hl > 0.5 or game.rig.contact_w.hr > 0.5: bf.hands += 1, 120,
+		func(): return _f > 10 and player.state == PlayerController.State.GROUND)
+	check("Backflip sin apoyo de manos (el flic-flac sí apoya)", "Backflip" in moves and bf.hands == 0, "%s manos %d" % [moves, bf.hands])
+	# Potencia: la rondada con carrera transforma la velocidad en recepción y rebote
+	await place(Vector3(-35, 0.1, 35), Vector3.FORWARD)
+	var fast: Dictionary = await skill_probe(["flick", Vector2(0.7, -0.7)], 60)
+	await place(Vector3(-35, 0.1, 35), Vector3.FORWARD)
+	var slow: Dictionary = await skill_probe(["flick", Vector2(0.7, -0.7)], 0)
+	check("Potencia: rondada con carrera conserva más velocidad y rebote que parado",
+		float(fast.power.exit_speed) > float(slow.power.exit_speed) + 1.0 and float(fast.power.rebound_vy) > float(slow.power.rebound_vy),
+		"carrera %.2f m/s %.2f vy · parado %.2f m/s %.2f vy" % [fast.power.exit_speed, fast.power.rebound_vy, slow.power.exit_speed, slow.power.rebound_vy])
+	check("Potencia: sin multiplicadores absurdos (rebote ≤ 3,2 m/s, salida ≤ sprint)",
+		float(fast.power.rebound_vy) <= 3.2 and float(fast.power.exit_speed) <= player.t.sprint_speed, str(fast.power))
+	# Kip-up desde el suelo con el joystick ↑ tras una caída
+	await place(Vector3(-35, 0.1, 35), Vector3.FORWARD, 0)
+	await run(func(i, f):
+		i.jump_pressed = f == 0; i.jump_held = true
+		i.flick = Vector2(0, -1) if f == 2 else Vector2.ZERO
+		i.tuck = f >= 2, 200, func(): return player.state == PlayerController.State.CRASH)
+	var kh := {"hands": 0}
+	await run(func(i, f):
+		i.rot = Vector2(0, 1) if f >= 25 and f < 33 else Vector2.ZERO
+		if game.rig.contact_w.hl > 0.9: kh.hands += 1, 140, func(): return "Kip-up" in moves and player.state == PlayerController.State.GROUND)
+	check("Kip-up: joystick ↑ tumbado, apoyo de manos junto a la cabeza y de pie", "Kip-up" in moves and kh.hands > 4, "%s manos %d" % [moves, kh.hands])
+
+## Enlaces con el joystick derecho y la rueda. Pasos:
+##   [disparo, acción...]  disparo: "now" · "mid" (mitad de la habilidad) · "link" (ventana abierta)
+##   acciones: ["flick", dir] ["hold", dir, n] ["arc", a0, a1] ["jump", dir, giro, doble]
+func chain_run(steps: Array, pre_run := 0) -> Dictionary:
+	var st := {"i": 0, "t0": -1, "peaks": [], "peak": -99.0, "air": false, "y0": player.global_position.y, "done_f": -1, "last_serial": -1, "last_chain": -1}
+	await run(func(i, f):
+		i.stick_twist = true
+		if f < pre_run:
+			i.move = Vector2(0, 1); i.sprint = true
+			return
+		if player.state == PlayerController.State.SKILL:
+			st.started = true
+		if pre_run > 0 and not st.get("started", false) and player.state == PlayerController.State.GROUND:
+			i.move = Vector2(0, 1); i.sprint = true      # sigue corriendo hasta que sale la primera habilidad
+		if player.state == PlayerController.State.AIR:
+			st.air = true
+			st.peak = maxf(st.peak, player.global_position.y - st.y0)
+		elif st.air:
+			st.air = false
+			st.peaks.append(st.peak)
+			st.peak = -99.0
+		if st.i >= steps.size():
+			return
+		var step: Array = steps[st.i]
+		if st.t0 < 0:
+			var go := false
+			match String(step[0]):
+				"now": go = true
+				"mid": go = player.state == PlayerController.State.SKILL and float(player.skill.s) > 0.45 and player.skill_serial != st.last_serial
+				"link": go = (player.chain.active() and player.chain.serial != st.last_chain and int(player.chain.link.get("skill_serial", -1)) != st.last_serial) or (player.state == PlayerController.State.SKILL and player.skill.get("linked", false) and player.skill_serial != st.last_serial)
+			if go:
+				st.t0 = f
+				st.trig_serial = player.skill_serial
+				st.trig_chain = player.chain.serial
+		if st.t0 < 0:
+			return
+		var k: int = f - st.t0
+		var a: Array = step[1]
+		var finished := false
+		match String(a[0]):
+			"flick":
+				i.rot = a[1] if k < 8 else Vector2.ZERO
+				finished = k >= 8
+			"hold":
+				i.rot = a[1] if k < int(a[2]) else Vector2.ZERO
+				finished = k >= int(a[2])
+			"arc":
+				i.rot = Vector2.from_angle(lerpf(a[1], a[2], minf(k / 15.0, 1.0)))
+				finished = k >= 16
+			"twist":
+				i.twist = float(a[1]) if k >= int(a[3]) and k < int(a[3]) + int(a[2]) else 0.0
+				finished = k > 6 and player.state != PlayerController.State.AIR
+			"jump":
+				i.jump_pressed = k == 0
+				i.flick = a[1] if k == 0 else Vector2.ZERO
+				var need := TAU * (2.0 if a.size() > 3 and a[3] else 1.0) - deg_to_rad(110)
+				var tr := player.tricks
+				var rot_now := maxf(absf(tr.total_pitch), maxf(absf(tr.total_roll), absf(tr.total_spin)))
+				i.tuck = k < 70 and rot_now < need and (k < 12 or (a.size() > 3 and a[3]))
+				i.jump_held = i.tuck
+				if a.size() > 3 and a[3] and k == 16:
+					i.flick = a[1]              # otra vuelta (zona de la rueda otra vez)
+				var tf: int = a[2] if a.size() > 2 else 0
+				i.twist = signf(tf) if tf != 0 and k >= 8 and k < 8 + absi(tf) else 0.0
+				finished = k > 6 and player.state != PlayerController.State.AIR
+		if finished:
+			st.last_serial = st.trig_serial
+			st.last_chain = st.trig_chain
+			st.i += 1
+			st.t0 = -1
+			if st.i >= steps.size(): st.done_f = f, 700 + pre_run,
+		func(): return st.done_f >= 0 and _f > st.done_f + 12 and player.state in [PlayerController.State.GROUND, PlayerController.State.ROLL, PlayerController.State.CRASH])
+	return st
+
+func t_chains() -> void:
+	var D := Vector2(0, -1)
+	var RO := Vector2(0.7, -0.7)
+	var cases := [
+		["Rondada → Backflip", [["now", ["flick", RO]], ["link", ["jump", D]]], 55, ["Round-off", "@back"]],
+		["Rondada → Flic-flac → Backflip", [["now", ["flick", RO]], ["mid", ["flick", D]], ["link", ["jump", D]]], 55, ["Round-off", "Back Handspring", "@back"]],
+		["Rondada → Flic-flac → Double Backflip", [["now", ["flick", RO]], ["mid", ["flick", D]], ["link", ["jump", D, 0, true]]], 55, ["Round-off", "Back Handspring", "@double"]],
+		["Rondada → Flic-flac → Flic-flac → Double Backflip", [["now", ["flick", RO]], ["mid", ["flick", D]], ["mid", ["flick", D]], ["link", ["jump", D, 0, true]]], 55, ["Round-off", "Back Handspring", "Back Handspring", "@double"]],
+		["Rondada → Flic-flac → Cork", [["now", ["flick", RO]], ["mid", ["flick", D]], ["link", ["jump", D, 26]]], 55, ["Round-off", "Back Handspring", "Cork"]],
+		["Rondada → Flic-flac → Double Cork", [["now", ["flick", RO]], ["mid", ["flick", D]], ["link", ["jump", D, 26, true]]], 55, ["Round-off", "Back Handspring", "Double Cork"]],
+		["Hook → Cork", [["now", ["arc", PI, TAU]], ["link", ["jump", D, 20]]], 0, ["Hook Kick", "Cork"]],
+		["Hook → Double Cork", [["now", ["arc", PI, TAU]], ["link", ["jump", D, 20, true]]], 0, ["Hook Kick", "Double Cork"]],
+		["Macaco → Flic-flac", [["now", ["hold", RO, 34]], ["link", ["flick", D]]], 0, ["Macaco", "Back Handspring"]],
+		["Macaco → Backflip", [["now", ["hold", RO, 34]], ["link", ["jump", D]]], 0, ["Macaco", "@back"]],
+		["Raiz → Cork", [["now", ["hold", Vector2(1, 0), 34]], ["link", ["jump", D, 20]]], 0, ["Raiz", "Cork"]],
+		["TD Raiz → Butterfly Twist", [["now", ["hold", Vector2(0.7, 0.7), 34]], ["link", ["flick", Vector2(-0.7, 0.7)]], ["now", ["twist", -1.0, 20, 14]]], 0, ["Touchdown Raiz", "@btwist"]],
+		["Scoot → B-Twist", [["now", ["flick", Vector2.ZERO]]], 0, []],
+		["Aerial → Butterfly Kick", [["now", ["flick", Vector2(-0.7, 0.7)]], ["link", ["flick", Vector2(-0.7, 0.7)]]], 0, ["Aerial", "Butterfly Kick"]],
+		["Rueda → Backflip", [["now", ["flick", Vector2(1, 0)]], ["link", ["jump", D]]], 0, ["Cartwheel", "@back"]],
+		["Crescent → Swing Gainer", [["now", ["arc", 0.0, PI]], ["link", ["jump", D]]], 0, ["Crescent Kick", "Swing Gainer"]],
+	]
+	for c in cases:
+		if c[0] == "Scoot → B-Twist":
+			continue                      # se prueba aparte (gesto de cambio de dirección)
+		await place(Vector3(-35, 0.1, 40), Vector3.FORWARD)
+		var st: Dictionary = await chain_run(c[1], c[2])
+		_check_chain(c[0], c[3], st)
+	# Scoot → B-Twist: cambio de dirección ← → y en la ventana ↖ con GIRO
+	await place(Vector3(-35, 0.1, 40), Vector3.FORWARD)
+	var sc := {"t": -1, "b": -1}
+	await run(func(i, f):
+		i.stick_twist = true
+		if f < 5: i.rot = Vector2(-1, 0)
+		elif f >= 6 and f < 11: i.rot = Vector2(1, 0)
+		if sc.b < 0 and player.chain.active() and player.chain.from_id() == "scoot": sc.b = f
+		if sc.b >= 0:
+			var k: int = f - sc.b
+			if k < 8: i.rot = Vector2(-0.7, 0.7)
+			i.twist = -1.0 if k >= 20 and k < 44 else 0.0, 300,
+		func(): return sc.b >= 0 and _f > sc.b + 30 and player.state == PlayerController.State.GROUND)
+	_check_chain("Scoot → B-Twist", ["Scoot", "@btwist"], {"peaks": []})
+	# Rebote: la rondada da más altura al backflip que un backflip parado (sin multiplicar a lo loco)
+	await place(Vector3(-35, 0.1, 40), Vector3.FORWARD)
+	var plain: Dictionary = await chain_run([["now", ["jump", D]]], 0)
+	await place(Vector3(-35, 0.1, 40), Vector3.FORWARD)
+	var comb: Dictionary = await chain_run([["now", ["flick", RO]], ["link", ["jump", D]]], 55)
+	var hp: float = plain.peaks[0] if plain.peaks.size() > 0 else 0.0
+	var hc: float = comb.peaks[-1] if comb.peaks.size() > 0 else 0.0
+	check("Transferencia: rondada → backflip sube más (%.2f m vs %.2f m) y menos de 1,8×" % [hc, hp], hc > hp * 1.15 and hc < hp * 1.8, "")
+	# Timing: enlazar tarde rebota menos que en el momento de la recepción
+	await place(Vector3(-35, 0.1, 40), Vector3.FORWARD)
+	var tm := {"vy_early": 0.0}
+	await run(func(i, f):
+		i.rot = RO if f < 8 else Vector2.ZERO, 200, func(): return player.chain.active())
+	var early: Dictionary = player.chain.link.duplicate()
+	early.time = early.window
+	var cs := ChainSystem.new()
+	cs.link = early.duplicate()
+	var e1 := cs.consume("flip_back")
+	cs.link = early.duplicate(); cs.link.time = 0.05
+	var e2 := cs.consume("flip_back")
+	check("Timing de recepción: enlazar al momento rebota más que tarde", float(e1.get("rebound_vy", 0)) > float(e2.get("rebound_vy", 0)) * 1.3,
+		"%.2f vs %.2f" % [e1.get("rebound_vy", 0), e2.get("rebound_vy", 0)])
+	check("Transición incoherente no hereda potencia (rondada → paloma)", ChainSystem.new().consume("fhs").is_empty() and not ChainSystem.allowed("roundoff", "fhs"), "")
+
+func _check_chain(name: String, expect: Array, st: Dictionary) -> void:
+	var idx := 0
+	for m in moves:
+		if idx < expect.size():
+			var e: String = expect[idx]
+			var ok: bool = m == e or (e == "@back" and m in ["Backflip", "Gainer"]) \
+				or (e == "@double" and m in ["Double Backflip", "Double Gainer"]) \
+				or (e == "@btwist" and m.begins_with("Butterfly Twist"))
+			if ok: idx += 1
+	var clean := landings.all(func(l): return l.quality in ["perfect", "clean"])
+	check("Enlace %s: se ejecuta en orden" % name, idx == expect.size(), str(moves))
+	check("Enlace %s: recepciones limpias y termina de pie" % name, clean and player.state in [PlayerController.State.GROUND, PlayerController.State.ROLL],
+		"%s %s" % [landings.map(func(l): return l.quality), PlayerController.STATE_NAMES[player.state]])
+
+## Doble joystick: la rueda de SALTO solo hace saltos y mortales; los giros son del joystick GIRO.
+func t_wheel_no_twist() -> void:
+	await place(Vector3(-35, 0.1, 35), Vector3.FORWARD)
+	var tw := {"max": 0.0}
+	await run(func(i, f):
+		i.stick_twist = true
+		i.jump_pressed = f == 0 or f == 10            # centro de SALTO otra vez en el aire
+		i.flick = Vector2(0, -1) if f == 0 else (Vector2(1, 0) if f == 6 else Vector2.ZERO)   # zona LATERAL en el mortal
+		i.tuck = f < 14; i.jump_held = i.tuck
+		tw.max = maxf(tw.max, absf(player.tricks.total_twist)), 150,
+		func(): return _f > 10 and player.state == PlayerController.State.GROUND)
+	check("Rueda: en el aire no añade tirabuzón ni giro (solo el joystick GIRO gira)", "Backflip" in moves and tw.max < 0.05, "%s giro %.2f" % [moves, tw.max])
+	await place(Vector3(-35, 0.1, 35), Vector3.FORWARD)
+	await run(func(i, f):
+		i.stick_twist = true
+		i.jump_pressed = f == 0 or f == 10
+		i.flick = Vector2.ZERO
+		i.jump_held = f < 14, 120, func(): return _f > 10 and player.state == PlayerController.State.GROUND)
+	check("Rueda: el centro pulsado otra vez en el aire no hace patada giratoria", moves.is_empty(), str(moves))
