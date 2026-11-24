@@ -435,7 +435,13 @@ func _on_touch(e: InputEventScreenTouch) -> void:
 		var info := {"start": p, "pos": p, "time": _time, "flicked": false, "anchor": p, "sector": 99}
 		var hr := hit_radii()
 		var rb := ring_button_at(p) if ring_enabled() else -1
-		if rb >= 0:
+		var qb := quick_at(p)
+		if qb >= 0:
+			role = "quick"
+			_flash["quick"] = qb
+			_flash["quick_t"] = 0.25
+			quick_action.emit(String(QUICK[qb][2]))
+		elif rb >= 0:
 			# Botonera: cada botón es un movimiento
 			var bt: Array = ring_buttons()[rb]
 			info.sector = rb
@@ -664,8 +670,12 @@ func _process(dt: float) -> void:
 	var vs := get_viewport_rect().size
 	if size != vs:
 		size = vs
+	if _flash.has("quick_t"):
+		_flash["quick_t"] -= dt
+		if _flash["quick_t"] <= 0.0:
+			_flash.erase("quick_t"); _flash.erase("quick")
 	for k in _flash.keys():
-		if k == "sector" or k == "wheel_sec" or k == "ring_i":
+		if k == "sector" or k == "wheel_sec" or k == "ring_i" or k == "quick" or k == "quick_t":
 			continue
 		_flash[k] -= dt
 		if _flash[k] <= 0.0:
@@ -693,12 +703,16 @@ func _draw() -> void:
 			joy_active = true
 	var jr := JOY_R * s
 	var base := _joy_base if joy_active else _joy_idle()
-	draw_circle(base, jr, dark)
-	draw_arc(base, jr, 0, TAU, 56, white, 4.0 * s, true)
-	var knob := base + Vector2(_joy_vec.x, -_joy_vec.y) * jr * 0.8
-	draw_circle(knob, 48.0 * s, Color(1, 1, 1, a * (0.95 if joy_active else 0.55)))
-	if _joy_vec.length() > 0.93:
-		_label(font, base + Vector2(0, -jr - 26 * s), "SPRINT", 26 * s, accent)
+	if ring_enabled():
+		_draw_neon_joy(font, s, a, base, joy_active)
+		_draw_quick(font, s, a)
+	else:
+		draw_circle(base, jr, dark)
+		draw_arc(base, jr, 0, TAU, 56, white, 4.0 * s, true)
+		var knob := base + Vector2(_joy_vec.x, -_joy_vec.y) * jr * 0.8
+		draw_circle(knob, 48.0 * s, Color(1, 1, 1, a * (0.95 if joy_active else 0.55)))
+		if _joy_vec.length() > 0.93:
+			_label(font, base + Vector2(0, -jr - 26 * s), "SPRINT", 26 * s, accent)
 	# Salto (con pista de deslizamiento)
 	var jc := _jump_center()
 	var jheld := false
@@ -720,11 +734,13 @@ func _draw() -> void:
 		var heldp := {}
 		for f in _fingers.values():
 			heldp[f.role] = true
-		for pk in [["vault", _vault_center(), "VAULT", Color(0.35, 0.65, 1.0, white.a)], ["grab", _grab_center(), grab_label, white],
-				["action", _action_center(), "RODAR", Color(0.35, 0.95, 0.45, white.a)]]:
-			draw_circle(pk[1], PARK_R * s, accent if (heldp.has(pk[0]) or _flash.has(pk[0])) else dark)
-			draw_arc(pk[1], PARK_R * s, 0, TAU, 40, pk[3], 3.5 * s, true)
-			_label(font, pk[1], pk[2], 16 * s, white)
+		var alp := clampf(a + 0.35, 0.5, 1.0)
+		for pk in [["vault", _vault_center(), "VAULT", Neon.BLUE], ["grab", _grab_center(), grab_label, Neon.PURPLE],
+				["action", _action_center(), "RODAR", Neon.GREEN]]:
+			var pr := PARK_R * s
+			Neon.button(self, pk[1], pr, pk[3], heldp.has(pk[0]) or _flash.has(pk[0]), alp)
+			Neon.icon(self, Neon.icon_for(pk[0], ""), pk[1] + Vector2(0, -pr * 0.2), pr * 0.36, Color(1, 1, 1, alp))
+			_label(font, pk[1] + Vector2(0, pr * 0.42), pk[2], 13 * s, Color(1, 1, 1, alp))
 		_draw_rot_stick(font, s, a, white, dark, accent)
 		_draw_camera_hint(font, s, a)
 		_draw_ring_hint(font, s)
@@ -803,40 +819,95 @@ func _draw_ring(font: Font, s: float, a: float, white: Color, dark: Color, accen
 	var jc := _jump_center()
 	var held := {}
 	for f in _fingers.values():
-		if f.role in ["ringflip", "ringskill", "vault", "grab", "action", "ringchange"]:
+		if f.role in ["ringflip", "ringskill", "ringchange"]:
 			held[int(f.get("sector", -1))] = true
 	var flash_i: int = _flash.get("ring_i", -1)
 	var br := ring_button_radius()
 	var btns := ring_buttons()
-	var page_a := clampf(1.0 - absf(_ring_anim), 0.0, 1.0)
+	var al := clampf(a + 0.35, 0.5, 1.0)
 	for i in btns.size():
 		var bt: Array = btns[i]
 		var c := ring_button_center(i, true)
 		var hot: bool = held.has(i) or i == flash_i
-		var ring_col := white
-		match String(bt[1]):
-			"flip", "flip2", "cork", "piru", "kick", "butterfly": ring_col = Color(0.35, 0.95, 0.9, white.a)
-			"change": ring_col = Color(1.0, 0.9, 0.3, white.a)
-			"skill": ring_col = Color(1.0, 0.62, 0.25, white.a)
-			"vault": ring_col = Color(0.35, 0.65, 1.0, white.a)
-			"action": ring_col = Color(0.35, 0.95, 0.45, white.a)
-		draw_circle(c, br, accent if hot else dark)
-		draw_arc(c, br, 0, TAU, 32, ring_col, 3.0 * s, true)
-		var lbl := String(bt[0])
-		if bt[1] == "grab":
-			lbl = grab_label
-		var lines := lbl.split("\n")
-		var fs := (14.0 if lines.size() > 1 or lbl.length() > 8 else 17.0) * s
+		var col: Color = Neon.color_for(String(bt[1]), bt[2])
+		Neon.button(self, c, br, col, hot, al)
+		Neon.icon(self, Neon.icon_for(String(bt[1]), bt[2]), c + Vector2(0, -br * 0.22), br * 0.36, Color(1, 1, 1, al))
+		var lines := String(bt[0]).split("\n")
+		var fs := (11.0 if lines.size() > 1 or String(bt[0]).length() > 8 else 13.0) * s
 		for li in lines.size():
-			_label(font, c + Vector2(0, (li - (lines.size() - 1) * 0.5) * fs * 1.05), lines[li], fs, white)
-	draw_circle(jc, _jump_radius(), accent if (jheld or _flash.has("jump")) else dark)
-	draw_arc(jc, _jump_radius(), 0, TAU, 64, white, 4.0 * s, true)
-	_label(font, jc, "SALTO", 34 * s, white)
+			_label(font, c + Vector2(0, br * 0.38 + (li - (lines.size() - 1) * 0.5) * fs * 1.0), lines[li], fs, Color(1, 1, 1, al))
+	# SALTO: aro dorado, corona y doble flecha
+	var jr := _jump_radius()
+	var jhot := jheld or _flash.has("jump")
+	for k in 3:
+		draw_arc(jc, jr * (1.1 + k * 0.07), 0, TAU, 64, Color(Neon.GOLD, 0.18 * (3 - k) * al), jr * 0.06, true)
+	Neon.button(self, jc, jr, Neon.BLUE, jhot, al)
+	draw_arc(jc, jr * 1.02, 0, TAU, 72, Color(Neon.GOLD, al), jr * 0.1, true)
+	Neon.icon(self, "crown", jc + Vector2(0, -jr * 1.12), jr * 0.26, Color(Neon.GOLD, al))
+	Neon.icon(self, "jump", jc + Vector2(0, -jr * 0.22), jr * 0.32, Color(1, 1, 1, al))
+	_label(font, jc + Vector2(0, jr * 0.36), "SALTO", 30 * s, Color(1, 1, 1, al))
 	# Página actual de la rueda (más visible justo después de cambiar)
 	var pa := minf(1.0, 0.55 + float(_flash.get("page", 0.0)))
 	var top := ring_button_center(int(btns.size() / 2))
-	_label(font, top + Vector2(0, -ring_button_radius() - 18 * s), "%s  %d/%d" % [RING_PAGES[ring_page].name, ring_page + 1, RING_PAGES.size()], 20 * s, Color(1, 0.9, 0.3, pa))
-	var _unused := page_a
+	_label(font, top + Vector2(0, -br - 20 * s), "%s  %d/%d" % [RING_PAGES[ring_page].name, ring_page + 1, RING_PAGES.size()], 20 * s, Color(Neon.GOLD, pa))
+
+## Accesos rápidos (botonera): columna a la izquierda si cabe sobre el joystick; si no, fila arriba.
+const QUICK := [["MOVIMIENTOS", "list", "library"], ["TUTORIAL", "star", "tutorial"], ["AJUSTES", "gear", "settings"], ["REAPARECER", "respawn", "respawn"]]
+signal quick_action(id: String)
+const QUICK_R := 27.0
+
+func quick_center(i: int) -> Vector2:
+	var s := _s()
+	var r := QUICK_R * s
+	var joy_top := _joy_idle().y - JOY_R * s
+	var y0 := 128.0 * s
+	var step := 66.0 * s
+	if y0 + step * 3.0 + r * 1.15 < joy_top - 8.0:
+		return Vector2(_mirror(56.0 * s), y0 + step * float(i))
+	return Vector2(_mirror(56.0 * s + float(i) * 80.0 * s), 130.0 * s)
+
+func quick_at(p: Vector2) -> int:
+	if not ring_enabled():
+		return -1
+	for i in QUICK.size():
+		if p.distance_to(quick_center(i)) < QUICK_R * _s() * 1.15:
+			return i
+	return -1
+
+func _draw_quick(font: Font, s: float, a: float) -> void:
+	var al := clampf(a + 0.3, 0.45, 0.95)
+	for i in QUICK.size():
+		var c := quick_center(i)
+		var r := QUICK_R * s
+		var hot: bool = int(_flash.get("quick", -1)) == i
+		var qcols: Array[Color] = [Neon.GOLD, Neon.CYAN, Neon.PURPLE, Neon.BLUE]
+		Neon.button(self, c, r, qcols[i], hot, al)
+		Neon.icon(self, QUICK[i][1], c + Vector2(0, -r * 0.18), r * 0.38, Color(1, 1, 1, al))
+		if quick_center(1).x == quick_center(0).x:
+			# Columna: el texto va a la derecha del botón (izquierda en modo zurdo)
+			var fs := int(13.0 * s)
+			var tw := font.get_string_size(QUICK[i][0], HORIZONTAL_ALIGNMENT_LEFT, -1, fs).x
+			var dx := r * 1.3 if not Settings.left_handed else -r * 1.3 - tw
+			_label(font, c + Vector2(dx + tw * 0.5, 0), QUICK[i][0], 13.0 * s, Color(1, 1, 1, al * 0.9))
+		else:
+			_label(font, c + Vector2(0, r * 0.5), QUICK[i][0], 9.0 * s, Color(1, 1, 1, al))
+
+## Joystick de movimiento en estilo neón (con las cuatro flechas).
+func _draw_neon_joy(font: Font, s: float, a: float, base: Vector2, active: bool) -> void:
+	var jr := JOY_R * s
+	var al := clampf(a + 0.35, 0.5, 1.0)
+	for k in 3:
+		draw_arc(base, jr * (1.04 + k * 0.05), 0, TAU, 64, Color(Neon.BLUE, 0.16 * (3 - k) * al), jr * 0.05, true)
+	draw_circle(base, jr, Color(Neon.NAVY, 0.7 * al))
+	draw_arc(base, jr, 0, TAU, 64, Color(Neon.BLUE, al), jr * 0.05, true)
+	draw_arc(base, jr * 0.72, 0, TAU, 48, Color(Neon.BLUE, 0.35 * al), jr * 0.02, true)
+	for d in [Vector2.UP, Vector2.DOWN, Vector2.LEFT, Vector2.RIGHT]:
+		Neon._chevron(self, base + d * jr * 0.8, jr * 0.12, d, Color(1, 1, 1, 0.8 * al), jr * 0.04)
+	var knob := base + Vector2(_joy_vec.x, -_joy_vec.y) * jr * 0.8
+	draw_circle(knob, 46.0 * s, Color(0.75, 0.8, 0.9, (0.95 if active else 0.7) * al))
+	draw_circle(knob + Vector2(-8, -10) * s, 30.0 * s, Color(1, 1, 1, 0.25 * al))
+	if _joy_vec.length() > 0.93:
+		_label(font, base + Vector2(0, -jr - 26 * s), "SPRINT", 26 * s, Color(Neon.CYAN, al))
 
 func _draw_ring_hint(font: Font, s: float) -> void:
 	if _hint_time >= 9.0:
@@ -889,7 +960,14 @@ func _draw_rot_stick(font: Font, s: float, a: float, white: Color, dark: Color, 
 	var base := rc
 	if not finger.is_empty():
 		base = finger.origin
-	draw_circle(base, rr, Color(dark, dark.a * 0.85))
+	var neon := ring_enabled()
+	var al := clampf(a + 0.35, 0.5, 1.0)
+	if neon:
+		for k in 3:
+			draw_arc(base, rr * (1.04 + k * 0.05), 0, TAU, 64, Color(Neon.PURPLE, 0.16 * (3 - k) * al), rr * 0.05, true)
+		draw_circle(base, rr, Color(Neon.NAVY, 0.7 * al))
+	else:
+		draw_circle(base, rr, Color(dark, dark.a * 0.85))
 	# Joystick GIRO: mitades izquierda / derecha = sentido del tirabuzón (analógico).
 	for side in [1, -1]:
 		var hot: bool = not finger.is_empty() and _rot_vec.x * side > 0.35
@@ -901,16 +979,25 @@ func _draw_rot_stick(font: Font, s: float, a: float, white: Color, dark: Color, 
 		for i in 9:
 			var ang := c + deg_to_rad(lerpf(60.0, -60.0, i / 8.0))
 			pts.append(base + Vector2(cos(ang), sin(ang)) * rr * 0.7)
-		draw_colored_polygon(pts, accent if hot else Color(1, 1, 1, a * 0.13))
-		_label(font, base + Vector2(side * rr * 0.84, 0), "GIRO" if side == 1 else "GIRO", 15 * s, white)
+		var idle := Color(Neon.PURPLE, 0.16 * al) if neon else Color(1, 1, 1, a * 0.13)
+		draw_colored_polygon(pts, (Color(Neon.PURPLE, 0.7 * al) if neon else accent) if hot else idle)
+		if neon:
+			Neon._curved_arrow(self, base, rr * 0.84, deg_to_rad(-35.0 if side == 1 else 215.0), deg_to_rad(35.0 if side == 1 else 145.0), Color(1, 1, 1, 0.85 * al), maxf(2.0, rr * 0.035))
+		else:
+			_label(font, base + Vector2(side * rr * 0.84, 0), "GIRO", 15 * s, white)
 	_label(font, base + Vector2(0, -rr * 0.82), "¼ · ½ · 1", 14 * s, Color(1, 1, 1, white.a * 0.8))
 	if not ring_enabled():
 		_label(font, base + Vector2(0, rr + 18 * s), "suelo: soltar · mantener · arco", 13 * s, Color(1, 1, 1, white.a * 0.75))
-	draw_arc(base, rr, 0, TAU, 64, Color(white, white.a * 0.8), 3.0 * s, true)
+	draw_arc(base, rr, 0, TAU, 64, Color(Neon.PURPLE, al) if neon else Color(white, white.a * 0.8), (rr * 0.05) if neon else 3.0 * s, true)
 	# Mando
 	var knob := base + Vector2(_rot_vec.x, -_rot_vec.y) * _rot_travel()
-	draw_circle(knob, 50.0 * s, Color(1, 1, 1, a * (0.95 if not finger.is_empty() else 0.5)) if not _flash.has("kick") else accent)
-	_label(font, knob, "GIRO", 17 * s, Color(0.1, 0.12, 0.15, 0.9))
+	if neon:
+		Neon.button(self, knob, 50.0 * s, Neon.PURPLE, not finger.is_empty() or _flash.has("kick"), al)
+		Neon.icon(self, "spin", knob + Vector2(0, -12 * s), 15 * s, Color(1, 1, 1, al))
+		_label(font, knob + Vector2(0, 20 * s), "GIRO", 15 * s, Color(1, 1, 1, al))
+	else:
+		draw_circle(knob, 50.0 * s, Color(1, 1, 1, a * (0.95 if not finger.is_empty() else 0.5)) if not _flash.has("kick") else accent)
+		_label(font, knob, "GIRO", 17 * s, Color(0.1, 0.12, 0.15, 0.9))
 
 ## Cruceta en 8 sectores grandes (cuñas): cualquier punto del sector cuenta, no solo el círculo.
 func _draw_pad(font: Font, s: float, a: float, white: Color, dark: Color, accent: Color) -> void:

@@ -1464,6 +1464,36 @@ func t_ring_buttons() -> void:
 	check("Botonera: SALTO abajo a la derecha y %d botones en 3/4 de círculo (con CAMBIAR)" % n,
 		jc.x > touch.size.x * 0.7 and jc.y > touch.size.y * 0.55 and first.x < jc.x and first.y > jc.y and last.x > jc.x and last.y > jc.y and top.y < jc.y - 100,
 		"salto %s primero %s último %s" % [jc, first, last])
+	# Accesos rápidos neón: a la izquierda, sin pisar joystick, rueda ni fila de parkour
+	var s := touch._s()
+	var qok := true
+	var qinfo := ""
+	var others: Array = [[touch._joy_idle(), TouchControls.JOY_R * s], [jc, touch._jump_radius()],
+		[touch._park_center(0), TouchControls.PARK_R * s], [touch._rot_center(), 60.0 * s]]
+	for i in n:
+		others.append([touch.ring_button_center(i), touch.ring_button_radius()])
+	for qi in TouchControls.QUICK.size():
+		var qc := touch.quick_center(qi)
+		if qc.x > touch.size.x * 0.35 or qc.y < 0 or qc.y > touch.size.y:
+			qok = false; qinfo += "fuera %d %s; " % [qi, qc]
+		for o in others:
+			if qc.distance_to(o[0]) < 32.0 * s + float(o[1]):
+				qok = false; qinfo += "solapa %d con %s; " % [qi, o[0]]
+		if touch.quick_at(qc) != qi:
+			qok = false; qinfo += "no detecta %d; " % qi
+	check("Botonera neón: 4 accesos rápidos a la izquierda sin solapar controles", qok, qinfo)
+	var got: Array[String] = []
+	var cb := func(id: String) -> void: got.append(id)
+	touch.quick_action.connect(cb)
+	var qe := InputEventScreenTouch.new()
+	qe.index = 6
+	qe.position = touch.quick_center(3)
+	qe.pressed = true
+	touch._on_touch(qe)
+	qe.pressed = false
+	touch._on_touch(qe)
+	touch.quick_action.disconnect(cb)
+	check("Botonera neón: tocar REAPARECER emite su acción", got == ["respawn"], str(got))
 	var press := func(idx: int, on: bool) -> void:
 		var e := InputEventScreenTouch.new()
 		e.index = 5

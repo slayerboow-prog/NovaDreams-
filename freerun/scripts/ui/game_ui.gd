@@ -16,6 +16,7 @@ var touch: TouchControls
 var hud: Control
 var combo_chain: Label
 var combo_value: Label
+var score_banner: PanelContainer
 var combo_mult: Label
 var status: Label
 var mode_title: Label
@@ -76,6 +77,7 @@ func setup(g: Node) -> void:
 	touch = TouchControls.new()
 	touch.name = "Touch"
 	add_child(touch)
+	touch.quick_action.connect(_on_quick_action)
 	_build_hud()
 	_build_main_menu()
 	_build_pause()
@@ -170,17 +172,32 @@ func _build_hud() -> void:
 	status.position = Vector2(24, 38)
 	hud.add_child(status)
 
+	# Marcador de combo en un cartel neón (navy + aro dorado).
+	score_banner = PanelContainer.new()
+	var sbx := StyleBoxFlat.new()
+	sbx.bg_color = Color(Neon.NAVY, 0.78)
+	sbx.border_color = Color(Neon.GOLD, 0.9)
+	sbx.set_border_width_all(3)
+	sbx.set_corner_radius_all(22)
+	sbx.shadow_color = Color(Neon.GOLD, 0.25)
+	sbx.shadow_size = 10
+	sbx.content_margin_left = 30; sbx.content_margin_right = 30
+	sbx.content_margin_top = 6; sbx.content_margin_bottom = 8
+	score_banner.add_theme_stylebox_override("panel", sbx)
+	score_banner.set_anchors_preset(Control.PRESET_CENTER_TOP)
+	score_banner.position.y = 58
+	score_banner.grow_horizontal = Control.GROW_DIRECTION_BOTH
+	score_banner.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	score_banner.visible = false
+	hud.add_child(score_banner)
 	var top := VBoxContainer.new()
-	top.set_anchors_preset(Control.PRESET_CENTER_TOP)
-	top.position.y = 62
-	top.grow_horizontal = Control.GROW_DIRECTION_BOTH
 	top.alignment = BoxContainer.ALIGNMENT_BEGIN
 	top.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	hud.add_child(top)
+	score_banner.add_child(top)
 	combo_value = _label("", 40, Color(1, 1, 1), HORIZONTAL_ALIGNMENT_CENTER)
 	combo_mult = _label("", 24, Color(1, 0.85, 0.25), HORIZONTAL_ALIGNMENT_CENTER)
 	combo_chain = _label("", 19, Color(0.85, 0.95, 1), HORIZONTAL_ALIGNMENT_CENTER)
-	combo_chain.custom_minimum_size.x = 900
+	combo_chain.custom_minimum_size.x = 560
 	for l in [combo_value, combo_mult, combo_chain]:
 		top.add_child(l)
 
@@ -282,11 +299,13 @@ func update_hud(combo: ComboSystem, player: PlayerController, mode_status: Strin
 	status.text = mode_status
 	if combo.active:
 		combo_value.text = str(combo.current_value())
+		score_banner.visible = true
 		combo_mult.text = "x%.1f" % combo.multiplier + ("   +%d%% velocidad" % int(combo.speed_bonus() * 100) if combo.speed_bonus() > 0.01 else "")
 		var tail: Array = combo.chain.slice(maxi(0, combo.chain.size() - 5)).map(func(n): return MoveNames.es(n))
 		combo_chain.text = ("… › " if combo.chain.size() > 5 else "") + " › ".join(tail)
 	else:
 		combo_value.text = ""
+		score_banner.visible = false
 		combo_mult.text = ""
 		combo_chain.text = ""
 	speed_label.text = "%d km/h  ·  %s" % [int(player.speed() * 3.6), PlayerController.STATE_NAMES[player.state]]
@@ -398,6 +417,21 @@ func _build_library() -> void:
 
 func open_library() -> void:
 	library_panel.visible = true
+	move_child(library_panel, get_child_count() - 1)
+
+## Accesos rápidos neón de la botonera (columna izquierda).
+func _on_quick_action(id: String) -> void:
+	match id:
+		"library":
+			game.set_paused(true)
+			open_library()
+		"tutorial":
+			start_tutorial()
+		"settings":
+			game.set_paused(true)
+			open_settings()
+		"respawn":
+			respawn_requested.emit()
 
 func start_tutorial() -> void:
 	tutorial_step = 0
