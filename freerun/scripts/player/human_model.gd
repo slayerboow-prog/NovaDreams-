@@ -17,6 +17,7 @@ const SPINE_FRAC := {"spine_01": 0.35, "spine_02": 0.7, "spine_03": 1.0}
 const DIR := {"pelvis": Vector3.UP, "spine": Vector3.UP, "neck": Vector3.UP}
 
 var skeleton: Skeleton3D
+const FINGER_SIGN := 1.0
 var _joints: Dictionary
 var _links := []          # [articulación, hueso, base de corrección C]
 var _pelvis_off := Vector3.ZERO
@@ -62,10 +63,27 @@ func build(joints: Dictionary) -> bool:
 				_pelvis_off = jg.affine_inverse() * bg.origin
 	return true
 
-## Llamar después de la IK, cada frame.
-func sync() -> void:
+const FINGERS := ["index", "middle", "ring", "pinky"]
+var _finger_bones := []    # [hueso, rotación de reposo, curva]
+
+## Llamar después de la IK, cada frame. grip: 0..1 cuánto cierran las manos (agarrar las rodillas).
+func sync(grip := 0.0) -> void:
 	if skeleton == null:
 		return
+	if _finger_bones.is_empty():
+		for sd in ["l", "r"]:
+			for f in FINGERS:
+				for k in [1, 2, 3]:
+					var bi := skeleton.find_bone("%s_0%d_%s" % [f, k, sd])
+					if bi >= 0:
+						_finger_bones.append([bi, skeleton.get_bone_rest(bi).basis.get_rotation_quaternion(), 1.15 if k == 1 else 1.3])
+			for k in [2, 3]:
+				var tb := skeleton.find_bone("thumb_0%d_%s" % [k, sd])
+				if tb >= 0:
+					_finger_bones.append([tb, skeleton.get_bone_rest(tb).basis.get_rotation_quaternion(), 0.6])
+	var g := clampf(grip, 0.0, 1.0) * 0.85 + 0.15        # en reposo, dedos algo curvados (natural)
+	for fb in _finger_bones:
+		skeleton.set_bone_pose_rotation(fb[0], (fb[1] as Quaternion) * Quaternion(Vector3.RIGHT, FINGER_SIGN * float(fb[2]) * g))
 	var sk_inv := skeleton.global_transform.affine_inverse()
 	var sk_rot := skeleton.global_basis.orthonormalized().inverse()
 	for l in _links:

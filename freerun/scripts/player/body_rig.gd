@@ -439,7 +439,7 @@ func _process(dt: float) -> void:
 	if skin_body:
 		skin_body.sync()
 	if human:
-		human.sync()
+		human.sync(grab_w)
 
 ## Punto de agarre en la espinilla (delante del hueso, algo por debajo de la rodilla).
 func shin_grip(side: String) -> Vector3:
@@ -463,7 +463,8 @@ func _grab_shins(w: float) -> void:
 	var spine: Node3D = joints.spine
 	for sd in ["l", "r"]:
 		var sign := -1.0 if sd == "l" else 1.0
-		var pole := (spine.global_basis.x * sign * 0.8 + spine.global_basis.z * 0.4).normalized()
+		# Codos flexionados hacia atrás y algo afuera (se ve el brazo doblado, como al agarrarse)
+		var pole := (spine.global_basis.x * sign * 0.45 + spine.global_basis.z * 0.9).normalized()
 		_ik(joints["shoulder_" + sd], joints["elbow_" + sd], shin_grip(sd), ARM_L1, ARM_L2, pole, 1.0, w)
 
 ## Apoyos de manos de cada vault sobre el obstáculo: [mano, desde, hasta, avance sobre el
@@ -830,23 +831,23 @@ func _gather_pose(kind: String, rs: float, ph: float) -> Dictionary:
 	match kind:
 		"front":
 			# Agrupado cerrado, cabeza metida, manos abrazando las espinillas
-			return {"spine": Vector3(-1.1, 0, 0), "neck": Vector3(-0.75, 0, 0),
-				"hip_l": Vector3(1.6, 0, -0.06), "hip_r": Vector3(1.58, 0, 0.06), "knee_l": Vector3(-2.4, 0, 0), "knee_r": Vector3(-2.38, 0, 0),
+			return {"spine": Vector3(-0.6, 0, 0), "neck": Vector3(-0.6, 0, 0),
+				"hip_l": Vector3(2.0, 0, -0.06), "hip_r": Vector3(1.98, 0, 0.06), "knee_l": Vector3(-2.2, 0, 0), "knee_r": Vector3(-2.18, 0, 0),
 				"shoulder_l": Vector3(0.75, 0, 0.12), "shoulder_r": Vector3(0.75, 0, -0.12),
 				"elbow_l": Vector3(1.75, 0, 0), "elbow_r": Vector3(1.75, 0, 0)}
 		"webster":
 			# Mortal adelante a una pierna: tijera, la pierna de atrás llega tarde
-			return {"spine": Vector3(-0.9, 0, 0), "neck": Vector3(-0.5, 0, 0),
-				"hip_r": Vector3(1.7, 0, 0.05), "knee_r": Vector3(-2.3, 0, 0),
+			return {"spine": Vector3(-0.5, 0, 0), "neck": Vector3(-0.45, 0, 0),
+				"hip_r": Vector3(2.0, 0, 0.05), "knee_r": Vector3(-2.2, 0, 0),
 				"hip_l": Vector3(0.6, 0, -0.05), "knee_l": Vector3(-1.9, 0, 0),
 				"shoulder_l": Vector3(0.9, 0, 0.1), "shoulder_r": Vector3(0.9, 0, -0.1),
 				"elbow_l": Vector3(1.5, 0, 0), "elbow_r": Vector3(1.5, 0, 0)}
 		"side":
 			# Sideflip real: bola cerrada. Rodillas al pecho, talones a los glúteos, manos
 			# agarrando las rodillas y cabeza metida; la pierna de atrás sube primero.
-			return {"spine": Vector3(-0.95, 0, 0.15 * rs), "neck": Vector3(-0.55, 0, 0.2 * rs),
-				"hip_l": Vector3(1.75, 0, 0.08 * rs), "hip_r": Vector3(1.73, 0, 0.08 * rs),
-				"knee_l": Vector3(-2.4, 0, 0), "knee_r": Vector3(-2.4, 0, 0),
+			return {"spine": Vector3(-0.5, 0, 0.15 * rs), "neck": Vector3(-0.4, 0, 0.2 * rs),
+				"hip_l": Vector3(2.1, 0, 0.08 * rs), "hip_r": Vector3(2.08, 0, 0.08 * rs),
+				"knee_l": Vector3(-2.2, 0, 0), "knee_r": Vector3(-2.2, 0, 0),
 				"shoulder_l": Vector3(1.15, 0, 0.18), "shoulder_r": Vector3(1.15, 0, -0.18),
 				"elbow_l": Vector3(1.05, 0, 0), "elbow_r": Vector3(1.05, 0, 0)}
 		"aerial":
@@ -924,13 +925,13 @@ func _gather_pose(kind: String, rs: float, ph: float) -> Dictionary:
 				"elbow_l": Vector3(0.05, 0, 0), "elbow_r": Vector3(0.05, 0, 0),
 				"hip_l": Vector3(-0.5, 0, 0), "hip_r": Vector3(-0.15, 0, 0),
 				"knee_l": Vector3(-0.1, 0, 0), "knee_r": Vector3(-0.15, 0, 0)}
-	# Backflip real (agrupado abierto): tronco casi recto, muslos horizontales con las rodillas a
-	# unos tres palmos del pecho, rodillas flexionadas ~105° con las espinillas colgando y las
-	# manos sobre las rodillas; la cabeza neutra, algo atrás buscando el giro
-	return {"spine": Vector3(-0.12, 0, 0), "neck": Vector3(0.12, 0, 0),
-		"hip_l": Vector3(1.55, 0, -0.1), "hip_r": Vector3(1.52, 0, 0.1), "knee_l": Vector3(-1.85, 0, 0), "knee_r": Vector3(-1.8, 0, 0),
-		"shoulder_l": Vector3(1.05, 0, -0.15), "shoulder_r": Vector3(1.05, 0, 0.15),
-		"elbow_l": Vector3(0.55, 0, 0), "elbow_r": Vector3(0.55, 0, 0)}
+	# Backflip real: espalda algo redonda, rodillas a un palmo del pecho (muslo-tronco ~30°),
+	# rodillas flexionadas ~123° y las manos agarrando rodillas / espinillas con los codos
+	# flexionados; la cabeza neutra
+	return {"spine": Vector3(-0.45, 0, 0), "neck": Vector3(0.05, 0, 0),
+		"hip_l": Vector3(2.1, 0, -0.1), "hip_r": Vector3(2.07, 0, 0.1), "knee_l": Vector3(-2.15, 0, 0), "knee_r": Vector3(-2.12, 0, 0),
+		"shoulder_l": Vector3(0.75, 0, -0.2), "shoulder_r": Vector3(0.75, 0, 0.2),
+		"elbow_l": Vector3(1.4, 0, 0), "elbow_r": Vector3(1.4, 0, 0)}
 
 ## Cork: patada de la pierna de atrás (derecha si cork_side = 1) con los brazos arriba.
 const CORK_KICK := {"spine": Vector3(0.22, 0, 0), "neck": Vector3(0.35, 0, 0),
