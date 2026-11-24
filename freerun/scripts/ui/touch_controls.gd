@@ -105,12 +105,12 @@ const RING_BUTTONS := [
 	["RODAR", "action", ""], ["AGARRAR", "grab", ""], ["VAULT", "vault", ""],
 	["MACACO", "skill", "macaco"], ["RUEDA", "skill", "cartwheel"], ["RONDADA", "skill", "roundoff"],
 	["FLIC-FLAC", "skill", "bhs"], ["PALOMA", "skill", "fhs"],
-	["ATRÁS", "flip", -2], ["DOBLE\nATRÁS", "flip2", -2], ["ADELANTE", "flip", 2], ["DOBLE\nADELANTE", "flip2", 2],
+	["ATRÁS", "flip", -2], ["ADELANTE", "flip", 2],
 	["LATERAL\nIZQ.", "flip", 4], ["LATERAL\nDER.", "flip", 0], ["AERIAL /\nMARIPOSA", "flip", 3],
 ]
 const RING_JUMP_R := 86.0
 const RING_R := 212.0
-const RING_BTN_R := 33.0
+const RING_BTN_R := 37.0
 const RING_A0 := 225.0               # grados (matemáticos, y arriba): abajo a la izquierda
 const RING_SPAN := 270.0
 
@@ -724,7 +724,7 @@ func _draw_ring_hint(font: Font, s: float) -> void:
 		return
 	var hc := Vector2(size.x * 0.5, size.y * 0.16)
 	var ha := clampf(1.0 - (_hint_time - 7.0) / 2.0, 0.0, 1.0)
-	_label(font, hc, "Cada botón del arco es un movimiento: mortales, rondada, flic-flac, vault... (mantén = agrupado)", 22 * s, Color(1, 1, 1, ha))
+	_label(font, hc, "Cada botón del arco es un movimiento. Mantén el botón del mortal = sigue girando (doble, triple...)", 22 * s, Color(1, 1, 1, ha))
 	_label(font, hc + Vector2(0, 34 * s), "Joystick GIRO = tirabuzones (¼ híper, ½, 1, cork) · pulsa botones en la recepción para enlazar", 22 * s, Color(1, 1, 1, ha))
 
 ## Rueda SALTO / MORTALES: centro SALTO y 4 zonas (ADELANTE, ATRÁS, LATERAL ← →).

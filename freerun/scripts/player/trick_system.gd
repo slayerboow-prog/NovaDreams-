@@ -45,6 +45,10 @@ var tuck_time := 0.0                 # tiempo agrupado (lateral agrupado = sidef
 var travel_speed := 0.0              # velocidad horizontal total al despegar (takeoff_speed = hacia delante)
 var twist_boost := 1.0               # giro heredado de un enlace (hook, raiz, scoot → cork / b-twist)
 var linked := false                  # sale de un enlace (rondada, flic-flac, hook...)
+## Botonera / rueda: mientras se mantiene el botón del mortal el cuerpo sigue agrupado y
+## girando (doble, triple... lo que permita la altura). Con ayuda se abre solo si ya no queda
+## altura para otra vuelta completa.
+var keep_spinning := false
 const QUARTER := PI * 0.5
 
 ## Fracción del vuelo en la que cada acrobacia completa su vuelta SIN agruparse. Agrupado
@@ -327,7 +331,18 @@ func step(dt: float, push: float, time_left: float, assist: float, t: MoveTuning
 		# Ayuda alta: al completar las vueltas pedidas el cuerpo se abre aunque sigas agrupado
 		# (más vueltas se piden de forma explícita: volver a inclinar / deslizar otra vez).
 		# Sin ayuda completa (pro/media) agruparse sigue girando: abrirse a tiempo es cosa tuya.
-		var force_spot := held and assist > 0.75
+		var force_spot := held and assist > 0.75 and not keep_spinning
+		if keep_spinning and held and ax != "twist":
+			# ¿Cabe otra vuelta entera después de esta (agrupándose al máximo)? Si cabe, se pide
+			# al acercarse al final de la vuelta; si no, con ayuda se abre ya para aterrizar.
+			var cap := t.flip_rate_max * 1.6
+			var can_more := time_left > (rem + period) / cap + 0.16
+			if can_more and next_stop >= goal[ax] * period - 0.001 and rem < deg_to_rad(40.0):
+				goal[ax] += 1
+				if not _recal.has(ax):
+					_recal.append(ax)
+			elif not can_more and assist > 0.25:
+				force_spot = true
 		if settled[ax]:
 			if held and not force_spot:
 				settled[ax] = false

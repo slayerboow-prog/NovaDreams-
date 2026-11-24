@@ -47,7 +47,7 @@ const TUTORIAL := [
 	["Botón ATRÁS = Mortal atrás (mantén el botón = agrupado)", ["Backflip", "Gainer"]],
 	["Botón ADELANTE = Mortal adelante", ["Frontflip", "Webster"]],
 	["Botón LATERAL corriendo = Mortal lateral (se pone de lado y avanza girando)", ["Sideflip"]],
-	["Botón DOBLE ATRÁS = Doble mortal atrás", ["Double Backflip", "Double Gainer"]],
+	["Mantén ATRÁS pulsado: sigue girando = Doble mortal atrás", ["Double Backflip", "Double Gainer"]],
 	["En un mortal, joystick GIRO a un lado: suéltalo en ¼ (híper), ½ o 1 giro", ["@twist"]],
 	["Corre, botón ATRÁS y GIRO una vuelta = Sacacorchos", ["Cork", "Cork 540", "Cork 720"]],
 	["Botón RUEDA = Rueda con apoyo de manos", ["Cartwheel"]],

@@ -572,6 +572,7 @@ func _state_air(dt: float) -> void:
 	if twist_lock and absf(intent.twist) < 0.3:
 		twist_lock = false
 	tricks.twist_input(0.0 if twist_lock else intent.twist, dt, t)
+	tricks.keep_spinning = intent.stick_twist
 	tricks.step(dt, trick_push(), time_to_ground(), Settings.assist_strength(), t)
 	if not tricks.active and hv.length() > 1.0:
 		_turn_facing(hv, 4.0, dt)

@@ -270,14 +270,26 @@ func seq(name: String, steps: Array, expect: Array) -> void:
 				var wd: Vector2 = st[1]
 				var wp := jc2 + Vector2(wd.x, -wd.y).normalized() * touch._jump_radius() * 0.7
 				_touch(1, wp, true)
-				await frames(8)
-				if st.size() > 2:
-					var tf: int = st[2]
-					await _stick_push(Vector2(signf(tf), 0))
-					await frames(absi(tf) - 3)
+				# Mantener la zona = sigue girando: se suelta al completar la primera vuelta (simple)
+				var wheel_on := true
+				var tfr: int = absi(int(st[2])) if st.size() > 2 else 0
+				for k in 20 + tfr:
+					if st.size() > 2 and k == 8:
+						var rc2 := touch._rot_center()
+						var tg2 := rc2 + Vector2(signf(int(st[2])), 0) * touch._rot_travel()
+						_touch(2, rc2, true)
+						_drag(2, tg2, tg2 - rc2)
+						stick_pos = tg2
+					if st.size() > 2 and k == 8 + tfr:
+						_stick_release()
+					await frames(1)
+					if wheel_on and absf(player.tricks.total_pitch) > TAU - deg_to_rad(110):
+						_touch(1, wp, false)
+						wheel_on = false
+				if stick_pos != Vector2.ZERO:
 					_stick_release()
-				await frames(12)
-				_touch(1, wp, false)
+				if wheel_on:
+					_touch(1, wp, false)
 			"jumpstick":
 				var jc := touch._jump_center()
 				_touch(1, jc, true)

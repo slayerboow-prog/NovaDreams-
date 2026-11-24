@@ -1471,7 +1471,7 @@ func t_ring_buttons() -> void:
 				return i
 		return -1
 	game.router.scripted = Callable()            # entrada real: el táctil
-	for c in [["ATRÁS", "Backflip"], ["ADELANTE", "Frontflip"], ["DOBLE ATRÁS", "Double Backflip"], ["LATERAL DER.", "Sideflip"],
+	for c in [["ATRÁS", "Backflip"], ["ADELANTE", "Frontflip"], ["LATERAL DER.", "Sideflip"],
 			["RONDADA", "Round-off"], ["FLIC-FLAC", "Back Handspring"], ["RUEDA", "Cartwheel"], ["PALOMA", "Front Handspring"], ["MACACO", "Macaco"]]:
 		var bi: int = find.call(c[0])
 		player.set_spawn(Transform3D(Basis(), Vector3(-35, 0.1, 35)), Vector3.FORWARD)
@@ -1495,6 +1495,28 @@ func t_ring_buttons() -> void:
 		await frames(10)
 		check("Botonera: botón %s = %s" % [c[0].replace("\n", " "), c[1]], c[1] in moves and landings.all(func(l): return l.quality in ["perfect", "clean"]),
 			"%s %s" % [moves, landings.map(func(l): return l.quality)])
+	# Mantener el botón del mortal = sigue agrupado y girando (doble o lo que permita la altura)
+	for c in [["ATRÁS", "Double Backflip", 0], ["ATRÁS", "Double Backflip", 1]]:
+		player.set_spawn(Transform3D(Basis(), Vector3(-35, 0.1, 35)), Vector3.FORWARD)
+		player.respawn()
+		await frames(20)
+		moves.clear(); landings.clear()
+		var bi2: int = find.call(c[0])
+		press.call(bi2, true)
+		var rel := false
+		for k in 240:
+			await get_tree().physics_frame
+			# caso 0: suelta tras la segunda vuelta · caso 1: no suelta nunca (se abre solo si no hay altura)
+			if c[2] == 0 and not rel and absf(player.tricks.total_pitch) > TAU * 2.0 - deg_to_rad(100):
+				press.call(bi2, false); rel = true
+			if k > 30 and player.state == PlayerController.State.GROUND:
+				break
+		if not rel:
+			press.call(bi2, false)
+		await frames(10)
+		var ok_land: bool = landings.size() > 0 and landings.all(func(l): return l.quality in ["perfect", "clean"])
+		check("Botonera: mantener ATRÁS %s = %s" % ["y soltar" if c[2] == 0 else "sin soltar nunca", c[1] if c[2] == 0 else "gira lo que permite la altura y aterriza"],
+			(c[1] in moves if c[2] == 0 else moves.any(func(m): return m.contains("Backflip"))) and ok_land, "%s %s" % [moves, landings.map(func(l): return [l.quality, int(l.error)])])
 	# Enlace con botones: RONDADA → FLIC-FLAC (pulsado durante la rondada) → ATRÁS (en la recepción)
 	player.set_spawn(Transform3D(Basis(), Vector3(-35, 0.1, 40)), Vector3.FORWARD)
 	player.respawn()

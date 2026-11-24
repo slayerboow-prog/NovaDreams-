@@ -16,14 +16,13 @@ Atajos: `godot --path freerun -- --mode=freerun` salta el menú (`tricking`, `wa
 
 ## Controles
 
-**Móvil (iPhone / Android) — BOTONERA (por defecto)**: abajo a la derecha, **SALTO grande en el centro** y un **arco de 3/4 de círculo con 15 botones, uno por movimiento**:
+**Móvil (iPhone / Android) — BOTONERA (por defecto)**: abajo a la derecha, **SALTO grande en el centro** y un **arco de 3/4 de círculo con 13 botones, uno por movimiento**:
 - RODAR, AGARRAR y VAULT (parkour);
 - MACACO, RUEDA, RONDADA, FLIC-FLAC y PALOMA (suelo, con apoyo real de manos);
-- ATRÁS, DOBLE ATRÁS, ADELANTE, DOBLE ADELANTE, LATERAL IZQ. y DER. y AERIAL / MARIPOSA (mortales).
+- ATRÁS, ADELANTE, LATERAL IZQ. y DER. y AERIAL / MARIPOSA (mortales).
 
 Cómo se usan:
-- Mantener el botón de un mortal = agruparse.
-- Pulsarlo otra vez en el aire = otra vuelta.
+- **Mantener pulsado el botón de un mortal = el atleta sigue agrupado y girando**: doble, triple o las vueltas que permita la altura. Al soltar se abre y aterriza en la siguiente vuelta completa; con ayuda Alta o Media se abre solo si ya no queda altura para otra vuelta.
 - Corriendo, ATRÁS es gainer y ADELANTE, webster.
 - La rueda, la rondada y el macaco van hacia el lado al que empuja el joystick izquierdo.
 - Pulsar un botón durante un movimiento lo deja en cola para la recepción. Por ejemplo, RONDADA → FLIC-FLAC → ATRÁS.
