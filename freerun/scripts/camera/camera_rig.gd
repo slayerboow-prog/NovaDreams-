@@ -27,6 +27,12 @@ var _dip := 0.0
 var _lead := Vector3.ZERO     # anticipación hacia donde se mueve el atleta
 var _recenter := 0.0          # > 0: volviendo detrás del atleta (doble toque o tras un tirabuzón)
 var _was_air := false
+## Vista de juego: 0 normal · 1 POV (cámara de acción en la cabeza) · 2 dron
+const VIEW_NAMES := ["NORMAL", "POV", "DRON"]
+var view := 0
+var rig: BodyRig
+var alt_cam: Camera3D
+var _drone := Vector3.ZERO
 
 const BASE_PITCH := -0.32
 const BASE_FOV := 64.0
@@ -51,7 +57,23 @@ func setup(p: PlayerController, r: InputRouter) -> void:
 	cam.far = 400.0
 	spring.add_child(cam)
 	cam.current = true
+	alt_cam = Camera3D.new()
+	alt_cam.near = 0.05
+	alt_cam.far = 400.0
+	alt_cam.top_level = true
+	add_child(alt_cam)
 	snap()
+
+func cycle_view() -> void:
+	set_view((view + 1) % VIEW_NAMES.size())
+
+func set_view(v: int) -> void:
+	view = v
+	_drone = player.global_position + Vector3(0, 6, 6)
+	if view == 0:
+		cam.make_current()
+	else:
+		alt_cam.make_current()
 
 func snap() -> void:
 	yaw = atan2(-player.facing.x, -player.facing.z)
@@ -153,6 +175,15 @@ func _process(dt: float) -> void:
 	rotation = Vector3(pitch, yaw + _orbit, 0.0)
 	cam.rotation = Vector3(0, 0, _roll)
 	player.camera_yaw = yaw
+	if view == 1 and rig:
+		Replay._pov(alt_cam, rig)                 # cámara de acción en la cabeza
+	elif view == 2:
+		# Dron: alto y detrás, sigue con algo de retraso y mira al atleta
+		var want := ppos + Vector3(sin(yaw) * 6.5, 6.0, cos(yaw) * 6.5)
+		_drone = _drone.lerp(want, 1.0 - exp(-2.2 * dt))
+		alt_cam.global_position = _drone
+		alt_cam.look_at(ppos + Vector3.UP * 0.9, Vector3.UP)
+		alt_cam.fov = 58.0
 
 ## Inclinación de reposo según la altura elegida (más alta = algo más cenital).
 func _rest_pitch() -> float:

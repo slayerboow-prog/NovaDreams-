@@ -25,11 +25,14 @@ Atajos: `godot --path freerun -- --mode=freerun` salta el menú (`tricking`, `wa
   - Con obstáculo delante: vault (U invertida) · kong (dos arcos) · **pasavallas** (sube y pasa de lado, Γ) · **reverso** (de abajo arriba rodeando por un lado: entra de espaldas a una mano, media vuelta y sale mirando adelante).
   - Precisión (línea corta + toque) y rodar (curva hacia abajo y adelante).
 - **Joystick morado (GIRO)**: **en el aire** es un joystick: izquierda = gira a la izquierda, derecha = a la derecha, sobre el eje del cuerpo en cualquier mortal (atrás = piru, adelante = front full, lateral = sideflip twist); al soltar termina en el cuarto de vuelta más cercano. **En el suelo** reconoce el trazo al soltar:
-  - Líneas: ↑ rondada (dedo quieto al final = pino) · ↓ flic-flac · ← → rueda · diagonal arriba raiz · diagonal abajo touchdown raiz. Arco por arriba macaco · arco por abajo hook · ida y vuelta lateral scoot.
+  - Líneas: ↑ rondada (dedo quieto al final = pino) · ↓ flic-flac · ← → rueda · diagonal abajo touchdown raiz. Arco por arriba macaco · ida y vuelta lateral scoot.
   - Entradas de potencia: hoja abajo + barrido largo hacia arriba = scoot fuerte · hoja + círculo + arriba = scoot + macaco fuerte · círculo + diagonal arriba = 360 + rueda fuerte (tres pasos largos girando y rueda: piru desde el lado, no estricta).
   - Solo un círculo = salto con giro de 360.
+- **Botón 1 PIE** (abajo a la derecha): púlsalo en el aire y la recepción será a un pie (alternando la pierna). Durante esa recepción se abre una ventana de enlace para encadenar el siguiente mortal o habilidad sin apoyar el otro pie: combos a un pie.
+- **Cámaras** (botón CÁMARA, arriba a la derecha): NORMAL · **POV** (cámara de acción en la cabeza, tipo GoPro) · **DRON** (alta y detrás, siguiendo con retraso).
+- **Repetición** (botón REPETIR o Pausa › Ver repetición): reproduce los últimos 15 s con **cámara libre** (arrastra para girar alrededor del atleta, + / - para acercar), POV, dron o seguir, a velocidad x1, x0.5 o x0.25, con barra para buscar el momento. Para guardar el vídeo, usa la grabación de pantalla del móvil mientras se reproduce.
 - **PRÁCTICA** (acceso rápido o Pausa › Práctica de gestos): todos los gestos uno a uno con su dibujo de ejemplo; marca los que haces bien y avisa de lo que has dibujado si no coincide.
-- **Eliminados**: butterfly kick, crescent, crescent inversa, voltereta al pino (back extension roll), paloma (front handspring), valdez, back walkover y front walkover.
+- **Eliminados**: butterfly kick, crescent, crescent inversa, voltereta al pino (back extension roll), paloma (front handspring), valdez, back walkover, front walkover, hook y raiz.
 - **1 · MORTALES**: atrás, adelante, lateral izq. y der., cork, aerial/mariposa, patada 360 (sin botón de piru: los tirabuzones van con el joystick GIRO).
 - **2 · SUELO**: rondada, flic-flac, rueda, macaco, pino (se sostiene mientras mantienes el botón), atrás, cork.
 - **3 · TRICKING**: hook, raiz, TD raiz, macaco, patada 360, cork.

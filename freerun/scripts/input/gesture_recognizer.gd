@@ -511,15 +511,14 @@ static func _add_circles(out: PackedVector2Array, from: Vector2, r: float, n: in
 # --- Joystick morado en el suelo (habilidades y entradas de potencia) -----------------------
 
 const GIRO_NAMES := {
-	"rondada": "RONDADA", "flicflac": "FLIC-FLAC", "rueda": "RUEDA", "raiz": "RAIZ", "td_raiz": "TOUCHDOWN RAIZ",
-	"macaco": "MACACO", "hook": "HOOK", "scoot": "SCOOT", "scoot_power": "SCOOT FUERTE",
+	"rondada": "RONDADA", "flicflac": "FLIC-FLAC", "rueda": "RUEDA", "td_raiz": "TOUCHDOWN RAIZ",
+	"macaco": "MACACO", "scoot": "SCOOT", "scoot_power": "SCOOT FUERTE",
 	"scoot_macaco": "SCOOT + MACACO FUERTE", "spin_lateral": "360 + RUEDA FUERTE", "twist": "GIRO 360",
 }
 ## Plantillas del morado (x derecha, y arriba). Se prueban también reflejadas (otro lado).
 const GIRO_TEMPLATES := {
-	# Arco por arriba (∩) = macaco · arco por abajo (∪) = hook
+	# Arco por arriba = macaco
 	"macaco": [[-0.8, -0.3], [-0.7, 0.15], [-0.4, 0.5], [0.0, 0.6], [0.4, 0.5], [0.7, 0.15], [0.8, -0.3]],
-	"hook": [[-0.8, 0.3], [-0.7, -0.15], [-0.4, -0.5], [0.0, -0.6], [0.4, -0.5], [0.7, -0.15], [0.8, 0.3]],
 	# Ida y vuelta lateral (<): cambio de dirección = scoot
 	"scoot": [[-0.8, 0.15], [-0.25, 0.08], [0.3, 0.0], [-0.25, -0.08], [-0.8, -0.15]],
 	# Hoja abajo a la izquierda y barrido largo hacia arriba a la derecha = scoot fuerte
@@ -558,7 +557,7 @@ static func recognize_giro(screen: PackedVector2Array, radius: float) -> Diction
 			2: return _giro_result("rondada", side, {"sector": sec})
 			-2: return _giro_result("flicflac", side, {"sector": sec})
 			0, 4: return _giro_result("rueda", side, {"sector": sec})
-			1, 3: return _giro_result("raiz", side, {"sector": sec})
+			1, 3: return {"id": "", "reason": "diagonal arriba: sin movimiento"}
 			_: return _giro_result("td_raiz", side, {"sector": sec})
 	var norm := normalize(resample(pts, N))
 	var abs_turn := abs_turning(resample(pts, 20))
@@ -571,7 +570,7 @@ static func recognize_giro(screen: PackedVector2Array, radius: float) -> Diction
 	if float(best[1]) >= MATCH_MIN:
 		var gid2: String = best[0]
 		var side2: int = best[2]
-		if gid2 in ["macaco", "hook"]:
+		if gid2 == "macaco":
 			side2 = 1 if chord.x >= 0.0 else -1          # sentido del arco = lado del giro
 		return _giro_result(gid2, side2, {"score": best[1]})
 	return {"id": "", "reason": "gesto no reconocido"}
@@ -648,7 +647,6 @@ static func giro_preview(id: String) -> PackedVector2Array:
 		"g_rondada": out = PackedVector2Array([Vector2(0, -0.7), Vector2(0, 0.7)])
 		"g_flicflac": out = PackedVector2Array([Vector2(0, 0.7), Vector2(0, -0.7)])
 		"g_rueda": out = PackedVector2Array([Vector2(-0.7, 0), Vector2(0.7, 0)])
-		"g_raiz": out = PackedVector2Array([Vector2(-0.55, -0.55), Vector2(0.55, 0.55)])
 		"g_td_raiz": out = PackedVector2Array([Vector2(-0.55, 0.55), Vector2(0.55, -0.55)])
 		"g_scoot_macaco":
 			for p in GIRO_TEMPLATES["scoot_power"].slice(0, 6):

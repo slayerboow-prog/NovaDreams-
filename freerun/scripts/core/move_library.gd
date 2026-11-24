@@ -89,7 +89,6 @@ const MOVES := [
 	{"name": "Sideflip", "cat": "Laterales", "lvl": 2, "input": "Rueda: LATERAL (corriendo se pone de lado y avanza girando)", "status": "ok"},
 	{"name": "Double Sideflip", "cat": "Laterales", "lvl": 4, "input": "Sideflip + volver a inclinar", "status": "ok"},
 	{"name": "Wall Sideflip", "cat": "Laterales", "lvl": 2, "input": "Desde la pared: rueda LATERAL", "status": "parcial"},
-	{"name": "Raiz", "cat": "Tricking", "lvl": 3, "input": "MANTÉN el joystick GIRO ← o → en el suelo", "status": "ok", "note": "vuelo lateral arqueado con media vuelta"},
 	{"name": "Touchdown Raiz", "cat": "Tricking", "lvl": 3, "input": "MANTÉN el joystick GIRO ↖ o ↗ en el suelo", "status": "ok", "note": "una mano toca el suelo antes que los pies"},
 	# --- Aerials y Websters ---
 	{"name": "Aerial (rueda sin manos)", "cat": "Aerials y Websters", "lvl": 2, "input": "Joystick GIRO ↖ en el suelo, parado", "status": "ok", "note": "es la misma técnica que el Aerial Cartwheel"},
@@ -103,7 +102,7 @@ const MOVES := [
 	{"name": "Double Gainer", "cat": "Gainers", "lvl": 4, "input": "Gainer + ↓ otra vez", "status": "ok"},
 	{"name": "Kong Gainer · Dash Gainer · Vault Gainer", "cat": "Gainers", "lvl": 3, "input": "JD ↓ durante el vault", "status": "ok"},
 	# --- Corks ---
-	{"name": "Cork / Corkscrew", "cat": "Corks", "lvl": 4, "input": "Botón CORK: salta en cork al momento (o, cayendo de una altura, lo empieza en ese punto); o ATRÁS + GIRO dentro de un combo (tras TD Raiz, raiz, hook, rondada...)", "status": "ok"},
+	{"name": "Cork / Corkscrew", "cat": "Corks", "lvl": 4, "input": "Botón CORK: salta en cork al momento (o, cayendo de una altura, lo empieza en ese punto); o ATRÁS + GIRO dentro de un combo (tras TD Raiz, rondada, scoot...)", "status": "ok"},
 	{"name": "Cork 720", "cat": "Corks", "lvl": 4, "input": "Cork + GIRO en el mismo sentido", "status": "ok"},
 	{"name": "ST (recepción a un pie)", "cat": "Corks", "lvl": 4, "input": "Pulsa CORK durante un cork: cae a un pie y enlaza otro cork", "status": "ok"},
 	{"name": "Cork 540 · Cork 1080", "cat": "Corks", "lvl": 4, "input": "Cork + giros añadidos", "status": "parcial"},
@@ -112,8 +111,7 @@ const MOVES := [
 	{"name": "Butterfly Kick", "cat": "Butterfly y patadas", "lvl": 2, "input": "Joystick GIRO ↖ en el suelo, corriendo", "status": "ok"},
 	{"name": "Butterfly Twist / B-Twist", "cat": "Butterfly y patadas", "lvl": 3, "input": "Butterfly + GIRO (mejor tras scoot o touchdown raiz)", "status": "ok"},
 	{"name": "360 Kick / Tornado Kick", "cat": "Butterfly y patadas", "lvl": 1, "input": "Joystick GIRO ↗ en el suelo, o SALTO + GIRO sin mortal", "status": "ok"},
-	{"name": "Cheat 360 Kick", "cat": "Butterfly y patadas", "lvl": 2, "input": "Joystick GIRO ↗ en la ventana de enlace de un hook", "status": "ok", "note": "el 360 con despegue de entrada (cheat)"},
-	{"name": "Hook Kick", "cat": "Tricking", "lvl": 2, "input": "Joystick GIRO en ARCO por abajo (← ↙ ↓ ↘ →)", "status": "ok", "note": "giro de entrada, cadera, extensión y gancho"},
+	{"name": "Cheat 360 Kick", "cat": "Butterfly y patadas", "lvl": 2, "input": "Joystick GIRO ↗ en la ventana de enlace de un scoot", "status": "ok", "note": "el 360 con despegue de entrada (cheat)"},
 	{"name": "Scoot", "cat": "Tricking", "lvl": 2, "input": "Joystick GIRO: CAMBIO DE DIRECCIÓN (← y enseguida →)", "status": "ok", "note": "interpretación propia de la técnica (no verificada con vídeo)"},
 	{"name": "Master Scoot", "cat": "Tricking", "lvl": 3, "input": "-", "status": "pendiente", "note": "no he podido verificar su técnica: no se inventa"},
 	{"name": "540 Kick", "cat": "Butterfly y patadas", "lvl": 1, "input": "360 Kick + GIRO otra vez", "status": "ok"},
@@ -139,7 +137,6 @@ const MOVES := [
 	{"name": "Round-off → Back Handspring → Double Backflip", "cat": "Combos", "lvl": 4, "input": "… rueda ATRÁS mantenida y ATRÁS otra vez en el aire", "status": "ok"},
 	{"name": "Round-off → BHS → BHS → Double Backflip", "cat": "Combos", "lvl": 4, "input": "GIRO ↙ · ↓ · ↓ · rueda ATRÁS ×2", "status": "ok"},
 	{"name": "Round-off → BHS → Cork / Double Cork", "cat": "Combos", "lvl": 4, "input": "… rueda ATRÁS + GIRO (y ATRÁS otra vez para el doble)", "status": "ok"},
-	{"name": "Hook → Cork / Double Cork", "cat": "Combos", "lvl": 4, "input": "Arco por abajo y en la recepción ATRÁS + GIRO (el giro del hook acelera el tirabuzón)", "status": "ok"},
 	{"name": "Macaco → Back Handspring / Backflip", "cat": "Combos", "lvl": 3, "input": "Macaco y en la recepción GIRO ↓ o rueda ATRÁS", "status": "ok"},
 	{"name": "Raiz → Cork", "cat": "Combos", "lvl": 4, "input": "Raiz y en la recepción ATRÁS + GIRO", "status": "ok"},
 	{"name": "TD Raiz → Butterfly Twist", "cat": "Combos", "lvl": 4, "input": "TD Raiz y en la recepción GIRO ↖ y luego GIRO lateral", "status": "ok"},
@@ -163,7 +160,7 @@ const CATEGORY_ES := {"Vaults": "Pasavallas (vaults)", "Precision": "Precisión"
 	"Rolls y recepciones": "Volteretas y recepciones", "Aerials y Websters": "Ruedas sin manos y websters",
 	"Gainers": "Mortales atrás en carrera (gainers)", "Corks": "Sacacorchos (corks)",
 	"Butterfly y patadas": "Mariposas y patadas", "Handsprings": "Flic-flacs",
-	"Tricking": "Tricking (patadas, raiz y entradas)"}
+	"Tricking": "Tricking (patadas y entradas)"}
 const LEVELS := ["", "Documentado", "Implementado", "Probado técnicamente", "Inspeccionado visualmente", "Validado en móvil"]
 ## Revisados en capturas/vídeo de la partida (fotogramas de las fases del movimiento).
 const VISUALLY_INSPECTED := ["Backflip / Back Tuck", "Frontflip / Front Tuck", "Double Backflip", "Sideflip",

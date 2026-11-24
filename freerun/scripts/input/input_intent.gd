@@ -34,6 +34,7 @@ var giro_sector := 99           # modo gestos: línea recta en el joystick morad
 var giro := {}                  # modo gestos: trazo del joystick morado en el suelo (GestureRecognizer.recognize_giro)
 var flip_press := 99            # botón de mortal pulsado (sector: -2 atrás · 2 adelante · 0/4 lateral)
 var flip_held := false          # botón de mortal mantenido (carga del salto)
+var one_foot := false           # botón 1 PIE (flanco): la próxima recepción es a un pie
 
 func clear_edges() -> void:
 	pattern = {}
@@ -41,6 +42,7 @@ func clear_edges() -> void:
 	giro_sector = 99
 	giro = {}
 	flip_press = 99
+	one_foot = false
 	jump_pressed = false
 	action_pressed = false
 	flick = Vector2.ZERO
@@ -64,4 +66,4 @@ func copy_from(o: InputIntent) -> void:
 	twist = o.twist; stick_twist = o.stick_twist; rot_flick = o.rot_flick
 	skill_request = o.skill_request; double_flip = o.double_flip; cork_request = o.cork_request
 	butterfly_request = o.butterfly_request; skill_hold = o.skill_hold
-	pattern = o.pattern; twist_loops = o.twist_loops; giro_sector = o.giro_sector; giro = o.giro; flip_press = o.flip_press; flip_held = o.flip_held
+	pattern = o.pattern; twist_loops = o.twist_loops; giro_sector = o.giro_sector; giro = o.giro; flip_press = o.flip_press; flip_held = o.flip_held; one_foot = o.one_foot

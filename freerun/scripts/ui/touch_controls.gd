@@ -47,6 +47,7 @@ class TouchFrame:
 	var giro := {}                         # modo gestos: trazo del joystick morado en el suelo
 	var flip_press := 99                   # botón de mortal pulsado (sector)
 	var flip_held := false
+	var one_foot := false                  # botón 1 PIE (flanco)
 
 var grab_label := "AGARRAR"           # SOLTAR cuando está colgado
 var context_label := "RODAR"
@@ -128,7 +129,6 @@ const RING_PAGES := [
 		["MACACO", "skill", "macaco"], ["PINO", "skill", "handstand"],
 		["ATRÁS", "flip", -2], ["CORK", "cork", -2]]},
 	{"name": "TRICKING", "buttons": [
-		["HOOK", "skill", "hook"],
 		["RAIZ", "skill", "raiz"], ["TD RAIZ", "skill", "td_raiz"], ["MACACO", "skill", "macaco"],
 		["PATADA\n360", "kick", 0], ["CORK", "cork", -2]]},
 ]
@@ -145,6 +145,9 @@ const SALTO_PAGES := [
 	{"name": "MORTALES", "moves": {}},       # los mortales básicos van en sus botones
 ]
 var salto_page := 0
+var view_label := "NORMAL"              # vista de cámara actual (botón CÁMARA)
+## Botones pequeños arriba a la derecha (junto a la pausa): [rótulo, acción]
+const TOP_BTNS := [["CÁMARA", "camera"], ["REPETIR", "replay"]]
 var context_provider: Callable          # () -> Dictionary: qué permite el entorno (PlayerController.gesture_context)
 var _toasts := []                       # nombres de los movimientos reconocidos (encima del joystick)
 var _trails := []                       # estelas de los trazos ya soltados (se desvanecen)
@@ -164,6 +167,11 @@ func flip_button_center(i: int) -> Vector2:
 	if Settings.left_handed:
 		v.x = -v.x
 	return _jump_center() + v
+
+## Botón 1 PIE: abajo a la derecha, en la esquina junto a SALTO.
+func one_foot_center() -> Vector2:
+	var s := _s()
+	return Vector2(_mirror(size.x - 46.0 * s), size.y - 56.0 * s)
 
 func flip_button_at(p: Vector2) -> int:
 	for i in FLIP_BTNS.size():
@@ -406,6 +414,7 @@ func hit_radii() -> Dictionary:
 		if salto_pages_enabled():
 			for i in FLIP_BTNS.size():
 				hr["flip_%d" % i] = FLIP_R * _s() * 1.12
+			hr["onefoot"] = FLIP_R * _s() * 1.05
 		return hr
 	var small := 1.15 if stick_enabled() else 1.2
 	return {"jump": _jump_radius() * (1.03 if stick_enabled() else 1.12), "action": _action_radius() * small, "pad": _pad_radius() * 1.08,
@@ -418,6 +427,7 @@ func zones() -> Dictionary:
 		if salto_pages_enabled():
 			for i in FLIP_BTNS.size():
 				zr["flip_%d" % i] = flip_button_center(i)
+			zr["onefoot"] = one_foot_center()
 		for i in ring_buttons().size():
 			zr["ring_%d" % i] = ring_button_center(i)
 		return zr
@@ -538,7 +548,12 @@ func _on_touch(e: InputEventScreenTouch) -> void:
 		var hr := hit_radii()
 		var rb := ring_button_at(p) if ring_enabled() else -1
 		var qb := quick_at(p)
-		if qb >= 0:
+		var tb := top_button_at(p)
+		if tb >= 0:
+			role = "quick"
+			_flash["top_i"] = 0.25
+			quick_action.emit(String(TOP_BTNS[tb][1]))
+		elif qb >= 0:
 			role = "quick"
 			_flash["quick"] = qb
 			_flash["quick_t"] = 0.25
@@ -595,6 +610,12 @@ func _on_touch(e: InputEventScreenTouch) -> void:
 		elif salto_pages_enabled() and SALTO_PAGES.size() > 1 and p.distance_to(salto_swap_center()) < salto_swap_radius() * 1.15:
 			role = "salto_swap"
 			salto_turn(1)
+		elif salto_pages_enabled() and p.distance_to(one_foot_center()) < FLIP_R * _s() * 1.05:
+			role = "onefoot"
+			_pending.one_foot = true
+			_flash["onefoot"] = 0.3
+			if air_mode:
+				_toast("A UN PIE", Neon.CYAN, "gold")
 		elif salto_pages_enabled() and flip_button_at(p) >= 0:
 			# Botón de mortal (estilo Madness): carga · agrupa · abre
 			role = "flipbtn"
@@ -1039,10 +1060,8 @@ const TRAIN := [
 	["cork720", "CORK 720", "gold", "Diagonal hacia arriba y dos círculos pequeños"],
 	["webster", "WEBSTER", "gold", "Sube, cae por delante y retrocede un poco"],
 	["gainer", "GAINER", "gold", "Baja (hacia atrás) y da una vuelta ovalada"],
-	["g_raiz", "RAIZ", "purple", "Línea en diagonal hacia arriba (lado = hacia donde dibujas)"],
 	["g_td_raiz", "TOUCHDOWN RAIZ", "purple", "Línea en diagonal hacia abajo"],
 	["g_macaco", "MACACO", "purple", "Arco por arriba (como un puente)"],
-	["g_hook", "HOOK", "purple", "Arco por abajo (como una sonrisa)"],
 	["g_scoot", "SCOOT", "purple", "Ida y vuelta lateral (<)"],
 	["g_pino", "PINO", "purple", "Línea hacia arriba y deja el dedo quieto"],
 	["g_scoot_power", "SCOOT FUERTE", "purple", "Hoja abajo y barrido largo hacia arriba"],
@@ -1148,7 +1167,17 @@ func _draw_training(font: Font, s: float) -> void:
 		Neon.button(self, bc, 20.0 * s, col if i < 2 else Color(1, 0.45, 0.4), false, 0.95)
 		_label(font, bc, ["<", ">", "X"][i], 18 * s, Color(1, 1, 1))
 
+func _draw_top_buttons(font: Font, s: float) -> void:
+	for i in TOP_BTNS.size():
+		var c := top_button_center(i)
+		var r := 26.0 * s
+		Neon.button(self, c, r, Neon.CYAN if i == 0 else Neon.GOLD, false, 0.9)
+		var t1 := String(TOP_BTNS[i][0])
+		_label(font, c + Vector2(0, -5 * s), t1, 9.5 * s, Color(1, 1, 1, 0.95))
+		_label(font, c + Vector2(0, 8 * s), view_label if i == 0 else "15 s", 8.5 * s, Color(1, 1, 1, 0.8))
+
 func _draw_flip_buttons(font: Font, s: float) -> void:
+	_draw_top_buttons(font, s)
 	var held := {}
 	for fd in _fingers.values():
 		if fd.role == "flipbtn":
@@ -1160,6 +1189,15 @@ func _draw_flip_buttons(font: Font, s: float) -> void:
 		Neon.button(self, c, r, Neon.GOLD, hot, 0.95)
 		Neon.icon(self, String(FLIP_BTNS[i][2]), c + Vector2(0, -r * 0.2), r * 0.38, Color(1, 1, 1, 0.95))
 		_label(font, c + Vector2(0, r * 0.45), String(FLIP_BTNS[i][0]), 12 * s, Color(1, 1, 1, 0.95))
+	var oc := one_foot_center()
+	var orr := FLIP_R * s * 0.92
+	var ohot := _flash.has("onefoot")
+	for fd in _fingers.values():
+		if fd.role == "onefoot":
+			ohot = true
+	Neon.button(self, oc, orr, Neon.CYAN, ohot, 0.95)
+	_label(font, oc + Vector2(0, -orr * 0.15), "1", 20 * s, Color(1, 1, 1, 0.95))
+	_label(font, oc + Vector2(0, orr * 0.45), "UN PIE", 11 * s, Color(1, 1, 1, 0.95))
 
 func _draw_gesture_fx(font: Font, s: float) -> void:
 	_draw_flip_buttons(font, s)
@@ -1455,6 +1493,18 @@ func quick_center(i: int) -> Vector2:
 		return Vector2(_mirror(56.0 * s), y0 + step * float(i))
 	return Vector2(_mirror(56.0 * s + float(i) * 80.0 * s), 130.0 * s)
 
+func top_button_center(i: int) -> Vector2:
+	var s := _s()
+	return Vector2(_mirror(size.x - 140.0 * s - float(i) * 74.0 * s), 42.0 * s)
+
+func top_button_at(p: Vector2) -> int:
+	if not salto_pages_enabled():
+		return -1
+	for i in TOP_BTNS.size():
+		if p.distance_to(top_button_center(i)) < 30.0 * _s():
+			return i
+	return -1
+
 func quick_at(p: Vector2) -> int:
 	if not ring_enabled():
 		return -1
@@ -1589,10 +1639,8 @@ func _draw_rot_stick(font: Font, s: float, a: float, white: Color, dark: Color, 
 		_pill(font, base + Vector2(-rr - 30 * s, 0), "RUEDA", 13 * s, Neon.PURPLE, la)
 		_pill(font, base + Vector2(rr + 30 * s, 0), "RUEDA", 13 * s, Neon.PURPLE, la)
 		if salto_pages_enabled():
-			_pill(font, base + Vector2(rr * 0.8, -rr * 0.8), "RAIZ", 11 * s, Neon.PURPLE, la)
 			_pill(font, base + Vector2(rr * 0.8, rr * 0.8), "TD RAIZ", 11 * s, Neon.PURPLE, la)
 			_pill(font, base + Vector2(-rr * 0.8, -rr * 0.8), "MACACO arco", 11 * s, Neon.PURPLE, la)
-			_pill(font, base + Vector2(-rr * 0.8, rr * 0.8), "HOOK arco", 11 * s, Neon.PURPLE, la)
 		if not salto_pages_enabled():
 			_pill(font, base + Vector2(rr * 0.78, -rr * 0.86), "MACACO arco", 11 * s, Neon.PURPLE, la)
 	elif not salto_pages_enabled():
