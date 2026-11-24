@@ -272,6 +272,45 @@ func t_kong_vault() -> void:
 	check("Kong Vault: reconocido", "Kong Vault" in moves, str(moves))
 	check("Kong Vault: supera la caja", player.global_position.z < -15.0, "z %.2f" % player.global_position.z)
 	check("Kong Vault: conserva sprint", player.speed() > 7.0, "vel %.2f" % player.speed())
+	# Kong → mortal atrás antes de caer: ATRÁS durante el kong = empuje de brazos y mortal
+	await place(Vector3(0, 0.1, -8), Vector3.FORWARD)
+	var kb := {"p": false}
+	await run(func(i, f):
+		i.move = Vector2(0, 1.0); i.sprint = true
+		i.jump_pressed = not kb.p and player.global_position.z <= -12.9
+		kb.p = kb.p or i.jump_pressed
+		i.flick = Vector2(0, -1) if player.state == PlayerController.State.VAULT and player.state_time > 0.1 and player.state_time < 0.13 else Vector2.ZERO
+		i.tuck = player.state == PlayerController.State.AIR and absf(player.tricks.total_pitch) < 4.5; i.jump_held = i.tuck, 240,
+		func(): return kb.p and _f > 30 and player.state == PlayerController.State.GROUND)
+	check("Kong → mortal atrás antes de caer", "Kong Vault" in moves and moves.size() >= 2 and landings.size() > 0 and landings[-1].quality in ["perfect", "clean"],
+		"%s %s" % [moves, landings.map(func(l): return l.quality)])
+	# Dive Kong: saltar lejos del obstáculo; las manos llegan si la distancia y la altura dan
+	var dives: Array[float] = []
+	for jz in [-10.3, -7.6]:
+		await place(Vector3(0, 0.1, -7.0), Vector3.FORWARD)
+		var dk := {"p": false}
+		await run(func(i, f):
+			i.move = Vector2(0, 1.0); i.sprint = true
+			i.jump_pressed = not dk.p and player.global_position.z <= jz
+			dk.p = dk.p or i.jump_pressed
+			dk.air = dk.get("air", false) or player.state != PlayerController.State.GROUND
+			i.jump_held = true, 240,
+			func(): return dk.get("air", false) and player.state == PlayerController.State.GROUND)
+		check("Dive Kong: salta lejos del obstáculo, llega y pasa (%.1f m del muro)" % player.last_dive_kong,
+			"Dive Kong" in moves and player.global_position.z < -15.0 and player.last_dive_kong > 2.0, "%s z %.2f d %.2f" % [moves, player.global_position.z, player.last_dive_kong])
+		dives.append(player.last_dive_kong)
+	check("Dive Kong: saltar desde más lejos = kong más largo (%.1f m → %.1f m)" % [dives[0], dives[1]], dives[1] > dives[0] + 2.0, str(dives))
+	# Demasiado lejos: no llega (no hay kong; choca o cae antes del obstáculo)
+	await place(Vector3(0, 0.1, -6.2), Vector3.FORWARD)
+	var far := {"p": false}
+	await run(func(i, f):
+		i.move = Vector2(0, 1.0) if not far.p or player.state != PlayerController.State.GROUND else Vector2.ZERO
+		i.sprint = true
+		i.jump_pressed = not far.p and player.global_position.z <= -6.45
+		far.p = far.p or i.jump_pressed
+		i.jump_held = true, 200,
+		func(): return far.p and _f > 30 and player.state != PlayerController.State.AIR)
+	check("Dive Kong demasiado lejos: el personaje no llega", not ("Dive Kong" in moves) and not ("Kong Vault" in moves) and player.global_position.z > -15.0, "%s z %.2f" % [moves, player.global_position.z])
 
 func t_wall_run() -> void:
 	await place(Vector3(11.0, 0.1, 3), Vector3.FORWARD)
@@ -1578,16 +1617,20 @@ func t_ring_buttons() -> void:
 	# Páginas de la rueda: CAMBIAR (tocar = siguiente; deslizar arriba/abajo) y botones nuevos
 	touch.ring_page = 0
 	var cam: int = find.call("CAMBIAR")
+	var cam_pos0 := touch.ring_button_center(cam)
 	press.call(cam, true); press.call(cam, false)
 	var p1 := touch.ring_page
-	var e2 := InputEventScreenTouch.new(); e2.index = 6; e2.position = touch.ring_button_center(cam); e2.pressed = true
+	var cam2 := touch.ring_buttons().size() - 1
+	check("Botonera: CAMBIAR queda en el mismo sitio en todas las páginas", touch.ring_button_center(cam2).distance_to(cam_pos0) < 1.0 and touch.ring_page == 1,
+		"%s %s" % [touch.ring_button_center(cam2), cam_pos0])
+	var e2 := InputEventScreenTouch.new(); e2.index = 6; e2.position = touch.ring_button_center(cam2); e2.pressed = true
 	touch._on_touch(e2)
 	var dr := InputEventScreenDrag.new(); dr.index = 6; dr.position = e2.position + Vector2(0, 80); dr.relative = Vector2(0, 80)
 	touch._on_drag(dr)
 	e2.pressed = false; e2.position = dr.position
 	touch._on_touch(e2)
 	check("Botonera: CAMBIAR gira la rueda (tocar = siguiente, deslizar abajo = anterior)", p1 == 1 and touch.ring_page == 0, "tras tocar %d, tras deslizar %d" % [p1, touch.ring_page])
-	for c in [[2, "HOOK", "Hook Kick"], [0, "PIRU", "Piru"], [0, "PATADA 360", "360 Kick"], [2, "MARIPOSA", "Butterfly Kick"],
+	for c in [[2, "HOOK", "Hook Kick"], [0, "PATADA 360", "360 Kick"], [2, "MARIPOSA", "Butterfly Kick"],
 			[3, "BACK WALKOVER", "Back Walkover"], [3, "VOLTERETA AL PINO", "Back Extension Roll"]]:
 		touch.ring_page = c[0]
 		player.set_spawn(Transform3D(Basis(), Vector3(-35, 0.1, 35)), Vector3.FORWARD)

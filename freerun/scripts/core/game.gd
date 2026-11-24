@@ -229,6 +229,13 @@ func _physics_process(dt: float) -> void:
 
 func _on_move(name: String, quality: float, info: Dictionary) -> void:
 	SaveData.add_stat("move_" + name)
+	if info.get("dive", false):
+		# Dive Kong: distancia del despegue al muro y récord personal (para ir alargándola)
+		var dist := float(info.distance)
+		var best := float(SaveData.get_record("dive_kong_m", 0.0))
+		var rec := SaveData.submit_record("dive_kong_m", dist)
+		ui.show_landing("%s  %.1f m%s" % [MoveNames.es(name).to_upper(), dist,
+			"  ·  ¡RÉCORD!" if rec and best > 0.0 else "  (récord %.1f m)" % maxf(best, dist)], Color(1, 0.85, 0.3))
 	combo.add_move(name, quality, info)
 	flow.on_move(name, quality, info)
 	if mode:

@@ -52,7 +52,7 @@ const ES := {
 	"Dash Vault": "Dash (pies primero)", "Double Kong": "Doble salto de gato",
 	"Kash Vault": "Gato + dash", "Reverse Vault": "Paso invertido", "360 Vault": "Paso 360",
 	"Step Up": "Subida de muro", "Thief Vault": "Paso de ladrón", "Turn Vault": "Paso con giro",
-	"Gate Vault": "Paso de valla", "Dive Kong": "Salto de gato en plancha",
+	"Gate Vault": "Paso de valla", "Dive Kong": "Salto de gato en plancha", "Kong Up": "Salto de gato a subir",
 	"Kong Front": "Mortal adelante tras salto de gato", "Dash Bomb": "Mortal adelante tras dash",
 	"360 Kong": "Salto de gato 360", "Screwdriver": "Destornillador",
 	# Precisión, paredes y escalada

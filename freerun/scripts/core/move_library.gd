@@ -35,7 +35,7 @@ const MOVES := [
 	{"name": "Thief Vault", "cat": "Vaults", "lvl": 1, "input": "VAULT + JD ↖ o ↗ (obstáculo estrecho y con carrera; piernas primero, una mano detrás)", "status": "ok"},
 	{"name": "Turn Vault", "cat": "Vaults", "lvl": 1, "input": "VAULT + JD ↙ o ↘ (dos manos, media vuelta; cae frenado y de cara al obstáculo, sin quedarse colgado)", "status": "ok"},
 	{"name": "Gate Vault", "cat": "Vaults", "lvl": 1, "input": "-", "status": "pendiente", "note": "pendiente de postura propia"},
-	{"name": "Dive Kong", "cat": "Vaults", "lvl": 2, "input": "-", "status": "pendiente", "note": "pendiente de trayectoria con vuelo previo"},
+	{"name": "Dive Kong", "cat": "Vaults", "lvl": 2, "input": "SALTO con carrera lejos del obstáculo: las manos llegan solo si la distancia y la altura dan (récord de distancia)", "status": "ok"},
 	# --- Precision ---
 	{"name": "Precision Jump", "cat": "Precision", "lvl": 1, "input": "SALTO y caer en un apoyo estrecho", "status": "ok"},
 	{"name": "Running Precision", "cat": "Precision", "lvl": 1, "input": "SALTO corriendo a un apoyo estrecho", "status": "ok"},
