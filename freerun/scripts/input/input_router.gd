@@ -185,6 +185,7 @@ func _read_intent(_dt: float) -> void:
 			intent.flip_press = t.flip_press
 		intent.flip_held = t.flip_held
 		intent.one_foot = intent.one_foot or t.one_foot
+		intent.jump_charge = maxf(intent.jump_charge, t.jump_charge)
 		if touch.stick_enabled():
 			# Doble joystick: los mortales van en la rueda de SALTO y el joystick derecho es el GIRO
 			intent.stick_twist = true

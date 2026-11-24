@@ -46,7 +46,7 @@ const TUTORIAL := [
 	["Corre: inclina el joystick azul (a fondo = sprint)", ["@run"]],
 	["Mueve la cámara: arrastra en una zona libre (doble toque = detrás del atleta)", ["@camera"]],
 	["Toca el joystick dorado (SALTO)", ["@air"]],
-	["Botón ATRÁS: 1.ª pulsación salta · 2.ª agrupa y gira · 3.ª abre para aterrizar", ["Backflip", "Gainer"]],
+	["Botón ATRÁS: 1.ª pulsación = mortal atrás · 2.ª = abre para aterrizar", ["Backflip", "Gainer"]],
 	["Botón ADELANTE: igual, hacia delante", ["Frontflip", "Webster"]],
 	["Botón LATERAL: mortal lateral (empuja el azul a la izquierda para el otro lado)", ["Sideflip"]],
 	["Mortal y, en el aire, inclina el morado a un lado: tirabuzón (atrás + giro = Piru)", ["Piru", "Piru 540", "Piru 720", "Front Full", "Sideflip Twist"]],

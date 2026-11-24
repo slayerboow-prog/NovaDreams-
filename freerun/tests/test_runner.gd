@@ -1792,7 +1792,7 @@ func t_salto_giro_sticks() -> void:
 	touch.size = Vector2(1542, 720)
 	check("Modo gestos: sin rueda de botones de movimientos (todo con SALTO y GIRO)", touch.ring_buttons().is_empty(), str(touch.ring_buttons().size()))
 	game.router.scripted = Callable()            # entrada real: el táctil
-	# Botones de mortal estilo Madness: 1.ª carga y salta · 2.ª agrupa y gira · 3.ª abre
+	# Botones de mortal estilo Madness: 1.ª pulsación = mortal directo (agrupado) · 2.ª = abre
 	var tapb := func(i: int, idx := 11) -> void:
 		var e := InputEventScreenTouch.new(); e.index = idx; e.position = touch.flip_button_center(i); e.pressed = true
 		touch._on_touch(e)
@@ -1800,38 +1800,47 @@ func t_salto_giro_sticks() -> void:
 	for bc in [[0, "Backflip"], [1, "Frontflip"], [2, "Sideflip"]]:
 		await place(Vector3(-35, 0.1, 35), Vector3.FORWARD)
 		moves.clear(); landings.clear()
-		var st := {"stage": 0, "maxpitch": 0.0}
+		var st := {"stage": 0, "tucked": false}
 		tapb.call(int(bc[0]))
 		for k in 240:
 			await get_tree().physics_frame
 			var tp: float = maxf(absf(player.tricks.total_pitch), absf(player.tricks.total_roll))
-			if st.stage == 0 and player.state == PlayerController.State.AIR and player.tricks.air_time > 0.06:
-				tapb.call(int(bc[0])); st.stage = 1                       # 2.ª: agrupa
+			if st.stage == 0 and player.state == PlayerController.State.AIR and tp > 0.3:
+				st.tucked = player.mad_stage == 2
+				st.stage = 1
 			elif st.stage == 1 and tp > TAU - deg_to_rad(120):
-				tapb.call(int(bc[0])); st.stage = 2                       # 3.ª: abre
+				tapb.call(int(bc[0])); st.stage = 2                       # 2.ª: abre
 			if k > 30 and player.state == PlayerController.State.GROUND and not moves.is_empty():
 				break
-		check("Botón %s: carga, agrupa y abre = %s limpio" % [TouchControls.FLIP_BTNS[bc[0]][0], bc[1]], bc[1] in moves and landings.size() > 0 and landings[-1].quality in ["perfect", "clean"] and st.stage == 2,
-			"%s %s etapa %d" % [moves, landings.map(func(l): return l.quality), st.stage])
-	# Solo la 1.ª pulsación: salto sin mortal
-	await place(Vector3(-35, 0.1, 35), Vector3.FORWARD)
-	moves.clear()
-	tapb.call(0)
-	var rotated := {"v": 0.0}
-	for k in 90:
-		await get_tree().physics_frame
-		rotated.v = maxf(rotated.v, absf(player.tricks.total_pitch))
-	check("Botón de mortal: una sola pulsación = salto sin girar", rotated.v < 0.05, "%.2f" % rotated.v)
+		check("Botón %s: mortal directo agrupado y la 2.ª pulsación abre = %s limpio" % [TouchControls.FLIP_BTNS[bc[0]][0], bc[1]], bc[1] in moves and st.tucked
+			and landings.size() > 0 and landings[-1].quality in ["perfect", "clean"] and st.stage == 2,
+			"%s %s etapa %d agrupado %s" % [moves, landings.map(func(l): return l.quality), st.stage, st.tucked])
+	# Impulso en SALTO: mantenerlo antes de soltar = salto más alto
+	var hgt := []
+	for hold in [0.0, 0.3]:
+		await place(Vector3(-35, 0.1, 35), Vector3.FORWARD)
+		var jc0 := touch._jump_center()
+		var je := InputEventScreenTouch.new(); je.index = 13; je.position = jc0; je.pressed = true
+		touch._on_touch(je)
+		touch._time += hold
+		je.pressed = false; touch._on_touch(je)
+		var top := {"y": 0.0}
+		for k in 90:
+			await get_tree().physics_frame
+			top.y = maxf(top.y, player.global_position.y)
+		hgt.append(top.y)
+	check("SALTO: mantenerlo antes de soltar da impulso (%.2f m frente a %.2f m)" % [hgt[1], hgt[0]], hgt[1] > hgt[0] + 0.1, str(hgt))
 	# Botón ATRÁS + morado inclinado a la derecha en el aire = Piru (tirabuzón)
 	await place(Vector3(-35, 0.1, 35), Vector3.FORWARD)
 	moves.clear(); landings.clear()
 	tapb.call(0)
 	var pst := {"stage": 0}
+	await frames(1)
 	var te := InputEventScreenTouch.new(); te.index = 12
 	for k in 240:
 		await get_tree().physics_frame
 		if pst.stage == 0 and player.state == PlayerController.State.AIR and player.tricks.air_time > 0.06:
-			tapb.call(0); pst.stage = 1
+			pst.stage = 1
 			touch.air_mode = true
 			var rcc := touch._rot_center()
 			te.position = rcc; te.pressed = true; touch._on_touch(te)
@@ -1939,6 +1948,8 @@ func t_one_foot_replay_cameras() -> void:
 		and player.global_position.distance_to(live) < 0.05 and not rp.playing and player.is_physics_processing(), "start %s mov %s vistas %s" % [started, moved, views_ok])
 	# Cámaras de juego: normal, POV (en la cabeza, delante de la cara) y dron (alto)
 	var cr: CameraRig = game.camera
+	var cam_proc := cr.is_processing()
+	cr.set_process(true)                         # (las pruebas la tienen parada; en el juego siempre corre)
 	cr.set_view(1)
 	await frames(3)
 	await get_tree().process_frame
@@ -1950,6 +1961,7 @@ func t_one_foot_replay_cameras() -> void:
 	var dron_ok: bool = cr.alt_cam.global_position.y > player.global_position.y + 4.0
 	cr.set_view(0)
 	await get_tree().process_frame
+	cr.set_process(cam_proc)
 	check("Cámaras de juego: POV en la cabeza y dron por encima (%.1f m)" % (cr.alt_cam.global_position.y - player.global_position.y), pov_ok and dron_ok and get_viewport().get_camera_3d() == cr.cam, "pov %s dron %s" % [pov_ok, dron_ok])
 	check("Eliminados hook y raiz (no hay habilidad ni gesto)", not SkillLibrary.SKILLS.has("hook") and not SkillLibrary.SKILLS.has("raiz")
 		and not GestureRecognizer.GIRO_TEMPLATES.has("hook"), "")

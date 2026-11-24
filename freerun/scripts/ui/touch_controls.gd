@@ -48,6 +48,7 @@ class TouchFrame:
 	var flip_press := 99                   # botón de mortal pulsado (sector)
 	var flip_held := false
 	var one_foot := false                  # botón 1 PIE (flanco)
+	var jump_charge := 0.0                 # SALTO mantenido (impulso)
 
 var grab_label := "AGARRAR"           # SOLTAR cuando está colgado
 var context_label := "RODAR"
@@ -891,6 +892,7 @@ func _salto_execute(res: Dictionary, f: Dictionary) -> void:
 	var kind := String(res.get("kind", ""))
 	if kind == "tap":
 		_pending.jump_pressed = true
+		_pending.jump_charge = clampf(_time - float(f.get("time", _time)), 0.0, 0.3)   # mantener = impulso
 		_jump_hold_until = _time + 0.22
 		_flash["jump"] = 0.15
 		return

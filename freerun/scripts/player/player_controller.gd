@@ -530,6 +530,8 @@ func _takeoff(kind: String) -> void:
 	if pre_twist > 0.0 and intent.stick_twist:
 		tricks.twist_input(pre_twist_dir, pre_twist, t)
 	pre_twist = 0.0
+	if mad_stage == 1 and tricks.active:
+		mad_stage = 2                              # botón de mortal: sale agrupado y girando
 	if extra_twist_t > 0.0 and tricks.active:
 		tricks.add_twist_halves(extra_twist_halves, extra_twist_dir)      # aerial twist
 	extra_twist_t = 0.0
@@ -920,16 +922,15 @@ func _tick_gestures(dt: float) -> void:
 				twist_wait_t = TWIST_WAIT
 
 ## Botones ATRÁS / ADELANTE / LATERAL (estilo Madness):
-##   1.ª pulsación (en el suelo): flexión y salto; mantener un instante = algo más alto.
-##   2.ª (en el aire): se agrupa y gira en ese sentido; agrupado sigue girando (dobles con altura).
-##   3.ª: se abre y frena para aterrizar (otra pulsación vuelve a agrupar).
+##   1.ª pulsación: salta y hace directamente el mortal, agrupado (en el aire, lo empieza ya);
+##   agrupado sigue girando (dobles con altura).
+##   2.ª: se abre y frena para aterrizar (otra pulsación vuelve a agrupar).
+## El impulso (mantener para saltar más alto) es del botón SALTO.
 ## Con ayuda alta, si no abres, se abre solo cuando ya no cabe otra vuelta.
 func _tick_flip_buttons(dt: float) -> void:
-	if state == State.GROUND and jump_load > 0.0 and mad_stage == 1 and intent.flip_held and mad_charge < MAD_CHARGE_MAX:
-		var add := minf(dt, MAD_CHARGE_MAX - mad_charge)
-		mad_charge += add
-		jump_load += add                       # mantener = flexión algo más larga y salto más alto
-		jump_load_total += add
+	if intent.jump_charge > 0.0 and state in [State.GROUND, State.SKILL, State.ROLL]:
+		# SALTO mantenido antes de soltar: impulso, salto algo más alto
+		mad_charge = clampf(intent.jump_charge, 0.0, 0.3) / 0.3 * MAD_CHARGE_MAX
 	if intent.flip_press == 99:
 		return
 	var sec := intent.flip_press
@@ -937,10 +938,12 @@ func _tick_flip_buttons(dt: float) -> void:
 		State.GROUND, State.SKILL, State.ROLL:
 			if jump_load > 0.0:
 				return
+			# El botón hace directamente el mortal: despega ya girando y agrupado
 			mad_axis = sec
 			mad_stage = 1
-			mad_charge = 0.0
 			jump_buffer = t.jump_buffer_time
+			flick_buffer = TouchControls.sector_dir(sec)
+			flick_timer = 0.25
 		State.AIR, State.VAULT:
 			if mad_stage <= 1:
 				if mad_axis == 99:
