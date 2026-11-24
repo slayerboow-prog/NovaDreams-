@@ -45,6 +45,7 @@ func _drive(intent: InputIntent, _frame: int) -> void:
 	intent.action_held = false
 	intent.rot = Vector2.ZERO             # como el táctil: soltar el joystick lo devuelve al centro
 	intent.twist = 0.0
+	intent.stick_twist = false            # cada prueba de doble joystick lo activa explícitamente
 	if _script.is_valid():
 		_script.call(intent, _f)
 	_f += 1
@@ -101,6 +102,7 @@ func _run_all() -> void:
 	await t_dual_stick()
 	await t_new_controls()
 	await t_wheel_twist()
+	await t_wheel_no_twist()
 	await t_touch_layout()
 	await t_landing_feel()
 	await t_new_tricks()
@@ -1389,3 +1391,23 @@ func _check_chain(name: String, expect: Array, st: Dictionary) -> void:
 	check("Enlace %s: se ejecuta en orden" % name, idx == expect.size(), str(moves))
 	check("Enlace %s: recepciones limpias y termina de pie" % name, clean and player.state in [PlayerController.State.GROUND, PlayerController.State.ROLL],
 		"%s %s" % [landings.map(func(l): return l.quality), PlayerController.STATE_NAMES[player.state]])
+
+## Doble joystick: la rueda de SALTO solo hace saltos y mortales; los giros son del joystick GIRO.
+func t_wheel_no_twist() -> void:
+	await place(Vector3(-35, 0.1, 35), Vector3.FORWARD)
+	var tw := {"max": 0.0}
+	await run(func(i, f):
+		i.stick_twist = true
+		i.jump_pressed = f == 0 or f == 10            # centro de SALTO otra vez en el aire
+		i.flick = Vector2(0, -1) if f == 0 else (Vector2(1, 0) if f == 6 else Vector2.ZERO)   # zona LATERAL en el mortal
+		i.tuck = f < 14; i.jump_held = i.tuck
+		tw.max = maxf(tw.max, absf(player.tricks.total_twist)), 150,
+		func(): return _f > 10 and player.state == PlayerController.State.GROUND)
+	check("Rueda: en el aire no añade tirabuzón ni giro (solo el joystick GIRO gira)", "Backflip" in moves and tw.max < 0.05, "%s giro %.2f" % [moves, tw.max])
+	await place(Vector3(-35, 0.1, 35), Vector3.FORWARD)
+	await run(func(i, f):
+		i.stick_twist = true
+		i.jump_pressed = f == 0 or f == 10
+		i.flick = Vector2.ZERO
+		i.jump_held = f < 14, 120, func(): return _f > 10 and player.state == PlayerController.State.GROUND)
+	check("Rueda: el centro pulsado otra vez en el aire no hace patada giratoria", moves.is_empty(), str(moves))

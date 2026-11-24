@@ -133,7 +133,9 @@ func _start_axis(ax: String, s: int) -> void:
 ##   ↗ mortal adelante + tirabuzón (Front Full) · ↖ adelante + giro lateral: Aerial (parado)
 ##   o Butterfly Kick (con carrera)
 ## Durante un mortal: gesto lateral = añadir tirabuzón; misma dirección = otra vuelta.
-func apply_flick(d: Vector2) -> void:
+## allow_twist = false (doble joystick): la rueda de SALTO solo hace mortales; los tirabuzones
+## son exclusivamente del joystick GIRO.
+func apply_flick(d: Vector2, allow_twist := true) -> void:
 	if d.length() < 0.1:
 		return
 	var sector := int(round(rad_to_deg(atan2(d.y, d.x)) / 45.0))
@@ -164,6 +166,8 @@ func apply_flick(d: Vector2) -> void:
 				else:
 					_start_axis("roll", -1); style = "aerial"
 	else:
+		if not allow_twist and horizontal and dir.roll == 0:
+			return                           # zona LATERAL durante un mortal adelante/atrás: no gira
 		if horizontal and (dir.pitch != 0 or dir.spin != 0):
 			if dir.twist == 0:
 				_start_axis("twist", hs)

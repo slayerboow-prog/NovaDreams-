@@ -96,6 +96,7 @@ func _ready() -> void:
 	await seq("Backflip + giro adicional (Back Full)", [["jumpwheel", Vector2(0, -1)], ["wait", 8], ["tapstick"], ["land"]], ["Back Full"])
 	await seq("Cork 720 + aterrizaje controlado", [["run", true], ["wait", 45], ["jumpwheel", Vector2(0, -1), -52], ["land"]], ["Cork 720"])
 
+	Settings.trick_controls = 0
 	var failed := 0
 	print("\n========== ACEPTACIÓN DE ACROBACIAS (ruta táctil real) ==========")
 	for r in results:
@@ -224,6 +225,7 @@ func seq(name: String, steps: Array, expect: Array) -> void:
 	var full := name + " · combo"
 	if only != "" and not Array(only.split(",")).any(func(o): return full.contains(o)):
 		return
+	Settings.trick_controls = 0
 	if _label:
 		_label.text = name.to_upper() + "   (joystick derecho / combinación)"
 	player.set_spawn(Transform3D(Basis(), SPOT), Vector3.FORWARD)
@@ -352,6 +354,9 @@ func trick(name: String, swipes: Array, running: bool, hold: String) -> void:
 		return
 	if _label:
 		_label.text = name.to_upper() + ("   (SALTO + joystick derecho)" if hold.begins_with("stick") else "   (SALTO + deslizar)")
+	# Los gestos sobre SALTO (deslizar, segundo toque = giro) son del modo «Solo gestos»: con el
+	# doble joystick la rueda nunca gira (los giros son solo del joystick GIRO).
+	Settings.trick_controls = 0 if hold.begins_with("stick") else 1
 	player.set_spawn(Transform3D(Basis(), SPOT), Vector3.FORWARD)
 	player.respawn()
 	game.camera.snap()

@@ -490,7 +490,7 @@ func _state_air(dt: float) -> void:
 	peak_y = maxf(peak_y, global_position.y)
 
 	if intent.flick != Vector2.ZERO:
-		tricks.apply_flick(intent.flick)
+		tricks.apply_flick(intent.flick, not intent.stick_twist)
 	if intent.kick:
 		tricks.apply_kick(_kick_dir())
 	if twist_lock and absf(intent.twist) < 0.3:
@@ -521,7 +521,8 @@ func _state_air(dt: float) -> void:
 		if intent.jump_held and _try_wall_run():
 			return
 	# Volver a pulsar SALTO en el aire (lejos de paredes): giro 360/540/720 o tirabuzón completo.
-	if intent.jump_pressed and jump_buffer > 0.0 and air_kind != "fall":
+	# (Con doble joystick la rueda de SALTO nunca gira: los giros son solo del joystick GIRO.)
+	if intent.jump_pressed and jump_buffer > 0.0 and air_kind != "fall" and not intent.stick_twist:
 		tricks.apply_kick(_kick_dir())
 		jump_buffer = 0.0
 
