@@ -178,7 +178,8 @@ const VISUALLY_INSPECTED := ["Backflip / Back Tuck", "Frontflip / Front Tuck", "
 	# Habilidades con apoyo real (capturas por fases tras el sistema de apoyos con IK)
 	"Round-off (rondada)", "Back Handspring (flic-flac)", "Front Handspring (paloma)", "Cartwheel (rueda)",
 	"Macaco", "Back Walkover", "Front Walkover", "Valdez", "Back Extension Roll", "Kip-up",
-	"Handstand (pino)", "Handstand Push-off (snap down)", "Raiz", "Touchdown Raiz", "Hook Kick"]
+	"Handstand (pino)", "Handstand Push-off (snap down)", "Raiz", "Touchdown Raiz", "Hook Kick",
+	"Crescent Kick", "Reverse Crescent Kick", "Scoot", "Speed Vault", "Kong Vault / Monkey / Cat Pass"]
 ## Confirmados por el jugador en su móvil (vacío hasta tener esa confirmación).
 const MOBILE_VALIDATED: Array[String] = []
 

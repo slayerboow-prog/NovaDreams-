@@ -23,6 +23,8 @@ var vault_pressed := false      # botón VAULT (flanco)
 var grab_pressed := false       # botón AGARRAR (flanco)
 var grab_held := false
 var rot := Vector2.ZERO         # joystick derecho analógico (x derecha, y arriba), magnitud 0..1
+var skill_request := ""         # botonera: botón de un movimiento de suelo (rondada, flic-flac...)
+var double_flip := false        # botonera: botón de doble mortal
 
 func clear_edges() -> void:
 	jump_pressed = false
@@ -35,6 +37,8 @@ func clear_edges() -> void:
 	kick = false
 	vault_pressed = false
 	grab_pressed = false
+	skill_request = ""
+	double_flip = false
 
 func copy_from(o: InputIntent) -> void:
 	move = o.move; sprint = o.sprint; jump_pressed = o.jump_pressed; jump_held = o.jump_held
@@ -42,3 +46,4 @@ func copy_from(o: InputIntent) -> void:
 	camera_delta = o.camera_delta; camera_recenter = o.camera_recenter; respawn_pressed = o.respawn_pressed; kick = o.kick; rot = o.rot
 	vault_pressed = o.vault_pressed; grab_pressed = o.grab_pressed; grab_held = o.grab_held
 	twist = o.twist; stick_twist = o.stick_twist; rot_flick = o.rot_flick
+	skill_request = o.skill_request; double_flip = o.double_flip

@@ -16,7 +16,21 @@ Atajos: `godot --path freerun -- --mode=freerun` salta el menú (`tricking`, `wa
 
 ## Controles
 
-**Móvil (iPhone / Android) — Doble joystick (por defecto)**: joystick izquierdo, **rueda de SALTO/MORTALES**, **joystick GIRO** y VAULT, AGARRAR, RODAR.
+**Móvil (iPhone / Android) — BOTONERA (por defecto)**: abajo a la derecha, **SALTO grande en el centro** y un **arco de 3/4 de círculo con 15 botones, uno por movimiento**:
+- RODAR, AGARRAR y VAULT (parkour);
+- MACACO, RUEDA, RONDADA, FLIC-FLAC y PALOMA (suelo, con apoyo real de manos);
+- ATRÁS, DOBLE ATRÁS, ADELANTE, DOBLE ADELANTE, LATERAL ◀ ▶ y AERIAL / MARIPOSA (mortales).
+
+Cómo se usan:
+- Mantener el botón de un mortal = agruparse.
+- Pulsarlo otra vez en el aire = otra vuelta.
+- Corriendo, ATRÁS es gainer y ADELANTE, webster.
+- La rueda, la rondada y el macaco van hacia el lado al que empuja el joystick izquierdo.
+- Pulsar un botón durante un movimiento lo deja en cola para la recepción. Por ejemplo, RONDADA → FLIC-FLAC → ATRÁS.
+- **Joystick izquierdo**: movimiento. **Joystick GIRO**: todos los tirabuzones y giros (¼ híper, ½, 1, cork, 720…). En el suelo, el joystick GIRO también hace los gestos de abajo (raiz, hook, walkovers, pino…).
+- El esquema anterior sigue disponible en Ajustes → Controles de trucos.
+
+**Doble joystick (rueda)**: joystick izquierdo, **rueda de SALTO/MORTALES**, **joystick GIRO** y VAULT, AGARRAR, RODAR.
 - **Joystick izquierdo** (abajo a la izquierda): moverse de forma analógica; a fondo = sprint (se acumula corriendo recto).
 - **Rueda de SALTO** (encima del joystick derecho): el **centro** es SALTO (mantener junto a una pared = Wall Run; en el aire junto a una pared = Tic Tac). Las cuatro zonas de alrededor saltan y hacen su mortal: **ATRÁS** (Backflip; corriendo, Gainer), **ADELANTE** (Frontflip; corriendo, Webster) y **LATERAL ← →** (Sideflip, siempre encogido; **corriendo, el atleta se pone de lado antes de despegar y avanza girando, mirando al lado**). Mantener el dedo en la zona = agruparse (gira más rápido); soltarlo = abrirse y preparar el aterrizaje. Pulsar otra zona igual en el aire = otra vuelta (doble). **La rueda solo hace saltos y mortales: nunca gira** (ni el centro pulsado otra vez en el aire ni la zona LATERAL durante un mortal); los tirabuzones y giros son exclusivamente del joystick GIRO.
 - **Joystick GIRO** (derecho): controla el tirabuzón de **todos** los mortales. Inclinado a un lado gira (más inclinado = más rápido); al soltarlo termina en el cuarto de vuelta más cercano: **¼ = Híper** (aterriza de lado), **½** (Back Half, Árabe, Raiz…), **1** (Back Full, Front Full…), 1½, 2… Corriendo, **ATRÁS + una vuelta de GIRO = Cork**; dos vueltas = Cork 720. Sin mortal, en el aire = pirueta / patada giratoria; tocarlo sin inclinar = un giro completo.
@@ -46,7 +60,7 @@ Atajos: `godot --path freerun -- --mode=freerun` salta el menú (`tricking`, `wa
 
 Ajustes: ayuda de rotación (Alta / Media / Pro), controles de trucos (doble joystick / solo gestos / solo cruceta / gestos + cruceta), tamaño de controles, cámara (híbrida / manual / automática), distancia y altura de cámara, opacidad, sensibilidad de cámara y del joystick derecho / gestos, y modo zurdo.
 
-**Habilidades con apoyo** (`scripts/player/skill_library.gd`): rondada, flic-flac, paloma, rueda, macaco, walkovers, valdez, back extension roll, kip-up, pino y snap down, hook, crescents, raiz, touchdown raiz y scoot. Cada una tiene **fases con nombre**, la orientación del cuerpo, la altura del centro de masas, una forma corporal por fase y qué manos o pies apoyan. El rig **clava la mano en un punto del suelo** y resuelve brazo y pierna con **IK de dos huesos** mientras el cuerpo gira por encima. Ninguna mano ni pie puede quedar por debajo del suelo en ningún estado. El backflip no apoya las manos; el flic-flac sí.
+**Habilidades con apoyo** (`scripts/player/skill_library.gd`): rondada, flic-flac, paloma, rueda, macaco, walkovers, valdez, back extension roll, kip-up, pino y snap down, hook, crescents, raiz, touchdown raiz y scoot. Cada una tiene **fases con nombre**, la orientación del cuerpo, la altura del centro de masas, una forma corporal por fase y qué manos o pies apoyan. El rig **clava la mano en un punto del suelo** y resuelve brazo y pierna con **IK de dos huesos** mientras el cuerpo gira por encima. Ninguna mano ni pie puede quedar por debajo del suelo en ningún estado. En los **vaults** las manos se apoyan sobre el obstáculo con la misma IK: dos manos en Kong, Double Kong, Kash y Turn Vault; la mano del lado bajo en Speed, Lazy, Reverse, Step y Thief Vault. El cuerpo se coloca con los hombros sobre las manos. El backflip no apoya las manos; el flic-flac sí.
 
 **Potencia** (`SkillLibrary.power` + `scripts/player/chain_system.gd`). Cada técnica define estos parámetros:
 - velocidad de desplazamiento: mínima/máxima y fracción conservada de la velocidad de entrada;

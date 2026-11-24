@@ -44,14 +44,15 @@ const TUTORIAL := [
 	["Corre: inclina el joystick izquierdo (a fondo = sprint)", ["@run"]],
 	["Mueve la cámara: arrastra en una zona libre (doble toque = detrás del atleta)", ["@camera"]],
 	["Pulsa SALTO", ["@air"]],
-	["Rueda de SALTO, zona ATRÁS = Mortal atrás (mantén el dedo = agrupado)", ["Backflip", "Gainer"]],
-	["Zona ADELANTE de la rueda = Mortal adelante", ["Frontflip", "Webster"]],
-	["Zona LATERAL corriendo = Mortal lateral (se pone de lado y avanza girando)", ["Sideflip"]],
+	["Botón ATRÁS = Mortal atrás (mantén el botón = agrupado)", ["Backflip", "Gainer"]],
+	["Botón ADELANTE = Mortal adelante", ["Frontflip", "Webster"]],
+	["Botón LATERAL corriendo = Mortal lateral (se pone de lado y avanza girando)", ["Sideflip"]],
+	["Botón DOBLE ATRÁS = Doble mortal atrás", ["Double Backflip", "Double Gainer"]],
 	["En un mortal, joystick GIRO a un lado: suéltalo en ¼ (híper), ½ o 1 giro", ["@twist"]],
-	["Corre, zona ATRÁS y GIRO una vuelta = Sacacorchos", ["Cork", "Cork 540", "Cork 720"]],
-	["Joystick GIRO ← o → en el suelo, inclinar y soltar = Rueda", ["Cartwheel"]],
-	["Joystick GIRO ↓ (inclinar y soltar) = Flic-flac: apoyo de manos", ["Back Handspring"]],
-	["GIRO ↙ = Rondada y, al recibir (¡ENLAZA!), zona ATRÁS = Mortal atrás con rebote", ["@roundoff_back"]],
+	["Corre, botón ATRÁS y GIRO una vuelta = Sacacorchos", ["Cork", "Cork 540", "Cork 720"]],
+	["Botón RUEDA = Rueda con apoyo de manos", ["Cartwheel"]],
+	["Botón FLIC-FLAC = Flic-flac: apoyo de manos", ["Back Handspring"]],
+	["Botón RONDADA y, al recibir (¡ENLAZA!), botón ATRÁS = Mortal atrás con rebote", ["@roundoff_back"]],
 	["MANTÉN GIRO ↑ = Pino; suéltalo = Front Walkover", ["Front Walkover", "Handstand"]],
 	["Gira el joystick GIRO en arco por abajo = Hook Kick", ["Hook Kick"]],
 	["Corre hacia un obstáculo y pulsa VAULT", ["@vault"]],
@@ -498,7 +499,7 @@ func _build_settings() -> void:
 	var box: VBoxContainer = r[1]
 	box.add_child(_label("AJUSTES", 40, ACCENT, HORIZONTAL_ALIGNMENT_CENTER))
 	_option(box, "Ayuda de rotación", "rotation_assist", ["Pro (sin ayudas)", "Media", "Alta"])
-	_option(box, "Controles de trucos", "trick_controls", ["Doble joystick", "Solo gestos", "Solo cruceta", "Gestos + cruceta"])
+	_option(box, "Controles de trucos", "trick_controls", ["Doble joystick (rueda)", "Solo gestos", "Solo cruceta", "Gestos + cruceta", "Botonera (por defecto)"])
 	_option(box, "Gráficos", "graphics_preset", ["Bajo", "Medio", "Alto"])
 	_slider(box, "Sensibilidad cámara", "camera_sensitivity", 0.3, 2.5, 0.05)
 	_slider(box, "Sensibilidad joystick/gestos", "gesture_sensitivity", 0.4, 2.0, 0.05)

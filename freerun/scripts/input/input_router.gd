@@ -169,6 +169,9 @@ func _read_intent(_dt: float) -> void:
 		intent.grab_held = intent.grab_held or t.grab_held
 		if t.rot.length() > 0.01:
 			intent.rot = t.rot
+		if t.skill != "":
+			intent.skill_request = t.skill
+		intent.double_flip = intent.double_flip or t.double
 		if touch.stick_enabled():
 			# Doble joystick: los mortales van en la rueda de SALTO y el joystick derecho es el GIRO
 			intent.stick_twist = true

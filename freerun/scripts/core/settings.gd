@@ -17,8 +17,10 @@ var control_opacity := 0.55
 var left_handed := false          # intercambia joystick y botones
 var force_touch_ui := false       # mostrar controles táctiles en escritorio
 var invert_camera_y := false
-## Acrobacias: 0 = gestos + cruceta, 1 = solo gestos, 2 = solo cruceta de botones
-var trick_controls := 0
+## Acrobacias: 0 doble joystick (rueda) · 1 solo gestos · 2 solo cruceta · 3 gestos + cruceta
+## · 4 BOTONERA (SALTO grande + arco de botones, uno por movimiento) — por defecto
+var trick_controls := 4
+var controls_version := 2         # sube cuando cambia el esquema por defecto
 
 # Jugabilidad
 ## 0 = Pro (sin ayudas), 1 = Media, 2 = Alta. Afecta a la calibración de rotaciones y al "spotting".
@@ -37,6 +39,9 @@ func load_settings() -> void:
 		return
 	for key in _keys():
 		set(key, cfg.get_value("settings", key, get(key)))
+	if int(cfg.get_value("settings", "controls_version", 0)) < 2:
+		trick_controls = 4            # nuevo esquema por defecto: la botonera
+		controls_version = 2
 
 func save_settings() -> void:
 	var cfg := ConfigFile.new()
@@ -47,7 +52,7 @@ func save_settings() -> void:
 
 func _keys() -> Array:
 	return ["camera_sensitivity", "gesture_sensitivity", "control_scale", "camera_distance", "camera_height", "camera_mode", "control_opacity",
-		"left_handed", "force_touch_ui", "invert_camera_y", "trick_controls", "rotation_assist", "graphics_preset", "show_fps"]
+		"left_handed", "force_touch_ui", "invert_camera_y", "trick_controls", "controls_version", "rotation_assist", "graphics_preset", "show_fps"]
 
 func assist_strength() -> float:
 	return [0.0, 0.5, 1.0][clampi(rotation_assist, 0, 2)]

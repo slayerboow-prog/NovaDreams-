@@ -23,6 +23,7 @@ func _ready() -> void:
 	game.camera.set_process(false)
 	player.camera_yaw = 0.0
 	game.router.scripted = _drive
+	Settings.trick_controls = 0             # las pruebas de doble joystick lo necesitan; la botonera se prueba aparte
 	player.move_performed.connect(func(n, _q, _i): moves.append(n))
 	player.landed.connect(func(r): landings.append(r))
 	player.bailed.connect(func(r): bails.append(r))
@@ -104,12 +105,14 @@ func _run_all() -> void:
 	await t_wheel_twist()
 	await t_wheel_no_twist()
 	await t_touch_layout()
+	await t_ring_buttons()
 	await t_landing_feel()
 	await t_new_tricks()
 	await t_gestures()
 	await t_ground_skills()
 	await t_chains()
 	await t_vault_variants()
+	await t_vault_hands()
 	await t_combo_logic()
 	await t_flow()
 	await t_camera()
@@ -169,7 +172,7 @@ func t_backflip() -> void:
 		i.jump_held = true
 		i.flick = Vector2(0, -1) if f == 3 else Vector2.ZERO
 		i.tuck = f >= 3 and f < 10, 120,
-		func(): return player.state == PlayerController.State.GROUND and _f > 5)
+		func(): return player.state == PlayerController.State.GROUND and _f > 16)
 	check("Backflip: reconocido", "Backflip" in moves, str(moves))
 	check("Backflip: aterrizaje no fallido", landings.size() > 0 and landings[-1].quality != "crash", str(landings.map(func(l): return l.quality)))
 	# Desde carrera = Gainer
@@ -188,7 +191,7 @@ func t_frontflip_cork() -> void:
 		i.jump_pressed = f == 0
 		i.jump_held = true
 		i.flick = Vector2(0, 1) if f == 2 else Vector2.ZERO, 120,
-		func(): return player.state == PlayerController.State.GROUND and _f > 5)
+		func(): return player.state == PlayerController.State.GROUND and _f > 16)
 	check("Frontflip: reconocido", "Frontflip" in moves, str(moves))
 	await place(Vector3(-35, 0.1, 35), Vector3.FORWARD)
 	await run(func(i, f):
@@ -205,7 +208,7 @@ func t_frontflip_cork() -> void:
 		i.jump_pressed = f == 0
 		i.jump_held = true
 		i.flick = Vector2(1, 0) if f == 2 else Vector2.ZERO, 120,
-		func(): return player.state == PlayerController.State.GROUND and _f > 5)
+		func(): return player.state == PlayerController.State.GROUND and _f > 16)
 	check("Sideflip: reconocido", "Sideflip" in moves, str(moves))
 
 func t_ground_flick_buffer() -> void:
@@ -217,7 +220,7 @@ func t_ground_flick_buffer() -> void:
 		i.flick = Vector2(0, -1) if f == 0 else Vector2.ZERO
 		i.jump_pressed = f == 8
 		i.jump_held = f >= 8, 120,
-		func(): return _f > 20 and player.state == PlayerController.State.GROUND)
+		func(): return _f > 24 and player.state == PlayerController.State.GROUND)
 	check("Gesto y salto en <0,25 s: backflip desde el despegue", "Backflip" in moves, str(moves))
 	var fb: Feedback = game.get_node("Feedback")
 	check("Audio: efectos sintetizados", fb.sounds.size() >= 9 and fb.sounds.step.data.size() > 1000, str(fb.sounds.keys()))
@@ -229,7 +232,7 @@ func t_overrotation_crash() -> void:
 		i.jump_held = true
 		i.flick = Vector2(0, -1) if f == 2 else Vector2.ZERO
 		i.tuck = f >= 2, 200,
-		func(): return player.state == PlayerController.State.CRASH or (player.state == PlayerController.State.GROUND and _f > 5))
+		func(): return player.state == PlayerController.State.CRASH or (player.state == PlayerController.State.GROUND and _f > 16))
 	check("Pro: girar de más penaliza (forzado o caída)", landings.size() > 0 and landings[-1].quality in ["sloppy", "crash"],
 		"estado %s, landings %s" % [PlayerController.STATE_NAMES[player.state], str(landings.map(func(l): return [l.quality, int(l.error)]))])
 	await run(func(i, f): pass, 120, func(): return player.state == PlayerController.State.GROUND)
@@ -241,7 +244,7 @@ func t_overrotation_crash() -> void:
 		i.jump_held = true
 		i.flick = Vector2(0, -1) if f == 2 else Vector2.ZERO
 		i.tuck = f >= 2 and player.tricks.total_pitch < deg_to_rad(250), 200,
-		func(): return player.state == PlayerController.State.CRASH or (player.state == PlayerController.State.GROUND and _f > 5))
+		func(): return player.state == PlayerController.State.CRASH or (player.state == PlayerController.State.GROUND and _f > 16))
 	check("Pro: abrir a tiempo aterriza el backflip", "Backflip" in moves, str(moves) + str(landings.map(func(l): return [l.quality, int(l.error)])))
 
 func _run_at_obstacle(start: Vector3, stick: float, sprint: bool, jump_z: float) -> void:
@@ -251,7 +254,7 @@ func _run_at_obstacle(start: Vector3, stick: float, sprint: bool, jump_z: float)
 		i.move = Vector2(0, stick); i.sprint = sprint
 		i.jump_pressed = not st.pressed and player.global_position.z <= jump_z
 		st.pressed = st.pressed or i.jump_pressed, 200,
-		func(): return st.pressed and _f > 5 and player.state == PlayerController.State.GROUND)
+		func(): return st.pressed and _f > 16 and player.state == PlayerController.State.GROUND)
 
 func t_speed_vault() -> void:
 	await _run_at_obstacle(Vector3(0, 0.1, 2), 0.8, false, -4.85)
@@ -544,7 +547,7 @@ func t_wheel_twist() -> void:
 			i.jump_held = f < 25
 			i.twist = 1.0 if f >= 14 and f < 14 + hold else 0.0
 			if f == 0: i.rot = Vector2.ZERO, 150,
-			func(): return _f > 10 and player.state == PlayerController.State.GROUND)
+			func(): return _f > 16 and player.state == PlayerController.State.GROUND)
 		res[hold] = moves.duplicate()
 	check("GIRO: un toque corto = ¼ de giro (Hyper)", "Backflip Hyper" in res[5], str(res[5]))
 	check("GIRO: algo más = medio giro (Back Half)", "Back Half" in res[13], str(res[13]))
@@ -559,7 +562,7 @@ func t_wheel_twist() -> void:
 			i.flick = flv if f == 0 else Vector2.ZERO
 			i.tuck = f < 25; i.jump_held = f < 25
 			i.twist = -1.0 if f >= 12 and f < 38 else 0.0, 150,
-			func(): return _f > 10 and player.state == PlayerController.State.GROUND)
+			func(): return _f > 16 and player.state == PlayerController.State.GROUND)
 		check("GIRO: también en %s" % fl[1], fl[1] in moves, str(moves))
 	# Cork: mortal atrás corriendo + vuelta completa de GIRO; Cork 720 con dos vueltas
 	for c in [[26, "Cork"], [52, "Cork 720"]]:
@@ -624,7 +627,7 @@ func t_new_controls() -> void:
 		i.move = Vector2(0, 0.8)
 		i.vault_pressed = not st.p and player.global_position.z <= -4.85
 		st.p = st.p or i.vault_pressed, 200,
-		func(): return st.p and _f > 5 and player.state == PlayerController.State.GROUND)
+		func(): return st.p and _f > 16 and player.state == PlayerController.State.GROUND)
 	check("VAULT: botón propio supera el obstáculo", ("Speed Vault" in moves or "Step Vault" in moves) and player.global_position.z < -6.5, "%s z %.2f" % [moves, player.global_position.z])
 	# VAULT + joystick derecho lateral = Reverse Vault
 	await place(Vector3(0, 0.1, -8), Vector3.FORWARD)
@@ -634,7 +637,7 @@ func t_new_controls() -> void:
 		i.rot = Vector2(1, 0) if player.global_position.z <= -12.0 else Vector2.ZERO
 		i.vault_pressed = not st.p and player.global_position.z <= -12.9
 		st.p = st.p or i.vault_pressed, 200,
-		func(): return st.p and _f > 5 and player.state == PlayerController.State.GROUND)
+		func(): return st.p and _f > 16 and player.state == PlayerController.State.GROUND)
 	check("VAULT + joystick derecho →: Reverse Vault", "Reverse Vault" in moves, str(moves))
 	# AGARRAR junto a una pared alta = trepar; colgado del borde, AGARRAR = SOLTAR
 	await place(Vector3(0, 0.1, -34.5), Vector3.FORWARD)
@@ -906,7 +909,8 @@ func t_touch_layout() -> void:
 		if TouchControls.sector_of(v) != pair[1]:
 			problems.append("sector %d° -> %d (esperado %d)" % [int(pair[0]), TouchControls.sector_of(v), pair[1]])
 	var old_mode := Settings.trick_controls
-	for combo in [[0, Vector2(1560, 720)], [0, Vector2(1280, 720)], [0, Vector2(960, 720)], [3, Vector2(1560, 720)], [3, Vector2(1280, 720)], [3, Vector2(960, 720)]]:
+	for combo in [[0, Vector2(1560, 720)], [0, Vector2(1280, 720)], [0, Vector2(960, 720)], [3, Vector2(1560, 720)], [3, Vector2(1280, 720)], [3, Vector2(960, 720)],
+			[4, Vector2(1560, 720)], [4, Vector2(1542, 720)], [4, Vector2(1280, 720)], [4, Vector2(960, 720)]]:
 		Settings.trick_controls = combo[0]
 		var sz: Vector2 = combo[1]
 		for sc in [1.0, 1.4]:
@@ -990,7 +994,7 @@ func t_new_tricks() -> void:
 		i.jump_held = true
 		i.flick = Vector2(0, -1) if f == 2 else Vector2.ZERO
 		i.kick = f == 8, 120,
-		func(): return _f > 10 and player.state == PlayerController.State.GROUND)
+		func(): return _f > 16 and player.state == PlayerController.State.GROUND)
 	q = landings[-1].quality if landings.size() > 0 else "none"
 	check("Back Full: mortal atrás + GIRO = tirabuzón completo", "Back Full" in moves and q in ["perfect", "clean"], str(moves) + " " + q)
 	# Nombres según despegue y tirabuzones (tabla de trucos)
@@ -1215,7 +1219,7 @@ func t_ground_skills() -> void:
 		i.jump_pressed = f == 0; i.flick = Vector2(0, -1) if f == 0 else Vector2.ZERO
 		i.tuck = f < 12; i.jump_held = f < 12
 		if game.rig.contact_w.hl > 0.5 or game.rig.contact_w.hr > 0.5: bf.hands += 1, 120,
-		func(): return _f > 10 and player.state == PlayerController.State.GROUND)
+		func(): return _f > 16 and player.state == PlayerController.State.GROUND)
 	check("Backflip sin apoyo de manos (el flic-flac sí apoya)", "Backflip" in moves and bf.hands == 0, "%s manos %d" % [moves, bf.hands])
 	# Potencia: la rondada con carrera transforma la velocidad en recepción y rebote
 	await place(Vector3(-35, 0.1, 35), Vector3.FORWARD)
@@ -1292,6 +1296,8 @@ func chain_run(steps: Array, pre_run := 0) -> Dictionary:
 				i.twist = float(a[1]) if k >= int(a[3]) and k < int(a[3]) + int(a[2]) else 0.0
 				finished = k > 6 and player.state != PlayerController.State.AIR
 			"jump":
+				if k == 0: st.flew = false
+				if player.state == PlayerController.State.AIR: st.flew = true
 				i.jump_pressed = k == 0
 				i.flick = a[1] if k == 0 else Vector2.ZERO
 				var need := TAU * (2.0 if a.size() > 3 and a[3] else 1.0) - deg_to_rad(110)
@@ -1303,7 +1309,7 @@ func chain_run(steps: Array, pre_run := 0) -> Dictionary:
 					i.flick = a[1]              # otra vuelta (zona de la rueda otra vez)
 				var tf: int = a[2] if a.size() > 2 else 0
 				i.twist = signf(tf) if tf != 0 and k >= 8 and k < 8 + absi(tf) else 0.0
-				finished = k > 6 and player.state != PlayerController.State.AIR
+				finished = k > 6 and st.get("flew", false) and player.state != PlayerController.State.AIR
 		if finished:
 			st.last_serial = st.trig_serial
 			st.last_chain = st.trig_chain
@@ -1398,16 +1404,116 @@ func t_wheel_no_twist() -> void:
 	var tw := {"max": 0.0}
 	await run(func(i, f):
 		i.stick_twist = true
-		i.jump_pressed = f == 0 or f == 10            # centro de SALTO otra vez en el aire
-		i.flick = Vector2(0, -1) if f == 0 else (Vector2(1, 0) if f == 6 else Vector2.ZERO)   # zona LATERAL en el mortal
-		i.tuck = f < 14; i.jump_held = i.tuck
+		i.jump_pressed = f == 0 or f == 20            # centro de SALTO otra vez en el aire
+		i.flick = Vector2(0, -1) if f == 0 else (Vector2(1, 0) if f == 16 else Vector2.ZERO)   # zona LATERAL en el mortal
+		i.tuck = f < 24; i.jump_held = i.tuck
 		tw.max = maxf(tw.max, absf(player.tricks.total_twist)), 150,
-		func(): return _f > 10 and player.state == PlayerController.State.GROUND)
+		func(): return _f > 16 and player.state == PlayerController.State.GROUND)
 	check("Rueda: en el aire no añade tirabuzón ni giro (solo el joystick GIRO gira)", "Backflip" in moves and tw.max < 0.05, "%s giro %.2f" % [moves, tw.max])
 	await place(Vector3(-35, 0.1, 35), Vector3.FORWARD)
 	await run(func(i, f):
 		i.stick_twist = true
 		i.jump_pressed = f == 0 or f == 10
 		i.flick = Vector2.ZERO
-		i.jump_held = f < 14, 120, func(): return _f > 10 and player.state == PlayerController.State.GROUND)
+		i.jump_held = f < 14, 120, func(): return _f > 16 and player.state == PlayerController.State.GROUND)
 	check("Rueda: el centro pulsado otra vez en el aire no hace patada giratoria", moves.is_empty(), str(moves))
+
+## Vaults: las manos se apoyan de verdad sobre el obstáculo (se clavan en la superficie).
+func t_vault_hands() -> void:
+	var rig: BodyRig = game.rig
+	for c in [["Kong Vault", Vector3(0, 0.1, -8), -12.9, 1.0, true], ["Speed Vault", Vector3(0, 0.1, 2), -4.85, 0.8, false]]:
+		await place(c[1], Vector3.FORWARD)
+		var r := {"p": false, "frames": 0, "drift": 0.0, "below": 0.0}
+		await run(func(i, f):
+			i.move = Vector2(0, c[3]); i.sprint = c[4]
+			i.vault_pressed = not r.p and player.global_position.z <= c[2]
+			r.p = r.p or i.vault_pressed
+			if player.state == PlayerController.State.VAULT:
+				var top: float = player.vault.top_y
+				for h in ["hl", "hr"]:
+					if rig.contact_w[h] >= 0.99 and rig.plants.has(h):
+						r.frames += 1
+						var e := rig.limb_end(h)
+						r.drift = maxf(r.drift, (e - (rig.plants[h] as Vector3)).length())
+						r.below = minf(r.below, e.y - (top + BodyRig.HAND_R)), 220,
+			func(): return r.p and _f > 16 and player.state == PlayerController.State.GROUND)
+		check("%s: manos apoyadas sobre el obstáculo (deriva < 8 cm, %d fotogramas)" % [c[0], r.frames],
+			c[0] in moves and r.frames >= 3 and r.drift < 0.08 and r.below > -0.03, "%s deriva %.3f bajo %.3f" % [moves, r.drift, r.below])
+
+## Botonera (esquema por defecto): SALTO grande y arco de 3/4 de círculo con un botón por
+## movimiento, abajo a la derecha; joystick de movimiento y joystick GIRO. Toques reales.
+func t_ring_buttons() -> void:
+	var touch: TouchControls = game.ui.touch
+	var old_mode := Settings.trick_controls
+	Settings.trick_controls = 4
+	Settings.force_touch_ui = true
+	touch.visible = true
+	touch.size = Vector2(1542, 720)
+	var n := TouchControls.RING_BUTTONS.size()
+	# Geometría: arco de 270° alrededor del SALTO, abajo a la derecha
+	var jc := touch._jump_center()
+	var first := touch.ring_button_center(0)
+	var last := touch.ring_button_center(n - 1)
+	var top := touch.ring_button_center(n / 2)
+	check("Botonera: SALTO abajo a la derecha y %d botones en 3/4 de círculo" % n,
+		jc.x > touch.size.x * 0.7 and jc.y > touch.size.y * 0.55 and first.x < jc.x and first.y > jc.y and last.x > jc.x and last.y > jc.y and top.y < jc.y - 100,
+		"salto %s primero %s último %s" % [jc, first, last])
+	var press := func(idx: int, on: bool) -> void:
+		var e := InputEventScreenTouch.new()
+		e.index = 5
+		e.position = touch.ring_button_center(idx)
+		e.pressed = on
+		touch._on_touch(e)
+	var find := func(label: String) -> int:
+		for i in n:
+			if String(TouchControls.RING_BUTTONS[i][0]).replace("\n", " ") == label:
+				return i
+		return -1
+	game.router.scripted = Callable()            # entrada real: el táctil
+	for c in [["ATRÁS", "Backflip"], ["ADELANTE", "Frontflip"], ["DOBLE ATRÁS", "Double Backflip"], ["LATERAL ▶", "Sideflip"],
+			["RONDADA", "Round-off"], ["FLIC-FLAC", "Back Handspring"], ["RUEDA", "Cartwheel"], ["PALOMA", "Front Handspring"], ["MACACO", "Macaco"]]:
+		var bi: int = find.call(c[0])
+		player.set_spawn(Transform3D(Basis(), Vector3(-35, 0.1, 35)), Vector3.FORWARD)
+		player.respawn()
+		player.camera_yaw = 0.0
+		await frames(20)
+		moves.clear(); landings.clear()
+		press.call(bi, true)
+		var held := 0
+		for k in 220:
+			await get_tree().physics_frame
+			var tr := player.tricks
+			var need := TAU * (2.0 if c[1].begins_with("Double") else 1.0) - deg_to_rad(100)
+			if held == 0 and (k > 40 or maxf(absf(tr.total_pitch), absf(tr.total_roll)) > need):
+				press.call(bi, false)                  # suelta el botón: se abre y aterriza
+				held = 1
+			if k > 30 and player.state == PlayerController.State.GROUND:
+				break
+		if held == 0:
+			press.call(bi, false)
+		await frames(10)
+		check("Botonera: botón %s = %s" % [c[0].replace("\n", " "), c[1]], c[1] in moves and landings.all(func(l): return l.quality in ["perfect", "clean"]),
+			"%s %s" % [moves, landings.map(func(l): return l.quality)])
+	# Enlace con botones: RONDADA → FLIC-FLAC (pulsado durante la rondada) → ATRÁS (en la recepción)
+	player.set_spawn(Transform3D(Basis(), Vector3(-35, 0.1, 40)), Vector3.FORWARD)
+	player.respawn()
+	await frames(20)
+	moves.clear(); landings.clear()
+	var st := {"step": 0}
+	for k in 400:
+		if st.step == 0:
+			press.call(find.call("RONDADA"), true); press.call(find.call("RONDADA"), false); st.step = 1
+		elif st.step == 1 and player.state == PlayerController.State.SKILL and player.skill.id == "roundoff" and player.skill.s > 0.5:
+			press.call(find.call("FLIC-FLAC"), true); press.call(find.call("FLIC-FLAC"), false); st.step = 2
+		elif st.step == 2 and player.state == PlayerController.State.SKILL and player.skill.id == "bhs" and player.skill.get("linked", false):
+			press.call(find.call("ATRÁS"), true); st.step = 3; st.t = k
+		elif st.step == 3 and k - int(st.t) > 14:
+			press.call(find.call("ATRÁS"), false); st.step = 4
+		await get_tree().physics_frame
+		if st.step == 4 and player.state == PlayerController.State.GROUND and k > 60:
+			break
+	check("Botonera: enlace RONDADA → FLIC-FLAC → ATRÁS con botones", moves.size() >= 3 and moves[0] == "Round-off" and moves[1] == "Back Handspring" and moves[2] in ["Backflip", "Gainer"], str(moves))
+	touch.size = touch.get_viewport_rect().size
+	game.router.scripted = _drive
+	Settings.trick_controls = old_mode
+	Settings.force_touch_ui = false

@@ -50,6 +50,28 @@ var kick_timer := 0.0                   # botón GIRO pulsado justo antes de sal
 var last_landing := {}
 var jump_load := 0.0                    # flexión previa al salto (anticipación)
 var jump_load_kind := "stand"
+var jump_load_total := 0.07             # duración de la flexión en curso (para la animación)
+var jump_flip := "jump"                 # despegue propio del mortal pedido (TAKEOFF)
+var takeoff_style := ""                 # se aplica en el impulso del salto
+var pre_twist := 0.0                    # GIRO ya inclinado durante la flexión: el tirabuzón arranca en el despegue
+var pre_twist_dir := 0.0
+## Despegue de cada mortal: flexión (s), impulso vertical extra (m/s) y desplazamiento propio
+## (m/s, + adelante) que solo se nota con poca velocidad (corriendo manda la carrera).
+##   atrás: flexión profunda, brazos abajo-atrás y arriba; sale un poco hacia atrás
+##   doble: flexión más profunda y salto más alto (necesita más tiempo de vuelo)
+##   adelante: tronco delante, brazos atrás, proyecta hacia delante
+##   aerial: zancada y barrido de brazos; avanza · butterfly: carga baja y girada
+const TAKEOFF := {
+	"jump": {"load": 0.07, "vy": 0.0, "fwd": 0.0},
+	"back": {"load": 0.13, "vy": 0.0, "fwd": -0.9},
+	"double_back": {"load": 0.17, "vy": 1.1, "fwd": -0.6},
+	"front": {"load": 0.12, "vy": -0.2, "fwd": 1.3},
+	"double_front": {"load": 0.16, "vy": 0.9, "fwd": 1.2},
+	"side": {"load": 0.14, "vy": 0.0, "fwd": 0.0},
+	"double_side": {"load": 0.17, "vy": 0.9, "fwd": 0.0},
+	"aerial": {"load": 0.16, "vy": -0.4, "fwd": 1.6},
+	"butterfly": {"load": 0.13, "vy": -0.3, "fwd": 0.4},
+}
 var land_quality := ""                  # último aterrizaje (para la animación de recepción)
 var land_timer := 9.0                   # tiempo desde el último aterrizaje
 var context_hint := ""                  # texto del botón contextual
@@ -71,6 +93,7 @@ var chain_event_t := 0.0
 var skill := {}                         # habilidad de suelo en curso (SkillLibrary)
 var skill_serial := 0                   # cambia con cada habilidad (el rig reorienta sin giros raros)
 var last_skill := {}                    # datos de la última habilidad (pruebas/HUD)
+var double_buffer := 0.0                # botonera: se pidió doble mortal hace poco
 
 # Datos de la acción en curso
 var vault := {}
@@ -194,8 +217,8 @@ func _physics_process(dt: float) -> void:
 	if intent.flick != Vector2.ZERO:
 		flick_buffer = intent.flick
 		flick_timer = 0.25
-	else:
-		flick_timer = maxf(0.0, flick_timer - dt)
+	elif jump_load <= 0.0:
+		flick_timer = maxf(0.0, flick_timer - dt)    # durante la flexión el gesto pedido se conserva
 	kick_timer = 0.25 if intent.kick else maxf(0.0, kick_timer - dt)
 	vault_buffer = 0.3 if intent.vault_pressed else maxf(0.0, vault_buffer - dt)
 	grab_buffer = 0.3 if intent.grab_pressed else maxf(0.0, grab_buffer - dt)
@@ -213,6 +236,15 @@ func _physics_process(dt: float) -> void:
 	if not gesture_event.is_empty() and state == State.SKILL and gesture_event.type != "release":
 		chain_event = gesture_event
 		chain_event_t = 0.45
+	# Botonera: botón de un movimiento de suelo (como un gesto: en una habilidad queda en cola)
+	if intent.skill_request != "":
+		var bev := {"type": "skill", "id": intent.skill_request}
+		if state == State.SKILL:
+			chain_event = bev
+			chain_event_t = 0.45
+		elif state == State.GROUND or state == State.CRASH:
+			gesture_event = bev
+	double_buffer = 0.25 if intent.double_flip else maxf(0.0, double_buffer - dt)
 	if intent.respawn_pressed:
 		respawn()
 		return
@@ -293,7 +325,17 @@ func _state_ground(dt: float) -> void:
 
 	if jump_load > 0.0:
 		# Flexión de piernas y brazos atrás antes de despegar (anticipación del salto).
+		if jump_flip == "jump" and flick_timer > 0.0 and not chain.active():
+			# El gesto llegó durante la flexión: se alarga a la del mortal pedido
+			jump_flip = _flip_kind(horizontal_velocity().length())
+			var extra: float = TAKEOFF[jump_flip].load - TAKEOFF["jump"].load
+			jump_load += extra
+			jump_load_total += extra
 		jump_load -= dt
+		if absf(intent.twist) >= 0.35:
+			# El tirabuzón se inicia ya en el despegue (como en la realidad): cuenta el GIRO de la flexión
+			pre_twist += dt
+			pre_twist_dir = intent.twist
 		if jump_load <= 0.0:
 			_takeoff(jump_load_kind)
 			return
@@ -329,8 +371,12 @@ func _state_ground(dt: float) -> void:
 				# Rebote: las piernas ya vienen flexionadas del aterrizaje → enlace inmediato.
 				_takeoff(kind)
 				return
-			# En un enlace la recepción ya es la flexión: contacto corto de rebote (0,06 s)
-			jump_load = maxf(t.jump_load_time if not chain.active() else 0.06, 0.16 if side_turn > 0.0 else 0.0)
+			# Cada mortal tiene su propio despegue (flexión, brazos, impulso). En un enlace la
+			# recepción ya es la flexión: contacto corto de rebote (0,06 s).
+			jump_flip = _flip_kind(spd)
+			var load: float = TAKEOFF[jump_flip].load if t.jump_load_time > 0.0 else 0.0
+			jump_load = maxf(load if not chain.active() else 0.06, 0.16 if side_turn > 0.0 else 0.0)
+			jump_load_total = maxf(jump_load, 0.01)
 			jump_load_kind = kind
 		if intent.action_pressed and spd > 3.0:
 			_start_roll(false)
@@ -357,8 +403,22 @@ func _prepare_side_turn(spd: float) -> void:
 	side_target = Vector3.UP.cross(v) * hs
 	side_turn = 1.0
 
+## Qué mortal sale con este salto (zona/botón pulsado) para elegir su despegue.
+func _flip_kind(spd: float) -> String:
+	if flick_timer <= 0.0:
+		return "jump"
+	var dbl := double_buffer > 0.0 or intent.double_flip
+	match TouchControls.sector_of(flick_buffer):
+		-2, -1, -3: return "double_back" if dbl else "back"
+		2, 1: return "double_front" if dbl else "front"
+		0, 4: return "double_side" if dbl else "side"
+		3: return "butterfly" if spd > 4.0 else "aerial"
+	return "jump"
+
 func _takeoff(kind: String) -> void:
 	jump_load = 0.0
+	takeoff_style = jump_flip if jump_flip != "jump" else _flip_kind(speed())
+	jump_flip = "jump"
 	if side_turn > 0.0:
 		facing = side_target          # despega ya de lado
 		side_turn = 0.0
@@ -383,6 +443,12 @@ func _takeoff(kind: String) -> void:
 		tricks.apply_flick(TouchControls.sector_dir(TouchControls.sector_of(intent.rot)))
 	if kick_timer > 0.0:
 		tricks.apply_kick(_kick_dir())
+	if double_buffer > 0.0 and flick_timer > 0.0:
+		tricks.apply_flick(flick_buffer, false)       # botón DOBLE: otra vuelta pedida desde el despegue
+		double_buffer = 0.0
+	if pre_twist > 0.0 and intent.stick_twist:
+		tricks.twist_input(pre_twist_dir, pre_twist, t)
+	pre_twist = 0.0
 	flick_timer = 0.0
 	kick_timer = 0.0
 
@@ -421,6 +487,14 @@ func _do_jump(kind: String, link := {}) -> void:
 	# Enlace: el rebote de la recepción anterior (rondada, flic-flac...) se suma al impulso de
 	# piernas. No es un multiplicador: sale de la velocidad de recepción y de la técnica.
 	velocity.y += float(link.get("rebound_vy", 0.0))
+	# Despegue propio del mortal: más alto para los dobles, hacia atrás/adelante según la técnica
+	if TAKEOFF.has(takeoff_style):
+		var tk: Dictionary = TAKEOFF[takeoff_style]
+		velocity.y += float(tk.vy)
+		var slow := 1.0 - clampf(spd / 5.0, 0.0, 1.0)
+		velocity.x += facing.x * float(tk.fwd) * slow
+		velocity.z += facing.z * float(tk.fwd) * slow
+	takeoff_style = ""
 	_enter_air(kind)
 	if not link.is_empty():
 		_apply_link_to_air(link)
@@ -491,6 +565,8 @@ func _state_air(dt: float) -> void:
 
 	if intent.flick != Vector2.ZERO:
 		tricks.apply_flick(intent.flick, not intent.stick_twist)
+		if intent.double_flip:
+			tricks.apply_flick(intent.flick, false)            # botón DOBLE en el aire: dos vueltas
 	if intent.kick:
 		tricks.apply_kick(_kick_dir())
 	if twist_lock and absf(intent.twist) < 0.3:
@@ -710,7 +786,8 @@ func _try_vault() -> bool:
 		peak = top_y + 0.12
 	vault = {"kind": kind, "p0": global_position, "dir": dir, "length": length, "duration": duration,
 		"y0": y0, "y1": y1, "ctrl": 2.0 * peak - 0.5 * (y0 + y1), "exit_speed": exit_speed,
-		"mount": info.mount, "jump_queued": false, "flick": Vector2.ZERO, "top_y": top_y}
+		"mount": info.mount, "jump_queued": false, "flick": Vector2.ZERO, "top_y": top_y,
+		"front": d, "depth": depth}
 	facing = dir
 	tricks.reset("vault", spd)
 	_set_state(State.VAULT)
@@ -739,6 +816,11 @@ func _obstacle_ahead() -> bool:
 ## impulso al siguiente movimiento si se enlaza en la recepción (ChainSystem).
 func _ground_gesture(ev: Dictionary) -> bool:
 	match String(ev.type):
+		"skill":
+			# Botón de la botonera. Lado (rueda, rondada, macaco): hacia donde empuja el joystick izquierdo
+			var side := -1 if intent.move.x < -0.3 else 1
+			_start_skill(String(ev.id), side)
+			return true
 		"flick", "double":
 			return _ground_flick(int(ev.sector))
 		"hold":
@@ -874,6 +956,7 @@ func _state_skill(dt: float) -> void:
 		# SALTO un poco antes de recibir: queda en cola (con su zona de la rueda) para el rebote
 		skill.jump_q = true
 		skill.jump_flick = intent.flick
+		skill.jump_double = intent.double_flip
 	if skill.linked:
 		if skill.get("jump_q", false):
 			skill.jump_q = false
@@ -881,6 +964,8 @@ func _state_skill(dt: float) -> void:
 			if skill.jump_flick != Vector2.ZERO:
 				flick_buffer = skill.jump_flick
 				flick_timer = 0.25
+			if skill.get("jump_double", false):
+				double_buffer = 0.25
 		# Enlace en la recepción: SALTO (mortal con rebote) o un gesto (siguiente habilidad)
 		if jump_buffer > 0.0:
 			jump_buffer = 0.0

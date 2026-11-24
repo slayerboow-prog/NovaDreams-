@@ -20,6 +20,8 @@ var body_drop := 0.0
 var _tilt := Basis()
 var _yaw := 0.0
 var _serial := -1
+var _prev_spd := 0.0
+var _accel := 0.0                 # aceleración suavizada (inclinación al arrancar/frenar)
 # Apoyos (IK): punto del suelo donde está plantada cada mano/pie y peso del apoyo
 var plants := {}
 var contact_w := {"hl": 0.0, "hr": 0.0, "fl": 0.0, "fr": 0.0}
@@ -150,6 +152,9 @@ func _process(dt: float) -> void:
 		return
 	var st := player.state
 	var spd := player.speed()
+	if dt > 0.0:
+		_accel = lerpf(_accel, (spd - _prev_spd) / dt, 1.0 - exp(-8.0 * dt))
+	_prev_spd = spd
 	var target := _base_pose()
 	var tilt := Basis()
 	var drop := 0.0
@@ -173,6 +178,11 @@ func _process(dt: float) -> void:
 		PlayerController.State.GROUND:
 			if spd > 0.3:
 				_run_pose(target, spd, dt)
+				# Naturalidad: el tronco se inclina al acelerar y se echa atrás al frenar, y cada
+				# zancada sube y baja un poco el cuerpo (más cuanto más rápido)
+				var amt := clampf(spd / 9.0, 0.0, 1.0)
+				target.spine.x -= clampf(_accel * 0.035, -0.35, 0.4)
+				drop += 0.045 * amt * (0.5 - 0.5 * cos(phase * 2.0))
 			else:
 				_idle_pose(target)
 			if player.stun > 0.0:
@@ -282,19 +292,100 @@ func _process(dt: float) -> void:
 	var trick_basis := player.tricks.basis if st in [PlayerController.State.AIR, PlayerController.State.SWIM] else Basis()
 	pivot.basis = (trick_basis * _tilt).orthonormalized()
 	pivot.position.y = COM_HEIGHT - body_drop
-	_solve_contacts(smp.get("contacts", {}), dt)
+	if st == PlayerController.State.VAULT:
+		_vault_support()
+	else:
+		_solve_contacts(smp.get("contacts", {}), dt)
+
+## Apoyos de manos de cada vault sobre el obstáculo: [mano, desde, hasta, avance sobre el
+## obstáculo (0 = borde de delante, 1 = borde de detrás), lateral]. La mano se clava en la
+## superficie de arriba y el cuerpo se coloca con los hombros a la longitud del brazo.
+const VAULT_HANDS := {
+	"Kong Vault": [["hl", 0.28, 0.55, 0.25, -0.17], ["hr", 0.28, 0.55, 0.25, 0.17]],
+	"Double Kong": [["hl", 0.18, 0.38, 0.15, -0.17], ["hr", 0.18, 0.38, 0.15, 0.17],
+		["hl", 0.55, 0.74, 0.85, -0.17], ["hr", 0.55, 0.74, 0.85, 0.17]],
+	"Kash Vault": [["hl", 0.22, 0.45, 0.25, -0.17], ["hr", 0.22, 0.45, 0.25, 0.17]],
+	"Speed Vault": [["hl", 0.3, 0.58, 0.45, -0.12]],
+	"Lazy Vault": [["hl", 0.25, 0.52, 0.35, -0.15], ["hr", 0.48, 0.74, 0.7, 0.1]],
+	"Step Vault": [["hr", 0.22, 0.55, 0.3, 0.15]],
+	"Thief Vault": [["hr", 0.35, 0.66, 0.2, 0.15]],
+	"Turn Vault": [["hl", 0.25, 0.85, 0.5, -0.2], ["hr", 0.25, 0.85, 0.5, 0.2]],
+	"Reverse Vault": [["hl", 0.3, 0.65, 0.45, -0.1]],
+}
+const VAULT_SHOULDER_H := 0.5
+
+func _vault_support() -> void:
+	var v: Dictionary = player.vault
+	var defs: Array = VAULT_HANDS.get(v.get("kind", ""), [])
+	var s := player.vault_progress()
+	var dir: Vector3 = v.get("dir", player.facing)
+	var right := dir.cross(Vector3.UP).normalized()
+	var p0: Vector3 = v.get("p0", player.global_position)
+	var top: float = v.get("top_y", 0.0)
+	var front: float = v.get("front", 0.5)
+	var depth: float = v.get("depth", 0.6)
+	var contacts := {}
+	var targets := {}
+	var body_w := 0.0
+	for h in defs:
+		var x0: float = h[1]
+		var x1: float = h[2]
+		var ramp := 0.05
+		var w := 0.0
+		if s >= x0 and s <= x1: w = 1.0
+		elif s < x0 and s > x0 - ramp: w = (s - (x0 - ramp)) / ramp
+		elif s > x1 and s < x1 + ramp: w = 1.0 - (s - x1) / ramp
+		# El cuerpo entra y sale del apoyo de forma gradual (sin saltos de la pose)
+		var bw := 0.0
+		var br := 0.18
+		if s >= x0 and s <= x1: bw = 1.0
+		elif s < x0 and s > x0 - br: bw = _smooth((s - (x0 - br)) / br)
+		elif s > x1 and s < x1 + br: bw = _smooth(1.0 - (s - x1) / br)
+		body_w = maxf(body_w, bw)
+		if bw > 0.0 and not targets.has(h[0] + "_body"):
+			targets[h[0] + "_body"] = true
+		if w > contacts.get(h[0], 0.0) or (bw > 0.0 and not targets.has(h[0])):
+			contacts[h[0]] = w
+			# Punto de apoyo: donde está el cuerpo a mitad del apoyo, dentro de la superficie
+			var along: float = float(v.get("length", 1.0)) * (x0 + x1) * 0.5
+			along = clampf(lerpf(along, front + depth * float(h[3]), 0.35), front + 0.08, front + maxf(depth - 0.08, 0.1))
+			var pt := p0 + dir * along + right * float(h[4])
+			targets[h[0]] = Vector3(pt.x, top + HAND_R, pt.z)
+	# El cuerpo se apoya en los brazos: se desplaza para que los hombros queden sobre las manos
+	var sum_w := 0.0
+	var delta := Vector3.ZERO
+	for c in contacts.keys():
+		var sh := (joints["shoulder_" + c.substr(1, 1)] as Node3D).global_position
+		var want: Vector3 = targets[c] + Vector3.UP * VAULT_SHOULDER_H
+		delta += want - sh
+		sum_w += 1.0
+	if sum_w > 0.0:
+		delta = (delta / sum_w).limit_length(0.7) * body_w
+		pivot.global_position += delta
+	var ik := {}
+	for c in contacts.keys():
+		if float(contacts[c]) > 0.0:
+			ik[c] = contacts[c]
+	_solve_contacts({}, 0.0, ik, targets)
 
 # ------------------------------------------------------------------ apoyos (IK)
 
 ## Apoyos reales: una mano/pie apoyado se fija en un punto del suelo y el brazo/pierna se
 ## resuelve con IK de dos huesos mientras el cuerpo gira por encima. Además, ninguna mano ni
 ## pie puede quedar por debajo del suelo en ningún estado.
-func _solve_contacts(contacts: Dictionary, _dt: float) -> void:
+func _solve_contacts(contacts: Dictionary, _dt: float, extra := {}, extra_targets := {}) -> void:
 	if not ik_enabled:
 		return
 	var gy := player.sensor.ground_below(player.global_position + Vector3.UP * 0.5)
 	ground_y = gy if gy != -INF else player.global_position.y - 100.0
+	for c in extra.keys():
+		# Apoyos fuera del suelo (manos sobre un obstáculo): punto fijado por el movimiento
+		contact_w[c] = extra[c]
+		plants[c] = extra_targets[c]
+		_limb_ik(c, extra_targets[c], float(extra[c]))
 	for c in ["hl", "hr", "fl", "fr"]:
+		if extra.has(c):
+			continue
 		var w: float = contacts.get(c, 0.0)
 		contact_w[c] = w
 		var end := limb_end(c)
@@ -732,24 +823,56 @@ func _trick_pose(p: Dictionary, tr: TrickSystem) -> void:
 		last_phase = "agrupando"
 
 ## Fase 1 · PREPARACIÓN (en el suelo, antes de despegar): flexión de piernas, brazos atrás.
+## Cada mortal tiene su preparación: contramovimiento de piernas y balanceo de brazos que
+## empieza atrás/abajo y se lanza hacia arriba justo antes de despegar (p = progreso 0..1).
 func _load_pose(p: Dictionary) -> float:
 	var f := player.flick_buffer if player.flick_timer > 0.0 else Vector2.ZERO
 	var sec := TouchControls.sector_of(f) if f != Vector2.ZERO else 99
-	var vals := {"spine": Vector3(-0.45, 0, 0), "neck": Vector3(0.2, 0, 0),
-		"hip_l": Vector3(1.05, 0, -0.06), "hip_r": Vector3(1.0, 0, 0.06), "knee_l": Vector3(-1.75, 0, 0), "knee_r": Vector3(-1.7, 0, 0),
-		"shoulder_l": Vector3(-0.95, 0, -0.15), "shoulder_r": Vector3(-0.95, 0, 0.15),
+	var kind := player.jump_flip
+	var prog := clampf(1.0 - player.jump_load / maxf(player.jump_load_total, 0.01), 0.0, 1.0)
+	var down := _smooth(prog / 0.65)                    # bajada (flexión)
+	var swing := _smooth((prog - 0.6) / 0.4)            # brazos lanzados arriba al final
+	var depth := 1.0
+	if kind.begins_with("double"):
+		depth = 1.2
+	elif kind == "jump":
+		depth = 0.75
+	var arm_x := lerpf(lerpf(0.3, -1.15, down), 2.2, swing)
+	var vals := {"spine": Vector3(-0.42 * down * depth, 0, 0), "neck": Vector3(0.2, 0, 0),
+		"hip_l": Vector3(1.1 * down * depth, 0, -0.06), "hip_r": Vector3(1.05 * down * depth, 0, 0.06),
+		"knee_l": Vector3(-1.8 * down * depth, 0, 0), "knee_r": Vector3(-1.75 * down * depth, 0, 0),
+		"shoulder_l": Vector3(arm_x, 0, -0.18), "shoulder_r": Vector3(arm_x, 0, 0.18),
 		"elbow_l": Vector3(0.35, 0, 0), "elbow_r": Vector3(0.35, 0, 0)}
-	match sec:
-		0, 4, 1, 3, -1, -3:
-			# Laterales, butterfly y corks: el tronco se carga girado hacia el lado
-			var side := 1.0 if sec in [0, 1, -1] else -1.0
-			vals.spine = Vector3(-0.55, 0.5 * side, 0)
-			vals.shoulder_l = Vector3(-0.4, 0, -0.9)
-			vals.shoulder_r = Vector3(0.9, 0, 0.4)
-		2:
-			vals.spine = Vector3(-0.65, 0, 0)       # frontflip: pecho delante
+	var side := 1.0 if sec in [0, 1, -1] else -1.0
+	match kind:
+		"front", "double_front":
+			# Pecho delante y brazos muy atrás arriba: se proyecta adelante
+			vals.spine = Vector3(-0.7 * down, 0, 0)
+			vals.neck = Vector3(-0.1, 0, 0)
+			var fx := lerpf(lerpf(0.4, -1.5, down), 2.6, swing)
+			vals.shoulder_l = Vector3(fx, 0, -0.15); vals.shoulder_r = Vector3(fx, 0, 0.15)
+		"side", "double_side":
+			# Tronco cargado girado hacia el lado del giro, un brazo cruza y el otro abre
+			vals.spine = Vector3(-0.5 * down, 0.55 * side * down, 0.15 * side * down)
+			vals.shoulder_l = Vector3(lerpf(-0.4, 2.3, swing), 0, lerpf(-0.9, -0.3, swing))
+			vals.shoulder_r = Vector3(lerpf(0.9, 2.3, swing), 0, lerpf(0.4, 0.3, swing))
+		"aerial":
+			# Zancada: pierna delantera flexionada, la de atrás estirada, tronco que cae y brazos barriendo
+			vals.spine = Vector3(-0.85 * down, 0.2 * down, 0)
+			vals.hip_r = Vector3(0.95 * down, 0, 0.05); vals.knee_r = Vector3(-1.0 * down, 0, 0)
+			vals.hip_l = Vector3(-0.45 * down, 0, -0.05); vals.knee_l = Vector3(-0.15 * down, 0, 0)
+			var ax := lerpf(lerpf(2.4, 0.4, down), -0.6, swing)
+			vals.shoulder_l = Vector3(ax, 0, -0.5); vals.shoulder_r = Vector3(ax, 0, 0.5)
+		"butterfly":
+			# Carga baja y girada, brazos lanzados hacia el lado del giro
+			vals.spine = Vector3(-0.9 * down, 0.6 * down, 0)
+			vals.shoulder_l = Vector3(lerpf(0.4, 1.4, swing), 0, lerpf(-1.2, -0.6, swing))
+			vals.shoulder_r = Vector3(lerpf(0.4, 1.4, swing), 0, lerpf(1.2, 0.6, swing))
+		_:
+			if sec in [-1, -3]:
+				vals.spine.y = 0.35 * side * down       # cork: carga ligeramente girada
 	_apply(p, vals, 1.0)
-	return 0.24
+	return (0.24 * depth) * down
 func _vault_pose(p: Dictionary) -> Basis:
 	var s := player.vault_progress()
 	var kind: String = player.vault.get("kind", "Speed Vault")
@@ -759,7 +882,8 @@ func _vault_pose(p: Dictionary) -> Basis:
 			_tuck_pose(p, arc)
 			p.shoulder_l.x = lerpf(2.8, 0.3, s); p.shoulder_r.x = lerpf(2.8, 0.3, s)
 			p.elbow_l.x = 0.2; p.elbow_r.x = 0.2
-			return Basis(Vector3.RIGHT, -1.0 * arc)
+			# Tronco casi horizontal: hombros sobre las manos, cadera alta y piernas pasando entre los brazos
+			return Basis(Vector3.RIGHT, -1.4 * arc)
 		"Double Kong":
 			# Dos apoyos de manos: dos arcos de agrupado sobre el obstáculo
 			var a2 := absf(sin(s * TAU))
