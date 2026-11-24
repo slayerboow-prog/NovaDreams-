@@ -77,6 +77,17 @@ const ES := {
 	"Drop Landing": "Recepción de caída", "Hard Landing": "Recepción dura", "Dive Roll": "Voltereta en plancha",
 	"Barrel Roll": "Voltereta de barril", "Side Roll": "Voltereta lateral", "Back Roll": "Voltereta atrás",
 	"Palm Spin Gainer": "Mortal atrás con giro de palma", "Cast Gainer": "Mortal atrás lanzado",
+	# Gimnasia, tricking y enlaces de potencia
+	"Front Walkover": "Paso adelante (walkover)", "Back Walkover": "Paso atrás (walkover)",
+	"Valdez": "Valdez", "Back Extension Roll": "Voltereta atrás al pino", "Handstand Push-off": "Bajada del pino con rebote",
+	"Aerial Cartwheel": "Rueda sin manos", "Hook Kick": "Patada de gancho", "Crescent Kick": "Patada creciente",
+	"Reverse Crescent Kick": "Patada creciente inversa", "Cheat 360 Kick": "Patada 360 con entrada",
+	"B-Twist": "Mariposa con tirabuzón", "Swing Gainer": "Mortal atrás con barrido", "Master Scoot": "Master scoot",
+	"Round-off Rebound": "Rebote de rondada", "Back Handspring Rebound": "Rebote de flic-flac",
+	"Handstand Push-off Rebound": "Rebote tras bajar del pino", "Macaco Rebound": "Rebote de macaco",
+	"Cartwheel Rebound": "Rebote de rueda", "Back Extension Roll Rebound": "Rebote de voltereta al pino",
+	"Valdez Rebound": "Rebote de valdez", "Handstand (pino)": "Pino", "Handstand Push-off (snap down)": "Bajada del pino con rebote (snap down)",
+	"Butterfly Twist / B-Twist": "Mariposa con tirabuzón (B-Twist)",
 }
 
 ## Nombre en español de un movimiento (si no está en la lista, se deja tal cual).

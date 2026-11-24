@@ -74,6 +74,8 @@ func add_move(move_name: String, quality := 1.0, info := {}) -> float:
 	var repeat_factor := pow(0.5, n)
 	var pts := base_points(move_name, info) * quality * repeat_factor
 	var diff := difficulty_of(move_name, info)
+	if info.get("chain", false):
+		multiplier += 0.15                          # enlace con transferencia de potencia
 	if n == 0:
 		multiplier += 0.25 + 0.35 * diff            # variedad
 	else:

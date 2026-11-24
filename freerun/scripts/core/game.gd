@@ -219,7 +219,7 @@ func _physics_process(dt: float) -> void:
 	if in_menu:
 		return
 	var busy := player.state in [PlayerController.State.AIR, PlayerController.State.VAULT, PlayerController.State.WALLRUN,
-		PlayerController.State.WALLCLIMB, PlayerController.State.HANG, PlayerController.State.CLIMB_UP, PlayerController.State.ROLL]
+		PlayerController.State.WALLCLIMB, PlayerController.State.HANG, PlayerController.State.CLIMB_UP, PlayerController.State.ROLL, PlayerController.State.SKILL]
 	combo.tick(dt, busy, player.speed())
 	flow.tick(dt, busy or player.speed() > 2.5)
 	player.flow_boost = flow.boost()

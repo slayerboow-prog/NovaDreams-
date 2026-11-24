@@ -42,6 +42,9 @@ var drive := 0.0                     # -1 frenar/abrir · 0 neutro · +1 empujar
 var twist_manual := false            # tirabuzón controlado con el joystick GIRO (en cuartos de vuelta)
 var twist_hold := false              # el joystick GIRO está inclinado ahora mismo
 var tuck_time := 0.0                 # tiempo agrupado (lateral agrupado = sideflip; abierto = aerial)
+var travel_speed := 0.0              # velocidad horizontal total al despegar (takeoff_speed = hacia delante)
+var twist_boost := 1.0               # giro heredado de un enlace (hook, raiz, scoot → cork / b-twist)
+var linked := false                  # sale de un enlace (rondada, flic-flac, hook...)
 const QUARTER := PI * 0.5
 
 ## Fracción del vuelo en la que cada acrobacia completa su vuelta SIN agruparse. Agrupado
@@ -98,6 +101,9 @@ func reset(kind := "run", speed := 0.0) -> void:
 	twist_manual = false
 	twist_hold = false
 	tuck_time = 0.0
+	travel_speed = absf(speed)
+	twist_boost = 1.0
+	linked = false
 
 func has_rotation() -> bool:
 	if not active:
@@ -246,11 +252,12 @@ func twist_input(x: float, dt: float, t: MoveTuning) -> void:
 	elif s != dir.twist and absf(total.twist) < 0.3:
 		dir.twist = s                    # cambio de idea al principio: cambia el sentido
 	# Mortal atrás con carrera + tirabuzón = Cork (eje inclinado)
-	if style == "back" and takeoff_speed > 4.0 and takeoff_kind in ["run", "stand"]:
+	# (o enlazado tras una rondada, flic-flac, hook, raiz...: la potencia del enlace lo permite)
+	if style == "back" and (travel_speed > 4.0 or linked) and takeoff_kind in ["run", "stand"]:
 		style = "cork"
 	twist_hold = true
 	settled.twist = false
-	var r := t.twist_stick_rate * lerpf(0.45, 1.0, clampf((mag - 0.35) / 0.6, 0.0, 1.0))
+	var r := t.twist_stick_rate * lerpf(0.45, 1.0, clampf((mag - 0.35) / 0.6, 0.0, 1.0)) * twist_boost
 	rate.twist = dir.twist * r
 	total.twist += rate.twist * dt
 
@@ -424,6 +431,7 @@ static func trick_name(pn: int, rn: int, sn: int, th: int, back: bool, moving: b
 						if detail == "Dash Vault": return "Dash Gainer"
 						return "Vault Gainer"
 					if kind == "ledge": return "Ledge Backflip"
+					if detail in ["crescent", "reverse_crescent"]: return "Swing Gainer"
 					return "Gainer" if moving else "Backflip"
 				if pn == 2:
 					return "Double Gainer" if moving else "Double Backflip"
@@ -472,7 +480,10 @@ static func trick_name(pn: int, rn: int, sn: int, th: int, back: bool, moving: b
 	if st == "kick":
 		match th:
 			0, 1: return ""
-			2: return "Tornado Kick" if moving else "360 Kick"
+			2:
+				if detail in ["scoot", "crescent", "reverse_crescent", "hook", "td_raiz"]:
+					return "Cheat 360 Kick"
+				return "Tornado Kick" if moving else "360 Kick"
 			3: return "540 Kick"
 			4: return "Cheat 720" if moving else "720 Kick"
 			5: return "900 Kick"
@@ -500,8 +511,8 @@ func evaluate() -> Dictionary:
 	var ground_diff := {"cartwheel": 0.5, "roundoff": 0.7, "fhs": 0.8, "bhs": 0.9}
 	if ground_diff.has(style):
 		difficulty = ground_diff[style]
-	if takeoff_detail == "roundoff":
-		difficulty += 0.5                    # enlace rondada → mortal
+	if linked:
+		difficulty += 0.5                    # enlace (rondada → mortal, hook → cork...)
 	if takeoff_kind == "vault":
 		difficulty += 0.5
 	if takeoff_speed > 4.0:
@@ -510,7 +521,7 @@ func evaluate() -> Dictionary:
 		difficulty += 0.4
 	if tq > 0 and tq % 2 == 1:
 		difficulty += 0.3
-	return {"name": name, "difficulty": difficulty, "flips": c.pn, "rolls": c.rn, "spins": c.sn,
+	return {"name": name, "difficulty": difficulty, "chain": linked, "from": takeoff_detail if linked else "", "flips": c.pn, "rolls": c.rn, "spins": c.sn,
 		"twist_halves": c.th, "twist_quarters": tq if tq >= 0 else c.th * 2, "air_time": air_time}
 
 ## Nombre en directo para el HUD (lo que se está ejecutando ahora mismo).

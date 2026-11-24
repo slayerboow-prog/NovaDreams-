@@ -14,8 +14,8 @@ signal state_changed(old_state: int, new_state: int)
 signal entered_water(result: Dictionary)
 signal respawned
 
-enum State { GROUND, AIR, VAULT, WALLRUN, WALLCLIMB, HANG, CLIMB_UP, ROLL, CRASH, SWIM }
-const STATE_NAMES := ["Suelo", "Aire", "Vault", "Wall Run", "Wall Climb", "Colgado", "Subida", "Rodando", "Caída", "Agua"]
+enum State { GROUND, AIR, VAULT, WALLRUN, WALLCLIMB, HANG, CLIMB_UP, ROLL, CRASH, SWIM, SKILL }
+const STATE_NAMES := ["Suelo", "Aire", "Vault", "Wall Run", "Wall Climb", "Colgado", "Subida", "Rodando", "Caída", "Agua", "Habilidad"]
 
 const CAPSULE_RADIUS := 0.3
 const CAPSULE_HEIGHT := 1.8
@@ -63,6 +63,14 @@ var side_turn := 0.0                    # > 0: girando el cuerpo de lado antes d
 var side_target := Vector3.ZERO
 var momentum := 0.0                     # carrera acumulada 0..1: el sprint completo se gana corriendo
 var flow_boost := 0.0                   # 0..1 lo fija el FlowSystem (algo más de velocidad y recuperación)
+var gestures := GestureInterpreter.new() # flick, mantener, arco, cambio de dirección... del joystick derecho
+var gesture_event := {}                 # evento de gesto de este frame
+var chain := ChainSystem.new()          # ventana de enlace y potencia que deja el último movimiento
+var chain_event := {}                   # gesto hecho DURANTE una habilidad: siguiente movimiento en cola
+var chain_event_t := 0.0
+var skill := {}                         # habilidad de suelo en curso (SkillLibrary)
+var skill_serial := 0                   # cambia con cada habilidad (el rig reorienta sin giros raros)
+var last_skill := {}                    # datos de la última habilidad (pruebas/HUD)
 
 # Datos de la acción en curso
 var vault := {}
@@ -115,6 +123,10 @@ func respawn() -> void:
 	roundoff_timer = 0.0
 	momentum = 0.0
 	side_turn = 0.0
+	skill = {}
+	chain.link = {}
+	chain_event = {}
+	gestures.cancel()
 	_set_state(State.AIR)
 	air_kind = "fall"
 	reset_physics_interpolation()
@@ -187,10 +199,20 @@ func _physics_process(dt: float) -> void:
 	kick_timer = 0.25 if intent.kick else maxf(0.0, kick_timer - dt)
 	vault_buffer = 0.3 if intent.vault_pressed else maxf(0.0, vault_buffer - dt)
 	grab_buffer = 0.3 if intent.grab_pressed else maxf(0.0, grab_buffer - dt)
-	roundoff_timer = maxf(0.0, roundoff_timer - dt)
-	var ground_flick := intent.rot_flick if intent.stick_twist else intent.flick
-	if ground_flick != Vector2.ZERO and state == State.GROUND and jump_load <= 0.0 and jump_buffer <= 0.0:
-		ground_wait = ground_pending
+	chain.tick(dt)
+	roundoff_timer = chain.time_left()
+	# Gestos del joystick derecho: solo cuentan los que empiezan en el suelo (o durante una
+	# habilidad / tumbado). Un giro del aire que sigue inclinado al aterrizar no dispara nada.
+	if intent.jump_pressed or intent.vault_pressed:
+		gestures.cancel()
+	var can_start := (state == State.GROUND and jump_load <= 0.0 and not intent.jump_held) or state == State.SKILL or state == State.CRASH
+	gesture_event = gestures.update(intent.rot, dt, can_start)
+	chain_event_t = maxf(0.0, chain_event_t - dt)
+	if chain_event_t <= 0.0:
+		chain_event = {}
+	if not gesture_event.is_empty() and state == State.SKILL and gesture_event.type != "release":
+		chain_event = gesture_event
+		chain_event_t = 0.45
 	if intent.respawn_pressed:
 		respawn()
 		return
@@ -206,6 +228,7 @@ func _physics_process(dt: float) -> void:
 		State.ROLL: _state_roll(dt)
 		State.CRASH: _state_crash(dt)
 		State.SWIM: _state_swim(dt)
+		State.SKILL: _state_skill(dt)
 	_update_context_hint()
 	if global_position.y < t.kill_y:
 		bailed.emit("fall")
@@ -252,7 +275,7 @@ func _state_ground(dt: float) -> void:
 					acc *= 0.25
 			spd = move_toward(spd, target_speed, acc * dt)
 		hv = heading * spd
-	elif jump_load <= 0.0:          # durante la flexión del salto se conserva el impulso
+	elif jump_load <= 0.0 and not chain.active():   # flexión del salto o rebote de un enlace: conserva el impulso
 		hv = hv.move_toward(Vector3.ZERO, t.decel * dt)
 		momentum = maxf(0.0, momentum - dt * 2.5)
 	velocity.x = hv.x
@@ -262,7 +285,8 @@ func _state_ground(dt: float) -> void:
 		# Sideflip en carrera: antes de despegar el atleta se pone de lado (eje del mortal
 		# perpendicular a la carrera) y seguirá avanzando mientras gira, mirando al lado.
 		_turn_facing(side_target, absf(facing.signed_angle_to(side_target, Vector3.UP)) / maxf(jump_load, dt), dt)
-	elif hv.length() > 0.3:
+	elif hv.length() > 0.3 and (mag > 0.08 or not chain.active()):
+		# Tras una rondada/flic-flac se sigue deslizando de espaldas: no se gira solo
 		_turn_facing(hv, t.facing_turn, dt)
 	elif mag > 0.08:
 		_turn_facing(wish, t.facing_turn, dt)
@@ -283,14 +307,16 @@ func _state_ground(dt: float) -> void:
 		if grab_buffer > 0.0 and _try_wall_climb():
 			grab_buffer = 0.0
 			return
-		if ground_wait > 0.0:
-			if jump_buffer > 0.0 or vault_buffer > 0.0:
-				ground_wait = 0.0          # con SALTO el truco sale en el despegue
-			else:
-				ground_wait -= dt
-				if ground_wait <= 0.0 and intent.rot.length() > 0.5 and not _obstacle_ahead():
-					_ground_move(TouchControls.sector_of(intent.rot))
-					return
+		# RODAR casi parado + joystick derecho: voltereta atrás al pino (↓) o valdez (↙ ↘)
+		if intent.action_pressed and spd <= 3.0 and intent.rot.length() > 0.5:
+			var rs := TouchControls.sector_of(intent.rot)
+			if rs in [-2, -1, -3]:
+				gestures.cancel()
+				_start_skill("ber" if rs == -2 else "valdez", 1 if rs != -3 else -1)
+				return
+		if not gesture_event.is_empty() and jump_buffer <= 0.0 and vault_buffer <= 0.0 and not _obstacle_ahead():
+			if _ground_gesture(gesture_event):
+				return
 		if jump_buffer > 0.0:
 			jump_buffer = 0.0
 			if _try_vault():
@@ -299,11 +325,12 @@ func _state_ground(dt: float) -> void:
 				return
 			var kind := "run" if spd > 3.0 else "stand"
 			_prepare_side_turn(spd)
-			if side_turn <= 0.0 and (land_impact > 0.3 or t.jump_load_time <= 0.0):
+			if side_turn <= 0.0 and not chain.active() and (land_impact > 0.3 or t.jump_load_time <= 0.0):
 				# Rebote: las piernas ya vienen flexionadas del aterrizaje → enlace inmediato.
 				_takeoff(kind)
 				return
-			jump_load = maxf(t.jump_load_time, 0.16 if side_turn > 0.0 else 0.0)
+			# En un enlace la recepción ya es la flexión: contacto corto de rebote (0,06 s)
+			jump_load = maxf(t.jump_load_time if not chain.active() else 0.06, 0.16 if side_turn > 0.0 else 0.0)
 			jump_load_kind = kind
 		if intent.action_pressed and spd > 3.0:
 			_start_roll(false)
@@ -335,7 +362,19 @@ func _takeoff(kind: String) -> void:
 	if side_turn > 0.0:
 		facing = side_target          # despega ya de lado
 		side_turn = 0.0
-	_do_jump(kind)
+	# Destino del salto (para el enlace): mortal atrás/adelante/lateral, butterfly, giro o salto
+	var target := "jump"
+	if flick_timer > 0.0:
+		target = ChainSystem.jump_target(TouchControls.sector_of(flick_buffer), speed())
+	elif intent.rot.length() > 0.55 and not intent.stick_twist:
+		target = ChainSystem.jump_target(TouchControls.sector_of(intent.rot), speed())
+	elif kick_timer > 0.0:
+		target = "kick"
+	var lp := _link_for(target)
+	_do_jump(kind, lp)
+	if target == "jump" and not lp.is_empty():
+		# Rebote limpio sin acrobacia (punch): "Round-off Rebound", "Back Handspring Rebound"...
+		_emit_move(String(lp.name) + " Rebound", 1.0, {"difficulty": 0.4 + 0.3 * float(lp.timing), "chain": true})
 	# Gesto hecho justo antes de saltar (o durante la flexión): el mortal arranca en el despegue.
 	if flick_timer > 0.0:
 		tricks.apply_flick(flick_buffer)
@@ -373,26 +412,59 @@ func trick_push() -> float:
 func _kick_dir() -> int:
 	return -1 if intent.move.x > 0.3 else 1
 
-func _do_jump(kind: String) -> void:
+func _do_jump(kind: String, link := {}) -> void:
 	var spd := speed()
 	velocity.y = t.jump_velocity + spd * t.jump_speed_bonus
 	if flow_boost > 0.0:
 		velocity.x *= 1.0 + 0.04 * flow_boost     # en flow el salto llega un poco más lejos
 		velocity.z *= 1.0 + 0.04 * flow_boost
-	var rebound := roundoff_timer > 0.0
-	if rebound:
-		velocity.y *= 1.15                 # rebote de la rondada: más altura para el mortal
-		roundoff_timer = 0.0
+	# Enlace: el rebote de la recepción anterior (rondada, flic-flac...) se suma al impulso de
+	# piernas. No es un multiplicador: sale de la velocidad de recepción y de la técnica.
+	velocity.y += float(link.get("rebound_vy", 0.0))
 	_enter_air(kind)
-	if rebound:
-		tricks.takeoff_detail = "roundoff"
+	if not link.is_empty():
+		_apply_link_to_air(link)
 	move_and_slide()
+
+## Lo que hereda una acrobacia del movimiento anterior: el giro de un hook/raiz/scoot precarga
+## el tirabuzón; el barrido de pierna (crescent, aerial, td raiz) da la rotación horizontal que
+## convierte el salto en butterfly o en gainer aunque no haya carrera.
+func _apply_link_to_air(link: Dictionary) -> void:
+	tricks.takeoff_detail = String(link.from)
+	tricks.linked = true
+	var timing := float(link.get("timing", 1.0))
+	match String(link.get("kind", "")):
+		"giro":
+			tricks.twist_boost = 1.0 + 0.3 * float(link.get("spin", 1.0)) * timing
+			tricks.takeoff_speed = maxf(tricks.takeoff_speed, 4.5)
+			tricks.travel_speed = maxf(tricks.travel_speed, 4.5)
+		"barrido":
+			tricks.takeoff_speed = maxf(tricks.takeoff_speed, 4.5)
+			tricks.travel_speed = maxf(tricks.travel_speed, 4.5)
+
+## Consume el enlace abierto para `target` (habilidad o salto). {} si no hay o no es coherente.
+func _link_for(target: String) -> Dictionary:
+	if not chain.active():
+		return {}
+	var from := chain.from_id()
+	if target == "jump":
+		var table: Dictionary = ChainSystem.CHAINS.get(from, {})
+		for k in table.keys():
+			if table[k] == "rebote":
+				var lp := chain.consume(k)
+				lp.to = "jump"
+				return lp
+		chain.link = {}
+		return {}
+	return chain.consume(target)
 
 func _enter_air(kind: String) -> void:
 	air_kind = kind
 	takeoff_y = global_position.y
 	peak_y = takeoff_y
-	tricks.reset(kind if kind != "fall" else "run", speed())
+	# Velocidad de despegue hacia donde mira (gainer = mortal atrás avanzando) y total
+	tricks.reset(kind if kind != "fall" else "run", horizontal_velocity().dot(facing))
+	tricks.travel_speed = speed()
 	_set_state(State.AIR)
 
 # ---------------------------------------------------------------- aire
@@ -506,8 +578,11 @@ func _land() -> void:
 	land_timer = 0.0
 	if not trick.is_empty():
 		_emit_move(trick.name, qmult, trick)
-	if tricks.takeoff_kind in ["roundoff", "bhs"] and quality != "sloppy":
-		roundoff_timer = 0.45              # rondada / flic-flac: enlace con rebote
+	# Acrobacias preparatorias (aerial, patadas giratorias, butterfly): dejan una ventana de enlace
+	if not trick.is_empty() and quality != "sloppy" and tricks.style in ["aerial", "kick", "butterfly"]:
+		var hvl := horizontal_velocity()
+		chain.open(tricks.style, String(trick.name), 0.42, {"rebound_vy": 0.5, "exit_speed": hvl.length(),
+			"dir": hvl.normalized() if hvl.length() > 0.3 else facing, "spin": 1.0})
 	tricks.reset()
 	land_impact = clampf(impact / 12.0, 0.3, 1.0)
 	landed.emit(result)
@@ -650,50 +725,194 @@ func _obstacle_ahead() -> bool:
 		return false
 	return not sensor.probe_vault(global_position, hv / spd, spd, t.vault_max_height, t.vault_min_height).is_empty()
 
-## Tricking de suelo con el joystick derecho (sin SALTO). Cada movimiento tiene su impulso,
-## trayectoria y forma corporal (BodyRig): no es un salto genérico con otra rotación.
-##   ← →  Cartwheel (rueda: manos al suelo, piernas abiertas, avanza de lado)
-##   ↙ ↘  Round-off (rondada: rueda con media vuelta, cae mirando atrás y rebota)
-##   ↓    Back Handspring (flic-flac: brazos atrás-arriba, cuerpo arqueado, viaja hacia atrás)
-##   ↑    Front Handspring (paloma: manos delante, cuerpo extendido, viaja hacia delante)
-##   ↗    360 Kick / Tornado Kick · ↖ Aerial (parado) / Butterfly Kick (con carrera)
-func _ground_move(sec: int) -> void:
-	twist_lock = true                  # el joystick sigue inclinado: no es un tirabuzón
-	var hv := horizontal_velocity()
-	var spd := hv.length()
-	var fwd := facing
-	var right := fwd.cross(Vector3.UP).normalized()
-	ground_wait = 0.0
-	flick_timer = 0.0
+## Tricking de suelo con el joystick derecho (sin SALTO). El intérprete de gestos decide:
+##   FLICK (inclinar y soltar)   ← → rueda · ↙ ↘ rondada · ↓ flic-flac · ↑ paloma
+##                                ↗ patada 360 / tornado · ↖ aerial (parado) / butterfly (carrera)
+##   MANTENER (0,5 s)             ↓ back walkover · ↑ pino (soltar = front walkover, SALTO = snap down)
+##                                ← → raiz · ↖ ↗ touchdown raiz · ↙ ↘ macaco
+##   ARCO por arriba              crescent (antihorario) / reverse crescent (horario)
+##   ARCO por abajo               hook kick (gira hacia el sentido del arco)
+##   CAMBIO DE DIRECCIÓN          scoot hacia el lado final
+##   RODAR casi parado + ↓ / ↙ ↘   back extension roll / valdez
+## Cada habilidad tiene fases, apoyos y potencia propios (SkillLibrary) y transfiere su
+## impulso al siguiente movimiento si se enlaza en la recepción (ChainSystem).
+func _ground_gesture(ev: Dictionary) -> bool:
+	match String(ev.type):
+		"flick", "double":
+			return _ground_flick(int(ev.sector))
+		"hold":
+			var sec := int(ev.sector)
+			match sec:
+				-2: _start_skill("back_walkover", 1)
+				2: _start_skill("handstand", 1)
+				0, 4: _start_skill("raiz", 1 if sec == 0 else -1)
+				1, 3: _start_skill("td_raiz", 1 if sec == 1 else -1)
+				-1, -3: _start_skill("macaco", 1 if sec == -1 else -1)
+				_: return false
+			return true
+		"arc":
+			if String(ev.through) == "top":
+				_start_skill("crescent" if int(ev.dir) > 0 else "reverse_crescent", 1)
+			else:
+				_start_skill("hook", int(ev.dir))
+			return true
+		"change":
+			var to := int(ev.to)
+			_start_skill("scoot", 1 if to in [0, 1, -1] else -1)
+			return true
+	return false
+
+func _ground_flick(sec: int) -> bool:
 	match sec:
 		0, 4:
-			var side := 1 if sec == 0 else -1
-			_ground_hop("cartwheel", hv * 0.45 + right * side * 2.6, 6.2)
-			tricks.start_ground("cartwheel", side)
+			_start_skill("cartwheel", 1 if sec == 0 else -1)
 		-1, -3:
-			var side := 1 if sec == -1 else -1
-			_ground_hop("roundoff", fwd * maxf(spd * 0.9, 3.2), 6.3)
-			tricks.start_ground("roundoff", side)
+			_start_skill("roundoff", 1 if sec == -1 else -1)
 		-2:
-			_ground_hop("bhs", hv * 0.2 - fwd * 3.6, 6.0)
-			tricks.start_ground("bhs", 1)
+			_start_skill("bhs", 1)
 		2:
-			_ground_hop("fhs", fwd * maxf(spd, 3.8), 6.0)
-			tricks.start_ground("fhs", 1)
+			_start_skill("fhs", 1)
 		1:
+			# Patada giratoria en el aire (360 / tornado / cheat 360 si viene de una entrada)
+			twist_lock = true
 			jump_load = 0.0
-			_do_jump("run" if spd > 3.0 else "stand")
+			var lp := _link_for("kick")
+			_do_jump("run" if speed() > 3.0 else "stand", lp)
 			tricks.apply_kick(_kick_dir())
 		3:
+			twist_lock = true
 			jump_load = 0.0
-			_do_jump("run" if spd > 3.0 else "stand")
+			var lp2 := _link_for(ChainSystem.jump_target(3, maxf(speed(), 4.6 if chain.active() else 0.0)))
+			_do_jump("run" if speed() > 3.0 else "stand", lp2)
 			tricks.apply_flick(Vector2(-0.7, 0.7))
+		_:
+			return false
+	return true
 
-func _ground_hop(kind: String, hvel: Vector3, vy: float) -> void:
+# ---------------------------------------------------------------- habilidades de suelo
+
+func _start_skill(id: String, side: int, start_s := -1.0) -> void:
+	var d := SkillLibrary.get_def(id)
+	twist_lock = true                  # el joystick sigue inclinado: no es un tirabuzón
 	jump_load = 0.0
-	velocity = Vector3(hvel.x, vy, hvel.z)
-	_enter_air(kind)
+	ground_wait = 0.0
+	flick_timer = 0.0
+	chain_event = {}
+	var lp := _link_for(id)
+	var quality := float(lp.get("timing", 1.0)) if not lp.is_empty() else 1.0
+	var pw := SkillLibrary.power(id, horizontal_velocity(), facing, side, quality)
+	if not lp.is_empty():
+		# Enlace coherente: la potencia de la recepción anterior se suma (pasada de tumbling)
+		pw.rebound_vy = clampf(float(pw.rebound_vy) + float(lp.get("rebound_vy", 0.0)) * 0.35, 0.0, 3.2)
+	var s0 := start_s
+	if s0 < 0.0:
+		s0 = float(d.chain_start) if not lp.is_empty() else 0.0
+	skill = {"id": id, "side": side, "s": s0, "dur": float(d.dur) * (0.92 if not lp.is_empty() else 1.0),
+		"power": pw, "link": lp, "facing0": facing, "linked": false, "air": 0.0, "hold_t": 0.0}
+	skill_serial += 1
+	last_skill = {"id": id, "power": pw, "linked_from": String(lp.get("from", "")), "timing": quality}
+	_set_state(State.SKILL)
+
+func skill_sample() -> Dictionary:
+	if skill.is_empty():
+		return {}
+	return SkillLibrary.sample(skill.id, clampf(skill.s, 0.0, 1.0), skill.side)
+
+func _state_skill(dt: float) -> void:
+	var d := SkillLibrary.get_def(skill.id)
+	var hold: bool = d.get("hold", false)
+	skill.s = float(skill.s) + dt / float(skill.dur)
+	if hold and skill.s >= 1.0:
+		# Pino: se mantiene mientras el joystick siga inclinado. Soltar = front walkover;
+		# SALTO = snap down (bloqueo de hombros y rebote).
+		skill.s = 1.0
+		skill.hold_t = float(skill.hold_t) + dt
+		if jump_buffer > 0.0:
+			jump_buffer = 0.0
+			_finish_skill(false)
+			_start_skill("pushoff", 1)
+			return
+		if intent.rot.length() < 0.3 or skill.hold_t > 5.0:
+			var held := float(skill.hold_t)
+			_finish_skill(false)
+			_emit_move("Handstand", 1.0, {"difficulty": float(d.difficulty) + minf(held, 2.0) * 0.2})
+			_start_skill("front_walkover", 1, 0.46)
+			return
+	var smp := skill_sample()
+	var pw: Dictionary = skill.power
+	var hv: Vector3 = pw.dir * float(pw.travel) * float(smp.vel)
+	var sw := float(smp.support)
+	if sw > 0.0:
+		# Manos apoyadas: el desplazamiento sale de pivotar sobre ellas
+		var f0: Vector3 = skill.facing0
+		var frame := Basis(Vector3.UP, atan2(-f0.x, -f0.z))
+		var vs := frame * SkillLibrary.support_velocity(skill.id, float(skill.s), int(skill.side), float(skill.dur))
+		hv = hv.lerp(vs, SkillLibrary._smooth(sw))
+	velocity = Vector3(hv.x, -1.0, hv.z)
 	move_and_slide()
+	if not is_on_floor():
+		skill.air = float(skill.air) + dt
+		if float(skill.air) > 0.12:
+			# El suelo se acaba (borde): sigue como caída con la orientación de un cuerpo de pie
+			_finish_skill(false)
+			_enter_air("fall")
+			return
+	else:
+		skill.air = 0.0
+	# Recepción con los pies: el movimiento cuenta y se abre la ventana de enlace
+	if not skill.linked and skill.s >= float(d.link_at):
+		skill.linked = true
+		var lp: Dictionary = skill.link
+		var chained := not lp.is_empty()
+		_emit_move(String(d.name), 1.0, {"difficulty": float(d.difficulty) + (0.3 if chained else 0.0),
+			"chain": chained, "skill": skill.id, "power": pw})
+		var lpw: Dictionary = pw.duplicate()
+		lpw.skill_serial = skill_serial
+		chain.open(skill.id, String(d.name), float(d.window) * (0.7 + 0.3 * float(d.stability)), lpw)
+	if not skill.linked and intent.jump_pressed:
+		# SALTO un poco antes de recibir: queda en cola (con su zona de la rueda) para el rebote
+		skill.jump_q = true
+		skill.jump_flick = intent.flick
+	if skill.linked:
+		if skill.get("jump_q", false):
+			skill.jump_q = false
+			jump_buffer = 0.1
+			if skill.jump_flick != Vector2.ZERO:
+				flick_buffer = skill.jump_flick
+				flick_timer = 0.25
+		# Enlace en la recepción: SALTO (mortal con rebote) o un gesto (siguiente habilidad)
+		if jump_buffer > 0.0:
+			jump_buffer = 0.0
+			_finish_skill(true)
+			_set_state(State.GROUND)
+			# Contacto corto de rebote: el gesto de la rueda/deslizar que llega ahora aún cuenta
+			jump_load = 0.06
+			jump_load_kind = "run" if speed() > 3.0 else "stand"
+			return
+		if not chain_event.is_empty():
+			var ev := chain_event
+			chain_event = {}
+			_finish_skill(true)
+			_set_state(State.GROUND)
+			if _ground_gesture(ev):
+				return
+	if skill.s >= 1.0 and not hold:
+		_finish_skill(true)
+		_set_state(State.GROUND)
+
+## Termina la habilidad: orientación de salida (media vuelta en rondada/raiz) y velocidad.
+func _finish_skill(keep_speed: bool) -> void:
+	if skill.is_empty():
+		return
+	var d := SkillLibrary.get_def(skill.id)
+	var pw: Dictionary = skill.power
+	facing = (skill.facing0 as Vector3).rotated(Vector3.UP, float(d.exit_yaw) * float(skill.side)).normalized()
+	if keep_speed:
+		var v: Vector3 = pw.dir * float(pw.exit_speed)
+		velocity = Vector3(v.x, -1.0, v.z)
+	last_skill.exit_speed = float(pw.exit_speed)
+	skill = {}
+	skill_serial += 1
 
 func _vault_point(s: float) -> Vector3:
 	var p0: Vector3 = vault.p0
@@ -1046,12 +1265,13 @@ func _state_crash(dt: float) -> void:
 	velocity.z = hv.z
 	velocity.y = maxf(velocity.y - t.gravity * dt, -t.max_fall)
 	move_and_slide()
-	# Kip-up: desde el suelo, SALTO = levantarse de un golpe de riñones (sin esperar)
-	if state_time > 0.3 and is_on_floor() and jump_buffer > 0.0:
+	# Kip-up: tumbado, SALTO o joystick derecho ↑ = levantarse de un golpe de riñones
+	var kip_gesture := not gesture_event.is_empty() and int(gesture_event.get("sector", 99)) in [1, 2, 3]
+	if state_time > 0.3 and is_on_floor() and (jump_buffer > 0.0 or kip_gesture):
 		jump_buffer = 0.0
-		velocity = Vector3(facing.x * 0.6, 5.0, facing.z * 0.6)
-		_enter_air("kipup")
-		_emit_move("Kip-up", 1.0, {})
+		gestures.cancel()
+		velocity = Vector3.ZERO
+		_start_skill("kipup", 1)
 		return
 	if state_time > t.crash_time and is_on_floor():
 		velocity = Vector3.ZERO
@@ -1107,4 +1327,5 @@ func _update_context_hint() -> void:
 		State.HANG: context_hint = "SOLTAR"
 		State.AIR: context_hint = "RODAR"
 		State.GROUND: context_hint = "RODAR" if speed() > 3.0 else ""
+		State.SKILL: context_hint = "ENLAZA" if skill.get("linked", false) else ""
 		_: context_hint = ""

@@ -114,6 +114,8 @@ var max_split := 0.0
 var max_scissor := 0.0
 var max_arms := 0.0                    # brazos por encima de la cabeza (apoyo de manos)
 var max_arch := 0.0                    # espalda arqueada (flic-flac, paloma)
+var skill_phases := {}                 # fases con nombre de las habilidades de suelo
+var hand_support := false              # hubo apoyo real de manos (IK clavado al suelo)
 
 func frames(n: int) -> void:
 	for i in n:
@@ -125,9 +127,19 @@ func frames(n: int) -> void:
 ## Lo que se VE en el cuerpo durante el vuelo: fase de la acrobacia y forma de piernas.
 func _sample() -> void:
 	var tr := player.tricks
+	var rig: BodyRig = game.rig
+	if player.state == PlayerController.State.SKILL:
+		skill_phases[rig.last_phase] = true
+		kinds[rig.last_kind] = true
+		max_split = maxf(max_split, absf((rig.pose.hip_l as Vector3).z - (rig.pose.hip_r as Vector3).z))
+		max_arms = maxf(max_arms, minf((rig.pose.shoulder_l as Vector3).x, (rig.pose.shoulder_r as Vector3).x))
+		max_arch = maxf(max_arch, (rig.pose.spine as Vector3).x)
+		for c in ["hl", "hr"]:
+			if rig.contact_w[c] > 0.99:
+				hand_support = true
+		return
 	if player.state != PlayerController.State.AIR or not tr.active:
 		return
-	var rig: BodyRig = game.rig
 	phases[rig.last_phase] = true
 	kinds[rig.last_kind] = true
 	var hl: Vector3 = rig.pose.hip_l
@@ -221,11 +233,16 @@ func seq(name: String, steps: Array, expect: Array) -> void:
 	await frames(25)
 	moves.clear()
 	landings.clear()
-	phases = {}; kinds = {}
+	phases = {}; kinds = {}; skill_phases = {}; hand_support = false
 	max_tuck = 0.0; max_lead = 0.0; max_split = 0.0; max_scissor = 0.0; max_arms = 0.0; max_arch = 0.0
 	sampling = true
 	var max_rot := 0.0
 	var running := false
+	var skill_done := {"n": 0}
+	var on_move := func(_n, _q, info):
+		if info.has("skill"):
+			skill_done.n += 1
+	player.move_performed.connect(on_move)
 	for st in steps:
 		match st[0]:
 			"run":
@@ -272,17 +289,20 @@ func seq(name: String, steps: Array, expect: Array) -> void:
 				await frames(8)
 				_stick_release()
 			"land", "rebound":
-				var was_air := player.state == PlayerController.State.AIR
-				for i in 200:
+				# Espera a terminar el movimiento en curso (acrobacia aérea o habilidad de suelo);
+				# "rebound" = hasta que se abre la ventana de enlace de la habilidad
+				var busy := player.state in [PlayerController.State.AIR, PlayerController.State.SKILL]
+				for i in 240:
 					await frames(1)
 					var tr := player.tricks
 					for ax in ["pitch", "roll", "spin", "twist"]:
 						max_rot = maxf(max_rot, absf(tr.total[ax]))
-					if player.state == PlayerController.State.AIR:
-						was_air = true
-					if was_air and player.state != PlayerController.State.AIR:
-						if st[0] == "land" or player.roundoff_timer > 0.0 or player.state != PlayerController.State.GROUND:
-							break
+					if player.state in [PlayerController.State.AIR, PlayerController.State.SKILL]:
+						busy = true
+					if st[0] == "rebound" and player.state == PlayerController.State.SKILL and player.skill.get("linked", false):
+						break
+					if busy and player.state not in [PlayerController.State.AIR, PlayerController.State.SKILL]:
+						break
 	if running:
 		joystick(false)
 	sampling = false
@@ -296,7 +316,9 @@ func seq(name: String, steps: Array, expect: Array) -> void:
 			if m == e or (e == "@back" and m in ["Backflip", "Gainer"]):
 				idx += 1
 	check(tag + "se ejecuta y se reconoce en orden: " + " → ".join(expect), idx == expect.size(), str(moves))
-	var clean := landings.size() >= expect.size() and landings.all(func(l): return l.quality in ["perfect", "clean"])
+	player.move_performed.disconnect(on_move)
+	# Recepciones: las aéreas limpias; las habilidades de suelo cuentan al recibir con los pies
+	var clean: bool = landings.size() + int(skill_done.n) >= expect.size() and landings.all(func(l): return l.quality in ["perfect", "clean"])
 	check(tag + "todas las recepciones limpias y enlazadas", clean, str(landings.map(func(l): return l.quality)))
 	var shape_ok := true
 	var shape_txt := ""
@@ -304,7 +326,7 @@ func seq(name: String, steps: Array, expect: Array) -> void:
 		"Cartwheel":
 			shape_ok = max_split > 1.5 and max_arms > 2.7; shape_txt = "manos al suelo y piernas en straddle %.2f/%.2f" % [max_arms, max_split]
 		"Round-off":
-			shape_ok = max_arms > 2.7 and kinds.has("roundoff"); shape_txt = "apoyo de manos y piernas juntas %.2f" % max_arms
+			shape_ok = max_arms > 2.7 and kinds.has("roundoff") and hand_support; shape_txt = "apoyo de manos y piernas juntas %.2f" % max_arms
 		"Back Handspring":
 			shape_ok = max_arch > 0.6 and max_arms > 2.7; shape_txt = "cuerpo arqueado, brazos atrás-arriba %.2f/%.2f" % [max_arch, max_arms]
 		"Front Handspring":
@@ -313,8 +335,12 @@ func seq(name: String, steps: Array, expect: Array) -> void:
 			shape_ok = max_scissor > 1.2; shape_txt = "patada de tijera %.2f" % max_scissor
 	if shape_txt != "":
 		check(tag + "forma corporal: " + shape_txt.split(" %")[0], shape_ok, shape_txt + " " + str(kinds.keys()))
-		var ph_ok := phases.has("impulso") and (phases.has("agrupado") or phases.has("agrupando")) and phases.has("apertura")
-		check(tag + "fases visibles: impulso, forma, apertura", ph_ok, str(phases.keys()))
+		if skill_phases.size() > 0:
+			check(tag + "fases con nombre visibles (%d) y apoyo real de manos" % skill_phases.size(),
+				skill_phases.size() >= 5 and hand_support, str(skill_phases.keys()))
+		else:
+			var ph_ok := phases.has("impulso") and (phases.has("agrupado") or phases.has("agrupando")) and phases.has("apertura")
+			check(tag + "fases visibles: impulso, forma, apertura", ph_ok, str(phases.keys()))
 	check(tag + "termina de pie y con control", player.state in [PlayerController.State.GROUND, PlayerController.State.ROLL], PlayerController.STATE_NAMES[player.state])
 	await frames(15)
 
