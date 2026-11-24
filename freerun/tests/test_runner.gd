@@ -110,6 +110,7 @@ func _run_all() -> void:
 	await t_ground_skills()
 	await t_chains()
 	await t_vault_variants()
+	await t_vault_hands()
 	await t_combo_logic()
 	await t_flow()
 	await t_camera()
@@ -1411,3 +1412,25 @@ func t_wheel_no_twist() -> void:
 		i.flick = Vector2.ZERO
 		i.jump_held = f < 14, 120, func(): return _f > 10 and player.state == PlayerController.State.GROUND)
 	check("Rueda: el centro pulsado otra vez en el aire no hace patada giratoria", moves.is_empty(), str(moves))
+
+## Vaults: las manos se apoyan de verdad sobre el obstáculo (se clavan en la superficie).
+func t_vault_hands() -> void:
+	var rig: BodyRig = game.rig
+	for c in [["Kong Vault", Vector3(0, 0.1, -8), -12.9, 1.0, true], ["Speed Vault", Vector3(0, 0.1, 2), -4.85, 0.8, false]]:
+		await place(c[1], Vector3.FORWARD)
+		var r := {"p": false, "frames": 0, "drift": 0.0, "below": 0.0}
+		await run(func(i, f):
+			i.move = Vector2(0, c[3]); i.sprint = c[4]
+			i.vault_pressed = not r.p and player.global_position.z <= c[2]
+			r.p = r.p or i.vault_pressed
+			if player.state == PlayerController.State.VAULT:
+				var top: float = player.vault.top_y
+				for h in ["hl", "hr"]:
+					if rig.contact_w[h] >= 0.99 and rig.plants.has(h):
+						r.frames += 1
+						var e := rig.limb_end(h)
+						r.drift = maxf(r.drift, (e - (rig.plants[h] as Vector3)).length())
+						r.below = minf(r.below, e.y - (top + BodyRig.HAND_R)), 220,
+			func(): return r.p and _f > 5 and player.state == PlayerController.State.GROUND)
+		check("%s: manos apoyadas sobre el obstáculo (deriva < 8 cm, %d fotogramas)" % [c[0], r.frames],
+			c[0] in moves and r.frames >= 3 and r.drift < 0.08 and r.below > -0.03, "%s deriva %.3f bajo %.3f" % [moves, r.drift, r.below])

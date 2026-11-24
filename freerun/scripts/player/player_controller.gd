@@ -710,7 +710,8 @@ func _try_vault() -> bool:
 		peak = top_y + 0.12
 	vault = {"kind": kind, "p0": global_position, "dir": dir, "length": length, "duration": duration,
 		"y0": y0, "y1": y1, "ctrl": 2.0 * peak - 0.5 * (y0 + y1), "exit_speed": exit_speed,
-		"mount": info.mount, "jump_queued": false, "flick": Vector2.ZERO, "top_y": top_y}
+		"mount": info.mount, "jump_queued": false, "flick": Vector2.ZERO, "top_y": top_y,
+		"front": d, "depth": depth}
 	facing = dir
 	tricks.reset("vault", spd)
 	_set_state(State.VAULT)
