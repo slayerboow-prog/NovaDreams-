@@ -1822,41 +1822,55 @@ func t_salto_giro_sticks() -> void:
 		check("SALTO: línea recta %s = %s" % [str(c[0]), c[1]], c[1] in moves and landings.size() > 0 and landings[-1].quality in ["perfect", "clean"],
 			"%s %s" % [moves, landings.map(func(l): return l.quality)])
 	check("SALTO nunca añade tirabuzones (giro máximo %.2f rad)" % no_twist.max, no_twist.max < 0.05, "")
-	# Páginas de SALTO: el botón dorado cambia de página y cada dirección dibujada es un movimiento
-	for pc in [[1, Vector2(0.71, -0.71), "Hook Kick"], [1, Vector2(1, 0), "Raiz"], [1, Vector2(-0.71, 0.71), "Touchdown Raiz"],
-			[1, Vector2(0, 1), "Macaco"], [1, Vector2(0, -1), "Handstand"]]:
+	# Joystick morado en el suelo: habilidades de tricking y entradas de potencia dibujadas
+	touch.salto_page = 0
+	for gc in [["g_raiz", ["Raiz"]], ["g_td_raiz", ["Touchdown Raiz"]], ["g_macaco", ["Macaco"]], ["g_hook", ["Hook Kick"]],
+			["g_scoot", ["Scoot"]], ["g_scoot_power", ["Scoot"]], ["g_scoot_macaco", ["Scoot", "Macaco"]],
+			["g_spin_lateral", ["3-Step 360", "Cartwheel"]]]:
 		await place(Vector3(-35, 0.1, 35), Vector3.FORWARD)
+		touch.air_mode = false
 		moves.clear()
-		touch.salto_page = 0
-		var sw := InputEventScreenTouch.new(); sw.index = 8; sw.position = touch.salto_swap_center(); sw.pressed = true
-		for t in int(pc[0]):
-			sw.pressed = true; touch._on_touch(sw)
-			sw.pressed = false; touch._on_touch(sw)
-		var pjc := touch._jump_center()
-		var pe := InputEventScreenTouch.new(); pe.index = 7; pe.position = pjc; pe.pressed = true
-		touch._on_touch(pe)
-		var pdr := InputEventScreenDrag.new(); pdr.index = 7; pdr.position = pjc + (pc[1] as Vector2) * 90.0
-		touch._on_drag(pdr)
-		pe.pressed = false; pe.position = pdr.position
-		touch._on_touch(pe)
-		for k in 150:
+		var rc := touch._rot_center()
+		var gp := []
+		for q in GestureRecognizer.resample(GestureRecognizer.giro_preview(gc[0]), 40):
+			gp.append(rc + Vector2(q.x, -q.y) * touch._rot_radius() * 0.8)
+		var ge := InputEventScreenTouch.new(); ge.index = 9; ge.position = gp[0]; ge.pressed = true
+		touch._on_touch(ge)
+		for k in range(1, gp.size()):
+			var gd := InputEventScreenDrag.new(); gd.index = 9; gd.position = gp[k]; touch._on_drag(gd)
+		ge.pressed = false; ge.position = gp[gp.size() - 1]; touch._on_touch(ge)
+		var need: Array = gc[1]
+		for k in 240:
 			await get_tree().physics_frame
-			if pc[2] in moves:
+			if need.all(func(m): return m in moves):
 				break
-		check("SALTO página %s, dibujar %s = %s (sin saltar)" % [TouchControls.SALTO_PAGES[pc[0]].name, str(pc[1]), pc[2]],
-			touch.salto_page == int(pc[0]) and pc[2] in moves, "%s pág %d" % [moves, touch.salto_page])
-	# En una página de habilidades, tocar SALTO sin dibujar sigue siendo un salto
-	await place(Vector3(-35, 0.1, 35), Vector3.FORWARD)
-	touch.salto_page = 1
-	var te := InputEventScreenTouch.new(); te.index = 7; te.position = touch._jump_center(); te.pressed = true
-	touch._on_touch(te)
-	await frames(2)
-	te.pressed = false; touch._on_touch(te)
-	var went_air := false
-	for k in 60:
-		await get_tree().physics_frame
-		went_air = went_air or player.state == PlayerController.State.AIR
-	check("Página de habilidades: tocar SALTO sin dibujar = salto", went_air, "")
+		check("Joystick morado: dibujar %s = %s" % [gc[0].trim_prefix("g_"), " + ".join(need)], need.all(func(m): return m in moves), str(moves))
+	# Círculo en el morado + mortal del dorado (en el suelo)
+	for cc in [[Vector2(0, -1), "Aerial Twist"], [Vector2(1, 0), "Sideflip Twist"], [Vector2(0, 1), "Piru"]]:
+		await place(Vector3(-35, 0.1, 35), Vector3.FORWARD)
+		touch.air_mode = false
+		moves.clear(); landings.clear()
+		var rc2 := touch._rot_center()
+		var cp := []
+		for i in 40:
+			var a2 := -PI * 0.5 + TAU * float(i) / 36.0
+			cp.append(rc2 + Vector2(cos(a2), sin(a2)) * 45.0)
+		var ce := InputEventScreenTouch.new(); ce.index = 9; ce.position = cp[0]; ce.pressed = true
+		touch._on_touch(ce)
+		for k in range(1, cp.size()):
+			var cd := InputEventScreenDrag.new(); cd.index = 9; cd.position = cp[k]; touch._on_drag(cd)
+		ce.pressed = false; ce.position = cp[cp.size() - 1]; touch._on_touch(ce)
+		var jc2 := touch._jump_center()
+		var se := InputEventScreenTouch.new(); se.index = 7; se.position = jc2; se.pressed = true
+		touch._on_touch(se)
+		var sd2 := InputEventScreenDrag.new(); sd2.index = 7; sd2.position = jc2 + (cc[0] as Vector2) * 90.0; touch._on_drag(sd2)
+		se.pressed = false; se.position = sd2.position; touch._on_touch(se)
+		for k in 240:
+			await get_tree().physics_frame
+			if k > 30 and player.state == PlayerController.State.GROUND and not moves.is_empty():
+				break
+		check("Círculo morado + SALTO %s = %s" % [str(cc[0]), cc[1]], cc[1] in moves and landings.size() > 0 and landings[-1].quality != "crash",
+			"%s %s" % [moves, landings.map(func(l): return l.quality)])
 	touch.salto_page = 0
 	game.router.scripted = _drive
 	# Joystick GIRO en el suelo
@@ -2148,8 +2162,10 @@ func t_gesture_patterns() -> void:
 	var dm := InputEventScreenDrag.new(); dm.index = 1; dm.position = mv0 + Vector2(0, -90); dm.relative = Vector2(0, -90)
 	touch._on_drag(dm)
 	_draw_on(touch, 2, [jc, jc + Vector2(0, -40), jc + Vector2(0, -90)])
+	touch.air_mode = true                        # el tirabuzón se dibuja en el aire
 	_draw_on(touch, 3, _circle_pts(rc + Vector2(0, -20), 45, 1.08, -1), false)
 	var fr := touch.collect()
+	touch.air_mode = false
 	check("Multitáctil: joystick azul, dorado y morado a la vez (correr + mortal + tirabuzón)",
 		fr.move.y > 0.5 and fr.flick.y > 0.5 and fr.twist_loops == [-1], "move %s flick %s loops %s" % [fr.move, fr.flick, fr.twist_loops])
 	var e3 := InputEventScreenTouch.new(); e3.index = 3; e3.position = rc; e3.pressed = false

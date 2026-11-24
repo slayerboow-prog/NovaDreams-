@@ -117,6 +117,8 @@ var cork_more := 0                       # cork 720: medias vueltas extra del co
 var cork_more_t := 0.0
 var pending_twists: Array[int] = []      # círculos dibujados en el suelo: salen en el despegue
 var pending_twists_t := 0.0
+var twist_wait_t := 0.0                  # ventana para combinar el círculo con un mortal del dorado
+const TWIST_WAIT := 0.4
 
 # Datos de la acción en curso
 var vault := {}
@@ -586,6 +588,11 @@ func _apply_link_to_air(link: Dictionary) -> void:
 		"barrido":
 			tricks.takeoff_speed = maxf(tricks.takeoff_speed, 4.5)
 			tricks.travel_speed = maxf(tricks.travel_speed, 4.5)
+	if link.get("strong", false):
+		# Entrada de potencia: más altura y el tirabuzón sale con mucha más inercia
+		tricks.twist_boost = maxf(tricks.twist_boost, 1.35)
+		velocity.y += 0.9
+		tricks.takeoff_speed = maxf(tricks.takeoff_speed, 5.0)
 
 ## Consume el enlace abierto para `target` (habilidad o salto). {} si no hay o no es coherente.
 func _link_for(target: String) -> Dictionary:
@@ -830,13 +837,21 @@ func _tick_gestures(dt: float) -> void:
 	if jump_load <= 0.0:
 		extra_twist_t = maxf(0.0, extra_twist_t - dt)
 		pending_twists_t = maxf(0.0, pending_twists_t - dt)
-		if pending_twists_t <= 0.0:
+		if pending_twists_t <= 0.0 and twist_wait_t <= 0.0:
 			pending_twists.clear()
 	cork_more_t = maxf(0.0, cork_more_t - dt)
 	if cork_more_t <= 0.0:
 		cork_more = 0
 	if not intent.pattern.is_empty():
 		_apply_pattern(intent.pattern)
+	if not intent.giro.is_empty():
+		_apply_giro(intent.giro)
+	if twist_wait_t > 0.0:
+		twist_wait_t -= dt
+		if twist_wait_t <= 0.0 and state == State.GROUND and not pending_twists.is_empty() and jump_load <= 0.0 and jump_buffer <= 0.0:
+			jump_buffer = t.jump_buffer_time         # nadie pidió mortal: salto con giro de 360
+	if not pending_twists.is_empty() and intent.flick != Vector2.ZERO and TouchControls.sector_of(intent.flick) == 2:
+		flick_buffer = Vector2(-0.71, 0.71)          # círculo + SALTO ↑ = aerial twist
 	if intent.giro_sector != 99:
 		# Joystick morado en línea recta: rondada, flic-flac o rueda (en una habilidad, en cola)
 		var gev := {"type": "flick", "sector": intent.giro_sector}
@@ -855,10 +870,56 @@ func _tick_gestures(dt: float) -> void:
 				q.append(ev)
 				vault["twists"] = q
 			State.GROUND:
+				# Círculo en el suelo: espera un instante por si llega un mortal del dorado
+				# (↑ aerial twist · ← → sideflip twist · ↓ piru); si no, salto con giro de 360
 				pending_twists.append(ev)
-				pending_twists_t = 0.4
-				if jump_load <= 0.0:
-					jump_buffer = t.jump_buffer_time   # círculo en el suelo: salto con tirabuzón
+				pending_twists_t = 1.0
+				twist_wait_t = TWIST_WAIT
+
+## Joystick morado en el suelo (GestureRecognizer.recognize_giro): habilidades de suelo y
+## entradas de potencia. En una habilidad quedan en cola para el enlace.
+const GIRO_SKILLS := {"rondada": "roundoff", "flicflac": "bhs", "rueda": "cartwheel", "raiz": "raiz",
+	"td_raiz": "td_raiz", "macaco": "macaco", "hook": "hook", "scoot": "scoot"}
+func _apply_giro(g: Dictionary) -> void:
+	var id := String(g.get("id", ""))
+	var sd := 1 if int(g.get("side", 1)) >= 0 else -1
+	if id == "twist":
+		var tl: Array[int] = []
+		for k in maxi(int(g.get("loops", 1)), 1):
+			tl.append(int(g.get("dir", 1)))
+		if state == State.GROUND:
+			for e in tl:
+				pending_twists.append(e)
+			pending_twists_t = 1.0
+			twist_wait_t = TWIST_WAIT
+		elif state == State.AIR:
+			for e in tl:
+				tricks.add_twist_turn(e, time_to_ground(), t)
+		elif state == State.SKILL:
+			for e in tl:
+				pending_twists.append(e)          # sale en el mortal que se enlace (rueda → piru)
+			pending_twists_t = 1.5
+		return
+	if id == "rondada":
+		sd = -1 if intent.move.x < -0.3 else 1
+	var skill_id := String(GIRO_SKILLS.get(id, ""))
+	var strong := false
+	var next := ""
+	match id:
+		"scoot_power":
+			skill_id = "scoot"; strong = true
+		"scoot_macaco":
+			skill_id = "scoot"; strong = true; next = "macaco"
+		"spin_lateral":
+			skill_id = "spin_entry"; strong = true; next = "cartwheel"
+	if skill_id == "":
+		return
+	if state == State.SKILL and not strong:
+		chain_event = {"type": "skill", "id": "%s:%d" % [skill_id, sd]}
+		chain_event_t = 0.45
+	elif state in [State.GROUND, State.CRASH] and jump_load <= 0.0:
+		gestures.cancel()
+		_start_skill(skill_id, sd, -1.0, strong, next)
 
 ## Ejecuta un patrón reconocido en el joystick dorado (GestureRecognizer) con las mismas
 ## mecánicas que los botones: el jugador solo hace lo que es físicamente posible ahora.
@@ -1247,7 +1308,9 @@ func _ground_flick(sec: int) -> bool:
 
 # ---------------------------------------------------------------- habilidades de suelo
 
-func _start_skill(id: String, side: int, start_s := -1.0) -> void:
+## strong: entrada de potencia (scoot fuerte, 360 + rueda...): más recorrido y más rebote para lo
+## que se enlace después. next: habilidad que sigue sola al terminar (scoot → macaco, 360 → rueda).
+func _start_skill(id: String, side: int, start_s := -1.0, strong := false, next := "") -> void:
 	var d := SkillLibrary.get_def(id)
 	twist_lock = true                  # el joystick sigue inclinado: no es un tirabuzón
 	jump_load = 0.0
@@ -1260,11 +1323,16 @@ func _start_skill(id: String, side: int, start_s := -1.0) -> void:
 	if not lp.is_empty():
 		# Enlace coherente: la potencia de la recepción anterior se suma (pasada de tumbling)
 		pw.rebound_vy = clampf(float(pw.rebound_vy) + float(lp.get("rebound_vy", 0.0)) * 0.35, 0.0, 3.2)
+	if strong:
+		pw.travel = float(pw.travel) * 1.3
+		pw.exit_speed = float(pw.exit_speed) * 1.3
+		pw.rebound_vy = minf(float(pw.rebound_vy) + 1.0, 3.6)
+		pw.strong = true
 	var s0 := start_s
 	if s0 < 0.0:
 		s0 = float(d.chain_start) if not lp.is_empty() else 0.0
 	skill = {"id": id, "side": side, "s": s0, "dur": float(d.dur) * (0.92 if not lp.is_empty() else 1.0),
-		"power": pw, "link": lp, "facing0": facing, "linked": false, "air": 0.0, "hold_t": 0.0}
+		"power": pw, "link": lp, "facing0": facing, "linked": false, "air": 0.0, "hold_t": 0.0, "strong": strong, "next": next}
 	skill_serial += 1
 	last_skill = {"id": id, "power": pw, "linked_from": String(lp.get("from", "")), "timing": quality}
 	_set_state(State.SKILL)
@@ -1361,6 +1429,14 @@ func _state_skill(dt: float) -> void:
 			if _ground_gesture(ev):
 				return
 	if skill.s >= 1.0 and not hold:
+		if String(skill.get("next", "")) != "":
+			# Entrada de potencia encadenada: sigue sola con la siguiente habilidad
+			var nx := String(skill.next)
+			var nsd := int(skill.side)
+			var nst: bool = skill.get("strong", false)
+			_finish_skill(true)
+			_start_skill(nx, nsd, -1.0, nst)
+			return
 		if d.get("cork_takeoff", false):
 			var side := int(skill.side)
 			var via := String(skill.id)

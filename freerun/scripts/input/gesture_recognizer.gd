@@ -496,3 +496,164 @@ static func _add_circles(out: PackedVector2Array, from: Vector2, r: float, n: in
 		for i in range(1, 25):
 			var a := a0 - float(d) * TAU * i / 24.0
 			out.append(c + Vector2(cos(a), sin(a)) * rk)
+
+# --- Joystick morado en el suelo (habilidades y entradas de potencia) -----------------------
+
+const GIRO_NAMES := {
+	"rondada": "RONDADA", "flicflac": "FLIC-FLAC", "rueda": "RUEDA", "raiz": "RAIZ", "td_raiz": "TOUCHDOWN RAIZ",
+	"macaco": "MACACO", "hook": "HOOK", "scoot": "SCOOT", "scoot_power": "SCOOT FUERTE",
+	"scoot_macaco": "SCOOT + MACACO FUERTE", "spin_lateral": "360 + RUEDA FUERTE", "twist": "GIRO 360",
+}
+## Plantillas del morado (x derecha, y arriba). Se prueban también reflejadas (otro lado).
+const GIRO_TEMPLATES := {
+	# Arco por arriba (∩) = macaco · arco por abajo (∪) = hook
+	"macaco": [[-0.8, -0.3], [-0.7, 0.15], [-0.4, 0.5], [0.0, 0.6], [0.4, 0.5], [0.7, 0.15], [0.8, -0.3]],
+	"hook": [[-0.8, 0.3], [-0.7, -0.15], [-0.4, -0.5], [0.0, -0.6], [0.4, -0.5], [0.7, -0.15], [0.8, 0.3]],
+	# Ida y vuelta lateral (<): cambio de dirección = scoot
+	"scoot": [[-0.8, 0.15], [-0.25, 0.08], [0.3, 0.0], [-0.25, -0.08], [-0.8, -0.15]],
+	# Hoja abajo a la izquierda y barrido largo hacia arriba a la derecha = scoot fuerte
+	"scoot_power": [[-0.1, -0.55], [-0.5, -0.72], [-0.85, -0.85], [-0.45, -0.97], [-0.05, -0.85], [0.28, -0.52],
+		[0.47, -0.05], [0.53, 0.45], [0.5, 0.9]],
+}
+
+## Trazo del joystick morado soltado en el suelo. Devuelve {"id", "side" (+1 derecha), "loops",
+## "dir" (+1 horario), "sector", "name"} o {"id": ""} si no es nada.
+static func recognize_giro(screen: PackedVector2Array, radius: float) -> Dictionary:
+	var pts := smooth(to_units(screen, radius))
+	if pts.size() < 2 or path_length(pts) < TAP_MAX:
+		return {"id": ""}
+	var rs := resample(pts, 64)
+	var loop := _loop_span(rs)
+	if not loop.is_empty():
+		var pre := rs.slice(0, int(loop.i0) + 1)
+		var post := rs.slice(int(loop.i1))
+		var pl := path_length(pre)
+		var sl := path_length(post)
+		var sch := post[post.size() - 1] - post[0] if post.size() > 1 else Vector2.ZERO
+		var ang := rad_to_deg(sch.angle())
+		var dir := int(loop.dir)
+		if sl >= 0.5 and sch.length() >= 0.4 and ang > 20.0 and ang < 160.0:
+			var side := 1 if sch.x >= 0.0 else -1
+			var gid := "scoot_macaco" if pl >= 0.6 else "spin_lateral"
+			return _giro_result(gid, side, {"loops": int(loop.count), "dir": dir})
+		return _giro_result("twist", dir, {"loops": int(loop.count), "dir": dir})
+	var chord := pts[pts.size() - 1] - pts[0]
+	var coarse := resample(pts, 16)
+	var straight := chord.length() / maxf(path_length(coarse), 1e-5)
+	if straight >= SIMPLE_STRAIGHT and absf(total_turning(coarse)) < deg_to_rad(SIMPLE_TURN) and chord.length() >= SIMPLE_MIN:
+		var sec := sector8(chord)
+		var side := 1 if chord.x >= 0.0 else -1
+		match sec:
+			2: return _giro_result("rondada", side, {"sector": sec})
+			-2: return _giro_result("flicflac", side, {"sector": sec})
+			0, 4: return _giro_result("rueda", side, {"sector": sec})
+			1, 3: return _giro_result("raiz", side, {"sector": sec})
+			_: return _giro_result("td_raiz", side, {"sector": sec})
+	var norm := normalize(resample(pts, N))
+	var abs_turn := abs_turning(resample(pts, 20))
+	var best := ["", 0.0, 1]
+	for id in GIRO_TEMPLATES.keys():
+		for m in [false, true]:
+			var sc := _sim_giro(norm, id, m) - 0.22 * minf(absf(abs_turn - _giro_abs_turn(id)) / PI, 1.5)
+			if sc > float(best[1]):
+				best = [id, sc, -1 if m else 1]
+	if float(best[1]) >= MATCH_MIN:
+		var gid2: String = best[0]
+		var side2: int = best[2]
+		if gid2 in ["macaco", "hook"]:
+			side2 = 1 if chord.x >= 0.0 else -1          # sentido del arco = lado del giro
+		return _giro_result(gid2, side2, {"score": best[1]})
+	return {"id": "", "reason": "gesto no reconocido"}
+
+static func _giro_result(id: String, side: int, extra: Dictionary) -> Dictionary:
+	var r := {"id": id, "side": side, "loops": 0, "dir": side, "sector": 99, "name": GIRO_NAMES.get(id, id.to_upper())}
+	r.merge(extra, true)
+	if id == "twist":
+		r.name = "GIRO 360" if int(r.loops) <= 1 else "GIRO %d VUELTAS" % int(r.loops)
+	return r
+
+## Tramo con un círculo completo (giro acumulado ≥ ~330°) en cualquier parte del trazo.
+static func _loop_span(rs: PackedVector2Array) -> Dictionary:
+	var heads := [0.0]
+	var prev := INF
+	var acc := 0.0
+	for i in range(1, rs.size()):
+		var d := rs[i] - rs[i - 1]
+		if d.length() > 1e-5:
+			var h := d.angle()
+			if prev != INF:
+				var dt := wrapf(h - prev, -PI, PI)
+				if absf(dt) > 2.5:
+					dt = 0.0                 # pico (vuelta atrás) no cuenta como giro del círculo
+				acc += dt
+			prev = h
+		heads.append(acc)
+	var need := deg_to_rad(LOOP_ANGLE + 10.0)
+	# El círculo es la ventana MÁS CORTA que gira una vuelta entera (así la hoja del scoot, que
+	# también gira, no se confunde con el principio del círculo)
+	var win := []
+	for i1 in range(1, heads.size()):
+		for i0 in range(i1 - 1, -1, -1):
+			if absf(float(heads[i1]) - float(heads[i0])) >= need:
+				if win.is_empty() or i1 - i0 < int(win[1]) - int(win[0]):
+					win = [i0, i1]
+				break
+	if win.is_empty():
+		return {}
+	var i0b: int = win[0]
+	var e: int = win[1]
+	var sgn := signf(float(heads[e]) - float(heads[i0b]))
+	while e + 1 < heads.size() and (float(heads[e + 1]) - float(heads[e])) * sgn > deg_to_rad(4.0):
+		e += 1
+	var count := maxi(1, int(absf(float(heads[e]) - float(heads[i0b])) / TAU + 0.12))
+	return {"i0": i0b, "i1": e, "count": count, "dir": -1 if sgn > 0.0 else 1}
+
+static func _sim_giro(norm: PackedVector2Array, id: String, mirrored: bool) -> float:
+	var key := "g_" + id + ("_m" if mirrored else "")
+	if not _cache.has(key):
+		var raw := PackedVector2Array()
+		for p in GIRO_TEMPLATES[id]:
+			raw.append(Vector2(-float(p[0]) if mirrored else float(p[0]), float(p[1])))
+		_cache[key] = normalize(resample(raw, N))
+	var tp: PackedVector2Array = _cache[key]
+	var d := 0.0
+	for i in N:
+		d += norm[i].distance_to(tp[i])
+	return clampf(1.0 - d / float(N) / 0.3, 0.0, 1.0)
+
+static func _giro_abs_turn(id: String) -> float:
+	var key := "g_" + id + "_abs"
+	if not _cache.has(key):
+		var raw := PackedVector2Array()
+		for p in GIRO_TEMPLATES[id]:
+			raw.append(Vector2(float(p[0]), float(p[1])))
+		_cache[key] = abs_turning(resample(raw, 20))
+	return _cache[key]
+
+## Trazos de ejemplo del morado (práctica y pruebas), en unidades (y arriba).
+static func giro_preview(id: String) -> PackedVector2Array:
+	var out := PackedVector2Array()
+	match id:
+		"g_rondada": out = PackedVector2Array([Vector2(0, -0.7), Vector2(0, 0.7)])
+		"g_flicflac": out = PackedVector2Array([Vector2(0, 0.7), Vector2(0, -0.7)])
+		"g_rueda": out = PackedVector2Array([Vector2(-0.7, 0), Vector2(0.7, 0)])
+		"g_raiz": out = PackedVector2Array([Vector2(-0.55, -0.55), Vector2(0.55, 0.55)])
+		"g_td_raiz": out = PackedVector2Array([Vector2(-0.55, 0.55), Vector2(0.55, -0.55)])
+		"g_scoot_macaco":
+			for p in GIRO_TEMPLATES["scoot_power"].slice(0, 6):
+				out.append(Vector2(float(p[0]), float(p[1])))
+			_add_circles(out, out[out.size() - 1], 0.25, 1, -1)
+			var e := out[out.size() - 1]
+			out.append(e + Vector2(0.15, 0.45)); out.append(e + Vector2(0.3, 0.95))
+		"g_spin_lateral":
+			out.append(Vector2(-0.15, -0.5))
+			out.append(Vector2(0.0, -0.45))
+			_add_circles(out, out[out.size() - 1], 0.28, 1, -1)
+			var e2 := out[out.size() - 1]
+			out.append(e2 + Vector2(0.25, 0.45)); out.append(e2 + Vector2(0.55, 1.0))
+		_:
+			var k := id.trim_prefix("g_")
+			if GIRO_TEMPLATES.has(k):
+				for p in GIRO_TEMPLATES[k]:
+					out.append(Vector2(float(p[0]), float(p[1])))
+	return out
