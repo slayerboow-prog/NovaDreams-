@@ -127,10 +127,8 @@ const RING_PAGES := [
 		["CORK", "cork", -2], ["AERIAL", "flip", 3], ["PATADA\n360", "kick", 0]]},
 	{"name": "SUELO", "buttons": [
 		["RONDADA", "skill", "roundoff"], ["FLIC-FLAC", "skill", "bhs"], ["RUEDA", "skill", "cartwheel"],
-		["MACACO", "skill", "macaco"], ["PINO", "skill", "handstand"],
 		["ATRÁS", "flip", -2], ["CORK", "cork", -2]]},
 	{"name": "TRICKING", "buttons": [
-		["RAIZ", "skill", "raiz"], ["TD RAIZ", "skill", "td_raiz"], ["MACACO", "skill", "macaco"],
 		["PATADA\n360", "kick", 0], ["CORK", "cork", -2]]},
 ]
 ## Modo gestos (tres joysticks: movimiento azul, tirabuzones morado, mortales dorado).
@@ -956,6 +954,9 @@ func _twist_release(f: Dictionary, p: Vector2) -> void:
 		return
 	var res := GestureRecognizer.recognize_giro(PackedVector2Array(f.path), _rot_radius())
 	var id := String(res.get("id", ""))
+	if id in GIRO_DISABLED:
+		_toast("%s: desactivado por ahora" % res.get("name", id), Color(1, 0.75, 0.4), "purple")
+		return
 	if id == "":
 		if not lc.events.is_empty():
 			_train_twist(lc.events)
@@ -973,6 +974,9 @@ func _twist_release(f: Dictionary, p: Vector2) -> void:
 	_toast(String(res.name), Neon.PURPLE, "purple")
 	_train_check({"id": "g_" + id, "name": res.name})
 	gesture_recognized.emit({"id": "g_" + id, "name": res.name, "joystick": "purple"})
+
+## Tricking de suelo desactivado mientras se rehacen sus animaciones (vuelven más adelante).
+const GIRO_DISABLED := ["macaco", "td_raiz", "scoot", "scoot_power", "scoot_macaco", "spin_lateral"]
 
 func _train_twist(events: Array) -> void:
 	if events.is_empty():
@@ -1017,7 +1021,7 @@ func _add_trail(path: Array, col: Color) -> void:
 ## dedo después = agruparse). J hacia arriba y dedo quieto = agarre de borde (mientras se mantiene).
 func _gesture_rest_checks() -> void:
 	for fd in _fingers.values():
-		if fd.role == "twist" and not air_mode and not fd.get("committed", false):
+		if fd.role == "twist" and false:          # (pino desactivado por ahora)
 			# Morado: línea hacia arriba y dedo quieto = PINO (se sostiene mientras mantienes)
 			var tp: Array = fd.path
 			if tp.size() >= 3:
@@ -1062,13 +1066,6 @@ const TRAIN := [
 	["cork720", "CORK 720", "gold", "Diagonal hacia arriba y dos círculos pequeños"],
 	["webster", "WEBSTER", "gold", "Sube, cae por delante y retrocede un poco"],
 	["gainer", "GAINER", "gold", "Baja (hacia atrás) y da una vuelta ovalada"],
-	["g_td_raiz", "TOUCHDOWN RAIZ", "purple", "Línea en diagonal hacia abajo"],
-	["g_macaco", "MACACO", "purple", "Arco por arriba (como un puente)"],
-	["g_scoot", "SCOOT", "purple", "Ida y vuelta lateral (<)"],
-	["g_pino", "PINO", "purple", "Línea hacia arriba y deja el dedo quieto"],
-	["g_scoot_power", "SCOOT FUERTE", "purple", "Hoja abajo y barrido largo hacia arriba"],
-	["g_scoot_macaco", "SCOOT + MACACO FUERTE", "purple", "Hoja abajo, un círculo y hacia arriba"],
-	["g_spin_lateral", "360 + RUEDA FUERTE", "purple", "Un círculo y diagonal hacia arriba (3 pasos girando y rueda)"],
 	["palm", "PALM FLIP", "gold", "Línea hacia arriba y un círculo (pared delante)"],
 	["speed", "PASAVALLAS", "gold", "Sube y pasa de lado (Γ) (obstáculo delante)"],
 	["reverse", "REVERSO", "gold", "De abajo arriba rodeando por un lado (obstáculo delante)"],
@@ -1640,9 +1637,6 @@ func _draw_rot_stick(font: Font, s: float, a: float, white: Color, dark: Color, 
 		_pill(font, base + Vector2(0, rr + 14 * s), "FLIC-FLAC", 14 * s, Neon.PURPLE, la)
 		_pill(font, base + Vector2(-rr - 30 * s, 0), "RUEDA", 13 * s, Neon.PURPLE, la)
 		_pill(font, base + Vector2(rr + 30 * s, 0), "RUEDA", 13 * s, Neon.PURPLE, la)
-		if salto_pages_enabled():
-			_pill(font, base + Vector2(rr * 0.8, rr * 0.8), "TD RAIZ", 11 * s, Neon.PURPLE, la)
-			_pill(font, base + Vector2(-rr * 0.8, -rr * 0.8), "MACACO arco", 11 * s, Neon.PURPLE, la)
 		if not salto_pages_enabled():
 			_pill(font, base + Vector2(rr * 0.78, -rr * 0.86), "MACACO arco", 11 * s, Neon.PURPLE, la)
 	elif not salto_pages_enabled():
@@ -1651,7 +1645,7 @@ func _draw_rot_stick(font: Font, s: float, a: float, white: Color, dark: Color, 
 		_label(font, base + Vector2(0, rr + 18 * s), "suelo: soltar · mantener · arco", 13 * s, Color(1, 1, 1, white.a * 0.75))
 	if salto_pages_enabled():
 		var la2 := clampf(a + 0.35, 0.5, 1.0)
-		_label(font, base + Vector2(0, rr + (38.0 if not air_mode else 16.0) * s), "círculo = giro · scoot · 360 + rueda: ver PRÁCTICA", 13 * s, Color(Neon.PURPLE.lightened(0.35), la2))
+		_label(font, base + Vector2(0, rr + (38.0 if not air_mode else 16.0) * s), "en el aire: inclina a un lado = tirabuzón", 13 * s, Color(Neon.PURPLE.lightened(0.35), la2))
 	draw_arc(base, rr, 0, TAU, 64, Color(Neon.PURPLE, al) if neon else Color(white, white.a * 0.8), (rr * 0.05) if neon else 3.0 * s, true)
 	# Mando (modo gestos: sigue al dedo dentro del joystick)
 	var knob := base + Vector2(_rot_vec.x, -_rot_vec.y) * _rot_travel()

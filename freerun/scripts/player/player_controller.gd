@@ -125,6 +125,7 @@ var mad_charge := 0.0                    # carga extra del salto (s)
 var one_foot_q := false                  # botón 1 PIE: la próxima recepción es a un pie
 var one_foot_side := 1
 const MAD_CHARGE_MAX := 0.12
+const HOP_VY := 2.6                      # botón de mortal sin SALTO: saltito sin impulso
 var twist_wait_t := 0.0                  # ventana para combinar el círculo con un mortal del dorado
 const TWIST_WAIT := 0.4
 
@@ -936,14 +937,22 @@ func _tick_flip_buttons(dt: float) -> void:
 	var sec := intent.flip_press
 	match state:
 		State.GROUND, State.SKILL, State.ROLL:
-			if jump_load > 0.0:
-				return
-			# El botón hace directamente el mortal: despega ya girando y agrupado
 			mad_axis = sec
-			mad_stage = 1
-			jump_buffer = t.jump_buffer_time
 			flick_buffer = TouchControls.sector_dir(sec)
 			flick_timer = 0.25
+			if jump_load > 0.0 or state == State.SKILL:
+				# SALTO ya pulsado (flexión) o ventana de enlace: el mortal sale con ese despegue
+				mad_stage = 1
+				if state == State.SKILL:
+					jump_buffer = t.jump_buffer_time
+				return
+			# Sin SALTO: no hay impulso de piernas, solo un saltito. Sin altura, lo normal es no
+			# completar el giro y no caer de pie (como en la realidad)
+			flick_timer = 0.0
+			velocity.y = HOP_VY
+			_enter_air("stand")
+			_apply_jump_flick(flick_buffer)
+			mad_stage = 2
 		State.AIR, State.VAULT:
 			if mad_stage <= 1:
 				if mad_axis == 99:
@@ -1407,7 +1416,12 @@ func _ground_flick(sec: int) -> bool:
 
 ## strong: entrada de potencia (scoot fuerte, 360 + rueda...): más recorrido y más rebote para lo
 ## que se enlace después. next: habilidad que sigue sola al terminar (scoot → macaco, 360 → rueda).
+## Tricking de suelo desactivado mientras se rehacen sus animaciones (vuelven más adelante).
+const DISABLED_SKILLS := ["macaco", "td_raiz", "scoot", "spin_entry", "handstand", "pushoff"]
+
 func _start_skill(id: String, side: int, start_s := -1.0, strong := false, next := "") -> void:
+	if id in DISABLED_SKILLS:
+		return
 	var d := SkillLibrary.get_def(id)
 	twist_lock = true                  # el joystick sigue inclinado: no es un tirabuzón
 	jump_load = 0.0
