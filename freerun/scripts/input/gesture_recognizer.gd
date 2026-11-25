@@ -17,7 +17,8 @@ extends RefCounted
 static var TAP_MAX := 0.28            # recorrido máximo de un toque (radios)
 static var SIMPLE_MIN := 0.45         # longitud mínima de una línea simple
 static var SIMPLE_STRAIGHT := 0.86    # rectitud mínima (cuerda / recorrido)
-static var SIMPLE_TURN := 38.0        # giro total máximo de una línea simple (grados)
+static var PRECISION_MAX_LEN := 1.1    # línea corta hacia arriba (salto de precisión): nunca se cambia por otra cosa
+static var SIMPLE_TURN := 30.0        # giro total máximo de una línea simple (grados)
 static var CARDINAL_HALF := 30.0      # ±grados alrededor de ↑ ↓ ← → que cuentan como simples
 static var MATCH_MIN := 0.5           # parecido mínimo con una plantilla (0..1)
 static var LOOP_ANGLE := 320.0        # grados de giro para contar un círculo (joystick morado)
@@ -325,78 +326,37 @@ static func recognize_salto(screen: PackedVector2Array, radius: float, opts := {
 			sec = sector8(chord)
 		if sec != 99:
 			var sid := "front" if sec == 2 else ("back" if sec == -2 else ("side" if sec in [0, 4] else "dir"))
+			if opts.get("prefer_templates", false) and chord.length() >= PRECISION_MAX_LEN:
+				# Modo gestos: las líneas largas no hacen mortales (van en los botones); si el
+				# trazo se parece mucho a un movimiento de parkour (wall run curvado), gana ese
+				var tm := _match_templates(rs, abs_turn, opts, ["roll", "cat_leap"], [])
+				if tm.get("ok", false) and float(tm.get("score", 0.0)) >= MATCH_MIN:
+					return tm
 			return _result(sid, "simple", 1.0, {"sector": sec, "side": 1 if chord.x >= 0.0 else -1, "len": chord.length()}, opts)
-		if chord.y > 0.0:
+		if chord.y > 0.0 and straight >= 0.95 and absf(turn) < deg_to_rad(22.0):
 			# Diagonal recta hacia arriba = CHUTADA (mortal chutado: patada como a un balón
 			# y después un backflip normal, sin tirabuzón). Con un círculo al final sería un cork.
 			return _result("chutada", "pattern", 1.0, {"side": 1 if chord.x >= 0.0 else -1, "len": chord.length()}, opts)
-	# 3. Bucles (el dedo se cruza o cierra un círculo al final)
+	# 3. Un círculo solo (todo el trazo redondo) = CAT LEAP
 	var rs64 := resample(pts, 64)
+	var sm := resample(smooth(smooth(pts)), 32)
+	if absf(total_turning(sm)) >= deg_to_rad(290.0) and _roundness(sm) < 0.28:
+		return _result("cat_leap", "parkour", 1.0, {"side": 1}, opts)
+	# 4. Bucles (el dedo se cruza o cierra un círculo al final)
 	var lp := loops(rs64)
 	if int(lp.count) > 0:
 		var pre := rs64.slice(0, maxi(int(lp.start), 1) + 1)
 		var r := _loop_move(pre, int(lp.count), int(lp.dir))
 		if not r.is_empty():
 			return _result(String(r.id), "pattern", 1.0, r, opts)
+		if path_length(pre) < 0.3:
+			# Un círculo solo = CAT LEAP (saltar a la pared y agarrarse con manos y pies)
+			return _result("cat_leap", "parkour", 1.0, {"side": 1}, opts)
 		return {"id": "", "kind": "none", "ok": false, "reason": "círculos: van en el joystick morado (tirabuzones)"}
-	# 4. Plantillas (modo gestos: las de parkour van en el joystick de movimiento)
-	return _match_templates(rs, abs_turn, opts, PARKOUR_IDS if opts.get("no_parkour", false) else MOVE_ONLY_IDS, [])
-
-## Movimientos de parkour (vaults, monkey, muros): en el modo gestos se dibujan en el joystick de
-## movimiento (izquierdo). Rodar no: su arco de arriba abajo es igual que darse la vuelta
-## corriendo (tiene su botón RODAR y su gesto en el dorado).
-const PARKOUR_IDS := ["vault", "kong", "double_kong", "kash", "thief", "turn", "speed", "reverse", "cat_leap",
-	"wall_run", "wall_climb", "climb"]
-## Solo del joystick de movimiento (en el dorado el turn vault sería igual que rodar).
-const MOVE_ONLY_IDS := ["double_kong", "kash", "thief", "turn"]
-## En el joystick de movimiento el cat leap no es una plantilla: es un círculo pequeño.
-const MOVE_TEMPLATE_IDS := ["vault", "kong", "double_kong", "kash", "thief", "turn", "speed", "reverse",
-	"wall_run", "wall_climb", "climb"]
-static var PARKOUR_MIN_LEN := 1.5      # recorrido mínimo (en radios del joystick) para que cuente como dibujo
-
-## Gesto de parkour dibujado con el joystick de movimiento. Dirigir al atleta casi no acumula
-## recorrido; un dibujo (U, dos arcos, Γ...) sí, así que solo se prueba con trazos amplios.
-static func recognize_parkour(screen: PackedVector2Array, radius: float, opts := {}) -> Dictionary:
-	var all := smooth(to_units(screen, radius))
-	if all.size() < 3 or path_length(all) < PARKOUR_MIN_LEN:
-		return {"id": "", "kind": "none", "ok": false, "reason": "trazo corto"}
-	# El dedo suele venir de "adelante" (corriendo) hasta donde empieza el dibujo: se prueba
-	# también sin ese tramo inicial y gana el que más se parezca
-	var rsa := resample(all, 64)
-	# Círculo pequeño = CAT LEAP (saltar a la pared y agarrarse con manos y pies)
-	# (vuelta real de ~330° en el mismo sentido: un trazo que solo se cruza no cuenta)
-	# (sobre el trazo suavizado: el temblor del dedo no suma vueltas)
-	# Hace falta que gire ~330° en el mismo sentido y que esa vuelta sea redonda (la bajada
-	# desde "adelante" + la U del vault también se cierran, pero en forma de D)
-	var sm := resample(smooth(all), 48)
-	var lsp := _loop_span(sm, CIRCLE_MIN_DEG)
-	if not lsp.is_empty() and _roundness(sm.slice(int(lsp.i0), int(lsp.i1) + 1)) < CIRCLE_MAX_CV:
-		return _result("cat_leap", "parkour", 1.0, {"side": 1}, opts)
-	var best := {}
-	var fail := {}
-	for cut in [0, 4, 8, 12, 16, 20, 24, 28, 32, 36]:
-		var seg := rsa.slice(cut)
-		if path_length(seg) < PARKOUR_MIN_LEN:
-			break
-		# Giro absoluto sobre un trazo más grueso: el temblor del pulgar no penaliza la forma
-		var res := _match_templates(resample(seg, N), abs_turning(resample(smooth(seg), 20)), opts, [], MOVE_TEMPLATE_IDS)
-		if String(res.get("id", "")) == "":
-			continue
-		if res.get("ok", false):
-			# Recortar mucho deja trozos que se parecen a otra cosa: se prefiere el trazo más entero
-			res["eff"] = float(res.get("score", 0.0)) - 0.006 * float(cut)
-			if best.is_empty() or float(res.eff) > float(best.eff):
-				best = res
-		elif fail.is_empty():
-			fail = res
-	if not best.is_empty():
-		return best
-	if not fail.is_empty():
-		return fail
-	return {"id": "", "kind": "none", "ok": false, "reason": "patrón no reconocido"}
-
-static var CIRCLE_MIN_DEG := 290.0     # círculo del cat leap: giro mínimo (con el dedo no siempre se cierra del todo)
-static var CIRCLE_MAX_CV := 0.26        # círculo del cat leap: variación máxima de la distancia al centro
+	# 4. Plantillas
+	# Rodar ya no es un gesto (es automático al caer desde alto) y su forma es la del turn vault;
+	# el cat leap es un círculo solo (ver arriba)
+	return _match_templates(rs, abs_turn, opts, ["roll", "cat_leap"], [])
 
 ## Variación relativa de la distancia al centro (0 = círculo perfecto).
 static func _roundness(pts: PackedVector2Array) -> float:
@@ -613,7 +573,7 @@ static func _add_circles(out: PackedVector2Array, from: Vector2, r: float, n: in
 const GIRO_NAMES := {
 	"rondada": "RONDADA", "flicflac": "FLIC-FLAC", "rueda": "RUEDA", "td_raiz": "TOUCHDOWN RAIZ",
 	"macaco": "MACACO", "scoot": "SCOOT", "scoot_power": "SCOOT FUERTE",
-	"twist": "GIRO 360",
+	"twist": "GIRO 360", "dive_kong": "DIVE KONG",
 }
 ## Plantillas del morado (x derecha, y arriba). Se prueban también reflejadas (otro lado).
 const GIRO_TEMPLATES := {
@@ -647,7 +607,7 @@ static func recognize_giro(screen: PackedVector2Array, radius: float) -> Diction
 			2: return _giro_result("rondada", side, {"sector": sec})
 			-2: return _giro_result("flicflac", side, {"sector": sec})
 			0, 4: return _giro_result("rueda", side, {"sector": sec})
-			1, 3: return {"id": "", "reason": "diagonal arriba: sin movimiento"}
+			1, 3: return _giro_result("dive_kong", side, {"sector": sec})    # diagonal arriba = Dive Kong
 			_: return _giro_result("td_raiz", side, {"sector": sec})
 	var norm := normalize(resample(pts, N))
 	var abs_turn := abs_turning(resample(pts, 20))

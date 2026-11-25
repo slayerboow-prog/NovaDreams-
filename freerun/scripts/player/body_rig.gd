@@ -722,6 +722,12 @@ func _air_pose(p: Dictionary) -> void:
 	if tr.active:
 		_trick_pose(p, tr)
 		return
+	if player.air_kind == "precision":
+		_precision_air(p, tr)
+		return
+	if player.air_kind == "long":
+		_long_jump_air(p, tr)
+		return
 	var vy := player.velocity.y
 	var rising := clampf(vy / 8.0, -1.0, 1.0)
 	# Despegue sin truco: extensión explosiva y brazos arriba; después piernas preparadas.
@@ -742,6 +748,50 @@ func _air_pose(p: Dictionary) -> void:
 	var ttg := player.time_to_ground()
 	if vy < 0.0 and ttg < 0.25:
 		_apply(p, RECEPTION, clampf(1.0 - ttg / 0.25, 0.0, 1.0) * 0.8)
+
+## Salto de precisión: brazos lanzados al frente en el despegue (pies juntos), rodillas recogidas
+## en el vuelo y, al llegar, piernas adelante buscando el borde y brazos al frente para equilibrar.
+func _precision_air(p: Dictionary, tr: TrickSystem) -> void:
+	var imp := _smooth(1.0 - tr.air_time / 0.16)
+	var ttg := player.time_to_ground()
+	var reach := _smooth(1.0 - ttg / 0.32) if player.velocity.y < 0.0 else 0.0
+	_apply(p, {"spine": Vector3(-0.3, 0, 0), "neck": Vector3(0.2, 0, 0),
+		"hip_l": Vector3(1.35, 0, -0.04), "hip_r": Vector3(1.35, 0, 0.04), "knee_l": Vector3(-1.7, 0, 0), "knee_r": Vector3(-1.7, 0, 0),
+		"shoulder_l": Vector3(1.45, 0, -0.18), "shoulder_r": Vector3(1.45, 0, 0.18), "elbow_l": Vector3(0.3, 0, 0), "elbow_r": Vector3(0.3, 0, 0)}, 1.0)
+	_apply(p, {"spine": Vector3(0.05, 0, 0), "hip_l": Vector3(-0.1, 0, 0), "hip_r": Vector3(-0.1, 0, 0),
+		"knee_l": Vector3(-0.15, 0, 0), "knee_r": Vector3(-0.15, 0, 0),
+		"shoulder_l": Vector3(2.3, 0, -0.2), "shoulder_r": Vector3(2.3, 0, 0.2)}, imp)
+	_apply(p, {"spine": Vector3(-0.35, 0, 0), "hip_l": Vector3(1.05, 0, -0.03), "hip_r": Vector3(1.05, 0, 0.03),
+		"knee_l": Vector3(-0.55, 0, 0), "knee_r": Vector3(-0.55, 0, 0),
+		"shoulder_l": Vector3(1.6, 0, -0.25), "shoulder_r": Vector3(1.6, 0, 0.25)}, reach)
+	last_phase = "impulso" if imp > 0.5 else ("recepcion" if reach > 0.5 else "vuelo")
+
+## Salto de longitud: despegue a un pie (rodilla arriba), pedaleo en el aire con los brazos
+## girando y, al llegar, las dos piernas adelante para caer agrupado.
+func _long_jump_air(p: Dictionary, tr: TrickSystem) -> void:
+	var at := tr.air_time
+	var imp := _smooth(1.0 - at / 0.18)
+	var ttg := player.time_to_ground()
+	var land := _smooth(1.0 - ttg / 0.36) if player.velocity.y < 0.0 else 0.0
+	var ph := at * 8.5
+	var sw := sin(ph)
+	p.spine.x = -0.25
+	p.neck.x = 0.15
+	p.hip_l.x = 0.75 + 0.85 * sw
+	p.hip_r.x = 0.75 - 0.85 * sw
+	p.knee_l.x = -0.5 - 0.9 * maxf(0.0, -sw)
+	p.knee_r.x = -0.5 - 0.9 * maxf(0.0, sw)
+	p.shoulder_l.x = 1.3 - 1.3 * sw
+	p.shoulder_r.x = 1.3 + 1.3 * sw
+	p.shoulder_l.z = -0.35; p.shoulder_r.z = 0.35
+	p.elbow_l.x = 0.4; p.elbow_r.x = 0.4
+	_apply(p, {"spine": Vector3(0.05, 0, 0), "hip_r": Vector3(1.6, 0, 0), "knee_r": Vector3(-1.6, 0, 0),
+		"hip_l": Vector3(-0.35, 0, 0), "knee_l": Vector3(-0.2, 0, 0),
+		"shoulder_l": Vector3(1.9, 0, -0.3), "shoulder_r": Vector3(-0.5, 0, 0.3)}, imp)
+	_apply(p, {"spine": Vector3(-0.45, 0, 0), "hip_l": Vector3(1.55, 0, -0.05), "hip_r": Vector3(1.55, 0, 0.05),
+		"knee_l": Vector3(-0.35, 0, 0), "knee_r": Vector3(-0.35, 0, 0),
+		"shoulder_l": Vector3(1.6, 0, -0.3), "shoulder_r": Vector3(1.6, 0, 0.3)}, land)
+	last_phase = "impulso" if imp > 0.5 else ("recepcion" if land > 0.5 else "pedaleo")
 
 ## Variante visual de la acrobacia en curso (cada truco tiene su propia ejecución).
 func trick_kind(tr: TrickSystem) -> String:

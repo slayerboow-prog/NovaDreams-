@@ -689,9 +689,6 @@ func _on_touch(e: InputEventScreenTouch) -> void:
 			role = "move"
 			_joy_base = p
 			_joy_vec = Vector2.ZERO
-			info["mpath"] = [p]
-			info["mtime"] = [_time]
-			info["mfast"] = [false]
 		else:
 			role = "camera" if stick_enabled() else "gesture"
 			_hint_time = 99.0
@@ -712,7 +709,6 @@ func _on_touch(e: InputEventScreenTouch) -> void:
 			return
 		if f.role == "move":
 			_joy_vec = Vector2.ZERO
-			_move_gesture_check(f, true)
 		elif f.role == "ringchange":
 			if not f.get("turned", false):
 				ring_turn(1)                      # tocar CAMBIAR = siguiente página
@@ -759,29 +755,7 @@ func _on_drag(e: InputEventScreenDrag) -> void:
 				_joy_base = e.position - d.normalized() * r * 1.25
 				d = e.position - _joy_base
 			var v := d / r
-			var nv := Vector2(v.x, -v.y).limit_length(1.0)
-			# Dibujando un gesto de parkour (dedo rápido): el atleta sigue en la dirección que
-			# llevaba en vez de seguir el trazo (la U del vault iría hacia atrás); al ir despacio o
-			# pararse, vuelve a dirigir
-			var lp: Vector2 = f.get("mlast", e.position)
-			var ldt := maxf(_time - float(f.get("mlast_t", _time - 1.0)), 1.0 / 120.0)
-			var spd := lp.distance_to(e.position) / ldt / r
-			f["mlast"] = e.position
-			f["mlast_t"] = _time
-			if salto_pages_enabled() and spd > MOVE_DRAW_SPEED:
-				f["drawing"] = true
-			else:
-				f["drawing"] = false
-				_joy_vec = nv
-			if f.has("mpath"):
-				(f.mpath as Array).append(e.position)
-				(f.mtime as Array).append(_time)
-				(f.mfast as Array).append(spd > MOVE_DRAW_SPEED)
-				# Solo cuenta el último segundo de recorrido (dibujar es rápido; dirigir, no)
-				while (f.mtime as Array).size() > 2 and _time - float(f.mtime[0]) > MOVE_GESTURE_WINDOW:
-					(f.mpath as Array).pop_front()
-					(f.mtime as Array).pop_front()
-					(f.mfast as Array).pop_front()
+			_joy_vec = Vector2(v.x, -v.y).limit_length(1.0)
 		"jump":
 			if salto_pages_enabled():
 				var path: Array = f.path
@@ -908,8 +882,9 @@ func _salto_opts() -> Dictionary:
 	var ctx := {}
 	if context_provider.is_valid():
 		ctx = context_provider.call()
-	return {"ctx": ctx, "dirs8": salto_page != 0, "training": training, "no_parkour": Settings.trick_controls == 5}
+	return {"ctx": ctx, "dirs8": salto_page != 0, "training": training, "prefer_templates": Settings.trick_controls == 5}
 
+const PREQUEUE_IDS := ["vault", "kong", "double_kong", "kash", "thief", "speed", "reverse"]
 ## Ejecuta lo reconocido en el joystick dorado (al soltar, o antes si el dedo se para tras una línea).
 func _salto_execute(res: Dictionary, f: Dictionary) -> void:
 	var id := String(res.get("id", ""))
@@ -943,6 +918,15 @@ func _salto_execute(res: Dictionary, f: Dictionary) -> void:
 		_train_check(res)
 		return
 	if kind in ["pattern", "parkour"]:
+		if not res.get("ok", false) and not training and id in PREQUEUE_IDS:
+			# Vault dibujado un poco antes de llegar (aún no se ve el obstáculo): queda en espera
+			# ~1 s y sale en cuanto llegas
+			var pend := res.duplicate()
+			pend.ok = true
+			_pending.pattern = pend
+			_toast("%s…" % res.get("name", id), Color(Neon.GOLD, 0.75), "gold")
+			_train_check(res)
+			return
 		if not res.get("ok", false):
 			_toast("%s: %s" % [res.get("name", id), res.get("reason", "")], Color(1, 0.45, 0.4), "gold")
 			_train_check(res)
@@ -1027,68 +1011,6 @@ func _recognized(res: Dictionary, joy: String) -> void:
 	info["joystick"] = joy
 	gesture_recognized.emit(info)
 
-## Modo gestos: los movimientos de parkour (vault, monkey, pasavallas, reverso, muros, bordes,
-## rodar) se dibujan con el joystick de movimiento. Se prueba cuando el dedo, tras un trazo amplio,
-## se para un instante (sigue dirigiendo después) o al soltarlo.
-const MOVE_GESTURE_WINDOW := 1.0
-const MOVE_DRAW_SPEED := 5.0            # radios/s: más rápido que esto es dibujar, no dirigir
-const MOVE_DRAW_FRACTION := 0.6         # parte del trazo que debe ser rápida para contar como dibujo
-const MOVE_GESTURE_REST := 0.09
-func _move_gesture_check(f: Dictionary, released: bool) -> void:
-	if not salto_pages_enabled() or not f.has("mpath"):
-		return
-	var path: Array = f.mpath
-	if path.size() < 4:
-		return
-	var times: Array = f.mtime
-	if not released and _time - float(times[times.size() - 1]) < MOVE_GESTURE_REST:
-		return                                   # el dedo aún se mueve: el dibujo sigue
-	var r := JOY_R * 0.8 * _s()
-	# Solo un dibujo de verdad (la mayor parte del trazo hecha rápido): dirigir, aunque sea con
-	# curvas, nunca dispara parkour
-	var fast: Array = f.get("mfast", [])
-	var fast_len := 0.0
-	var tot_len := 0.0
-	for i in range(1, path.size()):
-		var seg := (path[i] as Vector2).distance_to(path[i - 1])
-		tot_len += seg
-		if i < fast.size() and fast[i]:
-			fast_len += seg
-	if tot_len <= 0.0 or fast_len / tot_len < MOVE_DRAW_FRACTION:
-		f.mpath = [path[path.size() - 1]]
-		f.mtime = [_time]
-		f.mfast = [false]
-		return
-	var res := GestureRecognizer.recognize_parkour(PackedVector2Array(path), r, _salto_opts())
-	var id := String(res.get("id", ""))
-	if id == "":
-		f.mpath = [path[path.size() - 1]]            # parado sin dibujo de parkour: se empieza de nuevo
-		f.mtime = [_time]
-		f.mfast = [false]
-		return
-	_add_trail(path, Neon.CYAN)
-	f.mpath = [path[path.size() - 1]]
-	f.mtime = [_time]
-	f.mfast = [false]
-	if not res.get("ok", false) and (training or id in ["turn", "cat_leap"]):
-		# Turn vault (parecido a darse la vuelta) y cat leap (salta ya): solo con el obstáculo o
-		# la pared delante
-		_toast("%s: %s" % [res.get("name", id), res.get("reason", "")], Color(1, 0.45, 0.4), "move")
-		_train_check(res)
-		return
-	if not res.get("ok", false):
-		# Dibujado un poco antes de llegar (aún no se ve el obstáculo o la pared): queda en
-		# espera ~1 s y sale en cuanto llegas
-		var pend := res.duplicate()
-		pend.ok = true
-		_pending.pattern = pend
-		_toast("%s…" % res.get("name", id), Color(Neon.CYAN, 0.75), "move")
-		_train_check(res)
-		return
-	_pending.pattern = res
-	_flash["move_ok"] = 0.4
-	_recognized(res, "move")
-
 ## Nombre del movimiento encima del joystick que lo reconoció (sin tapar al atleta).
 func _toast(txt: String, col: Color, joy: String) -> void:
 	if txt == "":
@@ -1156,22 +1078,21 @@ const TRAIN := [
 	["webster", "WEBSTER", "gold", "Sube, cae por delante y retrocede un poco"],
 	["gainer", "GAINER", "gold", "Baja (hacia atrás) y da una vuelta ovalada"],
 	["palm", "PALM FLIP", "gold", "Línea hacia arriba y un círculo (pared delante)"],
-	["speed", "PASAVALLAS", "move", "Sube y pasa de lado (Γ) (obstáculo delante)"],
-	["reverse", "REVERSO", "move", "De abajo arriba rodeando por un lado (obstáculo delante)"],
-	["vault", "VAULT", "move", "U invertida: sube, pasa por encima y baja (obstáculo delante)"],
-	["kong", "KONG VAULT", "move", "M en punta: sube, baja, sube, baja (obstáculo y carrera)"],
-	["double_kong", "DOBLE KONG", "move", "Tres picos (obstáculo largo y carrera)"],
-	["kash", "KASH VAULT", "move", "V que sube al final, como ✓ (obstáculo y carrera)"],
-	["thief", "THIEF VAULT", "move", "V y otra bajada: baja, sube, baja (obstáculo delante)"],
-	["turn", "TURN VAULT", "move", "De arriba abajo rodeando por un lado (obstáculo delante)"],
-	["wall_run", "WALL RUN", "move", "Diagonal hacia arriba que se curva adelante (pared al lado)"],
+	["speed", "PASAVALLAS", "gold", "Sube y pasa de lado (Γ) (obstáculo delante)"],
+	["reverse", "REVERSO", "gold", "De abajo arriba rodeando por un lado (obstáculo delante)"],
+	["vault", "VAULT", "gold", "U invertida: sube, pasa por encima y baja (obstáculo delante)"],
+	["kong", "KONG VAULT", "gold", "M en punta: sube, baja, sube, baja (obstáculo y carrera)"],
+	["double_kong", "DOBLE KONG", "gold", "Tres picos (obstáculo largo y carrera)"],
+	["kash", "KASH VAULT", "gold", "V que sube al final, como ✓ (obstáculo y carrera)"],
+	["thief", "THIEF VAULT", "gold", "V y otra bajada: baja, sube, baja (obstáculo delante)"],
+	["turn", "TURN VAULT", "gold", "De arriba abajo rodeando por un lado (obstáculo delante)"],
+	["wall_run", "WALL RUN", "gold", "Diagonal hacia arriba que se curva adelante (pared al lado)"],
 	["wall_flip", "WALL FLIP", "gold", "Sube y vuelve en semicírculo (pared delante)"],
-	["climb", "ESCALADA", "move", "Zigzag hacia arriba de tres tramos (pared delante)"],
-	["wall_climb", "WALL CLIMB", "move", "Zigzag hacia arriba de dos tramos (pared delante)"],
+	["climb", "ESCALADA", "gold", "Zigzag hacia arriba de tres tramos (pared delante)"],
+	["wall_climb", "WALL CLIMB", "gold", "Zigzag hacia arriba de dos tramos (pared delante)"],
 	["ledge_grab", "AGARRE DE BORDE", "gold", "J hacia arriba y mantén el dedo"],
-	["cat_leap", "CAT LEAP", "move", "Círculo pequeño (pared delante)"],
+	["cat_leap", "CAT LEAP", "gold", "Un círculo solo (pared delante)"],
 	["precision", "SALTO DE PRECISIÓN", "gold", "Línea corta hacia arriba y un toque"],
-	["roll", "RODAR", "gold", "Curva hacia abajo y adelante (corriendo o en el aire)"],
 ]
 var training := false
 var train_i := 0
@@ -1310,8 +1231,6 @@ func _draw_gesture_fx(font: Font, s: float) -> void:
 	# Joystick iluminado y nombre del movimiento reconocido
 	if _flash.has("gold_ok"):
 		draw_arc(_jump_center(), _jump_radius() * 1.12, 0, TAU, 64, Color(Neon.GOLD, minf(1.0, _flash.gold_ok * 2.5)), 8.0 * s, true)
-	if _flash.has("move_ok"):
-		draw_arc(_joy_idle(), JOY_R * s * 1.05, 0, TAU, 64, Color(Neon.CYAN, minf(1.0, _flash.move_ok * 2.5)), 8.0 * s, true)
 	if _flash.has("twist_ok"):
 		draw_arc(_rot_center(), _rot_radius() * 1.1, 0, TAU, 64, Color(Neon.PURPLE, minf(1.0, _flash.twist_ok * 2.5)), 8.0 * s, true)
 	for t in _toasts:
@@ -1328,15 +1247,6 @@ func _process(dt: float) -> void:
 	_time += dt
 	if salto_pages_enabled():
 		_gesture_rest_checks()
-		for fm in _fingers.values():
-			if fm.get("role", "") == "move":
-				_move_gesture_check(fm, false)
-				if fm.get("drawing", false) and _time - float(fm.get("mlast_t", 0.0)) >= MOVE_GESTURE_REST:
-					# Terminó el trazo: vuelve a dirigir con la posición actual del dedo
-					fm["drawing"] = false
-					var rr := JOY_R * 0.8 * _s()
-					var dd: Vector2 = (fm.get("mlast", _joy_base) as Vector2) - _joy_base
-					_joy_vec = Vector2(dd.x, -dd.y).limit_length(rr) / rr
 		if not _await_tap.is_empty() and _time - float(_await_tap.t) >= PRECISION_WAIT:
 			var res: Dictionary = _await_tap.res
 			_await_tap = {}

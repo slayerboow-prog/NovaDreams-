@@ -121,6 +121,7 @@ func _run_all() -> void:
 	await t_parkour_move_stick()
 	await t_vault_gestures()
 	await t_parkour_gesture_shapes()
+	await t_precision_long_jump()
 	await t_mocap_backflip()
 	await t_landing_feel()
 	await t_new_tricks()
@@ -330,8 +331,9 @@ func t_kong_vault() -> void:
 		var dk := {"p": false}
 		await run(func(i, f):
 			i.move = Vector2(0, 1.0); i.sprint = true
-			i.jump_pressed = not dk.p and player.global_position.z <= jz
-			dk.p = dk.p or i.jump_pressed
+			if not dk.p and player.global_position.z <= jz:
+				i.giro = {"id": "dive_kong", "side": 1}        # joystick GIRO: diagonal arriba
+				dk.p = true
 			dk.air = dk.get("air", false) or player.state != PlayerController.State.GROUND
 			i.jump_held = true, 240,
 			func(): return dk.get("air", false) and player.state == PlayerController.State.GROUND)
@@ -345,8 +347,9 @@ func t_kong_vault() -> void:
 	await run(func(i, f):
 		i.move = Vector2(0, 1.0) if not far.p or player.state != PlayerController.State.GROUND else Vector2.ZERO
 		i.sprint = true
-		i.jump_pressed = not far.p and player.global_position.z <= -6.45
-		far.p = far.p or i.jump_pressed
+		if not far.p and player.global_position.z <= -6.45:
+			i.giro = {"id": "dive_kong", "side": 1}
+			far.p = true
 		i.jump_held = true, 200,
 		func(): return far.p and _f > 30 and player.state != PlayerController.State.AIR)
 	check("Dive Kong demasiado lejos: el personaje no llega", not ("Dive Kong" in moves) and not ("Kong Vault" in moves) and player.global_position.z > -15.0, "%s z %.2f" % [moves, player.global_position.z])
@@ -2084,9 +2087,7 @@ func t_gesture_patterns() -> void:
 		"aerial_twist": "aerial_twist", "gainer": "gainer"}
 	for id in GestureRecognizer.TEMPLATES.keys():
 		expect[id] = id
-	expect.erase("cat_leap")             # su dibujo de ejemplo es ya el círculo del joystick de movimiento
-	for mid in GestureRecognizer.MOVE_ONLY_IDS:
-		expect.erase(mid)                # solo en el joystick de movimiento
+	expect.erase("roll")                 # rodar ya no es un gesto: es automático al caer desde alto
 	var worst := {"id": "", "rate": 1.0}
 	var tot := {"ok": 0, "n": 0}
 	for id in expect.keys():
@@ -2111,7 +2112,7 @@ func t_gesture_patterns() -> void:
 	var tiny := PackedVector2Array([Vector2(600, 400), Vector2(604, 402), Vector2(601, 405), Vector2(603, 401)])
 	check("Joystick dorado: un toque o un temblor = salto (no acrobacia)", GestureRecognizer.recognize_salto(tiny, 95.0).id == "tap", "")
 	var circ := GestureRecognizer.recognize_salto(PackedVector2Array(_circle_pts(Vector2(600, 400), 60, 1.0, 1)), 95.0)
-	check("Joystick dorado: un círculo solo no es ningún mortal (los círculos son del morado)", circ.id == "", str(circ))
+	check("Joystick dorado: un círculo solo = CAT LEAP (no es ningún mortal)", circ.id == "cat_leap", str(circ))
 	# Garabatos al azar (movimientos accidentales): pocos deben pasar por un patrón
 	var hits := 0
 	for n in 60:
@@ -2336,8 +2337,8 @@ func t_gesture_patterns() -> void:
 	var ids := TouchControls.TRAIN.map(func(x): return x[0])
 	var missing := []
 	for need in ["aerial", "aerial_twist", "cork", "cork720", "webster", "gainer", "palm", "speed", "reverse",
-			"vault", "kong", "wall_run", "wall_flip", "climb", "ledge_grab", "cat_leap", "precision", "roll", "wall_climb",
-			]:
+			"vault", "kong", "wall_run", "wall_flip", "climb", "ledge_grab", "cat_leap", "precision", "wall_climb",
+			"double_kong", "kash", "thief", "turn"]:
 		if not need in ids:
 			missing.append(need)
 	check("Práctica: están todos los gestos pedidos (%d)" % ids.size(), missing.is_empty(), str(missing))
@@ -2611,8 +2612,8 @@ func t_double_presses() -> void:
 	game.router.scripted = _drive
 
 
-## Modo gestos: los movimientos de parkour se dibujan en el joystick de movimiento (izquierdo).
-## Dibujar no hace girar al atleta (sigue en su dirección); dirigir normal no dispara nada.
+## Modo gestos: los movimientos de parkour se dibujan en el joystick dorado (SALTO); el joystick
+## de movimiento solo mueve.
 func t_parkour_move_stick() -> void:
 	var touch: TouchControls = game.ui.touch
 	var old_mode := Settings.trick_controls
@@ -2623,70 +2624,37 @@ func t_parkour_move_stick() -> void:
 	game.router.scripted = Callable()
 	var r := TouchControls.JOY_R * 0.8 * touch._s()
 	var base := Vector2(230, 520)
-	# Dirigir con normalidad (girar a un lado y volver) no es un gesto
+	# El joystick de movimiento solo mueve: aunque se dibuje la U, no hace parkour
 	await place(Vector3(0, 0.1, 20), Vector3.FORWARD)
 	moves.clear()
 	var e := InputEventScreenTouch.new(); e.index = 7; e.position = base; e.pressed = true
 	touch._on_touch(e)
-	var steer := [Vector2(0, -0.9), Vector2(0.5, -0.8), Vector2(0.8, -0.4), Vector2(0.5, -0.8), Vector2(0, -0.9)]
-	for q in steer:
-		var dr := InputEventScreenDrag.new(); dr.index = 7; dr.position = base + q * r; touch._on_drag(dr)
-		await frames(12)
+	for q in GestureRecognizer.resample(GestureRecognizer.preview_points("vault"), 30):
+		var dd := InputEventScreenDrag.new(); dd.index = 7; dd.position = base + Vector2(q.x, -q.y) * r * 0.9; touch._on_drag(dd)
+	await frames(20)
 	e.pressed = false; touch._on_touch(e)
 	await frames(10)
-	check("Joystick de movimiento: dirigir con normalidad no hace parkour", not moves.any(func(m): return "Vault" in String(m)), str(moves))
-	# Darse la vuelta rápido corriendo (arco de adelante a atrás) tampoco: ni rodar ni parkour
-	await place(Vector3(0, 0.1, 20), Vector3.FORWARD)
-	moves.clear()
-	e.position = base; e.pressed = true
-	touch._on_touch(e)
-	var fw := InputEventScreenDrag.new(); fw.index = 7; fw.position = base + Vector2(0, -0.95) * r; touch._on_drag(fw)
-	await frames(40)
-	var st0 := player.state
-	for i in 13:
-		var a := -PI * 0.5 + PI * float(i) / 12.0
-		var da := InputEventScreenDrag.new(); da.index = 7; da.position = base + Vector2(cos(a), sin(a)) * r * 0.95; touch._on_drag(da)
-		await frames(1)
-	await frames(30)
-	e.pressed = false; touch._on_touch(e)
-	await frames(10)
-	check("Joystick de movimiento: darse la vuelta rápido no hace parkour ni rodar (%s)" % str(moves), moves.is_empty() and player.state != PlayerController.State.ROLL, str(moves))
-	# Correr hacia el muro y dibujar la U del vault en el mismo joystick
+	check("Joystick de movimiento: solo mueve (dibujar no hace parkour)", not moves.any(func(m): return "Vault" in String(m)), str(moves))
+	# Correr hacia el muro con el izquierdo y dibujar la U en el dorado = vault
 	await place(Vector3(0, 0.1, 2), Vector3.FORWARD)
 	moves.clear()
 	e.position = base; e.pressed = true
 	touch._on_touch(e)
 	var up := InputEventScreenDrag.new(); up.index = 7; up.position = base + Vector2(0, -0.95) * r; touch._on_drag(up)
-	var st := {"drawn": false, "turned": 0.0, "f0": Vector3.ZERO}
+	var st := {"drawn": false}
 	for k in 240:
 		await get_tree().physics_frame
 		if not st.drawn and player.global_position.z < -3.0:
 			st.drawn = true
-			st.f0 = player.facing
-			var pts := [base + Vector2(0, -0.95) * r]
-			for q in GestureRecognizer.resample(GestureRecognizer.preview_points("vault"), 30):
-				pts.append(base + Vector2(q.x, -q.y) * r * 0.9)
-			# El dedo baja rápido desde "adelante" hasta el inicio de la U y la dibuja
-			var lead: Vector2 = pts[1]
-			for i in range(1, 6):
-				var dl := InputEventScreenDrag.new(); dl.index = 7; dl.position = (pts[0] as Vector2).lerp(lead, i / 5.0); touch._on_drag(dl)
-			for i in range(2, pts.size()):
-				var dd := InputEventScreenDrag.new(); dd.index = 7; dd.position = pts[i]; touch._on_drag(dd)
-		if st.drawn and player.state != PlayerController.State.VAULT:
-			st.turned = maxf(st.turned, (st.f0 as Vector3).angle_to(player.facing))
+			await _draw_on(touch, 16, _gpts("vault", touch._jump_center(), touch._jump_radius() * 0.9))
 		if st.drawn and moves.any(func(m): return "Vault" in String(m)):
 			break
 	e.pressed = false; touch._on_touch(e)
-	check("Joystick de movimiento: la U dibujada delante del muro = vault (%s)" % str(moves), moves.any(func(m): return "Vault" in String(m)), str(moves))
-	check("Joystick de movimiento: mientras dibuja, el atleta no se da la vuelta (%.2f rad)" % st.turned, st.turned < 0.6, "")
-	# En el dorado, el vault ya no se reconoce (va en el de movimiento)
-	var g := GestureRecognizer.recognize_salto(PackedVector2Array(_gpts("vault", Vector2(600, 400), 90)), 95.0, {"no_parkour": true})
-	check("Joystick dorado (modo gestos): el vault ya no se dibuja ahí", String(g.get("id", "")) != "vault", str(g.get("id", "")))
+	check("Joystick dorado: la U dibujada delante del muro = vault, mientras se corre con el izquierdo (%s)" % str(moves), moves.any(func(m): return "Vault" in String(m)), str(moves))
 	Settings.trick_controls = old_mode
 	game.router.scripted = _drive
 
-
-## Gestos de vault del joystick de movimiento: cada uno hace su técnica (M = kong, tres picos =
+## Gestos de vault del joystick dorado: cada uno hace su técnica (M = kong, tres picos =
 ## doble kong, ✓ = kash, V y bajada = thief, de arriba abajo rodeando = turn vault).
 func t_vault_gestures() -> void:
 	var cases := [
@@ -2708,11 +2676,11 @@ func t_vault_gestures() -> void:
 				i.pattern = {"id": c[0], "ok": true, "kind": "parkour", "side": 1, "name": c[0]}
 				st.sent = true, 220,
 			func(): return st.sent and _f > 20 and player.state == PlayerController.State.GROUND and not moves.is_empty())
-		check("Gesto %s en el joystick de movimiento = %s (%s)" % [c[0], c[4][0], str(moves)], moves.any(func(m): return m in c[4]), str(moves))
+		check("Gesto %s = %s (%s)" % [c[0], c[4][0], str(moves)], moves.any(func(m): return m in c[4]), str(moves))
 
 
-## Reconocimiento de los gestos de parkour del joystick de movimiento con trazos de dedo reales:
-## tamaño variable, temblor y el tramo desde "adelante" hasta donde empieza el dibujo.
+## Reconocimiento de los gestos de parkour del joystick dorado con trazos de dedo reales:
+## tamaño variable y temblor.
 func t_parkour_gesture_shapes() -> void:
 	var rng := RandomNumberGenerator.new(); rng.seed = 7
 	var ids := ["vault", "kong", "double_kong", "kash", "thief", "turn", "speed", "reverse", "wall_run", "climb", "wall_climb", "cat_leap"]
@@ -2724,15 +2692,60 @@ func t_parkour_gesture_shapes() -> void:
 			var pts := PackedVector2Array()
 			for q in GestureRecognizer.resample(GestureRecognizer.preview_points(id), rng.randi_range(25, 50)):
 				pts.append(Vector2(300, 400) + Vector2(q.x * sx, -q.y * sy) * 90 + Vector2(rng.randf_range(-7, 7), rng.randf_range(-7, 7)))
-			if trial % 2 == 1:
-				var lead := PackedVector2Array([Vector2(300, 315)])
-				for i in range(1, 5): lead.append(Vector2(300, 315).lerp(pts[0], i / 4.0))
-				lead.append_array(pts); pts = lead
 			var ctx := {"obstacle": true, "wall_front": false, "wall_any": false, "ledge": false, "roll": true}
 			if id in ["wall_climb", "climb", "cat_leap"]: ctx = {"obstacle": false, "wall_front": true, "wall_any": true, "ledge": true, "roll": true}
 			elif id == "wall_run": ctx = {"obstacle": false, "wall_front": false, "wall_any": true, "ledge": false, "roll": true}
-			var res := GestureRecognizer.recognize_parkour(pts, 95.0, {"ctx": ctx})
+			var res := GestureRecognizer.recognize_salto(pts, 95.0, {"ctx": ctx, "prefer_templates": true})
 			var g := String(res.get("id", "")) if res.get("ok", false) else "x" + String(res.get("id", ""))
 			if g == id: ok += 1
 			else: wrong[g] = int(wrong.get(g, 0)) + 1
 		check("Gesto de parkour %s: reconocido con trazos de dedo reales (%d/30)" % [id, ok], ok >= 28, str(wrong))
+
+
+## SALTO + joystick adelante: parado = salto de precisión (pies juntos, recepción clavada);
+## en carrera = salto de longitud. Los dos detectan el borde al que llegan y caen en él.
+func t_precision_long_jump() -> void:
+	var boxes := []
+	for b in [[Vector3(30, 0.5, 20), Vector3(3, 1, 10)], [Vector3(30, 0.5, 5.5), Vector3(3, 1, 10)]]:
+		var body := StaticBody3D.new()
+		var col := CollisionShape3D.new()
+		var bs := BoxShape3D.new(); bs.size = b[1]
+		col.shape = bs
+		body.add_child(col)
+		body.position = b[0]
+		game.add_child(body)
+		boxes.append(body)
+	await frames(2)
+	# En carrera por el primer muro (borde en z = 15) hacia el segundo (borde en z = 10.5)
+	await place(Vector3(30, 1.1, 24.5), Vector3.FORWARD)
+	var st := {"p": false, "kind": ""}
+	await run(func(i, f):
+		i.move = Vector2(0, 1.0); i.sprint = true
+		if not st.p and player.global_position.z <= 16.4:
+			i.jump_pressed = true
+			st.p = true
+		if player.state == PlayerController.State.AIR and st.kind == "":
+			st.kind = player.air_kind
+		if st.p and player.state == PlayerController.State.AIR:
+			i.move = Vector2(0, 0.0), 300,
+		func(): return st.kind != "" and player.state != PlayerController.State.AIR)
+	await frames(10)
+	check("En carrera, SALTO + adelante = salto de longitud (%s)" % st.kind, st.kind == "long" and "Long Jump" in moves, str(moves))
+	check("Salto de longitud: cae en el borde del otro muro y clava (%s, %.1f m/s)" % [str(player.global_position.snapped(Vector3.ONE * 0.01)), player.speed()],
+		player.global_position.y > 0.9 and player.global_position.z < 10.6 and player.global_position.z > 9.4 and player.speed() < 2.0, "")
+	# Parado en llano: SALTO + adelante sin nada delante = precisión de ~1,8 m
+	await place(Vector3(0, 0.1, 20), Vector3.FORWARD)
+	moves.clear()
+	var z0 := player.global_position.z
+	var sp := {"j": false, "kind": ""}
+	await run(func(i, f):
+		i.move = Vector2(0, 0.6)
+		i.jump_pressed = not sp.j and f == 2
+		sp.j = sp.j or i.jump_pressed
+		if player.state == PlayerController.State.AIR and sp.kind == "":
+			sp.kind = player.air_kind, 200,
+		func(): return sp.kind != "" and player.state != PlayerController.State.AIR)
+	var dz := z0 - player.global_position.z
+	check("Parado, SALTO + adelante = salto de precisión (%s, %.1f m) y clava la recepción" % [sp.kind, dz], sp.kind == "precision" and dz > 1.3 and dz < 2.6 and player.speed() < 1.5, str(moves))
+	for b in boxes:
+		b.queue_free()
