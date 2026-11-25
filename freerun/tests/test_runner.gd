@@ -2562,13 +2562,22 @@ func t_double_presses() -> void:
 		var e := InputEventScreenTouch.new(); e.index = 14; e.position = touch._jump_center(); e.pressed = true
 		touch._on_touch(e); touch._time += t
 		e.pressed = false; touch._on_touch(e)
-	var expect := {"dos_rapido": "Double Backflip", "dos_tarde": "Double Backflip", "mantener": "Double Backflip", "mantener_soltar_pronto": "Backflip"}
+	# Mantener desde el suelo: las vueltas que quepan a un ritmo que se aprecia (una); desde una
+	# altura, más (doble)
+	var expect := {"dos_rapido": "Double Backflip", "dos_tarde": "Double Backflip", "mantener": "Backflip",
+		"mantener_alto": "Double Backflip", "mantener_soltar_pronto": "Backflip"}
 	var label := {"dos_rapido": "dos pulsaciones seguidas", "dos_tarde": "la 2.ª pasada media vuelta",
-		"mantener": "botón mantenido", "mantener_soltar_pronto": "mantener y soltar pronto"}
+		"mantener": "botón mantenido desde el suelo", "mantener_alto": "botón mantenido desde 9 m",
+		"mantener_soltar_pronto": "mantener y soltar pronto"}
 	for cs in expect.keys():
 		await place(Vector3(-35, 0.1, 35), Vector3.FORWARD)
 		moves.clear(); landings.clear()
-		hold_jump.call(0.3)
+		if cs == "mantener_alto":
+			player.global_position.y = 9.0
+			player.velocity = Vector3(0, 6, 0)
+			player._enter_air("stand")
+		else:
+			hold_jump.call(0.3)
 		var st := {"stage": 0, "maxp": 0.0}
 		for k in 300:
 			await get_tree().physics_frame
