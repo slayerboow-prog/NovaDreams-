@@ -583,13 +583,14 @@ func _solve_contacts(contacts: Dictionary, _dt: float, extra := {}, extra_target
 		contact_w[c] = w
 		var end := limb_end(c)
 		if w > 0.0:
-			if not plants.has(c):
+			# Mientras la mano baja el punto de apoyo se sigue buscando; queda clavado al cargar peso
+			if not plants.has(c) or (c.begins_with("h") and w < 0.99):
 				var lift := HAND_R if c.begins_with("h") else SOLE
 				var pt := end
 				if c.begins_with("h"):
 					# La mano se apoya delante del hombro, en la dirección a la que apunta el brazo
 					var sh := (joints["shoulder_" + c.substr(1, 1)] as Node3D).global_position
-					var off := Vector2(end.x - sh.x, end.z - sh.z).limit_length(0.22)
+					var off := Vector2(end.x - sh.x, end.z - sh.z).limit_length(0.08)
 					pt = Vector3(sh.x + off.x, 0.0, sh.z + off.y)
 				plants[c] = Vector3(pt.x, ground_y + lift, pt.z)
 			if c.begins_with("f"):
@@ -665,9 +666,11 @@ func _idle_pose(p: Dictionary) -> void:
 	p.spine.x = 0.02 * b - 0.03
 	p.spine.z = 0.025 * sway
 	p.neck.x = 0.04 - 0.015 * b
-	p.shoulder_l.x = 0.08 + 0.02 * b; p.shoulder_r.x = 0.06 + 0.02 * b
-	p.shoulder_l.z = -0.1; p.shoulder_r.z = 0.1
-	p.elbow_l.x = 0.28; p.elbow_r.x = 0.24
+	# Brazos relajados: caen junto al cuerpo (no en A), un pelín por delante y con los codos
+	# algo flexionados, como alguien de pie esperando
+	p.shoulder_l.x = 0.12 + 0.02 * b; p.shoulder_r.x = 0.1 + 0.02 * b
+	p.shoulder_l.z = -0.035; p.shoulder_r.z = 0.035
+	p.elbow_l.x = 0.36; p.elbow_r.x = 0.3
 	p.hip_l.x = 0.04; p.hip_r.x = 0.08
 	p.hip_l.z = -0.05; p.hip_r.z = 0.04 + 0.02 * sway
 	p.knee_l.x = -0.05; p.knee_r.x = -0.16

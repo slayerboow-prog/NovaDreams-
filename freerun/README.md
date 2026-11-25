@@ -50,6 +50,7 @@ Cómo se usan:
 - **ST**: pulsa CORK durante un cork y caerá **a un pie**. El siguiente cork (o lo que quieras) lo enlazas tú con CORK + SALTO en la recepción: Cork › ST › Cork se hace movimiento a movimiento.
 - **Sin botones de combo**: cada botón o gesto hace **un único movimiento**. Ningún botón encadena varios (nada de «rondada + flic-flac + mortal» de un toque): los combos salen de enlazar a mano, uno a uno, en la ventana de cada recepción.
 - La rueda, la rondada y el macaco van hacia el lado al que empuja el joystick izquierdo.
+- **Rueda, rondada y flic-flac con ritmo real** (≈1 s, 0,84 s y 0,76 s): la rotación sigue curvas suaves entre poses (sin tirones de velocidad en cada fase), el cuerpo se adapta a la altura del apoyo de manos en ~0,12 s en vez de en un fotograma, la mano se clava donde cae y, al pasar el peso de una mano a la otra, el cuerpo ya no da un salto.
 - Pulsar un botón durante un movimiento lo deja en cola para la recepción. Por ejemplo, RONDADA → FLIC-FLAC → ATRÁS.
 - **Joystick izquierdo**: movimiento. **Joystick GIRO**: todos los tirabuzones y giros (¼ híper, ½, 1, cork, 720…). En el suelo, el joystick GIRO también hace los gestos de abajo (raiz, hook, walkovers, pino…).
 - El esquema anterior sigue disponible en Ajustes → Controles de trucos.
@@ -103,7 +104,7 @@ Al enlazar, el siguiente movimiento hereda:
 
 El timing cuenta: el rebote completo solo existe al principio de la ventana. Una transición incoherente no hereda nada.
 
-El personaje es una **malla continua con piel** (tronco, cuello, brazos y piernas) generada por código con un esqueleto que sigue a las articulaciones de la animación: hombros, codos, caderas y rodillas se doblan con volumen, sin piezas que se separen. La ropa usa colores por zona (sudadera, puños, pantalón, calcetín) y relieve de tejido. Las poses se mezclan con un muelle amortiguado por articulación (las extremidades llegan un instante después que el tronco), la carrera tiene la rodilla casi recta en el apoyo y muy doblada en el balanceo, y en los mortales la cabeza busca el suelo al final del giro.
+El personaje es una **malla continua con piel** (tronco, cuello, brazos y piernas) generada por código con un esqueleto que sigue a las articulaciones de la animación: hombros, codos, caderas y rodillas se doblan con volumen, sin piezas que se separen. La ropa usa colores por zona (sudadera, puños, pantalón, calcetín) y relieve de tejido. El atleta realista usa materiales opacos ajustados (piel mate natural, ropa negra que muestra sus pliegues, zapatillas sin brillo plástico), manos relajadas con los dedos algo curvados y brazos que caen junto al cuerpo en reposo. Las poses se mezclan con un muelle amortiguado por articulación (las extremidades llegan un instante después que el tronco), la carrera tiene la rodilla casi recta en el apoyo y muy doblada en el balanceo, y en los mortales la cabeza busca el suelo al final del giro.
 
 Cada acrobacia tiene su propio ritmo de giro (backflip explosivo; aerial y butterfly más amplios), el doble mortal gira más rápido que el simple, y se anima por fases a partir del giro real: preparación (flexión antes de despegar), impulso, agrupación, rotación, apertura y recepción, con una forma corporal propia para Backflip, Frontflip, Sideflip, Gainer, Webster, Butterfly Kick, Cork y tirabuzones.
 
