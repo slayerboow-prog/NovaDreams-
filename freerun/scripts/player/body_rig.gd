@@ -505,6 +505,7 @@ const VAULT_HANDS := {
 	"Turn Vault": [["hl", 0.25, 0.85, 0.5, -0.2], ["hr", 0.25, 0.85, 0.5, 0.2]],
 	"Reverse Vault": [["hl", 0.3, 0.65, 0.45, -0.1]],
 	"Plancha Back": [["hl", 0.14, 0.7, 0.15, -0.17], ["hr", 0.14, 0.7, 0.15, 0.17]],
+	"Plancha Over": [["hl", 0.14, 0.6, 0.15, -0.17], ["hr", 0.14, 0.6, 0.15, 0.17]],
 }
 const VAULT_SHOULDER_H := 0.5
 
@@ -1291,6 +1292,23 @@ func _vault_pose(p: Dictionary) -> Basis:
 			_apply(p, KONG_EXIT_LEGS, _smooth((s - 0.55) / 0.3))
 			p.spine.x -= 0.15 * _smooth((s - 0.6) / 0.3)          # sale algo inclinado hacia delante, no echado atrás
 			return Basis(Vector3.RIGHT, -1.05 * dive)
+		"Plancha Over":
+			# Igual que la plancha back hasta la plancha; después empuja y la cadera pasa sobre las
+			# manos: se agrupa y se endereza encima del muro para el mortal atrás al otro lado
+			var reach_o := _smooth(s / 0.18)
+			var pl_o := _smooth((s - 0.16) / 0.26) * (1.0 - _smooth((s - 0.44) / 0.14))
+			var tk_o := _smooth((s - 0.44) / 0.14)
+			var crouch_o := reach_o * (1.0 - _smooth((s - 0.16) / 0.2))
+			_tuck_pose(p, maxf(0.55 * crouch_o, tk_o))
+			var arm_o := lerpf(0.3, 1.5, reach_o)
+			arm_o = lerpf(arm_o, 2.4, _smooth((s - 0.5) / 0.12))
+			p.shoulder_l.x = arm_o; p.shoulder_r.x = arm_o
+			p.shoulder_l.z = -0.18; p.shoulder_r.z = 0.18
+			if pl_o > 0.0:
+				_apply(p, {"hip_l": Vector3(-0.15, 0, -0.03), "hip_r": Vector3(-0.15, 0, 0.03),
+					"knee_l": Vector3(-0.05, 0, 0), "knee_r": Vector3(-0.05, 0, 0), "spine": Vector3(-0.1, 0, 0),
+					"neck": Vector3(0.5, 0, 0)}, pl_o)
+			return Basis(Vector3.RIGHT, -0.55 * crouch_o - 1.75 * pl_o + 0.2 * tk_o)
 		"Plancha Back":
 			# Manos al muro bajo · patada arriba hasta la plancha (cuerpo casi horizontal, piernas
 			# estiradas atrás) · empuje de brazos: las piernas bajan bajo el cuerpo y queda de pie

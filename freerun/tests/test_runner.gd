@@ -3122,12 +3122,42 @@ func t_kong_gainer_plancha() -> void:
 			i.flip_press = -2; st.done = true)
 	check("Kong gainer corriendo: kong en la valla y mortal atrás por encima (%s %s z=%.2f)" % [r.moves, r.q, r.pos.z],
 		"Kong Gainer" in r.moves and r.q.size() > 0 and r.q[-1] in ["perfect", "clean"] and r.pos.z < -20.6, "")
-	# Desde parado en la plataforma: salta la valla del borde y cae de 1,6 m
-	r = await _move_case(Vector3(32.5, 1.7, -30.35), Vector3.FORWARD, func(i, f, st):
+	# Desde parado en la plataforma empujando hacia la valla: plancha back pasando la valla y cae de 1,6 m
+	r = await _move_case(Vector3(32.5, 1.62, -30.35), Vector3.FORWARD, func(i, f, st):
 		i.move = Vector2(0, 0.6) if player.state == PlayerController.State.GROUND else Vector2.ZERO
 		i.flip_press = -2 if f == 4 else 99)
-	check("Kong gainer desde parado: salta la valla de la plataforma y cae de altura (%s %s y=%.2f)" % [r.moves, r.q, r.pos.y],
-		"Kong Gainer" in r.moves and r.q.size() > 0 and r.q[-1] in ["perfect", "clean"] and r.pos.y < 0.3 and r.pos.z < -31.2, "")
+	check("Parado empujando hacia la valla: plancha back pasándola y cae de altura (%s %s y=%.2f)" % [r.moves, r.q, r.pos.y],
+		"Plancha Back Over" in r.moves and r.q.size() > 0 and r.q[-1] in ["perfect", "clean"] and r.pos.y < 0.3 and r.pos.z < -31.2, "")
+	# Matriz en los muros del parque (0,7 m · 1,3 m de 2 m de fondo · caja de 1,1 m): pegado y
+	# quieto = plancha back en su lado · parado empujando = plancha back pasando el muro ·
+	# en carrera a 1 m = kong gainer. Muro de 1,9 m (demasiado alto): palm flip / wall flip.
+	for w in [["0,7 m", -44.0, 28.5], ["1,3 m", -50.0, 28.5], ["caja 1,1 m", -49.5, 22.0]]:
+		var fz: float = w[1]
+		var wx: float = w[2]
+		var a := await _move_case(Vector3(wx, 0.02, fz + 0.62), Vector3.FORWARD, func(i, f, st):
+			i.flip_press = -2 if f == 3 else 99)
+		var b := await _move_case(Vector3(wx, 0.02, fz + 0.62), Vector3.FORWARD, func(i, f, st):
+			i.move = Vector2(0, 0.7) if player.state == PlayerController.State.GROUND else Vector2.ZERO
+			i.flip_press = -2 if f == 3 else 99)
+		var c := await _move_case(Vector3(wx, 0.02, fz + 3.6), Vector3.FORWARD, func(i, f, st):
+			i.move = Vector2(0, 1) if player.state == PlayerController.State.GROUND else Vector2.ZERO
+			i.flip_press = 99
+			if not st.done and player.global_position.z <= fz + 1.0:
+				i.flip_press = -2; st.done = true)
+		var good := func(rr: Dictionary, name: String) -> bool:
+			return name in rr.moves and rr.q.size() > 0 and rr.q[-1] in ["perfect", "clean"]
+		check("Muro %s: pegado = plancha back en su lado · empujando = pasando el muro · carrera = kong gainer (%s | %s | %s)" % [w[0], a.moves, b.moves, c.moves],
+			good.call(a, "Plancha Back") and a.pos.z > fz + 0.3 and good.call(b, "Plancha Back Over") and b.pos.z < fz - 0.4
+			and good.call(c, "Kong Gainer") and c.pos.z < fz - 0.4, "")
+	var hw := await _move_case(Vector3(28.5, 0.02, -56.0 + 0.62), Vector3.FORWARD, func(i, f, st):
+		i.flip_press = -2 if f == 3 else 99)
+	var hr := await _move_case(Vector3(28.5, 0.02, -56.0 + 3.6), Vector3.FORWARD, func(i, f, st):
+		i.move = Vector2(0, 1) if player.state == PlayerController.State.GROUND else Vector2.ZERO
+		i.flip_press = 99
+		if not st.done and player.global_position.z <= -56.0 + 0.9:
+			i.flip_press = -2; st.done = true)
+	check("Muro de 1,9 m: ATRÁS pegado = palm flip, en carrera = wall flip; nunca un saltito contra el muro (%s | %s)" % [hw.moves, hr.moves],
+		"Palm Flip" in hw.moves and "Wall Flip" in hr.moves and not ("crash" in hw.q) and not ("crash" in hr.q), "")
 	# Corriendo hacia el borde de la plataforma: manos en el borde y mortal atrás en la caída
 	r = await _move_case(Vector3(30.4, 1.7, -28.5), Vector3.RIGHT, func(i, f, st):
 		i.move = Vector2(0, 1) if player.state == PlayerController.State.GROUND else Vector2.ZERO
