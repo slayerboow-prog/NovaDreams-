@@ -131,6 +131,7 @@ func _run_all() -> void:
 	await t_one_foot_chain()
 	await t_perfect_bonus()
 	await t_kong_gainer_plancha()
+	await t_gym()
 	await t_mocap_backflip()
 	await t_landing_feel()
 	await t_new_tricks()
@@ -3181,6 +3182,42 @@ func t_kong_gainer_plancha() -> void:
 		i.flip_press = -2 if f == 3 else 99)
 	check("ATRÁS sin obstáculo delante: no hay plancha ni kong", r.kinds.is_empty() and not ("Kong Gainer" in r.moves), str(r.moves))
 	Settings.trick_controls = old_mode
+
+## Gimnasio de parkour: los movimientos salen en sus obstáculos (barra suelta, caja, muros de
+## madera, foso de espuma y muro alto).
+func t_gym() -> void:
+	var gc := Vector3(-130, 0, -15)
+	var old_mode := Settings.trick_controls
+	Settings.trick_controls = 5
+	var r := await _move_case(gc + Vector3(-12, 0.02, 16.5), Vector3.FORWARD, func(i, f, st):
+		i.move = Vector2(0, 1); i.sprint = true
+		i.vault_pressed = player.global_position.z - gc.z <= 12.6)
+	check("Gimnasio: barra suelta de 1 m (hueco debajo) = vault (%s)" % str(r.moves), r.kinds.size() > 0 and r.pos.z < gc.z + 10.5, str(r.kinds))
+	r = await _move_case(gc + Vector3(-12, 0.02, 9.6), Vector3.FORWARD, func(i, f, st):
+		i.move = Vector2(0, 1) if player.state == PlayerController.State.GROUND else Vector2.ZERO
+		i.flip_press = 99
+		if not st.done and player.global_position.z - gc.z <= 6.5:
+			i.flip_press = -2; st.done = true)
+	check("Gimnasio: kong + mortal atrás en la caja de madera (%s %s)" % [r.moves, r.q], "Kong Gainer" in r.moves and r.q.size() > 0 and r.q[-1] in ["perfect", "clean"], "")
+	r = await _move_case(gc + Vector3(-12, 0.02, -0.25), Vector3.FORWARD, func(i, f, st):
+		i.flip_press = -2 if f == 3 else 99)
+	check("Gimnasio: plancha back en el muro fino de 1 m (%s %s)" % [r.moves, r.q], "Plancha Back" in r.moves and r.q.size() > 0 and r.q[-1] in ["perfect", "clean"], "")
+	r = await _move_case(gc + Vector3(-12, 0.02, -6.38), Vector3.FORWARD, func(i, f, st):
+		i.move = Vector2(0, 0.7) if player.state == PlayerController.State.GROUND else Vector2.ZERO
+		i.flip_press = -2 if f == 3 else 99)
+	check("Gimnasio: plancha back pasando el muro de 1,3 m (%s %s)" % [r.moves, r.q], "Plancha Back Over" in r.moves and r.q.size() > 0 and r.q[-1] in ["perfect", "clean"], "")
+	r = await _move_case(gc + Vector3(14, 4.0, -13.5), Vector3.RIGHT, func(i, f, st):
+		i.flick = Vector2(0, 1) if f == 2 else Vector2.ZERO, 300)
+	check("Gimnasio: en el foso de espuma una mala caída no es caída (%s)" % str(r.q), r.q.size() > 0 and r.q[-1] != "crash" and not (PlayerController.State.CRASH in [player.state]), "")
+	Settings.trick_controls = 0
+	r = await _move_case(gc + Vector3(-15.75, 0.02, -1), Vector3.FORWARD, func(i, f, st):
+		i.move = Vector2(-0.12 if player.global_position.z - gc.z < -9.0 else 0.0, 1.0); i.sprint = true
+		i.jump_pressed = player.global_position.z - gc.z < -9.5 and player.state == PlayerController.State.GROUND
+		i.jump_held = player.global_position.z - gc.z < -9.5, 300)
+	check("Gimnasio: wall run en el muro alto de madera (%s)" % str(r.moves), "Wall Run" in r.moves, "")
+	Settings.trick_controls = old_mode
+	game.start_mode("freerun")
+	await frames(5)
 
 func t_beach_buoy() -> void:
 	var li: Dictionary = game.level_info

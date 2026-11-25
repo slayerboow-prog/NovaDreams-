@@ -28,6 +28,7 @@ var info := {
 	"checkpoints": [],
 	"buoys": [],          # boyas de playa (trampolín): {"pos": centro, "node": malla}
 	"sand": [] as Array[AABB],   # zonas de arena (recepciones más suaves)
+	"foam": [] as Array[AABB],   # fosos de espuma del gimnasio (recepciones muy blandas)
 }
 
 func build(parent: Node3D) -> Dictionary:
@@ -44,12 +45,14 @@ func build(parent: Node3D) -> Dictionary:
 	_park()
 	_moves_plaza()
 	_beach()
+	_gym()
 	info.spawns["freerun"] = [Vector3(0, 0.1, 6), Vector3.FORWARD]
 	info.spawns["challenge"] = [Vector3(0, 0.1, 5), Vector3.FORWARD]
 	info.spawns["tricking"] = [Vector3(0, 0.1, 16), Vector3.BACK]
 	info.spawns["freestyle"] = [Vector3(3, 0.1, 6), Vector3.FORWARD]
 	info.spawns["water"] = [Vector3(22, 3.05, 8.8), Vector3.BACK]
 	info.spawns["water_high"] = [Vector3(17, 6.05, 8.8), Vector3.BACK]
+	info.spawns["gym"] = [GYM_C + Vector3(0, 0.1, 11), Vector3.FORWARD]
 	info.spawns["plaza"] = [Vector3(28, 0.1, -16), Vector3.FORWARD]
 	info.spawns["park"] = [Vector3(30, 0.1, -38), Vector3.FORWARD]
 	info.spawns["beach"] = [Vector3(125, 0.1, 12), Vector3.FORWARD]
@@ -370,3 +373,109 @@ func _buoy(c: Vector3) -> void:
 	body.add_child(mi)
 	root.add_child(body)
 	info.buoys.append({"pos": c, "node": mi, "r": BUOY_R})
+
+
+# ------------------------------------------------------------------ gimnasio
+
+const C_WOOD := Color(0.8, 0.55, 0.3)
+const C_WOOD_D := Color(0.64, 0.42, 0.23)
+const C_GYM_FLOOR := Color(0.28, 0.28, 0.3)
+const C_BAR := Color(0.16, 0.16, 0.18)
+const GYM_C := Vector3(-130, 0, -15)     # centro del gimnasio (lejos de la ciudad, al oeste)
+
+func _g(x: float, y: float, z: float) -> Vector3:
+	return GYM_C + Vector3(x, y, z)
+
+## Barra metálica entre dos puntos a una altura (con colisión, fina como un tubo).
+func _bar(a: Vector3, b: Vector3, y: float) -> void:
+	var mid := (a + b) * 0.5
+	var d := b - a
+	d.y = 0.0
+	var yaw := rad_to_deg(atan2(d.x, d.z)) + 90.0
+	box(Vector3(mid.x, y, mid.z), Vector3(d.length(), 0.06, 0.06), C_BAR, yaw)
+
+## Poste fino para sujetar barras.
+func _post(p: Vector3, h: float) -> void:
+	box(Vector3(p.x, h * 0.5, p.z), Vector3(0.09, h, 0.09), C_BAR)
+
+## Gimnasio de parkour (40 x 40 m, cubierto por paredes de 4,5 m): muros de madera de distintas
+## alturas y fondos, muros escalonados, pilares, barras a tres alturas, plataforma con valla y
+## borde abierto, muro alto para wall run / tic-tac y foso de espuma.
+func _gym() -> void:
+	block(_g(-20, -5, -20), _g(20, 0, 20), C_GYM_FLOOR)
+	# Paredes del recinto
+	block(_g(-20.6, 0, -20.6), _g(20.6, 4.5, -20), C_TILE)
+	block(_g(-20.6, 0, 20), _g(20.6, 4.5, 20.6), C_TILE)
+	block(_g(-20.6, 0, -20), _g(-20, 4.5, 20), C_TILE)
+	block(_g(20, 0, -20), _g(20.6, 4.5, 20), C_TILE)
+	# A · Calle de vaults (x -12): barra a 1 m · caja de kong 1,1 m · muro fino 1 m (plancha) ·
+	# muro de 1,3 m con 2 m de fondo · muro bajo de 0,6 m
+	_post(_g(-13.3, 0, 11), 1.0); _post(_g(-10.7, 0, 11), 1.0)
+	_bar(_g(-13.3, 0, 11), _g(-10.7, 0, 11), 1.0)
+	box(_g(-12, 0.55, 5), Vector3(2.6, 1.1, 1.0), C_WOOD)
+	box(_g(-12, 0.5, -1), Vector3(2.6, 1.0, 0.3), C_WOOD_D)
+	block(_g(-13.3, 0, -9), _g(-10.7, 1.3, -7), C_WOOD)
+	box(_g(-12, 0.3, -14), Vector3(2.6, 0.6, 0.4), C_WOOD_D)
+	# B · Muros escalonados (x -5): 0,7 · 1,3 · 1,9 · 2,5 · 3,2 m con huecos de 2 m
+	var steps := [0.7, 1.3, 1.9, 2.5, 3.2]
+	for k in steps.size():
+		var z0 := 12.0 - k * 4.0
+		block(_g(-6.2, 0, z0 - 2.0), _g(-3.8, steps[k], z0), C_WOOD if k % 2 == 0 else C_WOOD_D)
+	# C · Pilares de precisión con barras entre ellos (x 3..11)
+	var pillars := [[3.0, 12.0, 1.2], [7.0, 12.0, 1.6], [11.0, 12.0, 2.0], [3.0, 7.0, 2.4], [7.0, 7.0, 1.4], [11.0, 7.0, 1.8]]
+	for pl in pillars:
+		box(_g(pl[0], pl[2] * 0.5, pl[1]), Vector3(0.6, pl[2], 0.6), C_WOOD)
+	_bar(_g(3.3, 0, 12), _g(6.7, 0, 12), 1.0)        # barra baja entre pilares
+	_bar(_g(7.3, 0, 7), _g(10.7, 0, 7), 1.6)         # barra media
+	_bar(_g(3, 0, 7.3), _g(3, 0, 11.7), 2.2)         # barra alta
+	# D · Conjunto de barras sueltas a tres alturas (1 · 1,6 · 2,2 m)
+	for bx in [14.0, 18.0]:
+		_post(_g(bx, 0, 13), 2.3); _post(_g(bx, 0, 7), 2.3)
+	for by in [1.0, 1.6, 2.2]:
+		_bar(_g(14, 0, 13), _g(14, 0, 7), by)
+	_bar(_g(18, 0, 13), _g(18, 0, 7), 1.3)
+	_bar(_g(14, 0, 10), _g(18, 0, 10), 1.9)
+	# E · Plataforma de 1,6 m con escalera, valla en el borde sur y borde este abierto
+	block(_g(1, 0, -6), _g(7, 1.6, -1), C_WOOD)
+	stairs(_g(4, 0, 3.5), Vector3.FORWARD, 4.5, 1.6, 2.0, C_WOOD_D)
+	box(_g(4, 1.6 + 0.47, -5.95), Vector3(6.0, 0.94, 0.06), C_BAR)
+	for vx in [1.2, 4.0, 6.8]:
+		_post(_g(vx, 0, -5.95), 2.55)
+	# F · Muro alto (3,5 m) para wall run y tic-tac, con una caja delante
+	block(_g(-17, 0, -18), _g(-16.4, 3.5, -8), C_WOOD_D)
+	box(_g(-14.5, 0.5, -15), Vector3(1.2, 1.0, 1.2), C_WOOD)
+	# G · Foso de espuma con plataforma de salto de 2,4 m
+	var foam_min := _g(10, 0, -18)
+	var foam_max := _g(19, 0.6, -9)
+	block(_g(9.6, 0, -18.4), _g(19.4, 0.5, -18), C_WOOD)      # borde del foso
+	block(_g(9.6, 0, -9.4), _g(19.4, 0.5, -9), C_WOOD)
+	block(_g(9.6, 0, -18), _g(10, 0.5, -9.4), C_WOOD)
+	var rng := RandomNumberGenerator.new()
+	rng.seed = 11
+	for k in 70:
+		var c := Color(0.15, 0.45, 0.9) if k % 3 != 0 else Color(0.12, 0.12, 0.14)
+		var p := Vector3(rng.randf_range(foam_min.x + 0.4, foam_max.x - 0.4), rng.randf_range(0.12, 0.45),
+			rng.randf_range(foam_min.z + 0.4, foam_max.z - 0.4))
+		box(p, Vector3(0.45, 0.4, 0.45), c, rng.randf_range(0, 90), false)
+	info.foam.append(AABB(foam_min - Vector3(0, 1, 0), foam_max - foam_min + Vector3(0, 3, 0)))
+	block(_g(5.5, 0, -18), _g(9.6, 2.4, -14), C_WOOD)          # plataforma de salto al foso
+	stairs(_g(7.5, 0, -10.0), Vector3.FORWARD, 4.0, 2.4, 1.8, C_WOOD_D)
+	# H · Barras bajas de equilibrio / precisión (0,5 m) y muros bajos sueltos
+	for bz in [16.0, 14.0]:
+		_post(_g(-2, 0, bz), 0.5); _post(_g(2, 0, bz), 0.5)
+		_bar(_g(-2, 0, bz), _g(2, 0, bz), 0.5)
+	box(_g(-16, 0.4, 14), Vector3(1.6, 0.8, 0.4), C_WOOD_D)
+	box(_g(-16, 0.6, 8), Vector3(1.6, 1.2, 0.4), C_WOOD)
+	# I · Muros enlazados (como en los gimnasios: un recorrido continuo de muros y torres):
+	# muro largo de 1,2 m · torre de 2,2 m en la esquina · muro de 0,9 m que gira · escalón de 1,6 m
+	block(_g(10, 0, -6), _g(18, 1.2, -5.6), C_WOOD)
+	block(_g(18, 0, -6.4), _g(19.4, 2.2, -4.6), C_WOOD_D)
+	block(_g(18.6, 0, -4.6), _g(19.0, 0.9, 3.0), C_WOOD)
+	block(_g(12, 0, -5.6), _g(13.4, 1.6, -4.2), C_WOOD_D)
+	block(_g(15, 0, -5.6), _g(15.8, 0.7, -4.8), C_WOOD)
+	_post(_g(10, 0, -3.0), 2.0); _post(_g(10, 0, 1.0), 2.0)
+	_bar(_g(10, 0, -3.0), _g(10, 0, 1.0), 2.0)          # barra alta junto a los muros
+	# J · Pirámide de cajones cerca de la entrada (0,5 · 1,0 · 1,5 m)
+	box(_g(9.5, 0.25, 16.5), Vector3(3.0, 0.5, 3.0), C_WOOD_D)
+	box(_g(9.5, 0.75, 16.5), Vector3(2.0, 0.5, 2.0), C_WOOD)
+	box(_g(9.5, 1.25, 16.5), Vector3(1.0, 0.5, 1.0), C_WOOD_D)

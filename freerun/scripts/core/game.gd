@@ -37,6 +37,7 @@ func _ready() -> void:
 	player.water_volumes = level_info.water
 	player.buoys = level_info.get("buoys", [])
 	player.sand_zones = level_info.get("sand", [])
+	player.foam_zones = level_info.get("foam", [])
 	rig = BodyRig.new()
 	rig.name = "Rig"
 	player.add_child(rig)
