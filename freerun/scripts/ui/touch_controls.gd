@@ -961,6 +961,16 @@ func _twist_release(f: Dictionary, p: Vector2) -> void:
 	_add_trail(f.path, Neon.PURPLE)
 	_rot_vec = Vector2.ZERO
 	if air_mode or f.get("air_used", false):
+		# En el aire el morado es el tirabuzón (izquierda/derecha); un trazo vertical claro
+		# (arriba = rondada, abajo = flic-flac) queda pedido para cuando toque el suelo
+		var pth: Array = f.path
+		var ch: Vector2 = (pth[pth.size() - 1] as Vector2) - (pth[0] as Vector2)
+		if ch.length() >= _rot_radius() * 0.55 and absf(ch.y) > 1.6 * absf(ch.x):
+			var ra := GestureRecognizer.recognize_giro(PackedVector2Array(pth), _rot_radius())
+			if String(ra.get("id", "")) in ["rondada", "flicflac"]:
+				_pending.giro = ra
+				_flash["twist_ok"] = 0.4
+				_toast("%s…" % ra.get("name", ""), Neon.PURPLE, "purple")
 		return
 	var res := GestureRecognizer.recognize_giro(PackedVector2Array(f.path), _rot_radius())
 	var id := String(res.get("id", ""))

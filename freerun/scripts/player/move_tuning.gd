@@ -56,8 +56,8 @@ extends Resource
 @export var tictac_up := 7.4
 @export var wallclimb_speed := 6.2
 @export var wallclimb_time := 0.55
-@export var climb_up_time := 0.42
-@export var mantle_time := 0.3
+@export var climb_up_time := 0.6
+@export var mantle_time := 0.45
 @export var shimmy_speed := 1.6
 
 # Acrobacias (rad/s)
