@@ -35,6 +35,7 @@ var sensor: ObstacleSensor
 var coyote := 0.0
 var jump_buffer := 0.0
 var roll_buffer := 0.0
+const AUTO_ROLL_FRAC := 0.95             # caída desde la que rueda solo (× hard_impact, ~4 m)
 var stun := 0.0
 var ledge_cooldown := 0.0
 var wall_cooldown := 0.0
@@ -786,7 +787,9 @@ func _land() -> void:
 		quality = "sloppy"
 	elif err > t.perfect_angle:
 		quality = "clean"
-	var rolled := roll_buffer > 0.0
+	# Rueda solo al caer desde una altura alta (~4 m o más) si cae de pie: absorbe el golpe
+	var auto_roll := roll_buffer <= 0.0 and quality != "crash" and impact > t.hard_impact * AUTO_ROLL_FRAC
+	var rolled := roll_buffer > 0.0 or auto_roll
 	var hard := false
 	if quality != "crash" and not rolled:
 		if impact > t.crash_impact:

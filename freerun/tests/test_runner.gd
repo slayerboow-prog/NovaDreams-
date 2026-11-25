@@ -382,12 +382,13 @@ func t_ledge_climb() -> void:
 	check("Borde: termina encima (y≈3)", player.global_position.y > 2.9, "y %.2f" % player.global_position.y)
 
 func t_drop_hard_vs_roll() -> void:
-	# Sin rodar desde la torre de 5,6 m: recepción dura
+	# Desde la torre de 5,6 m sin pulsar nada: rueda solo (Safety Roll), sin recepción dura
 	await place(Vector3(-24.25, 5.75, -10.5), Vector3.FORWARD)
 	await run(func(i, f): i.move = Vector2(0, 0.5), 200,
 		func(): return landings.size() > 0)
 	await frames(2)
-	check("Caída 5,6 m sin rodar: recepción dura", "Hard Landing" in moves, str(moves) + str(landings.map(func(l): return [l.quality, l.impact])))
+	check("Caída 5,6 m: rueda sola (Safety Roll) y sin recepción dura", "Safety Roll" in moves and not ("Hard Landing" in moves),
+		str(moves) + str(landings.map(func(l): return [l.quality, l.impact])))
 	await place(Vector3(-24.25, 5.75, -10.5), Vector3.FORWARD)
 	await run(func(i, f):
 		i.move = Vector2(0, 0.5)

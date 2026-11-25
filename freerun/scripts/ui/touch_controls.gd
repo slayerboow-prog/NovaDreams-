@@ -119,7 +119,7 @@ func ring_moves() -> bool:
 ## butterfly, skill (habilidad de suelo), change (CAMBIAR de página).
 ## Arco de 270° alrededor de SALTO con 8 botones GRANDES por página y CAMBIAR al final (abajo a la
 ## derecha). VAULT, AGARRAR y RODAR van aparte, en una fila encima del joystick GIRO.
-const RING_FIXED := [["VAULT", "vault", ""], ["AGARRAR", "grab", ""], ["RODAR", "action", ""]]
+const RING_FIXED := [["VAULT", "vault", ""], ["AGARRAR", "grab", ""]]
 const RING_CHANGE := ["CAMBIAR", "change", ""]
 const RING_PAGES := [
 	{"name": "MORTALES", "buttons": [
@@ -407,7 +407,7 @@ func _pad_radius() -> float:
 func hit_radii() -> Dictionary:
 	if ring_enabled():
 		var hr := {"jump": _jump_radius() * 1.04, "rot": _rot_radius() * 1.08,
-			"vault": PARK_R * _s() * 1.1, "grab": PARK_R * _s() * 1.1, "action": PARK_R * _s() * 1.1}
+			"vault": PARK_R * _s() * 1.1, "grab": PARK_R * _s() * 1.1}
 		for i in ring_buttons().size():
 			hr["ring_%d" % i] = ring_button_radius() * 1.06
 		if salto_pages_enabled():
@@ -422,7 +422,8 @@ func hit_radii() -> Dictionary:
 ## Zonas táctiles activas en el modo actual (las pruebas comprueban que no se solapan).
 func zones() -> Dictionary:
 	if ring_enabled():
-		var zr := {"jump": _jump_center(), "rot": _rot_center(), "vault": _vault_center(), "grab": _grab_center(), "action": _action_center()}
+		# Sin botón RODAR: al caer desde una altura alta rueda solo
+		var zr := {"jump": _jump_center(), "rot": _rot_center(), "vault": _vault_center(), "grab": _grab_center()}
 		if salto_pages_enabled():
 			for i in FLIP_BTNS.size():
 				zr["flip_%d" % i] = flip_button_center(i)
@@ -643,7 +644,7 @@ func _on_touch(e: InputEventScreenTouch) -> void:
 				_pending.jump_pressed = true
 				info["jumped"] = true
 			_flash["jump"] = 0.15
-		elif p.distance_to(_action_center()) < hr.action:
+		elif hr.has("action") and p.distance_to(_action_center()) < hr.action:
 			role = "action"
 			_pending.action_pressed = true
 			_flash["action"] = 0.15
@@ -1414,13 +1415,12 @@ func _draw() -> void:
 		if gestures_enabled():
 			_label(font, jc + Vector2(0, 36 * s), "desliza = truco", 19 * s, Color(1, 1, 1, a + 0.15))
 	if ring_enabled():
-		# VAULT, AGARRAR y RODAR (fila encima del joystick GIRO)
+		# VAULT y AGARRAR (rodar es automático al caer desde una altura alta)
 		var heldp := {}
 		for f in _fingers.values():
 			heldp[f.role] = true
 		var alp := clampf(a + 0.35, 0.5, 1.0)
-		for pk in [["vault", _vault_center(), "VAULT", Neon.BLUE], ["grab", _grab_center(), grab_label, Neon.PURPLE],
-				["action", _action_center(), "RODAR", Neon.GREEN]]:
+		for pk in [["vault", _vault_center(), "VAULT", Neon.BLUE], ["grab", _grab_center(), grab_label, Neon.PURPLE]]:
 			var pr := PARK_R * s
 			Neon.button(self, pk[1], pr, pk[3], heldp.has(pk[0]) or _flash.has(pk[0]), alp)
 			Neon.icon(self, Neon.icon_for(pk[0], ""), pk[1] + Vector2(0, -pr * 0.2), pr * 0.36, Color(1, 1, 1, alp))
