@@ -122,6 +122,7 @@ func _run_all() -> void:
 	await t_vault_gestures()
 	await t_parkour_gesture_shapes()
 	await t_precision_long_jump()
+	await t_air_giro_queue()
 	await t_mocap_backflip()
 	await t_landing_feel()
 	await t_new_tricks()
@@ -2086,7 +2087,7 @@ func t_gesture_patterns() -> void:
 	var expect := {"front": "front", "back": "back", "side_l": "side", "side_r": "side", "cork": "cork", "cork720": "cork720",
 		"aerial_twist": "aerial_twist", "gainer": "gainer"}
 	for id in GestureRecognizer.TEMPLATES.keys():
-		expect[id] = id
+		expect[id] = GestureRecognizer.TEMPLATE_ALIAS.get(id, id)
 	expect.erase("roll")                 # rodar ya no es un gesto: es automático al caer desde alto
 	var worst := {"id": "", "rate": 1.0}
 	var tot := {"ok": 0, "n": 0}
@@ -2749,3 +2750,48 @@ func t_precision_long_jump() -> void:
 	check("Parado, SALTO + adelante = salto de precisión (%s, %.1f m) y clava la recepción" % [sp.kind, dz], sp.kind == "precision" and dz > 1.3 and dz < 2.6 and player.speed() < 1.5, str(moves))
 	for b in boxes:
 		b.queue_free()
+
+
+## Rondada (o flic-flac) dibujada en el morado durante un mortal: sale al tocar el suelo, y un
+## botón de mortal durante ella la enlaza (frontflip › rondada › backflip).
+func t_air_giro_queue() -> void:
+	var touch: TouchControls = game.ui.touch
+	var old_mode := Settings.trick_controls
+	Settings.trick_controls = 5
+	Settings.force_touch_ui = true
+	touch.visible = true
+	touch.size = Vector2(1542, 720)
+	game.router.scripted = Callable()
+	var tap := func(pos: Vector2, idx: int) -> void:
+		var e := InputEventScreenTouch.new(); e.index = idx; e.position = pos; e.pressed = true
+		touch._on_touch(e)
+		e.pressed = false; touch._on_touch(e)
+	await place(Vector3(-35, 0.1, 35), Vector3.FORWARD)
+	moves.clear(); landings.clear()
+	var hj := InputEventScreenTouch.new(); hj.index = 14; hj.position = touch._jump_center(); hj.pressed = true
+	touch._on_touch(hj); touch._time += 0.3
+	hj.pressed = false; touch._on_touch(hj)
+	var st := {"stage": 0}
+	for k in 420:
+		await get_tree().physics_frame
+		if st.stage == 0 and player.state == PlayerController.State.AIR:
+			tap.call(touch.flip_button_center(1), 11); st.stage = 1               # ADELANTE
+		elif st.stage == 1 and player.tricks.air_time > 0.25:
+			touch.air_mode = true                                                    # rondada dibujada en el aire
+			var rc := touch._rot_center()
+			var te := InputEventScreenTouch.new(); te.index = 12; te.position = rc + Vector2(0, 50); te.pressed = true
+			touch._on_touch(te)
+			for q in 6:
+				var td := InputEventScreenDrag.new(); td.index = 12; td.position = rc + Vector2(0, 50 - q * 20); touch._on_drag(td)
+			te.position = rc + Vector2(0, -70); te.pressed = false; touch._on_touch(te)
+			st.stage = 2
+		elif st.stage == 2 and player.state == PlayerController.State.SKILL and player.skill.get("id", "") == "roundoff":
+			touch.air_mode = false
+			tap.call(touch.flip_button_center(0), 11); st.stage = 3                # ATRÁS durante la rondada
+		if st.stage == 3 and moves.count("Backflip") + moves.count("Round-off Rebound") > 0 and player.state == PlayerController.State.GROUND:
+			break
+	touch.air_mode = false
+	check("Frontflip › rondada dibujada en el aire (sale al tocar el suelo) › backflip (%s)" % str(moves),
+		moves.find("Frontflip") >= 0 and moves.find("Round-off") > moves.find("Frontflip") and moves.find("Backflip") > moves.find("Round-off"), str(moves))
+	Settings.trick_controls = old_mode
+	game.router.scripted = _drive

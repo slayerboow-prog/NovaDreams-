@@ -181,7 +181,7 @@ func respawn() -> void:
 	tricks.reset()
 	stun = 0.0
 	jump_load = 0.0
-	mad_stage = 0; mad_axis = 99; mad_charge = 0.0; one_foot_q = false; mad_twisted = false; chutada_q = false; mad_pre_extra = 0
+	mad_stage = 0; mad_axis = 99; mad_charge = 0.0; one_foot_q = false; mad_twisted = false; chutada_q = false; mad_pre_extra = 0; giro_q = {}
 	keep_t = 0.0; air_grab_t = 0.0; wallflip_t = 0.0; wallrun_hold_t = 0.0; precision_t = 0.0
 	extra_twist_t = 0.0; cork_more = 0; pending_twists.clear(); vault_pref = ""
 	ground_wait = 0.0
@@ -640,11 +640,15 @@ const PRECISION_VY := 6.4               # salto de precisión: arco más bajo qu
 const PRECISION_FLAT := 1.8             # sin borde delante: distancia de un salto de precisión
 const PRECISION_MAX_HS := 6.0
 var jump_target := Vector3.INF          # borde donde caer (salto de precisión / longitud)
+var jump_hs := 0.0                      # velocidad horizontal del salto de precisión / longitud
 var dive_q := 0.0                       # Dive Kong pedido con el joystick GIRO (diagonal arriba)
+var giro_q := {}                        # rondada / flic-flac / rueda dibujada en el aire: al tocar el suelo
+var giro_q_t := 0.0
+const GESTURE_VAULT_SPEED := 4.6        # vault pedido con gesto sin carrera: impulso de un par de pasos
 ## Duración mínima de cada vault (s): ritmo real de cada técnica, se aprecia el movimiento
-const VAULT_MIN_DUR := {"Speed Vault": 0.45, "Step Vault": 0.5, "Lazy Vault": 0.5, "Dash Vault": 0.55,
-	"Kong Vault": 0.55, "Double Kong": 0.75, "Kash Vault": 0.62, "Thief Vault": 0.5, "Reverse Vault": 0.62,
-	"Turn Vault": 0.6, "Kong Up": 0.6, "Step Up": 0.45, "Climb Up": 0.6, "Dive Kong": 0.55}
+const VAULT_MIN_DUR := {"Speed Vault": 0.6, "Step Vault": 0.65, "Lazy Vault": 0.65, "Dash Vault": 0.72,
+	"Kong Vault": 0.75, "Double Kong": 1.0, "Kash Vault": 0.82, "Thief Vault": 0.68, "Reverse Vault": 0.82,
+	"Turn Vault": 0.8, "Kong Up": 0.8, "Step Up": 0.6, "Climb Up": 0.8, "Dive Kong": 0.72}
 
 ## Velocidad horizontal para caer a `dist` y `dy` metros con velocidad vertical vy (la sube si no
 ## alcanza esa altura). Devuelve [vy, horizontal].
@@ -673,6 +677,7 @@ func _precision_jump() -> void:
 	var b := _ballistic(dist, dy, PRECISION_VY)
 	var hs := minf(float(b[1]), PRECISION_MAX_HS)
 	velocity = dir * hs + Vector3.UP * float(b[0])
+	jump_hs = hs
 	_enter_air("precision")
 	precision_t = 2.0
 	move_and_slide()
@@ -710,6 +715,7 @@ func _long_jump() -> void:
 				hs = hs2
 				jump_target = tp
 	velocity = dir * hs + Vector3.UP * vy
+	jump_hs = hs
 	_enter_air("long")
 	move_and_slide()
 
@@ -770,11 +776,14 @@ func _state_air(dt: float) -> void:
 		return
 	var wish := wish_dir()
 	var hv := horizontal_velocity()
-	if wish.length() > 0.08 and air_kind != "precision":
-		# Control en el aire también durante los mortales: el joystick lleva el cuerpo hacia donde
-		# apuntas (adelante, atrás o a un lado) para caer con precisión encima de otro muro
+	if wish.length() > 0.08:
+		# Control en el aire también durante los mortales y los saltos de precisión / longitud:
+		# el joystick lleva el cuerpo hacia donde apuntas (adelante, atrás o a un lado) para caer
+		# con precisión encima de otro muro
 		var max_s := maxf(hv.length(), t.run_speed)
-		var acc := t.air_accel * (1.35 if tricks.active else 1.0)
+		if air_kind in ["precision", "long"]:
+			max_s = maxf(jump_hs * 1.05, 1.5)       # dirige o frena, pero no acelera: el borde calculado vale
+		var acc := t.air_accel * (1.35 if tricks.active or air_kind in ["precision", "long"] else 1.0)
 		hv += wish * acc * dt
 		hv = hv.limit_length(max_s)
 	velocity.x = hv.x
@@ -1021,6 +1030,17 @@ func _tick_gestures(dt: float) -> void:
 		_apply_pattern(intent.pattern)
 	if not intent.giro.is_empty():
 		_apply_giro(intent.giro)
+	if not giro_q.is_empty():
+		if state in [State.GROUND, State.SKILL]:
+			var gq := giro_q
+			giro_q = {}
+			_apply_giro(gq)                        # aterrizó: sale la rondada / flic-flac pedida en el aire
+		elif state in [State.AIR, State.VAULT, State.WALLRUN, State.WALLCLIMB]:
+			giro_q_t = 1.5
+		else:
+			giro_q_t -= 1.0 / 60.0
+			if giro_q_t <= 0.0:
+				giro_q = {}
 	_tick_flip_buttons(dt)
 	if intent.one_foot:
 		# 1 PIE en cualquier momento (también antes de saltar): la próxima recepción es a un pie
@@ -1081,6 +1101,12 @@ func _tick_flip_buttons(dt: float) -> void:
 				mad_stage = 1
 				if state == State.SKILL:
 					jump_buffer = t.jump_buffer_time
+					if not skill.is_empty() and not skill.get("linked", false):
+						# Pulsado durante la rondada / flic-flac: queda en cola hasta la recepción
+						# (antes caducaba antes de llegar al enlace y el mortal no salía)
+						skill.jump_q = true
+						skill.jump_flick = flick_buffer
+						skill.jump_double = false
 				return
 			# Sin SALTO: no hay impulso de piernas, solo un saltito. Sin altura, lo normal es no
 			# completar el giro y no caer de pie (como en la realidad)
@@ -1118,6 +1144,10 @@ const GIRO_SKILLS := {"rondada": "roundoff", "flicflac": "bhs", "rueda": "cartwh
 func _apply_giro(g: Dictionary) -> void:
 	var id := String(g.get("id", ""))
 	var sd := 1 if int(g.get("side", 1)) >= 0 else -1
+	if id in ["rondada", "flicflac", "rueda"] and state in [State.AIR, State.VAULT, State.WALLRUN, State.WALLCLIMB]:
+		# Dibujada en el aire (p. ej. durante un frontflip): sale en cuanto toca el suelo
+		giro_q = g
+		return
 	if id == "dive_kong":
 		# Dive Kong: salto de carrera hacia el obstáculo; si las manos llegan, kong desde lejos
 		if state in [State.GROUND, State.SKILL] and jump_load <= 0.0:
@@ -1268,9 +1298,14 @@ func gesture_context() -> Dictionary:
 func _try_vault() -> bool:
 	var hv := horizontal_velocity()
 	var spd := hv.length()
+	var dir := hv / spd if spd > 0.3 else ObstacleSensor.flat(facing).normalized()
 	if spd < t.vault_min_speed:
-		return false
-	var dir := hv / spd
+		if vault_pref == "":
+			return false
+		# Vault dibujado con el gesto andando o parado delante del obstáculo: un par de pasos de
+		# impulso y sale igual (antes no hacía nada sin carrera)
+		dir = ObstacleSensor.flat(facing).normalized()
+		spd = GESTURE_VAULT_SPEED
 	var info := sensor.probe_vault(global_position, dir, spd, t.vault_max_height, t.vault_min_height)
 	if info.is_empty():
 		return false
@@ -1374,7 +1409,7 @@ func _try_vault() -> bool:
 		length = d + (0.95 if kind == "Kong Up" else 0.55)
 	var exit_speed := maxf(spd * speed_mult, 3.5)
 	# Duración con un mínimo real por técnica: a sprint el paso por encima se veía en un parpadeo
-	var duration := clampf(maxf(length / maxf(exit_speed, 4.0) * (1.25 if info.mount else 1.0), float(VAULT_MIN_DUR.get(kind, 0.45))), 0.3, 1.0)
+	var duration := clampf(maxf(length / maxf(exit_speed, 4.0) * (1.25 if info.mount else 1.0), float(VAULT_MIN_DUR.get(kind, 0.6))), 0.3, 1.2)
 	if kind == "Turn Vault":
 		# Apoyo en dos manos y media vuelta: más lento, el cuerpo queda pegado al obstáculo
 		length = d + depth + 0.45
@@ -1453,7 +1488,7 @@ func _try_dive_kong() -> bool:
 	var timing := 1.0 if above > 0.25 and above < 1.15 else 0.7
 	var length := d + (0.95 if mount else depth + 0.85)
 	var exit_speed := maxf(spd * 1.04, 4.0)
-	var duration := clampf(maxf(length / maxf(exit_speed, 4.0) * (1.15 if mount else 1.0), float(VAULT_MIN_DUR.get(kind, 0.5))), 0.3, 0.95)
+	var duration := clampf(maxf(length / maxf(exit_speed, 4.0) * (1.15 if mount else 1.0), float(VAULT_MIN_DUR.get(kind, 0.7))), 0.3, 1.1)
 	var y0 := global_position.y
 	var y1: float = top_y + 0.02 if mount else maxf(top_y - 0.35, float(info.land_y) + 0.02)
 	# La trayectoria sigue el vuelo que traía (misma velocidad vertical al apoyar las manos) y

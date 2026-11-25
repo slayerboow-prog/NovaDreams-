@@ -20,6 +20,9 @@ static var SIMPLE_STRAIGHT := 0.86    # rectitud mínima (cuerda / recorrido)
 static var PRECISION_MAX_LEN := 1.1    # línea corta hacia arriba (salto de precisión): nunca se cambia por otra cosa
 static var SIMPLE_TURN := 30.0        # giro total máximo de una línea simple (grados)
 static var CARDINAL_HALF := 30.0      # ±grados alrededor de ↑ ↓ ← → que cuentan como simples
+static var CLEAR_MIN := 0.42            # parecido mínimo si no hay ningún otro movimiento cerca
+static var CLEAR_MARGIN := 0.15        # ventaja que debe sacar a la segunda forma (otro movimiento)
+const CLEAR_IDS := ["kong", "double_kong"]     # formas tan características que se aceptan algo torcidas
 static var MATCH_MIN := 0.5           # parecido mínimo con una plantilla (0..1)
 static var LOOP_ANGLE := 320.0        # grados de giro para contar un círculo (joystick morado)
 static var LOOP_MIN_LEN := 0.9        # recorrido mínimo de un círculo (radios): evita temblores
@@ -36,6 +39,9 @@ const NAMES := {
 	"precision": "SALTO DE PRECISIÓN", "roll": "RODAR", "wall_climb": "WALL CLIMB",
 	"palm": "PALM FLIP", "speed": "PASAVALLAS", "reverse": "REVERSO",
 }
+
+## Variantes de plantilla que cuentan como otro movimiento (distintas formas de dibujar lo mismo)
+const TEMPLATE_ALIAS := {"kong_v": "kong", "kong_d": "kong", "double_kong_d": "double_kong"}
 
 ## Contexto que necesita cada movimiento de parkour (lo comprueba el jugador).
 const NEEDS := {
@@ -61,8 +67,12 @@ const TEMPLATES := {
 	# Dos arcos seguidos (manos y luego piernas)
 	# Monkey: una M en punta (sube, baja, sube, baja)
 	"kong": [[-1.0, -1.0], [-0.5, 1.0], [0.0, -0.3], [0.5, 1.0], [1.0, -1.0]],
+	# Variantes de la M (cuentan como kong): letra M con los lados rectos y M con el valle hondo
+	"kong_v": [[-0.7, -1.0], [-0.7, 1.0], [0.0, -0.45], [0.7, 1.0], [0.7, -1.0]],
+	"kong_d": [[-0.8, -1.0], [-0.4, 1.0], [0.0, -0.9], [0.4, 1.0], [0.8, -1.0]],
 	# Doble monkey: tres picos
 	"double_kong": [[-1.0, -1.0], [-0.67, 1.0], [-0.33, -0.3], [0.0, 1.0], [0.33, -0.3], [0.67, 1.0], [1.0, -1.0]],
+	"double_kong_d": [[-0.9, -1.0], [-0.6, 1.0], [-0.3, -0.9], [0.0, 1.0], [0.3, -0.9], [0.6, 1.0], [0.9, -1.0]],
 	# Kash vault: V que sube al final (como ✓)
 	"kash": [[-0.55, 0.6], [0.0, -1.0], [0.65, 1.0]],
 	# Thief vault: V y otra bajada (baja, sube, baja)
@@ -340,7 +350,12 @@ static func recognize_salto(screen: PackedVector2Array, radius: float, opts := {
 	# 3. Un círculo solo (todo el trazo redondo) = CAT LEAP
 	var rs64 := resample(pts, 64)
 	var sm := resample(smooth(smooth(pts)), 32)
-	if absf(total_turning(sm)) >= deg_to_rad(290.0) and _roundness(sm) < 0.28:
+	var lo := Vector2(INF, INF)
+	var hi := Vector2(-INF, -INF)
+	for q in sm:
+		lo = lo.min(q); hi = hi.max(q)
+	var closes := sm[0].distance_to(sm[sm.size() - 1]) < 0.45 * maxf(hi.x - lo.x, hi.y - lo.y)
+	if closes and absf(total_turning(sm)) >= deg_to_rad(290.0) and _roundness(sm) < 0.28:
 		return _result("cat_leap", "parkour", 1.0, {"side": 1}, opts)
 	# 4. Bucles (el dedo se cruza o cierra un círculo al final)
 	var lp := loops(rs64)
@@ -349,9 +364,6 @@ static func recognize_salto(screen: PackedVector2Array, radius: float, opts := {
 		var r := _loop_move(pre, int(lp.count), int(lp.dir))
 		if not r.is_empty():
 			return _result(String(r.id), "pattern", 1.0, r, opts)
-		if path_length(pre) < 0.3:
-			# Un círculo solo = CAT LEAP (saltar a la pared y agarrarse con manos y pies)
-			return _result("cat_leap", "parkour", 1.0, {"side": 1}, opts)
 		return {"id": "", "kind": "none", "ok": false, "reason": "círculos: van en el joystick morado (tirabuzones)"}
 	# 4. Plantillas
 	# Rodar ya no es un gesto (es automático al caer desde alto) y su forma es la del turn vault;
@@ -396,10 +408,25 @@ static func _match_templates(rs: PackedVector2Array, abs_turn: float, opts: Dict
 	cands.sort_custom(func(a, b): return a[0] > b[0])
 	var ctx: Dictionary = opts.get("ctx", {})
 	var first_fail := {}
+	# Trazo algo torcido pero sin duda posible (la mejor forma le saca ventaja clara a cualquier
+	# otro movimiento): también vale, aunque no llegue al parecido mínimo
+	var min_ok := MATCH_MIN
+	if not cands.is_empty() and float(cands[0][0]) >= CLEAR_MIN and float(cands[0][0]) < MATCH_MIN:
+		var top_id := String(TEMPLATE_ALIAS.get(cands[0][1], cands[0][1]))
+		if not (top_id in CLEAR_IDS):
+			top_id = ""                              # solo formas muy características (la M del kong)
+		var second := 0.0
+		for c2 in cands.slice(1):
+			if String(TEMPLATE_ALIAS.get(c2[1], c2[1])) != top_id:
+				second = float(c2[0])
+				break
+		if top_id != "" and float(cands[0][0]) - second >= CLEAR_MARGIN:
+			min_ok = float(cands[0][0])
 	for c in cands:
-		if float(c[0]) < MATCH_MIN:
+		if float(c[0]) < min_ok:
 			break
-		var res := _result(String(c[1]), "parkour" if NEEDS.has(c[1]) else "pattern", float(c[0]), {"side": int(c[2])}, opts)
+		var cid := String(TEMPLATE_ALIAS.get(c[1], c[1]))
+		var res := _result(cid, "parkour" if NEEDS.has(cid) else "pattern", float(c[0]), {"side": int(c[2])}, opts)
 		if res.ok:
 			return res
 		if first_fail.is_empty():
