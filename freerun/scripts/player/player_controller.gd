@@ -28,6 +28,8 @@ var camera_yaw := 0.0                    # la cámara lo actualiza: el stick es 
 var water_volumes: Array[AABB] = []      # los rellena el nivel
 var buoys: Array = []                    # boyas trampolín de la playa: {"pos", "node"}
 var sand_zones: Array = []               # AABB de arena: recepciones más suaves
+var foam_zones: Array = []               # AABB de fosos de espuma: recepciones muy blandas (nunca duras)
+const FOAM_SOFT := 0.3
 var buoy_cd := 0.0
 var _trick_was_active := false
 var buoy_press_t := -1.0                 # tiempo desde que se pulsó SALTO llegando a la boya
@@ -1071,6 +1073,12 @@ func _land() -> void:
 	var impact := -prev_velocity.y
 	if not sand_zones.is_empty() and _on_sand():
 		impact *= SAND_SOFT
+	var in_foam := false
+	for fz in foam_zones:
+		if (fz as AABB).has_point(global_position):
+			impact *= FOAM_SOFT
+			in_foam = true
+			break
 	mad_stage = 0; mad_twisted = false
 	mad_axis = 99
 	var prec := precision_t > 0.0
@@ -1088,6 +1096,8 @@ func _land() -> void:
 		quality = "sloppy"
 	elif err > t.perfect_angle:
 		quality = "clean"
+	if in_foam and quality == "crash":
+		quality = "sloppy"                       # foso de espuma: caer mal no hace daño
 	# Rueda solo al caer desde una altura alta (~4 m o más) si cae de pie: absorbe el golpe
 	var auto_roll := roll_buffer <= 0.0 and quality != "crash" and impact > t.hard_impact * AUTO_ROLL_FRAC
 	var rolled := roll_buffer > 0.0 or auto_roll

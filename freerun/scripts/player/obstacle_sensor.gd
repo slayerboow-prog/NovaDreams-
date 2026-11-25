@@ -26,6 +26,12 @@ func probe_vault(feet: Vector3, dir: Vector3, speed: float, max_h: float, min_h:
 	var look := 0.55 + speed * 0.17
 	var from := feet + Vector3.UP * 0.4
 	var hit := ray(from, from + dir * look)
+	# Barras sueltas (hueco por debajo): se buscan también más arriba, hasta la altura máxima
+	for hy in [0.6, 0.75, 0.88, 1.0, 1.12, 1.25]:
+		if not hit.is_empty() or hy > max_h:
+			break
+		from = feet + Vector3.UP * hy
+		hit = ray(from, from + dir * look)
 	if hit.is_empty():
 		return {}
 	var n: Vector3 = hit.normal
