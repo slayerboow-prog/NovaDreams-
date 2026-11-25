@@ -1069,7 +1069,13 @@ func _move_gesture_check(f: Dictionary, released: bool) -> void:
 	f.mpath = [path[path.size() - 1]]
 	f.mtime = [_time]
 	f.mfast = [false]
-	if not res.get("ok", false) and not training:
+	if not res.get("ok", false) and (training or id in ["turn", "cat_leap"]):
+		# Turn vault (parecido a darse la vuelta) y cat leap (salta ya): solo con el obstáculo o
+		# la pared delante
+		_toast("%s: %s" % [res.get("name", id), res.get("reason", "")], Color(1, 0.45, 0.4), "move")
+		_train_check(res)
+		return
+	if not res.get("ok", false):
 		# Dibujado un poco antes de llegar (aún no se ve el obstáculo o la pared): queda en
 		# espera ~1 s y sale en cuanto llegas
 		var pend := res.duplicate()
@@ -1152,13 +1158,17 @@ const TRAIN := [
 	["speed", "PASAVALLAS", "move", "Sube y pasa de lado (Γ) (obstáculo delante)"],
 	["reverse", "REVERSO", "move", "De abajo arriba rodeando por un lado (obstáculo delante)"],
 	["vault", "VAULT", "move", "U invertida: sube, pasa por encima y baja (obstáculo delante)"],
-	["kong", "KONG VAULT", "move", "Dos arcos seguidos (obstáculo con fondo y carrera)"],
+	["kong", "KONG VAULT", "move", "M en punta: sube, baja, sube, baja (obstáculo y carrera)"],
+	["double_kong", "DOBLE KONG", "move", "Tres picos (obstáculo largo y carrera)"],
+	["kash", "KASH VAULT", "move", "V que sube al final, como ✓ (obstáculo y carrera)"],
+	["thief", "THIEF VAULT", "move", "V y otra bajada: baja, sube, baja (obstáculo delante)"],
+	["turn", "TURN VAULT", "move", "De arriba abajo rodeando por un lado (obstáculo delante)"],
 	["wall_run", "WALL RUN", "move", "Diagonal hacia arriba que se curva adelante (pared al lado)"],
 	["wall_flip", "WALL FLIP", "gold", "Sube y vuelve en semicírculo (pared delante)"],
 	["climb", "ESCALADA", "move", "Zigzag hacia arriba de tres tramos (pared delante)"],
 	["wall_climb", "WALL CLIMB", "move", "Zigzag hacia arriba de dos tramos (pared delante)"],
 	["ledge_grab", "AGARRE DE BORDE", "gold", "J hacia arriba y mantén el dedo"],
-	["cat_leap", "CAT LEAP", "move", "V y una curva pequeña hacia dentro (pared delante)"],
+	["cat_leap", "CAT LEAP", "move", "Círculo pequeño (pared delante)"],
 	["precision", "SALTO DE PRECISIÓN", "gold", "Línea corta hacia arriba y un toque"],
 	["roll", "RODAR", "gold", "Curva hacia abajo y adelante (corriendo o en el aire)"],
 ]

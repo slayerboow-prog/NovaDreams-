@@ -119,6 +119,8 @@ func _run_all() -> void:
 	await t_chutada()
 	await t_double_presses()
 	await t_parkour_move_stick()
+	await t_vault_gestures()
+	await t_parkour_gesture_shapes()
 	await t_mocap_backflip()
 	await t_landing_feel()
 	await t_new_tricks()
@@ -2081,6 +2083,9 @@ func t_gesture_patterns() -> void:
 		"aerial_twist": "aerial_twist", "gainer": "gainer"}
 	for id in GestureRecognizer.TEMPLATES.keys():
 		expect[id] = id
+	expect.erase("cat_leap")             # su dibujo de ejemplo es ya el círculo del joystick de movimiento
+	for mid in GestureRecognizer.MOVE_ONLY_IDS:
+		expect.erase(mid)                # solo en el joystick de movimiento
 	var worst := {"id": "", "rate": 1.0}
 	var tot := {"ok": 0, "n": 0}
 	for id in expect.keys():
@@ -2678,3 +2683,55 @@ func t_parkour_move_stick() -> void:
 	check("Joystick dorado (modo gestos): el vault ya no se dibuja ahí", String(g.get("id", "")) != "vault", str(g.get("id", "")))
 	Settings.trick_controls = old_mode
 	game.router.scripted = _drive
+
+
+## Gestos de vault del joystick de movimiento: cada uno hace su técnica (M = kong, tres picos =
+## doble kong, ✓ = kash, V y bajada = thief, de arriba abajo rodeando = turn vault).
+func t_vault_gestures() -> void:
+	var cases := [
+		["kong", Vector3(0, 0.1, -8), true, -11.6, ["Kong Vault"]],
+		["double_kong", Vector3(0, 0.1, -8), true, -11.6, ["Double Kong"]],
+		["kash", Vector3(0, 0.1, -8), true, -11.6, ["Kash Vault"]],
+		["thief", Vector3(0, 0.1, 2), false, -3.6, ["Thief Vault"]],
+		["turn", Vector3(0, 0.1, 2), false, -3.6, ["Turn Vault"]],
+		["reverse", Vector3(0, 0.1, 2), false, -3.6, ["Reverse Vault"]],
+		["speed", Vector3(0, 0.1, 2), false, -3.6, ["Speed Vault"]],
+	]
+	for c in cases:
+		await place(c[1], Vector3.FORWARD)
+		moves.clear()
+		var st := {"sent": false}
+		await run(func(i, f):
+			i.move = Vector2(0, 1.0 if c[2] else 0.8); i.sprint = c[2]
+			if not st.sent and player.global_position.z <= c[3]:
+				i.pattern = {"id": c[0], "ok": true, "kind": "parkour", "side": 1, "name": c[0]}
+				st.sent = true, 220,
+			func(): return st.sent and _f > 20 and player.state == PlayerController.State.GROUND and not moves.is_empty())
+		check("Gesto %s en el joystick de movimiento = %s (%s)" % [c[0], c[4][0], str(moves)], moves.any(func(m): return m in c[4]), str(moves))
+
+
+## Reconocimiento de los gestos de parkour del joystick de movimiento con trazos de dedo reales:
+## tamaño variable, temblor y el tramo desde "adelante" hasta donde empieza el dibujo.
+func t_parkour_gesture_shapes() -> void:
+	var rng := RandomNumberGenerator.new(); rng.seed = 7
+	var ids := ["vault", "kong", "double_kong", "kash", "thief", "turn", "speed", "reverse", "wall_run", "climb", "wall_climb", "cat_leap"]
+	for id in ids:
+		var ok := 0
+		var wrong := {}
+		for trial in 30:
+			var sx := rng.randf_range(0.75, 1.1); var sy := rng.randf_range(0.75, 1.1)
+			var pts := PackedVector2Array()
+			for q in GestureRecognizer.resample(GestureRecognizer.preview_points(id), rng.randi_range(25, 50)):
+				pts.append(Vector2(300, 400) + Vector2(q.x * sx, -q.y * sy) * 90 + Vector2(rng.randf_range(-7, 7), rng.randf_range(-7, 7)))
+			if trial % 2 == 1:
+				var lead := PackedVector2Array([Vector2(300, 315)])
+				for i in range(1, 5): lead.append(Vector2(300, 315).lerp(pts[0], i / 4.0))
+				lead.append_array(pts); pts = lead
+			var ctx := {"obstacle": true, "wall_front": false, "wall_any": false, "ledge": false, "roll": true}
+			if id in ["wall_climb", "climb", "cat_leap"]: ctx = {"obstacle": false, "wall_front": true, "wall_any": true, "ledge": true, "roll": true}
+			elif id == "wall_run": ctx = {"obstacle": false, "wall_front": false, "wall_any": true, "ledge": false, "roll": true}
+			var res := GestureRecognizer.recognize_parkour(pts, 95.0, {"ctx": ctx})
+			var g := String(res.get("id", "")) if res.get("ok", false) else "x" + String(res.get("id", ""))
+			if g == id: ok += 1
+			else: wrong[g] = int(wrong.get(g, 0)) + 1
+		check("Gesto de parkour %s: reconocido con trazos de dedo reales (%d/30)" % [id, ok], ok >= 28, str(wrong))
