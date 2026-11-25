@@ -21,7 +21,7 @@ const ES := {
 	"Gainer": "Mortal atrás en carrera", "Double Gainer": "Doble mortal atrás en carrera",
 	"Cheat Gainer": "Mortal atrás en carrera cruzado", "Kick the Moon": "Patada a la luna",
 	"Gainer Full": "Mortal atrás en carrera con tirabuzón", "Gainer 360": "Mortal atrás en carrera 360",
-	"Kong Gainer": "Mortal atrás tras salto de gato", "Dash Gainer": "Mortal atrás tras dash",
+	"Kong Gainer": "Kong + mortal atrás", "Dash Gainer": "Mortal atrás tras dash",
 	"Vault Gainer": "Mortal atrás tras pasavallas",
 	# Corks
 	"Chutada": "Chutada", "Double Chutada": "Doble chutada",
@@ -57,7 +57,7 @@ const ES := {
 	"Kong Front": "Mortal adelante tras salto de gato", "Dash Bomb": "Mortal adelante tras dash",
 	"360 Kong": "Salto de gato 360", "Screwdriver": "Destornillador",
 	# Precisión, paredes y escalada
-	"Precision Jump": "Salto de precisión", "Long Jump": "Salto de longitud", "Buoy Launch": "Impulso en boya", "Perfect Bonus": "Bonus perfecto", "Buoy Boost": "¡Impulso perfecto!", "Buoy Boost Good": "Impulso extra", "Running Precision": "Precisión en carrera",
+	"Precision Jump": "Salto de precisión", "Long Jump": "Salto de longitud", "Buoy Launch": "Impulso en boya", "Perfect Bonus": "Bonus perfecto", "Plancha Back": "Plancha back", "Buoy Boost": "¡Impulso perfecto!", "Buoy Boost Good": "Impulso extra", "Running Precision": "Precisión en carrera",
 	"Stride": "Zancada", "Plyo": "Salto pliométrico",
 	"Wall Run": "Carrera por pared", "Tic Tac": "Tic tac", "Wall Jump": "Salto de pared",
 	"Wall Kick": "Impulso en pared", "Wall Climb": "Subida de pared", "Climb Up": "Subida",

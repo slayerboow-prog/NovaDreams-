@@ -42,6 +42,7 @@ func build(parent: Node3D) -> Dictionary:
 	_pool()
 	_dressing()
 	_park()
+	_moves_plaza()
 	_beach()
 	info.spawns["freerun"] = [Vector3(0, 0.1, 6), Vector3.FORWARD]
 	info.spawns["challenge"] = [Vector3(0, 0.1, 5), Vector3.FORWARD]
@@ -49,6 +50,7 @@ func build(parent: Node3D) -> Dictionary:
 	info.spawns["freestyle"] = [Vector3(3, 0.1, 6), Vector3.FORWARD]
 	info.spawns["water"] = [Vector3(22, 3.05, 8.8), Vector3.BACK]
 	info.spawns["water_high"] = [Vector3(17, 6.05, 8.8), Vector3.BACK]
+	info.spawns["plaza"] = [Vector3(28, 0.1, -16), Vector3.FORWARD]
 	info.spawns["park"] = [Vector3(30, 0.1, -38), Vector3.FORWARD]
 	info.spawns["beach"] = [Vector3(125, 0.1, 12), Vector3.FORWARD]
 	info.checkpoints = [Vector3(0, 1.4, -10), Vector3(0, 1.4, -24), Vector3(0, 4.4, -43),
@@ -306,6 +308,27 @@ func _park() -> void:
 	# Torre de caídas (4,5 m) con escalera: dobles mortales y caídas con rodada
 	block(Vector3(19.5, 0, -73.5), Vector3(24.5, 4.5, -70.2), C_ROOF)
 	stairs(Vector3(31.5, 0, -71.8), Vector3.LEFT, 7.0, 4.5, 2.0, C_CONCRETE)
+
+# ------------------------------------------------------------------ plaza de movimientos
+
+## Plaza junto al parque (x 22..40, z -14..-33) con los obstáculos de los vídeos de referencia:
+##   · muro bajo (0,8 m) para la PLANCHA BACK (parado delante + ATRÁS)
+##   · plataforma de 1,6 m con escalera, valla en el borde norte (KONG GAINER desde parado,
+##     saltando la valla y cayendo de altura) y borde este abierto (kong gainer apoyando las
+##     manos en el borde corriendo)
+##   · valla de 1 m a ras de suelo para el kong gainer corriendo
+func _moves_plaza() -> void:
+	flat(Vector3(31, 0, -23.5), Vector2(18, 19), Color(0.36, 0.34, 0.33))
+	box(Vector3(24, 0.4, -27), Vector3(1.6, 0.8, 0.4), C_CONCRETE)              # muro bajo
+	block(Vector3(30, 0, -31), Vector3(35, 1.6, -26), C_BRICK)                    # plataforma
+	stairs(Vector3(32.5, 0, -21.5), Vector3.FORWARD, 4.5, 1.6, 2.0, C_CONCRETE)
+	box(Vector3(32.5, 2.1, -30.95), Vector3(5.0, 0.06, 0.08), C_METAL)          # valla del borde (pasamanos)
+	box(Vector3(32.5, 1.6 + 0.47, -30.95), Vector3(5.0, 0.94, 0.06), C_METAL, 0.0, true)
+	for vx in [30.2, 32.5, 34.8]:
+		box(Vector3(vx, 2.1 - 0.25, -30.95), Vector3(0.07, 0.5, 0.07), C_METAL, 0.0, false)
+	box(Vector3(39, 0.5, -20), Vector3(3.0, 1.0, 0.1), C_METAL)                 # valla a ras de suelo
+	box(Vector3(37.6, 0.5, -20), Vector3(0.08, 1.0, 0.08), C_ACCENT, 0.0, false)
+	box(Vector3(40.4, 0.5, -20), Vector3(0.08, 1.0, 0.08), C_ACCENT, 0.0, false)
 
 # ------------------------------------------------------------------ playa
 

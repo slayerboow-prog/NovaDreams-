@@ -504,6 +504,7 @@ const VAULT_HANDS := {
 	"Thief Vault": [["hr", 0.35, 0.66, 0.2, 0.15]],
 	"Turn Vault": [["hl", 0.25, 0.85, 0.5, -0.2], ["hr", 0.25, 0.85, 0.5, 0.2]],
 	"Reverse Vault": [["hl", 0.3, 0.65, 0.45, -0.1]],
+	"Plancha Back": [["hl", 0.14, 0.7, 0.15, -0.17], ["hr", 0.14, 0.7, 0.15, 0.17]],
 }
 const VAULT_SHOULDER_H := 0.5
 
@@ -1119,6 +1120,11 @@ func _trick_pose(p: Dictionary, tr: TrickSystem) -> void:
 			# Se abre solo en el último tramo de la vuelta (~290°-330°): agrupado durante casi todo el giro
 			open = _smooth((period * 0.2 - (next_stop - prog)) / (period * 0.11))
 	var imp := _smooth(1.0 - tr.air_time / (0.1 if early else 0.13))
+	if tr.takeoff_kind == "vault" and kind in ["back", "gainer"]:
+		# Mortal que sale del apoyo de un vault (kong gainer): ya viene agrupado de las manos,
+		# sin estirarse con los brazos arriba como en un despegue desde el suelo
+		imp = 0.0
+		gather = maxf(gather, 0.8)
 	var ttg := player.time_to_ground()
 	var rec := 0.0
 	if open >= 0.99 and player.velocity.y < 0.0:
@@ -1263,6 +1269,17 @@ func _vault_pose(p: Dictionary) -> Basis:
 			# apoya y empuja mientras las piernas recogidas pasan entre los brazos, y sale con las
 			# piernas delante, el tronco enderezándose y los brazos al frente para equilibrar
 			var dive := _smooth(s / 0.3) * (1.0 - _smooth((s - 0.4) / 0.45))
+			if player.vault.get("gainer", false):
+				# Kong gainer: tras el apoyo sube las rodillas al pecho y se endereza ya agrupado
+				# para empezar el giro atrás encima del obstáculo
+				var tg := _smooth(s / 0.22) * (1.0 - _smooth((s - 0.2) / 0.22))
+				_tuck_pose(p, _smooth((s - 0.12) / 0.2))
+				var ag := lerpf(2.6, 1.4, _smooth((s - 0.12) / 0.15))
+				ag = lerpf(ag, 2.4, _smooth((s - 0.3) / 0.12))
+				p.shoulder_l.x = ag; p.shoulder_r.x = ag
+				p.shoulder_l.z = -0.2; p.shoulder_r.z = 0.2
+				p.neck.x = 0.35 * tg
+				return Basis(Vector3.RIGHT, -0.95 * tg + 0.25 * _smooth((s - 0.3) / 0.12))
 			var tk := _smooth((s - 0.15) / 0.2) * (1.0 - _smooth((s - 0.62) / 0.22))
 			_tuck_pose(p, tk)
 			var arms := lerpf(2.6, 1.55, _smooth((s - 0.2) / 0.2))
@@ -1274,6 +1291,28 @@ func _vault_pose(p: Dictionary) -> Basis:
 			_apply(p, KONG_EXIT_LEGS, _smooth((s - 0.55) / 0.3))
 			p.spine.x -= 0.15 * _smooth((s - 0.6) / 0.3)          # sale algo inclinado hacia delante, no echado atrás
 			return Basis(Vector3.RIGHT, -1.05 * dive)
+		"Plancha Back":
+			# Manos al muro bajo · patada arriba hasta la plancha (cuerpo casi horizontal, piernas
+			# estiradas atrás) · empuje de brazos: las piernas bajan bajo el cuerpo y queda de pie
+			# en el aire con los brazos arriba, listo para el mortal atrás
+			var reach := _smooth(s / 0.18)
+			var pl := _smooth((s - 0.16) / 0.3) * (1.0 - _smooth((s - 0.58) / 0.2))
+			var snap := _smooth((s - 0.6) / 0.2)
+			var crouch := reach * (1.0 - _smooth((s - 0.16) / 0.2))
+			_tuck_pose(p, 0.55 * crouch + 0.35 * snap * (1.0 - _smooth((s - 0.82) / 0.15)))
+			var arm := lerpf(0.3, 1.5, reach)
+			arm = lerpf(arm, 3.0, snap)
+			p.shoulder_l.x = arm; p.shoulder_r.x = arm
+			p.shoulder_l.z = -0.18; p.shoulder_r.z = 0.18
+			p.elbow_l.x = 0.1; p.elbow_r.x = 0.1
+			if pl > 0.0:
+				# Plancha: piernas juntas y estiradas hacia atrás, cuerpo en línea
+				_apply(p, {"hip_l": Vector3(-0.15, 0, -0.03), "hip_r": Vector3(-0.15, 0, 0.03),
+					"knee_l": Vector3(-0.05, 0, 0), "knee_r": Vector3(-0.05, 0, 0), "spine": Vector3(-0.1, 0, 0),
+					"neck": Vector3(0.5, 0, 0)}, pl)
+			p.spine.x += 0.18 * _smooth((s - 0.82) / 0.18)            # arqueo al iniciar el mortal
+			var pitch := -0.55 * crouch - 1.75 * pl + 0.18 * _smooth((s - 0.85) / 0.15)    # piernas por encima de la horizontal
+			return Basis(Vector3.RIGHT, pitch)
 		"Dive Kong", "Kong Up":
 			# Llega en plancha con los brazos estirados por delante; recoge las piernas entre los
 			# brazos sobre el obstáculo y se endereza para caer (o quedar de pie arriba)

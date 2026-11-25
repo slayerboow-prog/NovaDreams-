@@ -36,7 +36,7 @@ func probe_vault(feet: Vector3, dir: Vector3, speed: float, max_h: float, min_h:
 	if approach > deg_to_rad(58.0):
 		return {}
 	var dist := flat(hit.position - from).length()
-	var probe: Vector3 = hit.position + into * 0.1
+	var probe: Vector3 = hit.position + into * 0.04      # vallas finas (6-10 cm): la parte de arriba está muy cerca
 	var top_hit := ray(Vector3(probe.x, feet.y + max_h + 0.25, probe.z), Vector3(probe.x, feet.y + 0.2, probe.z))
 	if top_hit.is_empty() or top_hit.normal.y < 0.7:
 		return {}
@@ -51,8 +51,9 @@ func probe_vault(feet: Vector3, dir: Vector3, speed: float, max_h: float, min_h:
 	# Profundidad: avanzar sobre la parte superior hasta que deje de haber superficie.
 	var depth := -1.0
 	var k := 0.2
+	var base: Vector3 = hit.position + into * 0.1          # (la profundidad se mide como siempre)
 	while k <= 3.4:
-		var p: Vector3 = top_hit.position + dir * k
+		var p: Vector3 = Vector3(base.x, top_hit.position.y, base.z) + dir * k
 		var d := ray(Vector3(p.x, top_y + 0.4, p.z), Vector3(p.x, top_y - 0.3, p.z))
 		if d.is_empty():
 			depth = k

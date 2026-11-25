@@ -625,6 +625,7 @@ static func trick_name(pn: int, rn: int, sn: int, th: int, back: bool, moving: b
 					if wall:
 						if detail == "palm": return "Palm Flip"
 						return "Wall Flip" if detail in ["wallclimb", ""] else "Wall Gainer"
+					if detail == "plancha": return "Plancha Back"
 					if vaulted:
 						if detail.begins_with("Kong") or detail in ["Double Kong", "Kash Vault"]:
 							return "Kong Gainer"
