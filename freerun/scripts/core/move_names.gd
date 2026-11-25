@@ -57,7 +57,7 @@ const ES := {
 	"Kong Front": "Mortal adelante tras salto de gato", "Dash Bomb": "Mortal adelante tras dash",
 	"360 Kong": "Salto de gato 360", "Screwdriver": "Destornillador",
 	# Precisión, paredes y escalada
-	"Precision Jump": "Salto de precisión", "Long Jump": "Salto de longitud", "Buoy Launch": "Impulso en boya", "Perfect Bonus": "Bonus perfecto", "Plancha Back": "Plancha back", "Buoy Boost": "¡Impulso perfecto!", "Buoy Boost Good": "Impulso extra", "Running Precision": "Precisión en carrera",
+	"Precision Jump": "Salto de precisión", "Long Jump": "Salto de longitud", "Buoy Launch": "Impulso en boya", "Perfect Bonus": "Bonus perfecto", "Plancha Back": "Plancha back", "Plancha Back Over": "Plancha back pasando el muro", "Buoy Boost": "¡Impulso perfecto!", "Buoy Boost Good": "Impulso extra", "Running Precision": "Precisión en carrera",
 	"Stride": "Zancada", "Plyo": "Salto pliométrico",
 	"Wall Run": "Carrera por pared", "Tic Tac": "Tic tac", "Wall Jump": "Salto de pared",
 	"Wall Kick": "Impulso en pared", "Wall Climb": "Subida de pared", "Climb Up": "Subida",
