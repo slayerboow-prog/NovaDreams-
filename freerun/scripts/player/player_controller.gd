@@ -124,6 +124,7 @@ var pending_twists_t := 0.0
 var mad_axis := 99                       # sector del mortal elegido (-2 atrás · 2 adelante · 0/4 lateral)
 var mad_stage := 0                       # 0 nada · 1 cargando / en el aire sin girar · 2 agrupado · 3 abierto
 var mad_charge := 0.0                    # carga extra del salto (s)
+var mad_pre_extra := 0                  # pulsaciones de mortal extra antes de despegar (vueltas más)
 var mad_twisted := false                # tirabuzón hecho con el cuerpo abierto desde la última agrupación
 var one_foot_q := false                  # botón 1 PIE: la próxima recepción es a un pie
 var one_foot_side := 1
@@ -179,7 +180,7 @@ func respawn() -> void:
 	tricks.reset()
 	stun = 0.0
 	jump_load = 0.0
-	mad_stage = 0; mad_axis = 99; mad_charge = 0.0; one_foot_q = false; mad_twisted = false; chutada_q = false
+	mad_stage = 0; mad_axis = 99; mad_charge = 0.0; one_foot_q = false; mad_twisted = false; chutada_q = false; mad_pre_extra = 0
 	keep_t = 0.0; air_grab_t = 0.0; wallflip_t = 0.0; wallrun_hold_t = 0.0; precision_t = 0.0
 	extra_twist_t = 0.0; cork_more = 0; pending_twists.clear(); vault_pref = ""
 	ground_wait = 0.0
@@ -539,6 +540,9 @@ func _takeoff(kind: String) -> void:
 	pre_twist = 0.0
 	if mad_stage == 1 and tricks.active:
 		mad_stage = 2                              # botón de mortal: sale agrupado y girando
+		for i in mad_pre_extra:
+			tricks.request_flip(true)              # pulsado varias veces antes de despegar: doble...
+	mad_pre_extra = 0
 	if extra_twist_t > 0.0 and tricks.active:
 		tricks.add_twist_halves(extra_twist_halves, extra_twist_dir)      # aerial twist
 	extra_twist_t = 0.0
@@ -708,9 +712,10 @@ func _state_air(dt: float) -> void:
 	if twist_lock and absf(intent.twist) < 0.3:
 		twist_lock = false
 	tricks.twist_input(0.0 if twist_lock else intent.twist, dt, t)
-	# Modo gestos: agrupado no encadena vueltas solo; otra vuelta se pide pulsando otra vez un
-	# botón de mortal (y sale si la inercia y la altura dan para ello)
-	tricks.keep_spinning = intent.stick_twist and not gesture_sticks()
+	# Modo gestos: mantener pulsado el botón de mortal = sigue agrupado y girando mientras haya
+	# altura; al soltar termina la vuelta en curso (o las pedidas) y se abre para caer
+	tricks.keep_spinning = (intent.stick_twist and not gesture_sticks()) or (gesture_sticks() and mad_stage == 2 and intent.flip_held)
+	tricks.auto_open = gesture_sticks() and mad_stage == 2
 	tricks.layout_twist = gesture_sticks()
 	tricks.step(dt, trick_push(), time_to_ground(), Settings.assist_strength(), t)
 	if not tricks.active and hv.length() > 1.0:
@@ -964,7 +969,10 @@ func _tick_flip_buttons(dt: float) -> void:
 			flick_buffer = TouchControls.sector_dir(sec)
 			flick_timer = 0.25
 			if jump_load > 0.0 or state == State.SKILL:
-				# SALTO ya pulsado (flexión) o ventana de enlace: el mortal sale con ese despegue
+				# SALTO ya pulsado (flexión) o ventana de enlace: el mortal sale con ese despegue.
+				# Otra pulsación antes de despegar = una vuelta más (doble)
+				if mad_stage == 1:
+					mad_pre_extra += 1
 				mad_stage = 1
 				if state == State.SKILL:
 					jump_buffer = t.jump_buffer_time
@@ -986,14 +994,13 @@ func _tick_flip_buttons(dt: float) -> void:
 				else:
 					_apply_jump_flick(d)
 				mad_stage = 2
-			elif mad_stage == 2:
-				mad_stage = 3
-			else:
-				# Abierto (tras abrirse o tras un tirabuzón): se agrupa otra vez y, si la vuelta
-				# en curso ya va avanzada, pide otra (front + medio tirabuzón + ATRÁS = doble). La
-				# velocidad es la de la inercia agrupada: sin altura no se completa.
+			elif state == State.AIR:
+				# Cada pulsación más en el aire = una vuelta más, en cualquier momento del mortal
+				# (dos pulsaciones = doble, tres = triple). Sigue agrupado hasta completarlas y
+				# entonces se abre para caer. También tras un tirabuzón (front + ½ giro + ATRÁS).
+				# Gira lo que haga falta hasta un tope físico: sin altura no se completa.
 				mad_stage = 2
-				tricks.request_flip(mad_twisted)
+				tricks.request_flip(true)
 				mad_twisted = false
 
 ## Joystick morado en el suelo (GestureRecognizer.recognize_giro): habilidades de suelo y

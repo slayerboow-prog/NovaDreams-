@@ -50,6 +50,7 @@ var linked := false                  # sale de un enlace (rondada, flic-flac, ho
 ## altura para otra vuelta completa.
 var keep_spinning := false
 var layout_twist := false
+var auto_open := false               # agrupado por botón: completa las vueltas pedidas y se abre solo
 var kick_side := 1                   # chutada: lado de la pierna de patada            # modo gestos: girar estira el cuerpo (agrupado gira poco)
 var twist_queue: Array[int] = []     # tirabuzón combinado: sentidos pendientes tras la vuelta actual
 var twist_extra_halves := 0          # medias vueltas ya hechas en sentidos anteriores (combinado)
@@ -389,15 +390,15 @@ func twist_input(x: float, dt: float, t: MoveTuning) -> void:
 	rate.twist = dir.twist * r
 	total.twist += rate.twist * dt
 
-## Botón de mortal pulsado otra vez en el aire con el cuerpo abierto: si la vuelta en curso ya
-## pasó de la mitad (o viene de un tirabuzón: front + medio giro + ATRÁS), pide una vuelta más
-## agrupándose a tope: gira más rápido, hasta un máximo físico (sin altura no se completa).
-func request_flip(after_twist := false) -> void:
+## Pide una vuelta más del mortal en curso (botón de mortal pulsado otra vez). Con force, en
+## cualquier momento; sin él, solo si la vuelta en curso ya pasó de la mitad. Se agrupa a tope:
+## gira más rápido, hasta un máximo físico (sin altura no se completa).
+func request_flip(force := false) -> void:
 	for ax in ["pitch", "roll"]:
 		if dir[ax] == 0:
 			continue
 		var prog := absf(total[ax])
-		if after_twist or prog > goal[ax] * TAU - PI:
+		if force or prog > goal[ax] * TAU - PI:
 			goal[ax] += 1
 			settled[ax] = false
 			# Agrupado fuerte: gira lo que haga falta, pero con un tope físico (step lo limita);
@@ -481,7 +482,7 @@ func step(dt: float, push: float, time_left: float, assist: float, t: MoveTuning
 		# Ayuda alta: al completar las vueltas pedidas el cuerpo se abre aunque sigas agrupado
 		# (más vueltas se piden de forma explícita: volver a inclinar / deslizar otra vez).
 		# Sin ayuda completa (pro/media) agruparse sigue girando: abrirse a tiempo es cosa tuya.
-		var force_spot := held and assist > 0.75 and not keep_spinning
+		var force_spot := held and (assist > 0.75 or auto_open) and not keep_spinning
 		if keep_spinning and held and ax != "twist":
 			# ¿Cabe otra vuelta entera después de esta (agrupándose al máximo)? Si cabe, se pide
 			# al acercarse al final de la vuelta; si no, con ayuda se abre ya para aterrizar.
@@ -491,7 +492,7 @@ func step(dt: float, push: float, time_left: float, assist: float, t: MoveTuning
 				goal[ax] += 1
 				if not _recal.has(ax):
 					_recal.append(ax)
-			elif not can_more and assist > 0.25:
+			elif not can_more and (assist > 0.25 or auto_open):
 				force_spot = true
 		if settled[ax]:
 			if held and not force_spot and ax != "twist":   # el tirabuzón hace solo las vueltas pedidas
