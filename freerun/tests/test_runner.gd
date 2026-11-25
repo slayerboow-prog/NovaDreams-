@@ -2499,7 +2499,7 @@ func t_twist_layout_tuck() -> void:
 
 
 ## CHUTADA (mortal chutado): diagonal recta hacia arriba en el joystick dorado = patada como a un
-## balón y mortal atrás fuera de eje, sin tirabuzón. Con GIRO durante el mortal pasa a cork.
+## balón y después un backflip normal, sin tirabuzón. Con GIRO durante el mortal pasa a cork.
 func t_chutada() -> void:
 	var g := GestureRecognizer.recognize_salto(PackedVector2Array([Vector2(0, 0), Vector2(40, -40), Vector2(80, -80)]), 100.0)
 	check("Gesto: diagonal recta hacia arriba = CHUTADA", String(g.get("id", "")) == "chutada", str(g))

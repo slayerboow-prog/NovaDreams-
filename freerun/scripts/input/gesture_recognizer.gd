@@ -316,8 +316,8 @@ static func recognize_salto(screen: PackedVector2Array, radius: float, opts := {
 			var sid := "front" if sec == 2 else ("back" if sec == -2 else ("side" if sec in [0, 4] else "dir"))
 			return _result(sid, "simple", 1.0, {"sector": sec, "side": 1 if chord.x >= 0.0 else -1, "len": chord.length()}, opts)
 		if chord.y > 0.0:
-			# Diagonal recta hacia arriba = CHUTADA (mortal chutado: patada como a un balón y mortal
-			# atrás fuera de eje, sin tirabuzón). Con un círculo al final sería un cork.
+			# Diagonal recta hacia arriba = CHUTADA (mortal chutado: patada como a un balón
+			# y después un backflip normal, sin tirabuzón). Con un círculo al final sería un cork.
 			return _result("chutada", "pattern", 1.0, {"side": 1 if chord.x >= 0.0 else -1, "len": chord.length()}, opts)
 	# 3. Bucles (el dedo se cruza o cierra un círculo al final)
 	var rs64 := resample(pts, 64)

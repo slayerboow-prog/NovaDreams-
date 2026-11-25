@@ -1057,8 +1057,8 @@ func _apply_pattern(p: Dictionary) -> void:
 				extra_twist_dir = 1 if int(p.get("twist", 1)) >= 0 else -1
 				extra_twist_t = 0.6
 		"chutada":
-			# Mortal chutado: la patada de la pierna de atrás (lado del trazo) y mortal atrás
-			# fuera de eje sin tirabuzón. GIRO durante el mortal lo convierte en cork.
+			# Mortal chutado: la patada de la pierna de atrás (lado del trazo) y después un backflip
+			# normal, sin tirabuzón. GIRO durante el mortal lo convierte en cork.
 			cork_side = 1 if int(p.get("side", 1)) >= 0 else -1
 			cork_buffer = 0.25
 			chutada_q = true
@@ -1584,8 +1584,8 @@ func _state_skill(dt: float) -> void:
 		_finish_skill(true)
 		_set_state(State.GROUND)
 
-## CHUTADA (mortal chutado): mortal atrás fuera de eje tras patear como a un balón, sin
-## tirabuzón. El GIRO durante el mortal lo convierte en cork (360, 540, 720...).
+## CHUTADA (mortal chutado): patada como a un balón para despegar y después un backflip
+## normal (agrupado, sobre su eje), sin tirabuzón. El GIRO durante el mortal lo convierte en cork (360, 540, 720...).
 func _make_chutada() -> void:
 	chutada_q = false
 	if not tricks.active:

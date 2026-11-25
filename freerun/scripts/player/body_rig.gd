@@ -23,7 +23,7 @@ var _serial := -1
 var _prev_spd := 0.0
 var grab_w := 0.0                 # agrupado: cuánto se agarran las manos a las espinillas (IK)
 var wrap_w := 0.0                 # tirabuzón: brazos cruzados pegados al pecho (IK)
-const GRAB_KINDS := ["back", "front", "side", "gainer"]
+const GRAB_KINDS := ["back", "front", "side", "gainer", "chutada"]
 var _accel := 0.0                 # aceleración suavizada (inclinación al arrancar/frenar)
 # Apoyos (IK): punto del suelo donde está plantada cada mano/pie y peso del apoyo
 var plants := {}
@@ -894,9 +894,8 @@ func _gather_pose(kind: String, rs: float, ph: float) -> Dictionary:
 				"shoulder_l": Vector3(1.1, 0, -0.15), "shoulder_r": Vector3(1.1, 0, 0.15),
 				"elbow_l": Vector3(1.2, 0, 0), "elbow_r": Vector3(1.2, 0, 0)}
 		"chutada":
-			# Mortal chutado: la pierna de patada sigue estirada arriba (como tras chutar un balón)
-			# y la otra recogida; brazos delante para equilibrar el eje inclinado
-			return _cork_legs(CHUTADA_AIR)
+			# Mortal chutado: tras la patada (impulso) es un backflip normal, agrupado
+			return _gather_pose("back", rs, ph)
 		"cork":
 			# Tirabuzón: piernas juntas y casi rectas (eje recto y rápido), brazos cerrados al pecho
 			# y la cabeza mirando por encima del hombro hacia el giro
@@ -973,12 +972,6 @@ const CORK_KICK := {"spine": Vector3(0.22, 0, 0), "neck": Vector3(0.35, 0, 0),
 	"shoulder_l": Vector3(2.85, 0, -0.3), "shoulder_r": Vector3(2.85, 0, 0.3),
 	"elbow_l": Vector3(0.1, 0, 0), "elbow_r": Vector3(0.1, 0, 0),
 	"hip_r": Vector3(2.0, 0, -0.25), "knee_r": Vector3(-0.1, 0, 0), "hip_l": Vector3(0.1, 0, 0), "knee_l": Vector3(-0.1, 0, 0)}
-## Chutada en el aire: pierna de patada estirada arriba, la otra flexionada, brazos delante.
-const CHUTADA_AIR := {"spine": Vector3(-0.2, 0, 0), "neck": Vector3(0.25, 0, 0),
-	"shoulder_l": Vector3(1.3, 0, -0.55), "shoulder_r": Vector3(1.1, 0, 0.6),
-	"elbow_l": Vector3(0.7, 0, 0), "elbow_r": Vector3(0.7, 0, 0),
-	"hip_r": Vector3(1.85, 0, -0.15), "knee_r": Vector3(-0.15, 0, 0),
-	"hip_l": Vector3(1.45, 0, 0.08), "knee_l": Vector3(-1.95, 0, 0)}
 ## Cork: apertura, la pierna de patada baja primero (estirada al suelo), la otra llega después.
 const CORK_OPEN := {"hip_r": Vector3(0.05, 0, 0.04), "knee_r": Vector3(-0.08, 0, 0),
 	"hip_l": Vector3(0.65, 0, -0.04), "knee_l": Vector3(-0.75, 0, 0),

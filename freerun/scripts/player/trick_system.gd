@@ -50,7 +50,7 @@ var linked := false                  # sale de un enlace (rondada, flic-flac, ho
 ## altura para otra vuelta completa.
 var keep_spinning := false
 var layout_twist := false
-var kick_side := 1                   # chutada: lado de la pierna de patada (inclina el eje)            # modo gestos: girar estira el cuerpo (agrupado gira poco)
+var kick_side := 1                   # chutada: lado de la pierna de patada            # modo gestos: girar estira el cuerpo (agrupado gira poco)
 var twist_queue: Array[int] = []     # tirabuzón combinado: sentidos pendientes tras la vuelta actual
 var twist_extra_halves := 0          # medias vueltas ya hechas en sentidos anteriores (combinado)
 var twist_combined := false
@@ -550,10 +550,6 @@ func _update_basis() -> void:
 	if style == "cork" and dir.twist != 0:
 		var fr := clampf(absf(total.pitch) / (TAU * maxf(goal.pitch, 1)), 0.0, 1.0)
 		tilt = CORK_TILT * float(dir.twist) * sin(PI * fr)
-	elif style == "chutada":
-		# Chutada: el mismo eje inclinado del cork (sale de la patada), sin tirabuzón
-		var fc := clampf(absf(total.pitch) / (TAU * maxf(goal.pitch, 1)), 0.0, 1.0)
-		tilt = -CORK_TILT * float(kick_side) * sin(PI * fc)
 	basis = (Basis(Vector3.UP, total.spin) * Basis(Vector3.BACK, tilt) * Basis(Vector3.RIGHT, total.pitch + lean)
 		* Basis(Vector3.BACK, -total.roll) * Basis(Vector3.UP, total.twist)).orthonormalized()
 
