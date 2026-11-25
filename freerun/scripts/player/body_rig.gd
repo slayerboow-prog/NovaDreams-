@@ -663,14 +663,17 @@ func _idle_pose(p: Dictionary) -> void:
 	var tm := Time.get_ticks_msec() * 0.001
 	var b := sin(tm * 2.5)
 	var sway := sin(tm * 0.7)
-	p.spine.x = 0.02 * b - 0.03
+	# De pie natural (medido en el modelo): oreja, hombro y cadera en la misma vertical. Con la
+	# columna a cero el tórax del atleta queda inclinado hacia delante (cabeza 10 cm por delante
+	# de la cadera, como encorvado con la tripa fuera), así que se endereza un poco.
+	p.spine.x = 0.18 + 0.02 * b
 	p.spine.z = 0.025 * sway
-	p.neck.x = 0.04 - 0.015 * b
-	# Brazos relajados: caen junto al cuerpo (no en A), un pelín por delante y con los codos
-	# algo flexionados, como alguien de pie esperando
-	p.shoulder_l.x = 0.12 + 0.02 * b; p.shoulder_r.x = 0.1 + 0.02 * b
+	p.neck.x = -0.04 - 0.015 * b
+	# Brazos relajados: caen junto al cuerpo con la mano al lado del muslo (no por delante) y los
+	# codos apenas flexionados
+	p.shoulder_l.x = -0.24 + 0.02 * b; p.shoulder_r.x = -0.22 + 0.02 * b
 	p.shoulder_l.z = -0.035; p.shoulder_r.z = 0.035
-	p.elbow_l.x = 0.36; p.elbow_r.x = 0.3
+	p.elbow_l.x = 0.16; p.elbow_r.x = 0.14
 	p.hip_l.x = 0.04; p.hip_r.x = 0.08
 	p.hip_l.z = -0.05; p.hip_r.z = 0.04 + 0.02 * sway
 	p.knee_l.x = -0.05; p.knee_r.x = -0.16
