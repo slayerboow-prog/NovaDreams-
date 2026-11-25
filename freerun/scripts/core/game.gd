@@ -309,6 +309,9 @@ func _on_move(name: String, quality: float, info: Dictionary) -> void:
 		var rec := SaveData.submit_record("dive_kong_m", dist)
 		ui.show_landing("%s  %.1f m%s" % [MoveNames.es(name).to_upper(), dist,
 			"  ·  ¡RÉCORD!" if rec and best > 0.0 else "  (récord %.1f m)" % maxf(best, dist)], Color(1, 0.85, 0.3))
+	if name == "Perfect Bonus":
+		var lv := int(info.get("level", 1))
+		ui.popup("RECEPCIÓN PERFECTA  ·  +ALTURA  +GIRO%s" % ("  x%d" % lv if lv > 1 else ""), Color(1, 0.85, 0.25))
 	combo.add_move(name, quality, info)
 	flow.on_move(name, quality, info)
 	if mode:

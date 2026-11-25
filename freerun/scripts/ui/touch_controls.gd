@@ -66,7 +66,7 @@ var _rot_vec := Vector2.ZERO          # joystick derecho (x derecha, y arriba)
 var _cam_tap_t := -9.0                # último toque en la zona de cámara (doble toque = recentrar)
 var _cam_tap_p := Vector2.ZERO
 var cam_used := false
-var one_foot_on := false               # 1 PIE activo (lo pone el juego): la próxima recepción es a un pie                 # ya se ha movido la cámara: la indicación se atenúa
+var one_foot_on := false               # 1 PIE activado (lo pone el juego): todos los mortales caen a un pie                 # ya se ha movido la cámara: la indicación se atenúa
 
 const FLICK_TIME := 0.22              # en el suelo: un gesto rápido es acrobacia, lento es cámara
 const FLICK_PX := 48.0
@@ -621,7 +621,8 @@ func _on_touch(e: InputEventScreenTouch) -> void:
 			role = "onefoot"
 			_pending.one_foot = true
 			_flash["onefoot"] = 0.3
-			_toast("DOS PIES" if one_foot_on else "A UN PIE", Neon.CYAN, "gold")
+			_toast("1 PIE DESACTIVADO" if one_foot_on else "1 PIE ACTIVADO: mortales a un pie", Neon.CYAN, "gold")
+			one_foot_on = not one_foot_on            # se ve al momento (el juego lo confirma cada fotograma)
 		elif salto_pages_enabled() and flip_button_at(p) >= 0:
 			# Botón de mortal (estilo Madness): carga · agrupa · abre
 			role = "flipbtn"

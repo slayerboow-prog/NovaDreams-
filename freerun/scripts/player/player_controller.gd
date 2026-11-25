@@ -144,11 +144,20 @@ var mad_stage := 0                       # 0 nada · 1 cargando / en el aire sin
 var mad_charge := 0.0                    # carga extra del salto (s)
 var mad_pre_extra := 0                  # pulsaciones de mortal extra antes de despegar (vueltas más)
 var mad_twisted := false                # tirabuzón hecho con el cuerpo abierto desde la última agrupación
-var one_foot_q := false                  # botón 1 PIE: la próxima recepción es a un pie
+var one_foot_q := false                  # botón 1 PIE (interruptor): mientras esté activo, todos los mortales caen a un pie
 var one_foot_side := 1
 var land_flip_q := 99                    # botón de mortal pulsado justo antes de caer: sale al recepcionar
 var land_flip_t := 0.0
 var land_flip_now := false
+## Bonificación por recepción perfecta: si tras caer perfecto un mortal enlazas otro enseguida
+## (la inercia se conserva), el siguiente sale más alto y gira más rápido. Se acumula (x3 máx.).
+var perfect_bonus_t := 0.0               # ventana abierta tras una recepción perfecta
+var perfect_streak := 0                  # recepciones perfectas seguidas (nivel de la bonificación)
+var perfect_ready := 0                   # despegue dentro de la ventana: nivel a aplicar si sale mortal
+const PERFECT_WINDOW := 0.9
+const PERFECT_VY := 0.9                  # m/s de impulso extra por nivel
+const PERFECT_SPIN := 0.15               # +15 % de velocidad de giro por nivel
+const PERFECT_MAX := 3
 const LAND_FLIP_TIME := 0.3
 const MAD_CHARGE_MAX := 0.12
 const HOP_VY := 2.6                      # botón de mortal sin SALTO: saltito sin impulso
@@ -202,7 +211,7 @@ func respawn() -> void:
 	tricks.reset()
 	stun = 0.0
 	jump_load = 0.0
-	mad_stage = 0; mad_axis = 99; mad_charge = 0.0; one_foot_q = false; land_flip_t = 0.0; mad_twisted = false; chutada_q = false; mad_pre_extra = 0; giro_qs = []
+	mad_stage = 0; mad_axis = 99; mad_charge = 0.0; land_flip_t = 0.0; perfect_bonus_t = 0.0; perfect_streak = 0; perfect_ready = 0; mad_twisted = false; chutada_q = false; mad_pre_extra = 0; giro_qs = []
 	keep_t = 0.0; air_grab_t = 0.0; wallflip_t = 0.0; wallrun_hold_t = 0.0; precision_t = 0.0
 	extra_twist_t = 0.0; cork_more = 0; pending_twists.clear(); vault_pref = ""
 	ground_wait = 0.0
@@ -343,7 +352,17 @@ func _physics_process(dt: float) -> void:
 		State.SKILL: _state_skill(dt)
 	_update_context_hint()
 	if tricks.active and not _trick_was_active and state == State.AIR:
+		if perfect_ready > 0 and tricks.air_time < 0.3:
+			_apply_perfect_bonus(perfect_ready)
+		perfect_ready = 0
 		trick_started.emit(tricks.style)
+	if perfect_ready > 0 and (state != State.AIR or tricks.air_time >= 0.3):
+		perfect_ready = 0
+		perfect_streak = 0                        # despegó sin mortal: la racha se pierde
+	if perfect_bonus_t > 0.0 and state in [State.GROUND, State.SKILL]:
+		perfect_bonus_t -= dt
+		if perfect_bonus_t <= 0.0:
+			perfect_streak = 0                    # no se continuó a tiempo
 	_trick_was_active = tricks.active and state == State.AIR
 	if global_position.y < t.kill_y:
 		bailed.emit("fall")
@@ -820,6 +839,9 @@ func _link_for(target: String) -> Dictionary:
 
 func _enter_air(kind: String) -> void:
 	air_kind = kind
+	if perfect_bonus_t > 0.0 and kind != "fall" and perfect_streak > 0:
+		perfect_ready = mini(perfect_streak, PERFECT_MAX)   # se aplica si sale un mortal
+	perfect_bonus_t = 0.0
 	takeoff_y = global_position.y
 	takeoff_pos = global_position
 	peak_y = takeoff_y
@@ -1012,6 +1034,12 @@ func _buoy_launch(bd: Dictionary, hv: Vector3) -> void:
 	move_and_slide()
 
 ## Impulso extra por pulsar SALTO a tiempo en la boya (perfecto = el máximo).
+func _apply_perfect_bonus(level: int) -> void:
+	velocity.y += PERFECT_VY * level
+	tricks.spin_bonus = 1.0 + PERFECT_SPIN * level
+	tricks.twist_boost = maxf(tricks.twist_boost, tricks.spin_bonus)
+	_emit_move("Perfect Bonus", 1.0, {"level": level})
+
 func _buoy_bonus(perfect: bool) -> void:
 	velocity.y += BUOY_BONUS_PERFECT if perfect else BUOY_BONUS_GOOD
 	_emit_move("Buoy Boost" if perfect else "Buoy Boost Good", 1.0, {})
@@ -1085,10 +1113,17 @@ func _land() -> void:
 		var hvl := horizontal_velocity()
 		chain.open(tricks.style, String(trick.name), 0.42, {"rebound_vy": 0.5, "exit_speed": hvl.length(),
 			"dir": hvl.normalized() if hvl.length() > 0.3 else facing, "spin": 1.0})
+	# Recepción perfecta de un mortal (sin golpe): abre la ventana de bonificación para el siguiente
+	if quality == "perfect" and not trick.is_empty() and not hard and not rolled:
+		perfect_streak = mini(perfect_streak + 1, PERFECT_MAX)
+		perfect_bonus_t = PERFECT_WINDOW
+	else:
+		perfect_streak = 0
+		perfect_bonus_t = 0.0
 	var do_st := st_queued and quality in ["perfect", "clean"] and not hard and not trick.is_empty() and String(trick.name).contains("Cork")
 	st_queued = false
-	var do_one := one_foot_q and quality in ["perfect", "clean", "sloppy"] and not hard and not rolled and not do_st
-	one_foot_q = false
+	# 1 PIE activado: toda voltereta cae a un pie (un salto sin voltereta, con los dos)
+	var do_one := one_foot_q and not trick.is_empty() and quality in ["perfect", "clean", "sloppy"] and not hard and not rolled and not do_st
 	tricks.reset()
 	land_impact = clampf(impact / 12.0, 0.3, 1.0)
 	landed.emit(result)
@@ -1196,8 +1231,7 @@ func _tick_gestures(dt: float) -> void:
 	_tick_giro_queue()
 	_tick_flip_buttons(dt)
 	if intent.one_foot:
-		# 1 PIE en cualquier momento (también antes de saltar): la próxima recepción es a un pie.
-		# Si ya estaba activo (p. ej. en una cadena a un pie), vuelve a pulsarlo para caer con dos.
+		# 1 PIE es un interruptor: activado, todos los mortales caen a un pie hasta volver a pulsarlo
 		one_foot_q = not one_foot_q
 	if twist_wait_t > 0.0:
 		twist_wait_t -= dt
@@ -1948,8 +1982,6 @@ func _state_skill(dt: float) -> void:
 		# Enlace en la recepción: SALTO (mortal con rebote) o un gesto (siguiente habilidad)
 		if jump_buffer > 0.0:
 			jump_buffer = 0.0
-			if String(skill.get("id", "")) == "one_foot":
-				one_foot_q = true                    # cadena a un pie: el siguiente también cae a un pie
 			_finish_skill(true)
 			_set_state(State.GROUND)
 			# Contacto corto de rebote: el gesto de la rueda/deslizar que llega ahora aún cuenta

@@ -129,6 +129,7 @@ func _run_all() -> void:
 	await t_air_giro_queue()
 	await t_air_giro_double()
 	await t_one_foot_chain()
+	await t_perfect_bonus()
 	await t_mocap_backflip()
 	await t_landing_feel()
 	await t_new_tricks()
@@ -1985,6 +1986,7 @@ func t_one_foot_replay_cameras() -> void:
 		func(): return st.stage == 3 and _f > 60 and player.state == PlayerController.State.GROUND and moves.count("Backflip") + moves.count("Gainer") >= 2)
 	check("Botón 1 PIE: cae a un pie y enlaza otro mortal sin apoyar el otro pie", st.one and "One-Foot Landing" in moves and st.linked
 		and moves.count("Backflip") + moves.count("Gainer") >= 2, "%s %s" % [moves, landings.map(func(l): return l.quality)])
+	player.one_foot_q = false                     # 1 PIE es un interruptor: se apaga para las demás pruebas
 	# Repetición: reproduce lo grabado y al salir el atleta vuelve a su sitio
 	await place(Vector3(-35, 0.1, 35), Vector3.FORWARD)
 	await run(func(i, f):
@@ -2534,6 +2536,7 @@ func t_twist_layout_tuck() -> void:
 			break
 	check("1 PIE pulsado antes de saltar: cae a un pie y enlaza otro mortal", "One-Foot Landing" in moves and moves.count("Backflip") >= 2,
 		"%s %s" % [moves, landings.map(func(l): return l.quality)])
+	player.one_foot_q = false
 	touch.air_mode = false
 	Settings.trick_controls = old_mode
 	game.router.scripted = _drive
@@ -2922,6 +2925,7 @@ func t_one_foot_chain() -> void:
 		e.pressed = false; touch._on_touch(e)
 	# toggle_at: en ese vuelo se vuelve a pulsar 1 PIE (cae con los dos pies y la cadena termina)
 	for toggle_at in [-1, 2]:
+		player.one_foot_q = false
 		await place(Vector3(-35, 0.1, 35), Vector3.FORWARD)
 		moves.clear(); landings.clear()
 		var hj := InputEventScreenTouch.new(); hj.index = 14; hj.position = touch._jump_center(); hj.pressed = true
@@ -2960,6 +2964,33 @@ func t_one_foot_chain() -> void:
 		else:
 			check("1 PIE: volver a pulsarlo en el aire = cae con los dos pies y la cadena termina (%s)" % str(moves),
 				moves.count("One-Foot Landing") == toggle_at - 1 and not ("crash" in q) and not player.one_foot_q, str(moves))
+	# Activado una vez, sigue activado: mortales sueltos (parando entre uno y otro) caen a un pie,
+	# un salto sin voltereta cae con los dos, y reaparecer no lo apaga
+	player.one_foot_q = false
+	await place(Vector3(-35, 0.1, 35), Vector3.FORWARD)
+	tap.call(touch.one_foot_center(), 12)
+	await get_tree().physics_frame
+	var lit_now := touch.one_foot_on
+	game.router.scripted = _drive
+	moves.clear(); landings.clear()
+	var ones := 0
+	for rep in 2:
+		await place(Vector3(-35, 0.1, 35), Vector3.FORWARD)
+		await run(func(i, f):
+			i.jump_pressed = f == 0; i.flick = Vector2(0, -1) if f == 0 else Vector2.ZERO
+			i.tuck = f > 3 and f < 26; i.jump_held = i.tuck, 200,
+			func(): return _f > 30 and player.state == PlayerController.State.GROUND)
+		await run(func(i, f): pass, 40)
+		ones += moves.count("One-Foot Landing")        # (place() vacía la lista en cada repetición)
+	await place(Vector3(-35, 0.1, 35), Vector3.FORWARD)
+	moves.clear()
+	await run(func(i, f): i.jump_pressed = f == 0; i.jump_held = f < 10, 120,
+		func(): return _f > 20 and player.state == PlayerController.State.GROUND)
+	await run(func(i, f): pass, 20)
+	check("1 PIE: activado una vez, cada mortal suelto cae a un pie (%d de 2) y un salto normal con los dos" % ones,
+		ones == 2 and not ("One-Foot Landing" in moves) and player.one_foot_q and lit_now, str(moves))
+	player.one_foot_q = false
+	game.router.scripted = Callable()
 	# Sin 1 PIE: ATRÁS justo antes de caer ya no añade una vuelta imposible (antes se estrellaba):
 	# cae con los dos pies y sale el siguiente backflip
 	await place(Vector3(-35, 0.1, 35), Vector3.FORWARD)
@@ -3001,6 +3032,55 @@ func t_one_foot_chain() -> void:
 	var q3 := landings.map(func(l): return l.quality)
 	check("1 PIE: cork a un pie y backflips a un pie encadenados (%s)" % str(moves),
 		moves.find("Cork") == 0 and moves.count("Backflip") >= 2 and moves.count("One-Foot Landing") >= 3 and not ("crash" in q3), str(q3))
+	player.one_foot_q = false
+	Settings.trick_controls = old_mode
+
+## Bonificación por recepción perfecta: enlazar otro mortal enseguida tras caer perfecto da más
+## altura y más velocidad de giro, y se acumula con cada recepción perfecta seguida.
+func t_perfect_bonus() -> void:
+	var old_mode := Settings.trick_controls
+	Settings.trick_controls = 5
+	player.one_foot_q = true                       # cadena a un pie: ATRÁS justo antes de caer
+	await place(Vector3(-35, 0.1, 35), Vector3.FORWARD)
+	moves.clear(); landings.clear()
+	var c := {"air": 0, "pa": -1, "last": -1, "y0": 0.0, "peaks": [], "spins": [], "rates": []}
+	await run(func(i, f):
+		i.stick_twist = true
+		if f == 0:
+			i.jump_pressed = true; i.flick = Vector2(0, -1)
+		if player.state == PlayerController.State.AIR and c.last != PlayerController.State.AIR:
+			c.air += 1
+			c.y0 = player.global_position.y
+			c.peaks.append(0.0); c.spins.append(1.0); c.rates.append(0.0)
+		c.last = player.state
+		if player.state == PlayerController.State.AIR and c.air > 0:
+			c.peaks[c.air - 1] = maxf(c.peaks[c.air - 1], player.global_position.y - c.y0)
+			c.spins[c.air - 1] = maxf(c.spins[c.air - 1], player.tricks.spin_bonus)
+			c.rates[c.air - 1] = maxf(c.rates[c.air - 1], absf(player.tricks.pitch_rate))
+		if player.state == PlayerController.State.AIR and c.pa != c.air and player.velocity.y < 0.0 and player.time_to_ground() < 0.15 and c.air < 3:
+			i.flip_press = -2; c.pa = c.air, 700,
+		func(): return c.air >= 3 and player.state != PlayerController.State.AIR and _f > 30)
+	player.one_foot_q = false
+	var q := landings.map(func(l): return l.quality)
+	check("Bonus perfecto: tras caer perfecto, el siguiente mortal sale más alto (%.2f → %.2f → %.2f m)" % [c.peaks[0], c.peaks[1], c.peaks[2]],
+		moves.count("Perfect Bonus") == 2 and c.peaks[1] > c.peaks[0] + 0.1 and c.peaks[2] > c.peaks[1] + 0.05, "%s %s" % [moves, q])
+	check("Bonus perfecto: y gira más rápido, cada vez más (x%.2f → x%.2f, %.1f → %.1f rad/s)" % [c.spins[1], c.spins[2], c.rates[0], c.rates[1]],
+		c.spins[0] == 1.0 and c.spins[1] > 1.1 and c.spins[2] > c.spins[1] and c.rates[1] > c.rates[0] * 1.04, "")
+	check("Bonus perfecto: los mortales con bonus también caen bien (%s)" % str(q), not ("crash" in q) and not ("sloppy" in q), "")
+	# Sin continuar a tiempo (parado más de la ventana) no hay bonus
+	await place(Vector3(-35, 0.1, 35), Vector3.FORWARD)
+	await run(func(i, f):
+		i.jump_pressed = f == 0; i.flick = Vector2(0, -1) if f == 0 else Vector2.ZERO
+		i.tuck = f > 3 and f < 26; i.jump_held = i.tuck, 200,
+		func(): return _f > 30 and player.state == PlayerController.State.GROUND)
+	var perfect_first: bool = landings.size() > 0 and landings[-1].quality == "perfect"
+	await run(func(i, f): pass, 90)
+	moves.clear()
+	await run(func(i, f):
+		i.jump_pressed = f == 0; i.flick = Vector2(0, -1) if f == 0 else Vector2.ZERO
+		i.tuck = f > 3 and f < 26; i.jump_held = i.tuck, 200,
+		func(): return _f > 30 and player.state == PlayerController.State.GROUND)
+	check("Bonus perfecto: si esperas parado, el siguiente mortal no lleva bonus", perfect_first and not ("Perfect Bonus" in moves), str(moves))
 	Settings.trick_controls = old_mode
 
 func t_beach_buoy() -> void:
