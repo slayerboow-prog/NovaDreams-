@@ -27,7 +27,7 @@ const N := 40                         # puntos tras remuestrear
 ## Nombres que se muestran al reconocer.
 const NAMES := {
 	"front": "MORTAL ADELANTE", "back": "MORTAL ATRÁS", "side": "MORTAL LATERAL",
-	"aerial": "AERIAL", "aerial_twist": "AERIAL TWIST", "cork": "CORK", "cork720": "CORK 720",
+	"aerial": "AERIAL", "aerial_twist": "AERIAL TWIST", "cork": "CORK", "cork720": "CORK 720", "chutada": "CHUTADA",
 	"webster": "WEBSTER", "gainer": "GAINER",
 	"vault": "VAULT", "kong": "KONG VAULT", "wall_run": "WALL RUN", "wall_flip": "WALL FLIP",
 	"climb": "ESCALADA", "ledge_grab": "AGARRE DE BORDE", "cat_leap": "CAT LEAP",
@@ -315,6 +315,10 @@ static func recognize_salto(screen: PackedVector2Array, radius: float, opts := {
 		if sec != 99:
 			var sid := "front" if sec == 2 else ("back" if sec == -2 else ("side" if sec in [0, 4] else "dir"))
 			return _result(sid, "simple", 1.0, {"sector": sec, "side": 1 if chord.x >= 0.0 else -1, "len": chord.length()}, opts)
+		if chord.y > 0.0:
+			# Diagonal recta hacia arriba = CHUTADA (mortal chutado: patada como a un balón y mortal
+			# atrás fuera de eje, sin tirabuzón). Con un círculo al final sería un cork.
+			return _result("chutada", "pattern", 1.0, {"side": 1 if chord.x >= 0.0 else -1, "len": chord.length()}, opts)
 	# 3. Bucles (el dedo se cruza o cierra un círculo al final)
 	var rs64 := resample(pts, 64)
 	var lp := loops(rs64)
@@ -468,6 +472,7 @@ static func preview_points(id: String) -> PackedVector2Array:
 		"palm":
 			out = PackedVector2Array([Vector2(0, -0.85), Vector2(0, 0.25)])
 			_add_circles(out, Vector2(0, 0.25), 0.3, 1, -1)
+		"chutada": out = PackedVector2Array([Vector2(-0.6, -0.65), Vector2(0.6, 0.65)])
 		"cork", "cork720":
 			out = PackedVector2Array([Vector2(-0.7, -0.8), Vector2(0.15, 0.2)])
 			_add_circles(out, Vector2(0.15, 0.2), 0.3, 2 if id == "cork720" else 1, 1)

@@ -115,6 +115,8 @@ func _run_all() -> void:
 	await t_human_model()
 	await t_air_control()
 	await t_one_foot_replay_cameras()
+	await t_twist_layout_tuck()
+	await t_chutada()
 	await t_mocap_backflip()
 	await t_landing_feel()
 	await t_new_tricks()
@@ -2417,3 +2419,128 @@ func t_twist_wrap() -> void:
 		func(): return _f > 16 and player.state == PlayerController.State.GROUND)
 	check("Tirabuzón (Piru): brazos cruzados pegados al pecho mientras gira (%d fotogramas)" % r.frames,
 		"Piru" in moves and r.frames >= 6, "%s mejor %.3f" % [moves, r.best])
+
+
+## GIRO = tirabuzón con el cuerpo estirado (nunca acelera el mortal); botón de mortal = agruparse.
+## Tras un tirabuzón, volver a pulsar un mortal pide otra vuelta (front + ½ giro + ATRÁS = doble).
+## 1 PIE pulsado antes de saltar también vale.
+func t_twist_layout_tuck() -> void:
+	var touch: TouchControls = game.ui.touch
+	var old_mode := Settings.trick_controls
+	Settings.trick_controls = 5
+	Settings.force_touch_ui = true
+	touch.visible = true
+	touch.size = Vector2(1542, 720)
+	game.router.scripted = Callable()
+	var tap := func(pos: Vector2, idx: int) -> void:
+		var e := InputEventScreenTouch.new(); e.index = idx; e.position = pos; e.pressed = true
+		touch._on_touch(e)
+		e.pressed = false; touch._on_touch(e)
+	var hold_jump := func(t: float) -> void:
+		var e := InputEventScreenTouch.new(); e.index = 14; e.position = touch._jump_center(); e.pressed = true
+		touch._on_touch(e); touch._time += t
+		e.pressed = false; touch._on_touch(e)
+	for cs in ["piru_largo", "doble_front_back"]:
+		await place(Vector3(-35, 0.1, 35), Vector3.FORWARD)
+		moves.clear(); landings.clear()
+		hold_jump.call(0.3)
+		var st := {"stage": 0, "maxp": 0.0, "maxt": 0.0, "layout": true}
+		var te := InputEventScreenTouch.new(); te.index = 12
+		for k in 300:
+			await get_tree().physics_frame
+			st.maxp = maxf(st.maxp, absf(player.tricks.total_pitch)); st.maxt = maxf(st.maxt, absf(player.tricks.total_twist))
+			if st.stage == 0 and player.state == PlayerController.State.AIR:
+				tap.call(touch.flip_button_center(0 if cs == "piru_largo" else 1), 11); st.stage = 1
+			elif st.stage == 1 and player.tricks.air_time > (0.08 if cs == "piru_largo" else 0.12):
+				touch.air_mode = true
+				var rc := touch._rot_center()
+				te.position = rc; te.pressed = true; touch._on_touch(te)
+				var td := InputEventScreenDrag.new(); td.index = 12; td.position = rc + Vector2(90, 0); touch._on_drag(td)
+				st.stage = 2
+			elif st.stage == 2:
+				if player.tricks.air_time > 0.35 and player.tricks.tuck_amount > 0.2:
+					st.layout = false                     # girando con GIRO debe ir estirado
+				var stop := 99.0 if cs == "piru_largo" else PI - 0.25
+				if absf(player.tricks.total_twist) > stop or player.time_to_ground() < 0.15:
+					te.pressed = false; touch._on_touch(te); touch.air_mode = false; st.stage = 3
+					if cs == "doble_front_back":
+						tap.call(touch.flip_button_center(0), 11)
+			if st.stage >= 3 and player.state == PlayerController.State.GROUND:
+				break
+		if st.stage == 2:
+			te.pressed = false; touch._on_touch(te); touch.air_mode = false
+		var clean: bool = landings.size() > 0 and landings[-1].quality in ["perfect", "clean"]
+		if cs == "piru_largo":
+			check("GIRO mantenido en un backflip: más tirabuzón (%d°) y el mortal no se dobla (%d°), estirado" % [rad_to_deg(st.maxt), rad_to_deg(st.maxp)],
+				st.maxt > deg_to_rad(500) and st.maxp < deg_to_rad(400) and st.layout and clean, "%s %s" % [moves, st])
+		else:
+			check("Front + medio tirabuzón + ATRÁS = doble mortal (%d° mortal, %d° giro)" % [rad_to_deg(st.maxp), rad_to_deg(st.maxt)],
+				st.maxp > deg_to_rad(700) and absf(st.maxt - PI) < 0.3 and clean, "%s %s" % [moves, st])
+	# 1 PIE pulsado antes de saltar: la recepción es a un pie y enlaza otro mortal
+	await place(Vector3(-35, 0.1, 35), Vector3.FORWARD)
+	moves.clear(); landings.clear()
+	tap.call(touch.one_foot_center(), 15)
+	await frames(2)
+	hold_jump.call(0.0)
+	var o := {"stage": 0}
+	for k in 300:
+		await get_tree().physics_frame
+		if o.stage == 0 and player.state == PlayerController.State.AIR:
+			tap.call(touch.flip_button_center(0), 11); o.stage = 1
+		elif o.stage == 1 and player.state == PlayerController.State.SKILL and player.skill.get("id", "") == "one_foot" and player.skill.get("linked", false):
+			tap.call(touch.flip_button_center(0), 11); o.stage = 2
+		if o.stage == 2 and k > 60 and player.state == PlayerController.State.GROUND and moves.count("Backflip") >= 2:
+			break
+	check("1 PIE pulsado antes de saltar: cae a un pie y enlaza otro mortal", "One-Foot Landing" in moves and moves.count("Backflip") >= 2,
+		"%s %s" % [moves, landings.map(func(l): return l.quality)])
+	touch.air_mode = false
+	Settings.trick_controls = old_mode
+	game.router.scripted = _drive
+
+
+## CHUTADA (mortal chutado): diagonal recta hacia arriba en el joystick dorado = patada como a un
+## balón y mortal atrás fuera de eje, sin tirabuzón. Con GIRO durante el mortal pasa a cork.
+func t_chutada() -> void:
+	var g := GestureRecognizer.recognize_salto(PackedVector2Array([Vector2(0, 0), Vector2(40, -40), Vector2(80, -80)]), 100.0)
+	check("Gesto: diagonal recta hacia arriba = CHUTADA", String(g.get("id", "")) == "chutada", str(g))
+	var touch: TouchControls = game.ui.touch
+	var old_mode := Settings.trick_controls
+	Settings.trick_controls = 5
+	Settings.force_touch_ui = true
+	touch.visible = true
+	touch.size = Vector2(1542, 720)
+	game.router.scripted = Callable()
+	for with_giro in [false, true]:
+		await place(Vector3(-35, 0.1, 35), Vector3.FORWARD)
+		moves.clear(); landings.clear()
+		touch.air_mode = false
+		await _draw_on(touch, 16, _gpts("chutada", touch._jump_center(), touch._jump_radius() * 0.9))
+		var st := {"stage": 0, "tw": 0.0, "style": ""}
+		var te := InputEventScreenTouch.new(); te.index = 12
+		for k in 300:
+			await get_tree().physics_frame
+			st.tw = maxf(st.tw, absf(player.tricks.total_twist))
+			if player.state == PlayerController.State.AIR and st.style == "":
+				st.style = player.tricks.style
+			if with_giro and st.stage == 0 and player.state == PlayerController.State.AIR and player.tricks.air_time > 0.1:
+				touch.air_mode = true
+				var rc := touch._rot_center()
+				te.position = rc; te.pressed = true; touch._on_touch(te)
+				var td := InputEventScreenDrag.new(); td.index = 12; td.position = rc + Vector2(90, 0); touch._on_drag(td)
+				st.stage = 1
+			elif st.stage == 1 and (absf(player.tricks.total_twist) > TAU - 0.5 or player.time_to_ground() < 0.12):
+				te.pressed = false; touch._on_touch(te); touch.air_mode = false; st.stage = 2
+			if k > 20 and player.state == PlayerController.State.GROUND and not moves.is_empty():
+				break
+		if st.stage == 1:
+			te.pressed = false; touch._on_touch(te)
+		touch.air_mode = false
+		var clean: bool = landings.size() > 0 and landings[-1].quality in ["perfect", "clean"]
+		if not with_giro:
+			check("Chutada: patada y mortal atrás sin tirabuzón (%s)" % str(moves), "Chutada" in moves and st.tw < 0.3 and st.style == "chutada" and clean,
+				"%s %s %s" % [moves, landings.map(func(l): return l.quality), st])
+		else:
+			check("Chutada + GIRO = Cork (%s)" % str(moves), moves.any(func(m): return String(m).begins_with("Cork")) and clean,
+				"%s %s %s" % [moves, landings.map(func(l): return l.quality), st])
+	Settings.trick_controls = old_mode
+	game.router.scripted = _drive

@@ -764,6 +764,8 @@ func trick_kind(tr: TrickSystem) -> String:
 			return "twist" if twisting else "aerial"   # rueda sin manos: piernas abiertas
 		"cork":
 			return "cork"
+		"chutada":
+			return "chutada"
 		"butterfly":
 			return "butterfly"
 		"kick":
@@ -806,7 +808,7 @@ func _impulse_pose(kind: String, rs: float) -> Dictionary:
 				"elbow_l": Vector3(0.1, 0, 0), "elbow_r": Vector3(0.1, 0, 0),
 				"hip_r": Vector3(1.6, 0, 0), "knee_r": Vector3(-0.35, 0, 0),         # pierna libre lanzada arriba
 				"hip_l": Vector3(-0.2, 0, 0), "knee_l": Vector3(-0.05, 0, 0)}
-		"cork":
+		"cork", "chutada":
 			return _cork_legs(CORK_KICK)
 		"twist":
 			return {"spine": Vector3(0.2, 0.55 * rs, 0), "neck": Vector3(0.3, 0.3 * rs, 0),
@@ -891,6 +893,10 @@ func _gather_pose(kind: String, rs: float, ph: float) -> Dictionary:
 				"hip_l": Vector3(1.7, 0, -0.1), "knee_l": Vector3(-2.0, 0, 0),
 				"shoulder_l": Vector3(1.1, 0, -0.15), "shoulder_r": Vector3(1.1, 0, 0.15),
 				"elbow_l": Vector3(1.2, 0, 0), "elbow_r": Vector3(1.2, 0, 0)}
+		"chutada":
+			# Mortal chutado: la pierna de patada sigue estirada arriba (como tras chutar un balón)
+			# y la otra recogida; brazos delante para equilibrar el eje inclinado
+			return _cork_legs(CHUTADA_AIR)
 		"cork":
 			# Tirabuzón: piernas juntas y casi rectas (eje recto y rápido), brazos cerrados al pecho
 			# y la cabeza mirando por encima del hombro hacia el giro
@@ -900,10 +906,12 @@ func _gather_pose(kind: String, rs: float, ph: float) -> Dictionary:
 				"shoulder_l": Vector3(0.6, 0, 0.6), "shoulder_r": Vector3(0.6, 0, -0.6),
 				"elbow_l": Vector3(2.35, 0, 0), "elbow_r": Vector3(2.35, 0, 0)}
 		"twist":
-			# Mortal con tirabuzón añadido: cuerpo más largo, brazos cerrados para girar rápido
-			return {"spine": Vector3(-0.15, 0, 0), "neck": Vector3(0.1, 0, 0),
-				"hip_l": Vector3(1.0, 0, 0.03), "hip_r": Vector3(1.02, 0, -0.03),
-				"knee_l": Vector3(-1.1, 0, 0), "knee_r": Vector3(-1.12, 0, 0),
+			# Mortal con tirabuzón: cuerpo largo para girar rápido sobre el eje largo, pero no
+			# rígido: cadera y rodillas un poco flexionadas (natural, y desde ahí agruparse otra
+			# vez es inmediato) y brazos cerrados al pecho
+			return {"spine": Vector3(-0.08, 0, 0), "neck": Vector3(0.1, 0, 0),
+				"hip_l": Vector3(0.38, 0, 0.03), "hip_r": Vector3(0.42, 0, -0.03),
+				"knee_l": Vector3(-0.55, 0, 0), "knee_r": Vector3(-0.6, 0, 0),
 				"shoulder_l": Vector3(0.55, 0, 0.6), "shoulder_r": Vector3(0.55, 0, -0.6),
 				"elbow_l": Vector3(2.35, 0, 0), "elbow_r": Vector3(2.35, 0, 0)}
 		"kick":
@@ -965,6 +973,12 @@ const CORK_KICK := {"spine": Vector3(0.22, 0, 0), "neck": Vector3(0.35, 0, 0),
 	"shoulder_l": Vector3(2.85, 0, -0.3), "shoulder_r": Vector3(2.85, 0, 0.3),
 	"elbow_l": Vector3(0.1, 0, 0), "elbow_r": Vector3(0.1, 0, 0),
 	"hip_r": Vector3(2.0, 0, -0.25), "knee_r": Vector3(-0.1, 0, 0), "hip_l": Vector3(0.1, 0, 0), "knee_l": Vector3(-0.1, 0, 0)}
+## Chutada en el aire: pierna de patada estirada arriba, la otra flexionada, brazos delante.
+const CHUTADA_AIR := {"spine": Vector3(-0.2, 0, 0), "neck": Vector3(0.25, 0, 0),
+	"shoulder_l": Vector3(1.3, 0, -0.55), "shoulder_r": Vector3(1.1, 0, 0.6),
+	"elbow_l": Vector3(0.7, 0, 0), "elbow_r": Vector3(0.7, 0, 0),
+	"hip_r": Vector3(1.85, 0, -0.15), "knee_r": Vector3(-0.15, 0, 0),
+	"hip_l": Vector3(1.45, 0, 0.08), "knee_l": Vector3(-1.95, 0, 0)}
 ## Cork: apertura, la pierna de patada baja primero (estirada al suelo), la otra llega después.
 const CORK_OPEN := {"hip_r": Vector3(0.05, 0, 0.04), "knee_r": Vector3(-0.08, 0, 0),
 	"hip_l": Vector3(0.65, 0, -0.04), "knee_l": Vector3(-0.75, 0, 0),
@@ -1077,13 +1091,18 @@ func _trick_pose(p: Dictionary, tr: TrickSystem) -> void:
 		_apply(p, g, 1.0 - open * 0.6)       # la tijera sigue hasta casi aterrizar
 	else:
 		_apply(p, g, gather * (1.0 - open))
+		if kind == "twist" and tr.tuck_amount > 0.01:
+			# Botón de mortal durante un tirabuzón: se agrupa (rodillas al pecho) para ganar
+			# velocidad de mortal; al girar con GIRO vuelve a estirarse
+			var bk: String = {"front": "front", "side": "side"}.get(tr.style, "back")
+			_apply(p, _gather_pose(bk, rs, ph), tr.tuck_amount * gather * (1.0 - open))
 		# Vuelta completada: se abre estirando las piernas hacia el suelo (no se queda "sentado"
 		# en el aire); las rodillas solo se flexionan justo antes de tocar el suelo (RECEPTION).
 	_apply(p, _impulse_pose(kind, rs), imp)
 	# Mirada: al final del giro la cabeza busca el suelo (atrás en los mortales hacia atrás, el
 	# mentón abajo en los de delante) y se endereza al recibir
 	var spot := open * (1.0 - rec)
-	if kind in ["back", "gainer", "cork", "twist", "bhs", "roundoff"]:
+	if kind in ["back", "gainer", "cork", "chutada", "twist", "bhs", "roundoff"]:
 		p.neck.x += 0.38 * spot
 	elif kind in ["front", "webster", "fhs", "aerial", "side"]:
 		p.neck.x -= 0.32 * spot
@@ -1103,6 +1122,11 @@ func _trick_pose(p: Dictionary, tr: TrickSystem) -> void:
 			# Apertura: se separan los brazos y baja primero la pierna de patada para frenar
 			_apply(p, _cork_legs(CORK_OPEN), open * (1.0 - rec))
 		wrap_w = clampf(gather * (1.0 - imp) * (1.0 - rec) * (1.0 - pre) * maxf(twisting, 1.0 - open), 0.0, 1.0)
+		if kind == "twist":
+			# Agrupado: las manos pasan del pecho a las espinillas
+			var tk := tr.tuck_amount * gather * (1.0 - open) * (1.0 - imp) * (1.0 - rec)
+			grab_w = clampf(tk, 0.0, 1.0)
+			wrap_w *= 1.0 - tr.tuck_amount
 	last_kind = kind
 	if imp > 0.5:
 		last_phase = "impulso"

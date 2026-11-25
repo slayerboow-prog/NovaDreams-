@@ -613,8 +613,7 @@ func _on_touch(e: InputEventScreenTouch) -> void:
 			role = "onefoot"
 			_pending.one_foot = true
 			_flash["onefoot"] = 0.3
-			if air_mode:
-				_toast("A UN PIE", Neon.CYAN, "gold")
+			_toast("A UN PIE", Neon.CYAN, "gold")
 		elif salto_pages_enabled() and flip_button_at(p) >= 0:
 			# Botón de mortal (estilo Madness): carga · agrupa · abre
 			role = "flipbtn"
@@ -1062,6 +1061,7 @@ func _gesture_rest_checks() -> void:
 const TRAIN := [
 	["aerial", "AERIAL", "gold", "Arco lateral que sube y baja, sin cerrar"],
 	["aerial_twist", "AERIAL TWIST", "gold", "Arco lateral y un círculo pequeño al final"],
+	["chutada", "CHUTADA", "gold", "Diagonal recta hacia arriba (mortal chutado, sin tirabuzón)"],
 	["cork", "CORK", "gold", "Diagonal hacia arriba y un círculo pequeño"],
 	["cork720", "CORK 720", "gold", "Diagonal hacia arriba y dos círculos pequeños"],
 	["webster", "WEBSTER", "gold", "Sube, cae por delante y retrocede un poco"],
