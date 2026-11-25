@@ -122,6 +122,8 @@ func _run_all() -> void:
 	await t_vault_gestures()
 	await t_parkour_gesture_shapes()
 	await t_precision_long_jump()
+	await t_beach_buoy()
+	await t_park()
 	await t_air_giro_queue()
 	await t_mocap_backflip()
 	await t_landing_feel()
@@ -1906,6 +1908,8 @@ func t_mocap_backflip() -> void:
 	var rig: BodyRig = game.rig
 	check("Captura real del backflip cargada (%d fotogramas)" % (rig.mocap["back"].frame_count() if rig.mocap.has("back") else 0), rig.mocap.has("back"), "")
 	var old_stats: int = int(SaveData.stats.get("move_Backflip", 0))
+	var old_gainer: int = int(SaveData.stats.get("move_Gainer", 0))
+	SaveData.stats["move_Gainer"] = 0          # los gainers también cuentan para desbloquear
 	var old_style := Settings.backflip_style
 	for case in [["bloqueado: sale el clásico", 0, 1], ["desbloqueado y elegido: sale la captura real", 999, 1], ["desbloqueado pero clásico elegido", 999, 0]]:
 		SaveData.stats["move_Backflip"] = int(case[1])
@@ -1921,6 +1925,7 @@ func t_mocap_backflip() -> void:
 		check("Backflip %s" % case[0], used.v == want and "Backflip" in moves and landings[-1].quality in ["perfect", "clean"],
 			"captura %s %s %s" % [used.v, moves, landings.map(func(l): return l.quality)])
 	SaveData.stats["move_Backflip"] = old_stats
+	SaveData.stats["move_Gainer"] = old_gainer
 	Settings.backflip_style = old_style
 
 ## Botón 1 PIE (recepción a un pie y combos a un pie), repetición con cámara libre y cámaras.
@@ -2795,3 +2800,80 @@ func t_air_giro_queue() -> void:
 		moves.find("Frontflip") >= 0 and moves.find("Round-off") > moves.find("Frontflip") and moves.find("Backflip") > moves.find("Round-off"), str(moves))
 	Settings.trick_controls = old_mode
 	game.router.scripted = _drive
+
+
+func t_beach_buoy() -> void:
+	var li: Dictionary = game.level_info
+	check("Playa: hay arena y una boya trampolín", li.get("buoys", []).size() == 1 and li.get("sand", []).size() == 1, "")
+	var c: Vector3 = li.buoys[0].pos
+	# Salto normal en la arena como referencia
+	await place(c + Vector3(0, 0.1, 8), Vector3.FORWARD)
+	var ref := {"y0": player.global_position.y, "peak": 0.0}
+	await run(func(i, f):
+		i.jump_pressed = f == 2
+		ref.peak = maxf(ref.peak, player.global_position.y - ref.y0), 200,
+		func(): return _f > 10 and player.state == PlayerController.State.GROUND)
+	# Corriendo hacia la boya: rebote muy alto; mortal atrás con el botón en el aire
+	await place(c + Vector3(0, 0.1, 8), Vector3.FORWARD)
+	moves.clear()
+	landings.clear()
+	var st := {"y0": player.global_position.y, "peak": 0.0, "flip": false}
+	await run(func(i, f):
+		i.move = Vector2(0, 1.0) if not moves.has("Buoy Launch") else Vector2.ZERO
+		st.peak = maxf(st.peak, player.global_position.y - st.y0)
+		if moves.has("Buoy Launch") and not st.flip and player.velocity.y < 9.0:
+			i.flick = Vector2(0, -1)
+			st.flip = true, 400,
+		func(): return st.flip and _f > 20 and player.state == PlayerController.State.GROUND)
+	check("Boya: pisarla corriendo te lanza mucho más alto (%.1f m vs %.1f m de un salto normal)" % [st.peak, ref.peak],
+		"Buoy Launch" in moves and st.peak > ref.peak * 1.6, str(moves))
+	check("Boya: mortal (atrás en carrera = gainer) en el aire y recepción limpia en la arena (%s)" % str(landings.map(func(l): return l.quality)),
+		("Backflip" in moves or "Gainer" in moves) and landings.size() > 0 and landings[-1].quality in ["perfect", "clean"], str(moves))
+	# Andando al lado sin ir hacia ella no salta
+	await place(c + Vector3(0.6, 0.1, 3), Vector3.FORWARD)
+	moves.clear()
+	await run(func(i, f):
+		i.move = Vector2(0, 0.4), 120)
+	check("Boya: andando al lado no dispara el rebote", not ("Buoy Launch" in moves), str(moves))
+	await place(Vector3(-35, 0.1, 35), Vector3.FORWARD)
+	await frames(20)
+
+
+## Parque de obstáculos: cada calle sirve para los movimientos para los que está pensada.
+func t_park() -> void:
+	# [nombre, inicio, obstáculo cerca (z), estados aceptados]
+	var cases := [
+		["barandilla baja 0,8 m → vault", Vector3(22, 0.1, -38), -43.9, [PlayerController.State.VAULT]],
+		["caja 1,1 m → vault (kong / kash...)", Vector3(22, 0.1, -45.5), -49.5, [PlayerController.State.VAULT]],
+		["caja larga 2,6 m → vault", Vector3(22, 0.1, -51.5), -55.7, [PlayerController.State.VAULT]],
+		["murete 1,3 m → subida", Vector3(28.5, 0.1, -46.3), -50.0, [PlayerController.State.VAULT, PlayerController.State.CLIMB_UP, PlayerController.State.HANG]],
+		["muro 1,9 m → subida", Vector3(28.5, 0.1, -52.3), -56.0, [PlayerController.State.VAULT, PlayerController.State.CLIMB_UP, PlayerController.State.HANG, PlayerController.State.WALLCLIMB]],
+		["muro 2,6 m → colgarse / subir", Vector3(28.5, 0.1, -58.3), -62.0, [PlayerController.State.HANG, PlayerController.State.CLIMB_UP, PlayerController.State.WALLCLIMB]],
+	]
+	for cs in cases:
+		await place(cs[1], Vector3.FORWARD)
+		moves.clear()
+		var st := {"p": false, "hit": -1}
+		var zj: float = cs[2] + 1.1
+		await run(func(i, f):
+			i.move = Vector2(0, 1.0); i.sprint = true
+			if not st.p and player.global_position.z <= zj:
+				i.jump_pressed = true; i.vault_pressed = true; i.grab_pressed = true
+				st.p = true
+			i.jump_held = st.p
+			if player.state in cs[3] and st.hit < 0:
+				st.hit = player.state, 240,
+			func(): return st.hit >= 0)
+		check("Parque: %s (%s)" % [cs[0], str(moves)], st.hit >= 0, "estado %d" % player.state)
+	# Muro largo de la calle 4: wall run corriendo en paralelo pegado a él
+	await place(Vector3(41.5, 0.1, -40), Vector3.FORWARD)
+	var w := {"hit": false}
+	await run(func(i, f):
+		i.move = Vector2(0.15, 1.0); i.sprint = true
+		i.jump_pressed = player.global_position.z < -46.0 and player.state == PlayerController.State.GROUND
+		i.jump_held = player.global_position.z < -46.0
+		w.hit = w.hit or player.state == PlayerController.State.WALLRUN, 200,
+		func(): return w.hit)
+	check("Parque: muro largo de 4,5 m → wall run", w.hit, str(moves))
+	await place(Vector3(-35, 0.1, 35), Vector3.FORWARD)
+	await frames(10)

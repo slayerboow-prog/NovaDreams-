@@ -3,7 +3,7 @@ extends RefCounted
 ## Las cinco disciplinas. Todas usan el mismo PlayerController, el mismo ComboSystem
 ## y el mismo escenario; cada modo solo cambia reglas, objetivos y puntuación.
 
-const LIST := ["freerun", "tricking", "water", "challenge", "freestyle"]
+const LIST := ["freerun", "tricking", "water", "beach", "challenge", "freestyle"]
 
 static func create(id: String) -> Base:
 	match id:
@@ -11,6 +11,7 @@ static func create(id: String) -> Base:
 		"water": return Water.new()
 		"challenge": return Challenge.new()
 		"freestyle": return Freestyle.new()
+		"beach": return Beach.new()
 	return Freerun.new()
 
 static func info(id: String) -> Dictionary:
@@ -19,6 +20,7 @@ static func info(id: String) -> Dictionary:
 		"tricking": {"title": "Tricking", "desc": "Césped y espacio abierto para mortales, corks y combinaciones."},
 		"water": {"title": "Water Tricks", "desc": "Salta desde el trampolín y entra limpio en el agua."},
 		"challenge": {"title": "Parkour Challenge", "desc": "Contrarreloj por checkpoints. Supera tu fantasma."},
+		"beach": {"title": "Playa", "desc": "Arena y una boya de barco: písala corriendo para salir disparado y hacer mortales."},
 		"freestyle": {"title": "Freestyle Competition", "desc": "90 segundos. Variedad, fluidez y dificultad puntúan."},
 	}.get(id, {})
 
@@ -312,3 +314,17 @@ class Freestyle:
 
 	func status_text() -> String:
 		return "Tiempo %d s   ·   Puntos %d   ·   Récord %d" % [ceili(time_left), combo.total_score, int(SaveData.get_record(KEY, 0))]
+
+
+class Beach:
+	extends Base
+	var launches := 0
+	func _init() -> void:
+		id = "beach"
+
+	func on_move(name: String, _q: float, _info: Dictionary) -> void:
+		if name == "Buoy Launch":
+			launches += 1
+
+	func status_text() -> String:
+		return "Impulsos en la boya %d   ·   Puntos %d   ·   Mejor combo %d" % [launches, combo.total_score, int(SaveData.get_record(record_key(), 0))]

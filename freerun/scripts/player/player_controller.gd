@@ -25,6 +25,14 @@ var router: InputRouter
 var intent := InputIntent.new()
 var camera_yaw := 0.0                    # la cámara lo actualiza: el stick es relativo a cámara
 var water_volumes: Array[AABB] = []      # los rellena el nivel
+var buoys: Array = []                    # boyas trampolín de la playa: {"pos", "node"}
+var sand_zones: Array = []               # AABB de arena: recepciones más suaves
+var buoy_cd := 0.0
+const BUOY_R := 0.38
+const BUOY_VY := 12.0                    # rebote de la boya (salto normal 8,4)
+const BUOY_MIN_SPEED := 4.0             # hay que llegar corriendo (andando no rebota)
+const BUOY_VY_JUMP := 2.0                # + pulsando / manteniendo SALTO al pisarla
+const SAND_SOFT := 0.8                   # la arena absorbe parte del impacto
 
 var state: int = State.AIR
 var state_time := 0.0
@@ -303,6 +311,9 @@ func _physics_process(dt: float) -> void:
 		respawn()
 		return
 	prev_velocity = velocity
+	buoy_cd = maxf(0.0, buoy_cd - dt)
+	if (state == State.GROUND or state == State.AIR) and _buoy_check():
+		return
 	match state:
 		State.GROUND: _state_ground(dt)
 		State.AIR: _state_air(dt)
@@ -861,6 +872,54 @@ func _state_air(dt: float) -> void:
 	if is_on_floor():
 		_land()
 
+## Boya trampolín: entrar corriendo en ella o caerle encima te lanza muy alto (en el aire se
+## hacen los mortales con los botones de siempre). Devuelve true si ha lanzado.
+func _buoy_check() -> bool:
+	if buoys.is_empty() or buoy_cd > 0.0:
+		return false
+	var p := global_position
+	for b in buoys:
+		var c: Vector3 = b.pos
+		var d := Vector3(c.x - p.x, 0.0, c.z - p.z)
+		var top := c.y + BUOY_R
+		var hv := horizontal_velocity()
+		# margen según la velocidad: se detecta antes de que el choque con la esfera frene al jugador
+		if d.length() > BUOY_R + 0.4 + hv.length() * 0.05 or p.y < c.y - 0.15 or p.y > top + 0.35:
+			continue
+		if state == State.GROUND:
+			# hay que ir hacia ella con algo de carrera (andando al lado no salta)
+			if hv.length() < BUOY_MIN_SPEED or (d.length() > 0.05 and hv.normalized().dot(d.normalized()) < 0.6):
+				continue
+		elif velocity.y > 0.5:
+			continue                           # subiendo: aún no la pisa
+		_buoy_launch(b, hv)
+		return true
+	return false
+
+func _buoy_launch(b: Dictionary, hv: Vector3) -> void:
+	buoy_cd = 0.5
+	var c: Vector3 = b.pos
+	global_position.y = maxf(global_position.y, c.y + BUOY_R)
+	var vy := BUOY_VY + (BUOY_VY_JUMP if intent.jump_held or jump_buffer > 0.0 else 0.0)
+	jump_buffer = 0.0
+	velocity = Vector3(hv.x * 0.9, vy, hv.z * 0.9)
+	_enter_air("run")
+	_emit_move("Buoy Launch", 1.0, {})
+	var node = b.get("node")
+	if node is Node3D and (node as Node3D).is_inside_tree():
+		# la boya se aplasta y recupera (goma)
+		var n := node as Node3D
+		n.scale = Vector3(1.25, 0.6, 1.25)
+		var tw := n.create_tween()
+		tw.tween_property(n, "scale", Vector3.ONE, 0.35).set_trans(Tween.TRANS_ELASTIC).set_ease(Tween.EASE_OUT)
+	move_and_slide()
+
+func _on_sand() -> bool:
+	for a in sand_zones:
+		if (a as AABB).has_point(global_position):
+			return true
+	return false
+
 func _check_water() -> bool:
 	if water_volumes.is_empty():
 		return false
@@ -875,6 +934,8 @@ func _check_water() -> bool:
 
 func _land() -> void:
 	var impact := -prev_velocity.y
+	if not sand_zones.is_empty() and _on_sand():
+		impact *= SAND_SOFT
 	mad_stage = 0; mad_twisted = false
 	mad_axis = 99
 	var prec := precision_t > 0.0
