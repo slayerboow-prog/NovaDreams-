@@ -16,6 +16,8 @@ Atajos: `godot --path freerun -- --mode=freerun` salta el menú (`tricking`, `wa
 
 ## Controles
 
+**Joystick de movimiento preciso**: tiene una pequeña zona muerta en el centro (un roce no mueve) y una curva progresiva. Poco inclinado = paso muy lento (desde 0,4 m/s) para colocarse centímetro a centímetro; a media inclinación anda, desde el 85 % corre y al tope esprinta. A baja velocidad arranca sin tirones y frena enseguida al soltar.
+
 **Móvil (iPhone / Android) — BOTONERA (por defecto)**: abajo a la derecha, **SALTO grande en el centro** y un **arco de 3/4 de círculo con 8 botones grandes por página y CAMBIAR**, que se puede girar. VAULT y AGARRAR van en una fila abajo, entre el joystick de movimiento y el joystick GIRO (no tapan al atleta). Páginas:
 - **Modo por defecto: Gestos con tres joysticks** (azul = movimiento **y parkour**, morado = giros y complementos, dorado = SALTO y acrobacias, con los botones de mortal al lado).
 - **Parkour en el joystick dorado (SALTO)**: el joystick de movimiento solo mueve (dibujar mientras te mueves era imposible). En el dorado:

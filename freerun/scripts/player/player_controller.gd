@@ -235,6 +235,15 @@ func respawn() -> void:
 	reset_physics_interpolation()
 	respawned.emit()
 
+## Velocidad en el suelo según la inclinación del joystick (0..1): curva progresiva para poder
+## moverse centímetros. Poco = paso muy lento (0,4 m/s) · medio = andar · más = correr · tope = sprint.
+const CREEP_SPEED := 0.4
+func ground_target_speed(mag: float) -> float:
+	if mag < 0.55:
+		var u := clampf((mag - 0.08) / 0.47, 0.0, 1.0)
+		return lerpf(CREEP_SPEED, t.walk_speed, pow(u, 1.6))
+	return lerpf(t.walk_speed, t.run_speed, clampf((mag - 0.55) / 0.3, 0.0, 1.0))
+
 ## Dirección deseada en el mundo (relativa a la cámara) con magnitud 0..1.
 func wish_dir() -> Vector3:
 	var m := intent.move
@@ -385,7 +394,7 @@ func _state_ground(dt: float) -> void:
 	var hv := horizontal_velocity()
 	var spd := hv.length()
 	if mag > 0.08:
-		var target_speed := lerpf(t.walk_speed, t.run_speed, clampf((mag - 0.3) / 0.5, 0.0, 1.0))
+		var target_speed := ground_target_speed(mag)
 		var running := intent.sprint or mag > 0.93
 		if running:
 			# El sprint no es instantáneo: se acumula corriendo recto (y en flow se va algo más rápido).
@@ -416,6 +425,10 @@ func _state_ground(dt: float) -> void:
 				acc = lerpf(t.accel_start, t.accel, clampf(spd / t.sprint_speed, 0.0, 1.0))
 				if pivot:
 					acc *= 0.25
+				if target_speed < t.walk_speed:
+					acc = minf(acc, 7.0)               # pasos cortos: arranque suave y preciso (sin tirón)
+			elif target_speed < t.walk_speed:
+				acc = t.decel                          # al aflojar el joystick frena enseguida a la nueva velocidad
 			spd = move_toward(spd, target_speed, acc * dt)
 		hv = heading * spd
 	elif jump_load <= 0.0 and not chain.active():   # flexión del salto o rebote de un enlace: conserva el impulso
@@ -572,7 +585,7 @@ func _takeoff(kind: String) -> void:
 	var plain := target == "jump" and lp.is_empty() and flick_timer <= 0.0 and kick_timer <= 0.0 \
 		and cork_buffer <= 0.0 and mad_stage == 0 and butterfly_buffer <= 0.0 and pending_twists.is_empty() \
 		and takeoff_style in ["", "jump", "run", "stand"]
-	var fwd := intent.move.length() > 0.35 and wish_dir().dot(facing) > 0.5
+	var fwd := intent.move.length() > 0.2 and wish_dir().normalized().dot(facing) > 0.5   # (dirección, no fuerza: un toque suave también vale)
 	if plain and fwd and kind in ["run", "stand"]:
 		# "stand"/"run" se decide al pulsar SALTO (durante la flexión el atleta aún acelera)
 		if kind == "stand":
@@ -725,7 +738,7 @@ func _precision_jump() -> void:
 	var dir := ObstacleSensor.flat(facing).normalized()
 	var edge := _buoy_target(dir, 0.6, 4.2)
 	if edge.is_empty():
-		edge = sensor.find_landing_edge(global_position, dir, 0.7, 3.4, 1.25, 2.6)
+		edge = sensor.find_landing_edge(global_position, dir, 0.7, 3.8, 1.25, 2.6)
 	if edge.has("blocked"):
 		edge = {}
 	var dist := PRECISION_FLAT

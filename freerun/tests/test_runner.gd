@@ -88,6 +88,7 @@ func S(): return PlayerController.State
 
 func _run_all() -> void:
 	await t_locomotion()
+	await t_precise_move()
 	await t_jump()
 	await t_backflip()
 	await t_frontflip_cork()
@@ -415,7 +416,8 @@ func t_precision() -> void:
 	await place(Vector3(0, 3.1, -44.5), Vector3.FORWARD)
 	var st := {"jumped": false}
 	await run(func(i, f):
-		i.move = Vector2.ZERO if st.jumped else Vector2(0, 0.47)
+		# andando (~2,2 m/s) hasta el borde y empujando adelante hasta despegar (SALTO + adelante = precisión)
+		i.move = Vector2(0, 0.5) if player.state == PlayerController.State.GROUND else Vector2.ZERO
 		i.jump_pressed = not st.jumped and player.global_position.z <= -45.95
 		st.jumped = st.jumped or i.jump_pressed
 		st.air = st.get("air", false) or player.state == PlayerController.State.AIR
@@ -741,7 +743,8 @@ func t_new_controls() -> void:
 	var hung := {"v": false}
 	await run(func(i, f):
 		i.move = Vector2(0, 0.8) if not hung.v else Vector2.ZERO
-		i.grab_pressed = f == 14
+		i.grab_pressed = not hung.get("p", false) and player.global_position.z <= -37.2
+		hung.p = hung.get("p", false) or i.grab_pressed
 		hung.v = hung.v or player.state == PlayerController.State.HANG, 160,
 		func(): return hung.v)
 	var grabbed := player.state == PlayerController.State.HANG and "Wall Climb" in moves
@@ -3224,6 +3227,21 @@ func t_gym() -> void:
 	Settings.trick_controls = old_mode
 	game.start_mode("freerun")
 	await frames(5)
+
+## Joystick de movimiento preciso: un toque pequeño mueve centímetros (paso lento), la velocidad
+## crece con la inclinación (andar · correr · sprint) y un roce en el centro no mueve.
+func t_precise_move() -> void:
+	var dists := []
+	for m in [0.15, 0.45, 1.0]:
+		await place(Vector3(-35, 0.02, 35), Vector3.FORWARD)
+		var p0 := player.global_position
+		await run(func(i, f): i.move = Vector2(0, m) if f < 18 else Vector2.ZERO, 50)
+		dists.append(player.global_position.distance_to(p0))
+	check("Joystick preciso: toque pequeño = centímetros (%.2f m), medio = andar (%.2f m), a fondo = correr (%.2f m) en 0,3 s" % dists,
+		dists[0] < 0.2 and dists[1] > dists[0] * 1.8 and dists[1] < 0.6 and dists[2] > 1.8, "")
+	check("Joystick táctil: zona muerta en el centro y recorrido completo al borde",
+		TouchControls.joy_shape(Vector2(0, 0.08)) == Vector2.ZERO and TouchControls.joy_shape(Vector2(0, 1.0)).y > 0.99
+		and TouchControls.joy_shape(Vector2(0, 0.3)).y < 0.3, "")
 
 func t_beach_buoy() -> void:
 	var li: Dictionary = game.level_info
