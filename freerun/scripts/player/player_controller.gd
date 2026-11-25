@@ -146,6 +146,10 @@ var mad_pre_extra := 0                  # pulsaciones de mortal extra antes de d
 var mad_twisted := false                # tirabuzón hecho con el cuerpo abierto desde la última agrupación
 var one_foot_q := false                  # botón 1 PIE: la próxima recepción es a un pie
 var one_foot_side := 1
+var land_flip_q := 99                    # botón de mortal pulsado justo antes de caer: sale al recepcionar
+var land_flip_t := 0.0
+var land_flip_now := false
+const LAND_FLIP_TIME := 0.3
 const MAD_CHARGE_MAX := 0.12
 const HOP_VY := 2.6                      # botón de mortal sin SALTO: saltito sin impulso
 var twist_wait_t := 0.0                  # ventana para combinar el círculo con un mortal del dorado
@@ -198,7 +202,7 @@ func respawn() -> void:
 	tricks.reset()
 	stun = 0.0
 	jump_load = 0.0
-	mad_stage = 0; mad_axis = 99; mad_charge = 0.0; one_foot_q = false; mad_twisted = false; chutada_q = false; mad_pre_extra = 0; giro_qs = []
+	mad_stage = 0; mad_axis = 99; mad_charge = 0.0; one_foot_q = false; land_flip_t = 0.0; mad_twisted = false; chutada_q = false; mad_pre_extra = 0; giro_qs = []
 	keep_t = 0.0; air_grab_t = 0.0; wallflip_t = 0.0; wallrun_hold_t = 0.0; precision_t = 0.0
 	extra_twist_t = 0.0; cork_more = 0; pending_twists.clear(); vault_pref = ""
 	ground_wait = 0.0
@@ -1192,8 +1196,9 @@ func _tick_gestures(dt: float) -> void:
 	_tick_giro_queue()
 	_tick_flip_buttons(dt)
 	if intent.one_foot:
-		# 1 PIE en cualquier momento (también antes de saltar): la próxima recepción es a un pie
-		one_foot_q = true
+		# 1 PIE en cualquier momento (también antes de saltar): la próxima recepción es a un pie.
+		# Si ya estaba activo (p. ej. en una cadena a un pie), vuelve a pulsarlo para caer con dos.
+		one_foot_q = not one_foot_q
 	if twist_wait_t > 0.0:
 		twist_wait_t -= dt
 		if twist_wait_t <= 0.0 and state == State.GROUND and not pending_twists.is_empty() and jump_load <= 0.0 and jump_buffer <= 0.0:
@@ -1234,7 +1239,16 @@ func _tick_flip_buttons(dt: float) -> void:
 	if intent.jump_charge > 0.0 and state in [State.GROUND, State.SKILL, State.ROLL]:
 		# SALTO mantenido antes de soltar: impulso, salto algo más alto
 		mad_charge = clampf(intent.jump_charge, 0.0, 0.3) / 0.3 * MAD_CHARGE_MAX
+	if land_flip_t > 0.0:
+		land_flip_t -= dt
+		if state in [State.GROUND, State.SKILL] and intent.flip_press == 99:
+			intent.flip_press = land_flip_q          # pulsado justo antes de caer: sale ahora, al recepcionar
+			land_flip_t = 0.0
+			land_flip_now = true
+		elif land_flip_t <= 0.0 or state in [State.CRASH, State.SWIM, State.ROLL]:
+			land_flip_t = 0.0
 	if intent.flip_press == 99:
+		land_flip_now = false
 		return
 	var sec := intent.flip_press
 	match state:
@@ -1242,6 +1256,12 @@ func _tick_flip_buttons(dt: float) -> void:
 			mad_axis = sec
 			flick_buffer = TouchControls.sector_dir(sec)
 			flick_timer = 0.25
+			if land_flip_now and state == State.GROUND:
+				# Pedido justo antes de caer: rebote con impulso de piernas (no un saltito sin fuerza)
+				land_flip_now = false
+				mad_stage = 1
+				jump_buffer = t.jump_buffer_time
+				return
 			if jump_load > 0.0 or state == State.SKILL:
 				# SALTO ya pulsado (flexión) o ventana de enlace: el mortal sale con ese despegue.
 				# Otra pulsación antes de despegar = una vuelta más (doble)
@@ -1265,7 +1285,13 @@ func _tick_flip_buttons(dt: float) -> void:
 			_apply_jump_flick(flick_buffer)
 			mad_stage = 2
 		State.AIR, State.VAULT:
-			if mad_stage <= 1:
+			if state == State.AIR and tricks.active and velocity.y < 0.0 and time_to_ground() < LAND_FLIP_TIME:
+				# Pulsado en el último tramo antes de caer (cualquier mortal: backflip, cork...): ya
+				# no cabe otra vuelta. Queda para el siguiente mortal, que sale al recepcionar
+				# (a un pie con 1 PIE: cadena sin parar)
+				land_flip_q = sec
+				land_flip_t = 0.5
+			elif mad_stage <= 1:
 				if mad_axis == 99:
 					mad_axis = sec               # cayendo de una altura: empieza el mortal ya
 				var d := TouchControls.sector_dir(mad_axis)
@@ -1922,6 +1948,8 @@ func _state_skill(dt: float) -> void:
 		# Enlace en la recepción: SALTO (mortal con rebote) o un gesto (siguiente habilidad)
 		if jump_buffer > 0.0:
 			jump_buffer = 0.0
+			if String(skill.get("id", "")) == "one_foot":
+				one_foot_q = true                    # cadena a un pie: el siguiente también cae a un pie
 			_finish_skill(true)
 			_set_state(State.GROUND)
 			# Contacto corto de rebote: el gesto de la rueda/deslizar que llega ahora aún cuenta

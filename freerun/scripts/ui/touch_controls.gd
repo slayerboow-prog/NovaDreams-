@@ -65,7 +65,8 @@ var _last_flick := Vector2.ZERO
 var _rot_vec := Vector2.ZERO          # joystick derecho (x derecha, y arriba)
 var _cam_tap_t := -9.0                # último toque en la zona de cámara (doble toque = recentrar)
 var _cam_tap_p := Vector2.ZERO
-var cam_used := false                 # ya se ha movido la cámara: la indicación se atenúa
+var cam_used := false
+var one_foot_on := false               # 1 PIE activo (lo pone el juego): la próxima recepción es a un pie                 # ya se ha movido la cámara: la indicación se atenúa
 
 const FLICK_TIME := 0.22              # en el suelo: un gesto rápido es acrobacia, lento es cámara
 const FLICK_PX := 48.0
@@ -620,7 +621,7 @@ func _on_touch(e: InputEventScreenTouch) -> void:
 			role = "onefoot"
 			_pending.one_foot = true
 			_flash["onefoot"] = 0.3
-			_toast("A UN PIE", Neon.CYAN, "gold")
+			_toast("DOS PIES" if one_foot_on else "A UN PIE", Neon.CYAN, "gold")
 		elif salto_pages_enabled() and flip_button_at(p) >= 0:
 			# Botón de mortal (estilo Madness): carga · agrupa · abre
 			role = "flipbtn"
@@ -1232,7 +1233,7 @@ func _draw_flip_buttons(font: Font, s: float) -> void:
 		_label(font, c + Vector2(0, r * 0.45), String(FLIP_BTNS[i][0]), 12 * s, Color(1, 1, 1, 0.95))
 	var oc := one_foot_center()
 	var orr := FLIP_R * s * 0.92
-	var ohot := _flash.has("onefoot")
+	var ohot := _flash.has("onefoot") or one_foot_on     # encendido mientras la cadena a un pie sigue
 	for fd in _fingers.values():
 		if fd.role == "onefoot":
 			ohot = true

@@ -281,6 +281,7 @@ func _process(dt: float) -> void:
 		return
 	var S := PlayerController.State
 	ui.touch.air_mode = player.state in [S.AIR, S.WALLRUN, S.WALLCLIMB, S.HANG, S.VAULT]
+	ui.touch.one_foot_on = player.one_foot_q
 	if mode:
 		mode.tick(dt)
 		ui.update_hud(combo, player, mode.status_text(), GameModes.info(mode.id).get("title", ""), mode.extra_button())

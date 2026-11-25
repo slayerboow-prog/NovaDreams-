@@ -128,6 +128,7 @@ func _run_all() -> void:
 	await t_slow_motion()
 	await t_air_giro_queue()
 	await t_air_giro_double()
+	await t_one_foot_chain()
 	await t_mocap_backflip()
 	await t_landing_feel()
 	await t_new_tricks()
@@ -2904,6 +2905,103 @@ func t_air_giro_double() -> void:
 	check("Aire: los trazos verticales no hacen girar el mortal (giro %.2f rad)" % st.twist, st.twist < 0.5, "")
 	Settings.trick_controls = old_mode
 	game.router.scripted = _drive
+
+## Cadena a un pie con los botones táctiles reales: SALTO, ATRÁS, 1 PIE una vez y ATRÁS justo
+## antes de cada caída. Cada mortal cae a un pie (alternando) y enlaza el siguiente.
+func t_one_foot_chain() -> void:
+	var touch: TouchControls = game.ui.touch
+	var old_mode := Settings.trick_controls
+	Settings.trick_controls = 5
+	Settings.force_touch_ui = true
+	touch.visible = true
+	touch.size = Vector2(1542, 720)
+	game.router.scripted = Callable()
+	var tap := func(pos: Vector2, idx: int) -> void:
+		var e := InputEventScreenTouch.new(); e.index = idx; e.position = pos; e.pressed = true
+		touch._on_touch(e)
+		e.pressed = false; touch._on_touch(e)
+	# toggle_at: en ese vuelo se vuelve a pulsar 1 PIE (cae con los dos pies y la cadena termina)
+	for toggle_at in [-1, 2]:
+		await place(Vector3(-35, 0.1, 35), Vector3.FORWARD)
+		moves.clear(); landings.clear()
+		var hj := InputEventScreenTouch.new(); hj.index = 14; hj.position = touch._jump_center(); hj.pressed = true
+		touch._on_touch(hj); touch._time += 0.3
+		hj.pressed = false; touch._on_touch(hj)
+		var st := {"air": 0, "in_air": false, "one": false, "flip": false, "first": false, "sides": [], "lit": false}
+		for k in 900:
+			await get_tree().physics_frame
+			touch.air_mode = player.state == PlayerController.State.AIR
+			touch.one_foot_on = player.one_foot_q
+			if player.state == PlayerController.State.AIR and not st.in_air:
+				st.in_air = true; st.air += 1; st.one = false; st.flip = false
+			elif player.state != PlayerController.State.AIR:
+				st.in_air = false
+			if player.state == PlayerController.State.SKILL and player.skill.get("id", "") == "one_foot" and (st.sides.is_empty() or st.sides.size() < st.air):
+				st.sides.append(int(player.skill.get("side", 0)))
+			if st.in_air and not st.first:
+				tap.call(touch.flip_button_center(0), 11); st.first = true            # ATRÁS
+			if st.in_air and not st.one and player.tricks.air_time > 0.25:
+				st.one = true
+				if st.air == 1 or st.air == toggle_at:
+					tap.call(touch.one_foot_center(), 12)                          # 1 PIE (solo una vez)
+				if st.air == 2:
+					st.lit = player.one_foot_q                                      # sigue encendido solo
+			if st.in_air and st.one and not st.flip and st.air < 4 and player.velocity.y < 0.0 and player.time_to_ground() < 0.15:
+				tap.call(touch.flip_button_center(0), 11); st.flip = true            # ATRÁS justo antes de caer
+			if st.air >= (4 if toggle_at < 0 else toggle_at) and player.state == PlayerController.State.GROUND:
+				break
+		touch.air_mode = false
+		var q := landings.map(func(l): return l.quality)
+		if toggle_at < 0:
+			var alternating: bool = st.sides.size() >= 4 and st.sides[0] != st.sides[1] and st.sides[1] != st.sides[2]
+			check("1 PIE: cadena de 4 backflips a un pie pulsándolo una vez y ATRÁS justo antes de caer (%s)" % str(q),
+				moves.count("Backflip") >= 4 and moves.count("One-Foot Landing") >= 4 and not ("crash" in q), str(moves))
+			check("1 PIE: el pie de apoyo alterna y el botón sigue encendido en la cadena (%s)" % str(st.sides), alternating and st.lit, "")
+		else:
+			check("1 PIE: volver a pulsarlo en el aire = cae con los dos pies y la cadena termina (%s)" % str(moves),
+				moves.count("One-Foot Landing") == toggle_at - 1 and not ("crash" in q) and not player.one_foot_q, str(moves))
+	# Sin 1 PIE: ATRÁS justo antes de caer ya no añade una vuelta imposible (antes se estrellaba):
+	# cae con los dos pies y sale el siguiente backflip
+	await place(Vector3(-35, 0.1, 35), Vector3.FORWARD)
+	moves.clear(); landings.clear()
+	var hj2 := InputEventScreenTouch.new(); hj2.index = 14; hj2.position = touch._jump_center(); hj2.pressed = true
+	touch._on_touch(hj2); touch._time += 0.3
+	hj2.pressed = false; touch._on_touch(hj2)
+	var s2 := {"first": false, "late": false}
+	for k in 400:
+		await get_tree().physics_frame
+		touch.air_mode = player.state == PlayerController.State.AIR
+		if player.state == PlayerController.State.AIR and not s2.first:
+			tap.call(touch.flip_button_center(0), 11); s2.first = true
+		if s2.first and not s2.late and player.state == PlayerController.State.AIR and player.velocity.y < 0.0 and player.time_to_ground() < 0.15:
+			tap.call(touch.flip_button_center(0), 11); s2.late = true
+		if s2.late and moves.count("Backflip") >= 2 and player.state == PlayerController.State.GROUND:
+			break
+	touch.air_mode = false
+	var q2 := landings.map(func(l): return l.quality)
+	check("ATRÁS justo antes de caer: sale el siguiente backflip en vez de estrellarse (%s)" % str(q2),
+		moves.count("Backflip") >= 2 and not ("crash" in q2), str(moves))
+	# Empezando con un cork: cork a un pie y después backflips a un pie
+	await place(Vector3(-35, 0.1, 35), Vector3.FORWARD)
+	game.router.scripted = _drive
+	moves.clear(); landings.clear()
+	var c := {"air": 0, "pa": -1, "one": false, "last": -1}
+	await run(func(i, f):
+		i.stick_twist = true
+		if f == 0:
+			i.jump_pressed = true; i.cork_request = true
+		if player.state == PlayerController.State.AIR and c.last != PlayerController.State.AIR:
+			c.air += 1
+		c.last = player.state
+		if player.state == PlayerController.State.AIR and not c.one and player.tricks.air_time > 0.2:
+			i.one_foot = true; c.one = true
+		if player.state == PlayerController.State.AIR and c.pa != c.air and player.velocity.y < 0.0 and player.time_to_ground() < 0.15 and c.air < 3:
+			i.flip_press = -2; c.pa = c.air, 700,
+		func(): return c.air >= 3 and player.state == PlayerController.State.GROUND)
+	var q3 := landings.map(func(l): return l.quality)
+	check("1 PIE: cork a un pie y backflips a un pie encadenados (%s)" % str(moves),
+		moves.find("Cork") == 0 and moves.count("Backflip") >= 2 and moves.count("One-Foot Landing") >= 3 and not ("crash" in q3), str(q3))
+	Settings.trick_controls = old_mode
 
 func t_beach_buoy() -> void:
 	var li: Dictionary = game.level_info
