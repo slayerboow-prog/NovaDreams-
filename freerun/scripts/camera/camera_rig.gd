@@ -41,7 +41,7 @@ const COLL_RADIUS := 0.24         # radio de la esfera que barre el espacio cám
 const MIN_DIST := 1.25            # más cerca que esto: la cámara sube en vez de acercarse
 const LEAD_TIME := 0.12           # anticipación (segundos de velocidad)
 const LEAD_MAX := 0.8
-const FOLLOW_HOLD := [2.5, INF, 0.8]   # segundos sin tocar la cámara antes de alinearse (híbrida, manual, automática)
+const FOLLOW_HOLD := [1.2, INF, 0.6]   # segundos sin tocar la cámara antes de alinearse (híbrida, manual, automática)
 
 # --- Estado interno (muelles) ---
 var _focus := Vector3.ZERO
@@ -251,7 +251,7 @@ func _auto_align(dt: float, in_air: bool) -> void:
 		var diff := absf(angle_difference(yaw, target))
 		if diff < 2.4 and diff > 0.03:
 			# Más rápido cuanto más corre (en sprint sigue las curvas; andando apenas se mueve)
-			yaw = _damp_angle(yaw, target, lerpf(1.4, 0.5, clampf(spd / 9.0, 0.0, 1.0)), dt)
+			yaw = _damp_angle(yaw, target, lerpf(1.1, 0.4, clampf(spd / 9.0, 0.0, 1.0)), dt)
 	else:
 		_yaw_vel = 0.0
 	if manual_timer > hold + 0.8:

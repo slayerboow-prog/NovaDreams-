@@ -641,6 +641,10 @@ const PRECISION_FLAT := 1.8             # sin borde delante: distancia de un sal
 const PRECISION_MAX_HS := 6.0
 var jump_target := Vector3.INF          # borde donde caer (salto de precisión / longitud)
 var dive_q := 0.0                       # Dive Kong pedido con el joystick GIRO (diagonal arriba)
+## Duración mínima de cada vault (s): ritmo real de cada técnica, se aprecia el movimiento
+const VAULT_MIN_DUR := {"Speed Vault": 0.45, "Step Vault": 0.5, "Lazy Vault": 0.5, "Dash Vault": 0.55,
+	"Kong Vault": 0.55, "Double Kong": 0.75, "Kash Vault": 0.62, "Thief Vault": 0.5, "Reverse Vault": 0.62,
+	"Turn Vault": 0.6, "Kong Up": 0.6, "Step Up": 0.45, "Climb Up": 0.6, "Dive Kong": 0.55}
 
 ## Velocidad horizontal para caer a `dist` y `dy` metros con velocidad vertical vy (la sube si no
 ## alcanza esa altura). Devuelve [vy, horizontal].
@@ -1369,7 +1373,8 @@ func _try_vault() -> bool:
 	if info.mount:
 		length = d + (0.95 if kind == "Kong Up" else 0.55)
 	var exit_speed := maxf(spd * speed_mult, 3.5)
-	var duration := clampf(length / maxf(exit_speed, 4.0) * (1.25 if info.mount else 1.0), 0.28, 0.8)
+	# Duración con un mínimo real por técnica: a sprint el paso por encima se veía en un parpadeo
+	var duration := clampf(maxf(length / maxf(exit_speed, 4.0) * (1.25 if info.mount else 1.0), float(VAULT_MIN_DUR.get(kind, 0.45))), 0.3, 1.0)
 	if kind == "Turn Vault":
 		# Apoyo en dos manos y media vuelta: más lento, el cuerpo queda pegado al obstáculo
 		length = d + depth + 0.45
@@ -1448,7 +1453,7 @@ func _try_dive_kong() -> bool:
 	var timing := 1.0 if above > 0.25 and above < 1.15 else 0.7
 	var length := d + (0.95 if mount else depth + 0.85)
 	var exit_speed := maxf(spd * 1.04, 4.0)
-	var duration := clampf(length / maxf(exit_speed, 4.0) * (1.15 if mount else 1.0), 0.3, 0.75)
+	var duration := clampf(maxf(length / maxf(exit_speed, 4.0) * (1.15 if mount else 1.0), float(VAULT_MIN_DUR.get(kind, 0.5))), 0.3, 0.95)
 	var y0 := global_position.y
 	var y1: float = top_y + 0.02 if mount else maxf(top_y - 0.35, float(info.land_y) + 0.02)
 	# La trayectoria sigue el vuelo que traía (misma velocidad vertical al apoyar las manos) y
