@@ -49,6 +49,8 @@ var linked := false                  # sale de un enlace (rondada, flic-flac, ho
 ## girando (doble, triple... lo que permita la altura). Con ayuda se abre solo si ya no queda
 ## altura para otra vuelta completa.
 var keep_spinning := false
+var layout_twist := false
+var kick_side := 1                   # chutada: lado de la pierna de patada            # modo gestos: girar estira el cuerpo (agrupado gira poco)
 var twist_queue: Array[int] = []     # tirabuzón combinado: sentidos pendientes tras la vuelta actual
 var twist_extra_halves := 0          # medias vueltas ya hechas en sentidos anteriores (combinado)
 var twist_combined := false
@@ -59,7 +61,7 @@ const QUARTER := PI * 0.5
 ## Cada truco tiene su ritmo: el backflip es explosivo, el butterfly es amplio y lento.
 const CORK_TWIST_AT := 1.05          # ~60° de inversión antes de cerrar el tirabuzón del cork
 const CORK_TILT := 0.38               # inclinación del eje del cork (~22°)
-const COMPLETE_AT := {"back": 0.76, "front": 0.78, "side": 0.76, "aerial": 0.76, "cork": 0.78,
+const COMPLETE_AT := {"back": 0.76, "front": 0.78, "side": 0.76, "aerial": 0.76, "cork": 0.78, "chutada": 0.78,
 	"butterfly": 0.72, "kick": 0.64,
 	# Suelo: el giro dura casi todo el vuelo (apoyo de manos, sin agrupar)
 	"cartwheel": 0.8, "roundoff": 0.78, "bhs": 0.72, "fhs": 0.74}
@@ -375,11 +377,34 @@ func twist_input(x: float, dt: float, t: MoveTuning) -> void:
 	# scoot, rondada/flic-flac... o la entrada de cork) es un CORK.
 	if style == "back" and linked and takeoff_kind in ["run", "stand"]:
 		style = "cork"
+	if style == "chutada":
+		style = "cork"                   # chutada + GIRO = cork (360, 540, 720 según lo mantengas)
 	twist_hold = true
 	settled.twist = false
 	var r := t.twist_stick_rate * lerpf(0.45, 1.0, clampf((mag - 0.35) / 0.6, 0.0, 1.0)) * twist_boost
+	# Modo gestos: agrupado el tirabuzón cuesta (al girar el cuerpo se estira y gana giro según
+	# se abre). En los modos clásicos se agrupa manteniendo el botón mientras se gira: sin cambio.
+	if layout_twist:
+		r *= lerpf(1.0, 0.4, tuck_amount)
 	rate.twist = dir.twist * r
 	total.twist += rate.twist * dt
+
+## Botón de mortal pulsado otra vez en el aire con el cuerpo abierto: si la vuelta en curso ya
+## pasó de la mitad (o viene de un tirabuzón: front + medio giro + ATRÁS), pide una vuelta más
+## agrupándose a tope: gira más rápido, hasta un máximo físico (sin altura no se completa).
+func request_flip(after_twist := false) -> void:
+	for ax in ["pitch", "roll"]:
+		if dir[ax] == 0:
+			continue
+		var prog := absf(total[ax])
+		if after_twist or prog > goal[ax] * TAU - PI:
+			goal[ax] += 1
+			settled[ax] = false
+			# Agrupado fuerte: gira lo que haga falta, pero con un tope físico (step lo limita);
+			# si con ese tope no da tiempo antes del suelo, la vuelta no se completa
+			if not _recal.has(ax):
+				_recal.append(ax)
+		return
 
 ## Cuartos de vuelta de tirabuzón completados (con el joystick GIRO).
 func twist_quarters() -> int:
@@ -557,7 +582,7 @@ func counts() -> Dictionary:
 
 static func trick_name(pn: int, rn: int, sn: int, th: int, back: bool, moving: bool, wall: bool,
 		st := "", kind := "", detail := "") -> String:
-	var cork := st == "cork" and th >= 2         # cork = mortal atrás en carrera con tirabuzón completo
+	var cork := st in ["cork", "chutada"] and th >= 2   # cork = mortal atrás en carrera con tirabuzón completo
 	var vaulted := kind == "vault"
 	match st:
 		"cartwheel":
@@ -571,6 +596,8 @@ static func trick_name(pn: int, rn: int, sn: int, th: int, back: bool, moving: b
 	if pn >= 1:
 		if back:
 			if th == 0:
+				if st == "chutada":
+					return "Double Chutada" if pn >= 2 else "Chutada"
 				if pn == 1:
 					if wall:
 						if detail == "palm": return "Palm Flip"

@@ -98,6 +98,8 @@ var skill_serial := 0                   # cambia con cada habilidad (el rig reor
 var last_skill := {}                    # datos de la última habilidad (pruebas/HUD)
 var double_buffer := 0.0                # botonera: se pidió doble mortal hace poco
 var st_queued := false                  # CORK pulsado durante un cork: caer a un pie (ST); lo siguiente lo enlaza el jugador
+var chutada_q := false                  # el cork pedido es una chutada (sin tirabuzón)
+var chutada_t := 0.0
 var cork_buffer := 0.0                  # botón CORK pulsado hace poco (se aplica en el despegue)
 var butterfly_buffer := 0.0             # botón MARIPOSA pulsado hace poco
 var cork_side := 1
@@ -122,6 +124,7 @@ var pending_twists_t := 0.0
 var mad_axis := 99                       # sector del mortal elegido (-2 atrás · 2 adelante · 0/4 lateral)
 var mad_stage := 0                       # 0 nada · 1 cargando / en el aire sin girar · 2 agrupado · 3 abierto
 var mad_charge := 0.0                    # carga extra del salto (s)
+var mad_twisted := false                # tirabuzón hecho con el cuerpo abierto desde la última agrupación
 var one_foot_q := false                  # botón 1 PIE: la próxima recepción es a un pie
 var one_foot_side := 1
 const MAD_CHARGE_MAX := 0.12
@@ -176,7 +179,7 @@ func respawn() -> void:
 	tricks.reset()
 	stun = 0.0
 	jump_load = 0.0
-	mad_stage = 0; mad_axis = 99; mad_charge = 0.0; one_foot_q = false
+	mad_stage = 0; mad_axis = 99; mad_charge = 0.0; one_foot_q = false; mad_twisted = false; chutada_q = false
 	keep_t = 0.0; air_grab_t = 0.0; wallflip_t = 0.0; wallrun_hold_t = 0.0; precision_t = 0.0
 	extra_twist_t = 0.0; cork_more = 0; pending_twists.clear(); vault_pref = ""
 	ground_wait = 0.0
@@ -526,7 +529,10 @@ func _takeoff(kind: String) -> void:
 		tricks.apply_flick(flick_buffer, false)       # botón DOBLE: otra vuelta pedida desde el despegue
 		double_buffer = 0.0
 	if cork_buffer > 0.0:
-		_make_cork()
+		if chutada_q:
+			_make_chutada()
+		else:
+			_make_cork()
 		cork_buffer = 0.0
 	if pre_twist > 0.0 and intent.stick_twist:
 		tricks.twist_input(pre_twist_dir, pre_twist, t)
@@ -547,6 +553,14 @@ func _takeoff(kind: String) -> void:
 ## inclinarlo hacia el sentido del giro agrupa poco a poco, soltarlo abre, en contra frena.
 func trick_push() -> float:
 	var p := 1.0 if intent.tuck else 0.0
+	if gesture_sticks() and tricks.active and absf(intent.twist) >= 0.35 and not twist_lock:
+		# Tirabuzón con el joystick GIRO: el cuerpo se estira (como en la realidad: estirado gana
+		# giro sobre el eje largo y el mortal va más lento). Queda abierto hasta que vuelvas a
+		# pulsar un botón de mortal, que lo agrupa otra vez.
+		if mad_stage == 2:
+			mad_stage = 3
+		mad_twisted = true
+		return -0.25
 	if mad_stage == 2:
 		return 1.0                # botón: agrupado y girando hasta la 3.ª pulsación
 	if mad_stage == 3:
@@ -694,7 +708,10 @@ func _state_air(dt: float) -> void:
 	if twist_lock and absf(intent.twist) < 0.3:
 		twist_lock = false
 	tricks.twist_input(0.0 if twist_lock else intent.twist, dt, t)
-	tricks.keep_spinning = intent.stick_twist
+	# Modo gestos: agrupado no encadena vueltas solo; otra vuelta se pide pulsando otra vez un
+	# botón de mortal (y sale si la inercia y la altura dan para ello)
+	tricks.keep_spinning = intent.stick_twist and not gesture_sticks()
+	tricks.layout_twist = gesture_sticks()
 	tricks.step(dt, trick_push(), time_to_ground(), Settings.assist_strength(), t)
 	if not tricks.active and hv.length() > 1.0:
 		_turn_facing(hv, 4.0, dt)
@@ -749,7 +766,7 @@ func _check_water() -> bool:
 
 func _land() -> void:
 	var impact := -prev_velocity.y
-	mad_stage = 0
+	mad_stage = 0; mad_twisted = false
 	mad_axis = 99
 	var prec := precision_t > 0.0
 	precision_t = 0.0
@@ -794,7 +811,7 @@ func _land() -> void:
 			"dir": hvl.normalized() if hvl.length() > 0.3 else facing, "spin": 1.0})
 	var do_st := st_queued and quality in ["perfect", "clean"] and not hard and not trick.is_empty() and String(trick.name).contains("Cork")
 	st_queued = false
-	var do_one := one_foot_q and quality in ["perfect", "clean"] and not hard and not rolled and not do_st
+	var do_one := one_foot_q and quality in ["perfect", "clean", "sloppy"] and not hard and not rolled and not do_st
 	one_foot_q = false
 	tricks.reset()
 	land_impact = clampf(impact / 12.0, 0.3, 1.0)
@@ -885,6 +902,9 @@ func _tick_gestures(dt: float) -> void:
 		if pending_twists_t <= 0.0 and twist_wait_t <= 0.0:
 			pending_twists.clear()
 	cork_more_t = maxf(0.0, cork_more_t - dt)
+	chutada_t = maxf(0.0, chutada_t - dt)
+	if chutada_t <= 0.0 and state != State.SKILL:
+		chutada_q = false
 	if cork_more_t <= 0.0:
 		cork_more = 0
 	if not intent.pattern.is_empty():
@@ -892,7 +912,8 @@ func _tick_gestures(dt: float) -> void:
 	if not intent.giro.is_empty():
 		_apply_giro(intent.giro)
 	_tick_flip_buttons(dt)
-	if intent.one_foot and state in [State.AIR, State.VAULT, State.WALLRUN]:
+	if intent.one_foot:
+		# 1 PIE en cualquier momento (también antes de saltar): la próxima recepción es a un pie
 		one_foot_q = true
 	if twist_wait_t > 0.0:
 		twist_wait_t -= dt
@@ -968,7 +989,12 @@ func _tick_flip_buttons(dt: float) -> void:
 			elif mad_stage == 2:
 				mad_stage = 3
 			else:
+				# Abierto (tras abrirse o tras un tirabuzón): se agrupa otra vez y, si la vuelta
+				# en curso ya va avanzada, pide otra (front + medio tirabuzón + ATRÁS = doble). La
+				# velocidad es la de la inercia agrupada: sin altura no se completa.
 				mad_stage = 2
+				tricks.request_flip(mad_twisted)
+				mad_twisted = false
 
 ## Joystick morado en el suelo (GestureRecognizer.recognize_giro): habilidades de suelo y
 ## entradas de potencia. En una habilidad quedan en cola para el enlace.
@@ -1030,7 +1056,20 @@ func _apply_pattern(p: Dictionary) -> void:
 				extra_twist_halves = 2 * maxi(int(p.get("loops", 1)), 1)
 				extra_twist_dir = 1 if int(p.get("twist", 1)) >= 0 else -1
 				extra_twist_t = 0.6
+		"chutada":
+			# Mortal chutado: la patada de la pierna de atrás (lado del trazo) y después un backflip
+			# normal, sin tirabuzón. GIRO durante el mortal lo convierte en cork.
+			cork_side = 1 if int(p.get("side", 1)) >= 0 else -1
+			cork_buffer = 0.25
+			chutada_q = true
+			chutada_t = 1.0
+			if air:
+				_make_chutada()
+				cork_buffer = 0.0
+			else:
+				jump_buffer = t.jump_buffer_time
 		"cork", "cork720":
+			chutada_q = false
 			cork_side = -1 if int(p.get("twist", 1)) > 0 else 1
 			cork_buffer = 0.25
 			intent.cork_request = true
@@ -1545,6 +1584,16 @@ func _state_skill(dt: float) -> void:
 		_finish_skill(true)
 		_set_state(State.GROUND)
 
+## CHUTADA (mortal chutado): patada como a un balón para despegar y después un backflip
+## normal (agrupado, sobre su eje), sin tirabuzón. El GIRO durante el mortal lo convierte en cork (360, 540, 720...).
+func _make_chutada() -> void:
+	chutada_q = false
+	if not tricks.active:
+		tricks.apply_flick(Vector2(0, -1))
+	tricks.style = "chutada"
+	tricks.kick_side = cork_side
+	tricks.linked = true
+
 ## Convierte el salto/caída actual en un CORK: mortal atrás fuera de eje con tirabuzón de 360 que
 ## arranca solo (el GIRO en el mismo sentido lo alarga a 540, 720...).
 func _make_cork() -> void:
@@ -1576,9 +1625,12 @@ func _cork_takeoff(side: int, via: String) -> void:
 	tricks.linked = true
 	tricks.twist_boost = 1.25
 	tricks.apply_flick(Vector2(0, -1))
-	tricks.style = "cork"
-	tricks.apply_kick(side)
-	_cork_extra()
+	if chutada_q:
+		_make_chutada()              # misma patada y despegue, sin tirabuzón
+	else:
+		tricks.style = "cork"
+		tricks.apply_kick(side)
+		_cork_extra()
 	st_queued = false
 	move_and_slide()
 

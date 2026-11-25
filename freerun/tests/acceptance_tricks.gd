@@ -523,7 +523,8 @@ func trick(name: String, swipes: Array, running: bool, hold: String) -> void:
 		"360 Kick":
 			shape_ok = max_split > 0.7 and kinds.has("kick"); shape_txt = "patada abierta en el giro %.2f" % max_split
 		"Piru":
-			shape_ok = max_tuck > 0.9; shape_txt = "semiagrupado con brazos cerrados %.2f" % max_tuck
+			# Tirabuzón: cuerpo largo para girar, con cadera y rodillas algo flexionadas (nunca rígido)
+			shape_ok = max_tuck > 0.3; shape_txt = "piernas algo flexionadas, nunca rígido %.2f" % max_tuck
 		"Gainer":
 			shape_ok = max_lead > 2.2 and max_tuck > 1.5; shape_txt = "agrupado a una pierna %.2f/%.2f" % [max_lead, max_tuck]
 		"Webster":
@@ -532,7 +533,8 @@ func trick(name: String, swipes: Array, running: bool, hold: String) -> void:
 			# Cork: patada arriba al despegar y tirabuzón con piernas juntas y brazos cerrados al pecho
 			shape_ok = max_lead > 1.5 and wrap_legs > 0.6; shape_txt = "patada y giro con piernas juntas y brazos cerrados %.2f/%.2f" % [max_lead, wrap_legs]
 		"Piru 720", "Cheat Gainer", "Front Full", "Back Half", "Backflip Hyper":
-			shape_ok = max_tuck > 0.9; shape_txt = "semiagrupado con brazos cerrados %.2f" % max_tuck
+			# Tirabuzón: cuerpo largo para girar, con cadera y rodillas algo flexionadas (nunca rígido)
+			shape_ok = max_tuck > 0.3; shape_txt = "piernas algo flexionadas, nunca rígido %.2f" % max_tuck
 		_:
 			shape_ok = max_tuck > 1.9; shape_txt = "agrupado real (cadera %.2f rad)" % max_tuck
 	check(tag + "forma corporal: " + shape_txt.split(" %")[0].split(" (")[0], shape_ok, shape_txt + " " + str(kinds.keys()))

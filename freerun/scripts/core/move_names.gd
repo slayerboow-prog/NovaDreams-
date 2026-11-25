@@ -24,6 +24,7 @@ const ES := {
 	"Kong Gainer": "Mortal atrás tras salto de gato", "Dash Gainer": "Mortal atrás tras dash",
 	"Vault Gainer": "Mortal atrás tras pasavallas",
 	# Corks
+	"Chutada": "Chutada", "Double Chutada": "Doble chutada",
 	"Cork": "Sacacorchos", "Corkscrew": "Sacacorchos", "Cork 540": "Sacacorchos 540",
 	"Cork 720": "Sacacorchos 720", "Cork 1080": "Sacacorchos 1080",
 	"Double Cork": "Doble sacacorchos", "Triple Cork": "Triple sacacorchos",

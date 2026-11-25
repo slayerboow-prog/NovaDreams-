@@ -23,7 +23,7 @@ var _serial := -1
 var _prev_spd := 0.0
 var grab_w := 0.0                 # agrupado: cuánto se agarran las manos a las espinillas (IK)
 var wrap_w := 0.0                 # tirabuzón: brazos cruzados pegados al pecho (IK)
-const GRAB_KINDS := ["back", "front", "side", "gainer"]
+const GRAB_KINDS := ["back", "front", "side", "gainer", "chutada"]
 var _accel := 0.0                 # aceleración suavizada (inclinación al arrancar/frenar)
 # Apoyos (IK): punto del suelo donde está plantada cada mano/pie y peso del apoyo
 var plants := {}
@@ -663,14 +663,17 @@ func _idle_pose(p: Dictionary) -> void:
 	var tm := Time.get_ticks_msec() * 0.001
 	var b := sin(tm * 2.5)
 	var sway := sin(tm * 0.7)
-	p.spine.x = 0.02 * b - 0.03
+	# De pie natural (medido en el modelo): oreja, hombro y cadera en la misma vertical. Con la
+	# columna a cero el tórax del atleta queda inclinado hacia delante (cabeza 10 cm por delante
+	# de la cadera, como encorvado con la tripa fuera), así que se endereza un poco.
+	p.spine.x = 0.18 + 0.02 * b
 	p.spine.z = 0.025 * sway
-	p.neck.x = 0.04 - 0.015 * b
-	# Brazos relajados: caen junto al cuerpo (no en A), un pelín por delante y con los codos
-	# algo flexionados, como alguien de pie esperando
-	p.shoulder_l.x = 0.12 + 0.02 * b; p.shoulder_r.x = 0.1 + 0.02 * b
+	p.neck.x = -0.04 - 0.015 * b
+	# Brazos relajados: caen junto al cuerpo con la mano al lado del muslo (no por delante) y los
+	# codos apenas flexionados
+	p.shoulder_l.x = -0.24 + 0.02 * b; p.shoulder_r.x = -0.22 + 0.02 * b
 	p.shoulder_l.z = -0.035; p.shoulder_r.z = 0.035
-	p.elbow_l.x = 0.36; p.elbow_r.x = 0.3
+	p.elbow_l.x = 0.16; p.elbow_r.x = 0.14
 	p.hip_l.x = 0.04; p.hip_r.x = 0.08
 	p.hip_l.z = -0.05; p.hip_r.z = 0.04 + 0.02 * sway
 	p.knee_l.x = -0.05; p.knee_r.x = -0.16
@@ -761,6 +764,8 @@ func trick_kind(tr: TrickSystem) -> String:
 			return "twist" if twisting else "aerial"   # rueda sin manos: piernas abiertas
 		"cork":
 			return "cork"
+		"chutada":
+			return "chutada"
 		"butterfly":
 			return "butterfly"
 		"kick":
@@ -803,7 +808,7 @@ func _impulse_pose(kind: String, rs: float) -> Dictionary:
 				"elbow_l": Vector3(0.1, 0, 0), "elbow_r": Vector3(0.1, 0, 0),
 				"hip_r": Vector3(1.6, 0, 0), "knee_r": Vector3(-0.35, 0, 0),         # pierna libre lanzada arriba
 				"hip_l": Vector3(-0.2, 0, 0), "knee_l": Vector3(-0.05, 0, 0)}
-		"cork":
+		"cork", "chutada":
 			return _cork_legs(CORK_KICK)
 		"twist":
 			return {"spine": Vector3(0.2, 0.55 * rs, 0), "neck": Vector3(0.3, 0.3 * rs, 0),
@@ -888,6 +893,9 @@ func _gather_pose(kind: String, rs: float, ph: float) -> Dictionary:
 				"hip_l": Vector3(1.7, 0, -0.1), "knee_l": Vector3(-2.0, 0, 0),
 				"shoulder_l": Vector3(1.1, 0, -0.15), "shoulder_r": Vector3(1.1, 0, 0.15),
 				"elbow_l": Vector3(1.2, 0, 0), "elbow_r": Vector3(1.2, 0, 0)}
+		"chutada":
+			# Mortal chutado: tras la patada (impulso) es un backflip normal, agrupado
+			return _gather_pose("back", rs, ph)
 		"cork":
 			# Tirabuzón: piernas juntas y casi rectas (eje recto y rápido), brazos cerrados al pecho
 			# y la cabeza mirando por encima del hombro hacia el giro
@@ -897,10 +905,12 @@ func _gather_pose(kind: String, rs: float, ph: float) -> Dictionary:
 				"shoulder_l": Vector3(0.6, 0, 0.6), "shoulder_r": Vector3(0.6, 0, -0.6),
 				"elbow_l": Vector3(2.35, 0, 0), "elbow_r": Vector3(2.35, 0, 0)}
 		"twist":
-			# Mortal con tirabuzón añadido: cuerpo más largo, brazos cerrados para girar rápido
-			return {"spine": Vector3(-0.15, 0, 0), "neck": Vector3(0.1, 0, 0),
-				"hip_l": Vector3(1.0, 0, 0.03), "hip_r": Vector3(1.02, 0, -0.03),
-				"knee_l": Vector3(-1.1, 0, 0), "knee_r": Vector3(-1.12, 0, 0),
+			# Mortal con tirabuzón: cuerpo largo para girar rápido sobre el eje largo, pero no
+			# rígido: cadera y rodillas un poco flexionadas (natural, y desde ahí agruparse otra
+			# vez es inmediato) y brazos cerrados al pecho
+			return {"spine": Vector3(-0.08, 0, 0), "neck": Vector3(0.1, 0, 0),
+				"hip_l": Vector3(0.38, 0, 0.03), "hip_r": Vector3(0.42, 0, -0.03),
+				"knee_l": Vector3(-0.55, 0, 0), "knee_r": Vector3(-0.6, 0, 0),
 				"shoulder_l": Vector3(0.55, 0, 0.6), "shoulder_r": Vector3(0.55, 0, -0.6),
 				"elbow_l": Vector3(2.35, 0, 0), "elbow_r": Vector3(2.35, 0, 0)}
 		"kick":
@@ -1074,13 +1084,18 @@ func _trick_pose(p: Dictionary, tr: TrickSystem) -> void:
 		_apply(p, g, 1.0 - open * 0.6)       # la tijera sigue hasta casi aterrizar
 	else:
 		_apply(p, g, gather * (1.0 - open))
+		if kind == "twist" and tr.tuck_amount > 0.01:
+			# Botón de mortal durante un tirabuzón: se agrupa (rodillas al pecho) para ganar
+			# velocidad de mortal; al girar con GIRO vuelve a estirarse
+			var bk: String = {"front": "front", "side": "side"}.get(tr.style, "back")
+			_apply(p, _gather_pose(bk, rs, ph), tr.tuck_amount * gather * (1.0 - open))
 		# Vuelta completada: se abre estirando las piernas hacia el suelo (no se queda "sentado"
 		# en el aire); las rodillas solo se flexionan justo antes de tocar el suelo (RECEPTION).
 	_apply(p, _impulse_pose(kind, rs), imp)
 	# Mirada: al final del giro la cabeza busca el suelo (atrás en los mortales hacia atrás, el
 	# mentón abajo en los de delante) y se endereza al recibir
 	var spot := open * (1.0 - rec)
-	if kind in ["back", "gainer", "cork", "twist", "bhs", "roundoff"]:
+	if kind in ["back", "gainer", "cork", "chutada", "twist", "bhs", "roundoff"]:
 		p.neck.x += 0.38 * spot
 	elif kind in ["front", "webster", "fhs", "aerial", "side"]:
 		p.neck.x -= 0.32 * spot
@@ -1100,6 +1115,11 @@ func _trick_pose(p: Dictionary, tr: TrickSystem) -> void:
 			# Apertura: se separan los brazos y baja primero la pierna de patada para frenar
 			_apply(p, _cork_legs(CORK_OPEN), open * (1.0 - rec))
 		wrap_w = clampf(gather * (1.0 - imp) * (1.0 - rec) * (1.0 - pre) * maxf(twisting, 1.0 - open), 0.0, 1.0)
+		if kind == "twist":
+			# Agrupado: las manos pasan del pecho a las espinillas
+			var tk := tr.tuck_amount * gather * (1.0 - open) * (1.0 - imp) * (1.0 - rec)
+			grab_w = clampf(tk, 0.0, 1.0)
+			wrap_w *= 1.0 - tr.tuck_amount
 	last_kind = kind
 	if imp > 0.5:
 		last_phase = "impulso"

@@ -93,9 +93,11 @@ const POSES := {
 	"land_rebound": {"spine": Vector3(-0.1, 0, 0), "neck": Vector3(0.2, 0, 0), "shoulder_l": Vector3(2.9, 0, -0.2),
 		"shoulder_r": Vector3(2.9, 0, 0.2), "hip_l": Vector3(0.35, 0, -0.04), "hip_r": Vector3(0.35, 0, 0.04),
 		"knee_l": Vector3(-0.5, 0, 0), "knee_r": Vector3(-0.5, 0, 0)},
-	"land_one": {"spine": Vector3(-0.3, 0, 0), "shoulder_l": Vector3(1.6, 0, -0.9), "shoulder_r": Vector3(1.4, 0, 0.9),
-		"elbow_l": Vector3(0.4, 0, 0), "elbow_r": Vector3(0.4, 0, 0), "hip_r": Vector3(0.8, 0, 0.05),
-		"knee_r": Vector3(-1.1, 0, 0), "hip_l": Vector3(-0.3, 0, -0.2), "knee_l": Vector3(-0.6, 0, 0)},
+	# A un pie: la pierna de apoyo flexionada bajo el cuerpo y la libre claramente en el aire
+	# (rodilla delante y talón arriba), brazos abiertos para equilibrar
+	"land_one": {"spine": Vector3(-0.32, 0, 0), "shoulder_l": Vector3(1.1, 0, -1.1), "shoulder_r": Vector3(0.9, 0, 1.2),
+		"elbow_l": Vector3(0.45, 0, 0), "elbow_r": Vector3(0.45, 0, 0), "hip_r": Vector3(0.95, 0, 0.08),
+		"knee_r": Vector3(-1.95, 0, 0), "hip_l": Vector3(0.4, 0, -0.04), "knee_l": Vector3(-0.7, 0, 0)},
 	"land_low": {"spine": Vector3(-0.4, 0, 0), "shoulder_l": Vector3(1.2, 0, -0.5), "shoulder_r": Vector3(1.0, 0, 0.5),
 		"hip_l": Vector3(1.3, 0, -0.1), "hip_r": Vector3(1.2, 0, 0.1), "knee_l": Vector3(-1.9, 0, 0), "knee_r": Vector3(-1.8, 0, 0)},
 	# Macaco: muy bajo, mano derecha atrás al suelo, tronco girado hacia ella
@@ -331,14 +333,16 @@ const SKILLS := {
 		"contacts": {"fl": [[0.0, 1.0]], "fr": [[0.0, 0.6]]}},
 	# Recepción a un pie (botón 1 PIE): cae sobre una pierna con la otra libre y abre una ventana
 	# para enlazar el siguiente movimiento sin apoyar el segundo pie (combos a un pie)
-	"one_foot": {"name": "One-Foot Landing", "dur": 0.46, "travel": Vector2(0, 1), "keep": 0.85, "leg": 0.0, "arm": 0.0,
+	# Dura lo bastante para verse y para enlazar con calma (antes 0,46 s: casi no se veía)
+	"one_foot": {"name": "One-Foot Landing", "dur": 0.8, "travel": Vector2(0, 1), "keep": 0.85, "leg": 0.0, "arm": 0.0,
 		"vmin": 0.0, "vmax": 8.0, "conv": 0.0, "rebound": 0.14, "land_drop": 0.25, "stability": 0.8,
-		"exit_yaw": 0.0, "link_at": 0.16, "window": 0.45, "difficulty": 0.4, "chain_start": 0.0,
+		"exit_yaw": 0.0, "link_at": 0.1, "window": 0.7, "difficulty": 0.4, "chain_start": 0.0,
 		"rot": "recepción a un pie",
 		"keys": [[0.0, 0, 0, 0, 0, 0.8, "land_one", 0.8, "recepción a un pie"],
-			[0.5, 0, 0, 0, 0, 0.87, "land_one", 0.6, "equilibrio sobre una pierna"],
+			[0.45, 0, 0, 0, 0, 0.86, "land_one", 0.6, "equilibrio sobre una pierna"],
+			[0.78, 0, 0, 0, 0, 0.88, "land_one", 0.5, "equilibrio sobre una pierna"],
 			[1.0, 0, 0, 0, 0, 0.93, "stand", 0.4, "apoya el otro pie"]],
-		"contacts": {"fl": [[0.0, 1.0]], "fr": [[0.88, 1.0]]}},
+		"contacts": {"fl": [[0.0, 1.0]], "fr": [[0.92, 1.0]]}},
 	# Vuelta de 3 pasos largos girando 360 (entrada de potencia antes de la rueda: piru desde el lado)
 	"spin_entry": {"name": "3-Step 360", "dur": 0.95, "travel": Vector2(0, 1), "keep": 0.7, "leg": 3.2, "arm": 0.0,
 		"vmin": 3.0, "vmax": 6.5, "conv": 0.0, "rebound": 0.0, "land_drop": 0.0, "stability": 1.0,
