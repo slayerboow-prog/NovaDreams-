@@ -50,6 +50,10 @@ var linked := false                  # sale de un enlace (rondada, flic-flac, ho
 ## altura para otra vuelta completa.
 var keep_spinning := false
 var layout_twist := false
+const GESTURE_TUCK_MULT := 1.08     # modo gestos: agrupado gira un 8 % más que la calibración
+const GESTURE_HOLD_RATE := 11.0     # modo gestos: ritmo de giro agrupado con el botón mantenido (rad/s)
+const GESTURE_EXTRA_CAP := 1.3      # modo gestos: tope de velocidad de las vueltas extra (× flip_rate_max)
+var auto_open := false               # agrupado por botón: completa las vueltas pedidas y se abre solo
 var kick_side := 1                   # chutada: lado de la pierna de patada            # modo gestos: girar estira el cuerpo (agrupado gira poco)
 var twist_queue: Array[int] = []     # tirabuzón combinado: sentidos pendientes tras la vuelta actual
 var twist_extra_halves := 0          # medias vueltas ya hechas en sentidos anteriores (combinado)
@@ -389,15 +393,15 @@ func twist_input(x: float, dt: float, t: MoveTuning) -> void:
 	rate.twist = dir.twist * r
 	total.twist += rate.twist * dt
 
-## Botón de mortal pulsado otra vez en el aire con el cuerpo abierto: si la vuelta en curso ya
-## pasó de la mitad (o viene de un tirabuzón: front + medio giro + ATRÁS), pide una vuelta más
-## agrupándose a tope: gira más rápido, hasta un máximo físico (sin altura no se completa).
-func request_flip(after_twist := false) -> void:
+## Pide una vuelta más del mortal en curso (botón de mortal pulsado otra vez). Con force, en
+## cualquier momento; sin él, solo si la vuelta en curso ya pasó de la mitad. Se agrupa a tope:
+## gira más rápido, hasta un máximo físico (sin altura no se completa).
+func request_flip(force := false) -> void:
 	for ax in ["pitch", "roll"]:
 		if dir[ax] == 0:
 			continue
 		var prog := absf(total[ax])
-		if after_twist or prog > goal[ax] * TAU - PI:
+		if force or prog > goal[ax] * TAU - PI:
 			goal[ax] += 1
 			settled[ax] = false
 			# Agrupado fuerte: gira lo que haga falta, pero con un tope físico (step lo limita);
@@ -419,7 +423,9 @@ func step(dt: float, push: float, time_left: float, assist: float, t: MoveTuning
 	tucked = held and active
 	# Agrupación progresiva: el cuerpo tarda ~0,25 s en cerrarse del todo (y se abre algo más rápido)
 	var tuck_target := maxf(drive, 0.0) if active else 0.0
-	tuck_amount = move_toward(tuck_amount, tuck_target, dt * (4.0 if tuck_target > tuck_amount else 6.0))
+	# Modo gestos: el botón de mortal agrupa de golpe (~0,12 s), como un atleta que se encoge
+	var close_rate := 8.5 if layout_twist else 4.0
+	tuck_amount = move_toward(tuck_amount, tuck_target, dt * (close_rate if tuck_target > tuck_amount else 6.0))
 	if not active:
 		return
 	if drive > 0.5:
@@ -446,12 +452,16 @@ func step(dt: float, push: float, time_left: float, assist: float, t: MoveTuning
 		var per := twist_period if ax == "twist" else TAU
 		var left: float = goal[ax] * per - absf(total[ax])
 		var need := left / maxf(time_left * 0.75, 0.05)
-		var cap := (t.twist_rate_max if ax == "twist" else t.flip_rate_max) * 1.6
+		var cap := (t.twist_rate_max if ax == "twist" else t.flip_rate_max) * (GESTURE_EXTRA_CAP if layout_twist and ax != "twist" else 1.6)
 		base[ax] = clampf(maxf(base[ax], need), 0.0, cap)
 		rate[ax] = dir[ax] * maxf(absf(rate[ax]), base[ax] * 0.9)
 	_recal.clear()
 
 	var open_mult := lerpf(t.open_mult_pro, 1.0, assist)
+	# Modo gestos: el botón agrupa durante todo el mortal, así que agrupado gira casi a la
+	# velocidad calibrada (la vuelta ocupa casi todo el vuelo y se aprecia); antes giraba un
+	# 50 % más rápido, terminaba a mitad del salto y apenas se veía
+	var tuck_m := GESTURE_TUCK_MULT if layout_twist else t.tuck_mult
 	if drive < -0.4:
 		open_mult *= 0.8                     # tirar en contra: cuerpo extendido, gira más despacio
 	spotting = false
@@ -481,17 +491,28 @@ func step(dt: float, push: float, time_left: float, assist: float, t: MoveTuning
 		# Ayuda alta: al completar las vueltas pedidas el cuerpo se abre aunque sigas agrupado
 		# (más vueltas se piden de forma explícita: volver a inclinar / deslizar otra vez).
 		# Sin ayuda completa (pro/media) agruparse sigue girando: abrirse a tiempo es cosa tuya.
-		var force_spot := held and assist > 0.75 and not keep_spinning
-		if keep_spinning and held and ax != "twist":
+		var force_spot := held and (assist > 0.75 or auto_open) and not keep_spinning
+		if keep_spinning and held and ax != "twist" and layout_twist:
+			# Modo gestos, botón mantenido: tantas vueltas como quepan en lo que queda de vuelo a
+			# un ritmo agrupado que se aprecia (~0,57 s por vuelta); con altura salen dobles,
+			# triples... y la velocidad se reparte para que cada vuelta se vea
+			var fit := int(floor((prog + maxf(time_left - 0.14, 0.0) * GESTURE_HOLD_RATE) / period))
+			if fit > goal[ax]:
+				goal[ax] = fit
+				if not _recal.has(ax):
+					_recal.append(ax)
+			else:
+				force_spot = true                # no cabe otra: completa la que lleva y abre
+		elif keep_spinning and held and ax != "twist":
 			# ¿Cabe otra vuelta entera después de esta (agrupándose al máximo)? Si cabe, se pide
 			# al acercarse al final de la vuelta; si no, con ayuda se abre ya para aterrizar.
-			var cap := t.flip_rate_max * 1.6
+			var cap := t.flip_rate_max * (GESTURE_EXTRA_CAP if layout_twist else 1.6)
 			var can_more := time_left > (rem + period) / cap + 0.16
 			if can_more and next_stop >= goal[ax] * period - 0.001 and rem < deg_to_rad(40.0):
 				goal[ax] += 1
 				if not _recal.has(ax):
 					_recal.append(ax)
-			elif not can_more and assist > 0.25:
+			elif not can_more and (assist > 0.25 or auto_open):
 				force_spot = true
 		if settled[ax]:
 			if held and not force_spot and ax != "twist":   # el tirabuzón hace solo las vueltas pedidas
@@ -513,7 +534,7 @@ func step(dt: float, push: float, time_left: float, assist: float, t: MoveTuning
 				rate[ax] = 0.0
 				settled[ax] = true
 		else:
-			var want: float = base[ax] * lerpf(open_mult, t.tuck_mult, tuck_amount)
+			var want: float = base[ax] * lerpf(open_mult, tuck_m, tuck_amount)
 			var cur := move_toward(absf(rate[ax]), want, 65.0 * dt)
 			rate[ax] = s * cur
 			total[ax] += rate[ax] * dt

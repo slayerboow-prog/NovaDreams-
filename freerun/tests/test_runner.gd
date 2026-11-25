@@ -117,6 +117,7 @@ func _run_all() -> void:
 	await t_one_foot_replay_cameras()
 	await t_twist_layout_tuck()
 	await t_chutada()
+	await t_double_presses()
 	await t_mocap_backflip()
 	await t_landing_feel()
 	await t_new_tricks()
@@ -1781,7 +1782,7 @@ func t_salto_giro_sticks() -> void:
 	touch.size = Vector2(1542, 720)
 	check("Modo gestos: sin rueda de botones de movimientos (todo con SALTO y GIRO)", touch.ring_buttons().is_empty(), str(touch.ring_buttons().size()))
 	game.router.scripted = Callable()            # entrada real: el táctil
-	# Botones de mortal estilo Madness: 1.ª pulsación = mortal directo (agrupado) · 2.ª = abre
+	# Botones de mortal: 1.ª pulsación = mortal directo (agrupado) y se abre solo al completarlo
 	var tapb := func(i: int, idx := 11) -> void:
 		var e := InputEventScreenTouch.new(); e.index = idx; e.position = touch.flip_button_center(i); e.pressed = true
 		touch._on_touch(e)
@@ -1802,12 +1803,10 @@ func t_salto_giro_sticks() -> void:
 				tapb.call(int(bc[0])); st.stage = 1                       # en el aire: mortal directo
 			elif st.stage == 1 and tp > 0.3:
 				st.tucked = player.mad_stage == 2
-				st.stage = 2
-			elif st.stage == 2 and tp > TAU - deg_to_rad(120):
-				tapb.call(int(bc[0])); st.stage = 3                       # 2.ª: abre
+				st.stage = 3
 			if k > 30 and player.state == PlayerController.State.GROUND and not moves.is_empty():
 				break
-		check("SALTO + botón %s: mortal directo agrupado y la 2.ª pulsación abre = %s limpio" % [TouchControls.FLIP_BTNS[bc[0]][0], bc[1]], bc[1] in moves and st.tucked
+		check("SALTO + botón %s: mortal directo agrupado que se abre solo = %s limpio" % [TouchControls.FLIP_BTNS[bc[0]][0], bc[1]], bc[1] in moves and st.tucked
 			and landings.size() > 0 and landings[-1].quality in ["perfect", "clean"] and st.stage == 3,
 			"%s %s etapa %d agrupado %s" % [moves, landings.map(func(l): return l.quality), st.stage, st.tucked])
 	# Sin SALTO: el botón solo da un saltito y el mortal no se completa (no cae de pie)
@@ -2542,5 +2541,64 @@ func t_chutada() -> void:
 		else:
 			check("Chutada + GIRO = Cork (%s)" % str(moves), moves.any(func(m): return String(m).begins_with("Cork")) and clean,
 				"%s %s %s" % [moves, landings.map(func(l): return l.quality), st])
+	Settings.trick_controls = old_mode
+	game.router.scripted = _drive
+
+
+## Dobles con los botones: cada pulsación más en el aire (en cualquier momento) = una vuelta más
+## y sigue agrupado; mantener el botón = agrupado todo el rato que permita la altura.
+func t_double_presses() -> void:
+	var touch: TouchControls = game.ui.touch
+	var old_mode := Settings.trick_controls
+	Settings.trick_controls = 5
+	Settings.force_touch_ui = true
+	touch.visible = true
+	touch.size = Vector2(1542, 720)
+	game.router.scripted = Callable()
+	var press := func(i: int, down: bool) -> void:
+		var e := InputEventScreenTouch.new(); e.index = 11; e.position = touch.flip_button_center(i); e.pressed = down
+		touch._on_touch(e)
+	var hold_jump := func(t: float) -> void:
+		var e := InputEventScreenTouch.new(); e.index = 14; e.position = touch._jump_center(); e.pressed = true
+		touch._on_touch(e); touch._time += t
+		e.pressed = false; touch._on_touch(e)
+	# Mantener desde el suelo: las vueltas que quepan a un ritmo que se aprecia (una); desde una
+	# altura, más (doble)
+	var expect := {"dos_rapido": "Double Backflip", "dos_tarde": "Double Backflip", "mantener": "Backflip",
+		"mantener_alto": "Double Backflip", "mantener_soltar_pronto": "Backflip"}
+	var label := {"dos_rapido": "dos pulsaciones seguidas", "dos_tarde": "la 2.ª pasada media vuelta",
+		"mantener": "botón mantenido desde el suelo", "mantener_alto": "botón mantenido desde 9 m",
+		"mantener_soltar_pronto": "mantener y soltar pronto"}
+	for cs in expect.keys():
+		await place(Vector3(-35, 0.1, 35), Vector3.FORWARD)
+		moves.clear(); landings.clear()
+		if cs == "mantener_alto":
+			player.global_position.y = 9.0
+			player.velocity = Vector3(0, 6, 0)
+			player._enter_air("stand")
+		else:
+			hold_jump.call(0.3)
+		var st := {"stage": 0, "maxp": 0.0}
+		for k in 300:
+			await get_tree().physics_frame
+			st.maxp = maxf(st.maxp, absf(player.tricks.total_pitch))
+			var at: float = player.tricks.air_time
+			if st.stage == 0 and player.state == PlayerController.State.AIR:
+				press.call(0, true)
+				if not String(cs).begins_with("mantener"): press.call(0, false)
+				st.stage = 1
+			elif st.stage == 1:
+				if cs == "dos_rapido" and at > 0.08:
+					press.call(0, true); press.call(0, false); st.stage = 2
+				elif cs == "dos_tarde" and absf(player.tricks.total_pitch) > PI:
+					press.call(0, true); press.call(0, false); st.stage = 2
+				elif cs == "mantener_soltar_pronto" and at > 0.15:
+					press.call(0, false); st.stage = 2
+			if player.state == PlayerController.State.GROUND and k > 10:
+				break
+		press.call(0, false)
+		var clean: bool = landings.size() > 0 and landings[-1].quality in ["perfect", "clean"]
+		check("Botón ATRÁS, %s = %s (%d°)" % [label[cs], expect[cs], rad_to_deg(st.maxp)], expect[cs] in moves and clean,
+			"%s %s" % [moves, landings.map(func(l): return l.quality)])
 	Settings.trick_controls = old_mode
 	game.router.scripted = _drive
