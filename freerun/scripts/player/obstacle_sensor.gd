@@ -136,3 +136,40 @@ func is_narrow_footing(feet: Vector3, facing: Vector3) -> bool:
 		if ray(p + Vector3.UP * 0.2, p - Vector3.UP * 0.35).is_empty():
 			misses += 1
 	return misses >= 2
+
+## Borde donde aterrizar al saltar hacia delante (salto de precisión o de longitud): recorre el
+## suelo en la dirección del salto y devuelve el primer borde alcanzable, ya sea al otro lado de
+## un hueco (muro, bordillo, otra plataforma) o la parte de arriba de un obstáculo más alto.
+## {"pos": punto de recepción justo dentro del borde, "edge": distancia al borde, "dy": altura
+## relativa}. Vacío si delante el suelo sigue llano o lo que hay no se puede alcanzar;
+## {"blocked": d} si hay un obstáculo más alto antes de la distancia mínima.
+func find_landing_edge(feet: Vector3, dir: Vector3, dmin: float, dmax: float, max_up: float, max_down: float) -> Dictionary:
+	var d3 := flat(dir).normalized()
+	if d3.length() < 0.1:
+		return {}
+	var top := feet.y + max_up + 0.4
+	var h0 := feet.y
+	var low := INF                                  # punto más bajo del hueco recorrido
+	var deep := false                               # hueco sin fondo cercano
+	var d := 0.3
+	while d <= dmax + 0.001:
+		var p := feet + d3 * d
+		var gy := ground_below(Vector3(p.x, top, p.z), max_up + max_down + 2.0)
+		var edge := {"pos": Vector3(p.x, gy, p.z) + d3 * 0.18, "edge": d, "dy": gy - h0}
+		if gy == -INF or gy < h0 - max_down:
+			deep = true
+		elif gy > h0 + max_up:
+			return {}                               # pared demasiado alta: no se salta encima
+		elif gy > h0 + 0.25:
+			if d >= dmin:
+				return edge                         # obstáculo más alto: su borde delantero
+			return {"blocked": d}                   # demasiado cerca para este salto
+		elif gy < h0 - 0.3:
+			# El suelo baja: hueco, calle más baja... o una plataforma más baja al otro lado
+			if d >= dmin and (deep or (low != INF and gy > low + 0.3)):
+				return edge
+			low = minf(low, gy)
+		elif (deep or low != INF) and d >= dmin:
+			return edge                             # al otro lado del hueco, a la misma altura
+		d += 0.1
+	return {}
