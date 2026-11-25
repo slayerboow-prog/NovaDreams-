@@ -44,6 +44,7 @@ var twist_hold := false              # el joystick GIRO está inclinado ahora mi
 var tuck_time := 0.0                 # tiempo agrupado (lateral agrupado = sideflip; abierto = aerial)
 var travel_speed := 0.0              # velocidad horizontal total al despegar (takeoff_speed = hacia delante)
 var twist_boost := 1.0               # giro heredado de un enlace (hook, raiz, scoot → cork / b-twist)
+var spin_bonus := 1.0                # bonificación por recepción perfecta: gira más rápido (y caben más vueltas)
 var linked := false                  # sale de un enlace (rondada, flic-flac, hook...)
 ## Botonera / rueda: mientras se mantiene el botón del mortal el cuerpo sigue agrupado y
 ## girando (doble, triple... lo que permita la altura). Con ayuda se abre solo si ya no queda
@@ -118,6 +119,7 @@ func reset(kind := "run", speed := 0.0) -> void:
 	tuck_time = 0.0
 	travel_speed = absf(speed)
 	twist_boost = 1.0
+	spin_bonus = 1.0
 	linked = false
 	twist_queue.clear()
 	twist_extra_halves = 0
@@ -444,7 +446,7 @@ func step(dt: float, push: float, time_left: float, assist: float, t: MoveTuning
 		var frac: float = COMPLETE_AT.get(style, 0.8)
 		var cal := clampf(period / (time_left * frac), lo, hi)
 		var pro := t.flip_rate_pro * (1.5 if ax == "twist" else 1.0)
-		base[ax] = lerpf(pro, cal, assist)
+		base[ax] = lerpf(pro, cal, assist) * spin_bonus
 		rate[ax] = dir[ax] * base[ax] * 0.7         # impulso inicial
 	_new_axes.clear()
 	# Más vueltas pedidas en el aire: acelera lo justo para completarlas antes de aterrizar
@@ -452,7 +454,7 @@ func step(dt: float, push: float, time_left: float, assist: float, t: MoveTuning
 		var per := twist_period if ax == "twist" else TAU
 		var left: float = goal[ax] * per - absf(total[ax])
 		var need := left / maxf(time_left * 0.75, 0.05)
-		var cap := (t.twist_rate_max if ax == "twist" else t.flip_rate_max) * (GESTURE_EXTRA_CAP if layout_twist and ax != "twist" else 1.6)
+		var cap := (t.twist_rate_max if ax == "twist" else t.flip_rate_max) * (GESTURE_EXTRA_CAP if layout_twist and ax != "twist" else 1.6) * spin_bonus
 		base[ax] = clampf(maxf(base[ax], need), 0.0, cap)
 		rate[ax] = dir[ax] * maxf(absf(rate[ax]), base[ax] * 0.9)
 	_recal.clear()
@@ -496,7 +498,7 @@ func step(dt: float, push: float, time_left: float, assist: float, t: MoveTuning
 			# Modo gestos, botón mantenido: tantas vueltas como quepan en lo que queda de vuelo a
 			# un ritmo agrupado que se aprecia (~0,57 s por vuelta); con altura salen dobles,
 			# triples... y la velocidad se reparte para que cada vuelta se vea
-			var fit := int(floor((prog + maxf(time_left - 0.14, 0.0) * GESTURE_HOLD_RATE) / period))
+			var fit := int(floor((prog + maxf(time_left - 0.14, 0.0) * GESTURE_HOLD_RATE * spin_bonus) / period))
 			if fit > goal[ax]:
 				goal[ax] = fit
 				if not _recal.has(ax):
@@ -506,7 +508,7 @@ func step(dt: float, push: float, time_left: float, assist: float, t: MoveTuning
 		elif keep_spinning and held and ax != "twist":
 			# ¿Cabe otra vuelta entera después de esta (agrupándose al máximo)? Si cabe, se pide
 			# al acercarse al final de la vuelta; si no, con ayuda se abre ya para aterrizar.
-			var cap := t.flip_rate_max * (GESTURE_EXTRA_CAP if layout_twist else 1.6)
+			var cap := t.flip_rate_max * (GESTURE_EXTRA_CAP if layout_twist else 1.6) * spin_bonus
 			var can_more := time_left > (rem + period) / cap + 0.16
 			if can_more and next_stop >= goal[ax] * period - 0.001 and rem < deg_to_rad(40.0):
 				goal[ax] += 1

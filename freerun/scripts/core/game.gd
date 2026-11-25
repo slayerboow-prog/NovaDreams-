@@ -281,6 +281,7 @@ func _process(dt: float) -> void:
 		return
 	var S := PlayerController.State
 	ui.touch.air_mode = player.state in [S.AIR, S.WALLRUN, S.WALLCLIMB, S.HANG, S.VAULT]
+	ui.touch.one_foot_on = player.one_foot_q
 	if mode:
 		mode.tick(dt)
 		ui.update_hud(combo, player, mode.status_text(), GameModes.info(mode.id).get("title", ""), mode.extra_button())
@@ -308,6 +309,9 @@ func _on_move(name: String, quality: float, info: Dictionary) -> void:
 		var rec := SaveData.submit_record("dive_kong_m", dist)
 		ui.show_landing("%s  %.1f m%s" % [MoveNames.es(name).to_upper(), dist,
 			"  ·  ¡RÉCORD!" if rec and best > 0.0 else "  (récord %.1f m)" % maxf(best, dist)], Color(1, 0.85, 0.3))
+	if name == "Perfect Bonus":
+		var lv := int(info.get("level", 1))
+		ui.popup("RECEPCIÓN PERFECTA  ·  +ALTURA  +GIRO%s" % ("  x%d" % lv if lv > 1 else ""), Color(1, 0.85, 0.25))
 	combo.add_move(name, quality, info)
 	flow.on_move(name, quality, info)
 	if mode:
