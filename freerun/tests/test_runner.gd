@@ -908,6 +908,16 @@ func t_camera() -> void:
 	fr = touch.collect()
 	check("Cámara táctil: franja superior izquierda = cámara", fr.camera_delta.x > 0.1 and fr.move == Vector2.ZERO, "cam %s move %s" % [fr.camera_delta, fr.move])
 	tch.call(2, Vector2(300, 80), false)
+	# Con el joystick ya agarrado, otro dedo en la mitad izquierda gira la cámara (no roba el joystick)
+	tch.call(4, Vector2(200, 560), true)
+	drg.call(4, Vector2(200, 460), Vector2(0, -100))
+	tch.call(5, Vector2(420, 420), true)
+	drg.call(5, Vector2(490, 420), Vector2(70, 0))
+	fr = touch.collect()
+	check("Cámara táctil: segundo dedo en la zona del joystick = cámara (el joystick sigue moviendo)", fr.camera_delta.x > 0.2 and fr.move.y > 0.9, "cam %s move %s" % [fr.camera_delta, fr.move])
+	tch.call(5, Vector2(490, 420), false)
+	tch.call(4, Vector2(200, 460), false)
+	touch.collect()
 	touch._time += 1.0
 	tch.call(3, hp, true); tch.call(3, hp, false)
 	touch._time += 0.15
@@ -960,6 +970,20 @@ func t_camera() -> void:
 	var low_y := cam.cam.global_position.y - player.global_position.y
 	Settings.camera_height = old_h
 	check("Cámara: la altura se puede ajustar", high_y > low_y + 0.6, "alta %.2f · baja %.2f" % [high_y, low_y])
+	# Mirando hacia arriba al máximo en llano: la cámara no baja al suelo ni se acerca al atleta
+	await place(Vector3(-30, 0.1, 30), Vector3.FORWARD)
+	cam.snap()
+	var gd := {"min_d": 99.0, "min_y": 99.0}
+	await run(func(i, f):
+		i.camera_delta = Vector2(0, -0.2) if f < 10 else Vector2.ZERO
+		if f > 20:
+			gd.min_d = minf(gd.min_d, cam.cam.global_position.distance_to(player.global_position + Vector3.UP * 1.1))
+			gd.min_y = minf(gd.min_y, cam.cam.global_position.y - player.global_position.y), 90)
+	check("Cámara: mirando arriba en llano no baja al suelo ni se pega (%.2f m de alto, %.2f m del atleta)" % [gd.min_y, gd.min_d], gd.min_y > 0.8 and gd.min_d > 3.0, "")
+	# Arrastre casi horizontal: gira sin cambiar la inclinación
+	var p0 := cam.pitch
+	await run(func(i, f): i.camera_delta = Vector2(0.1, 0.03) if f < 5 else Vector2.ZERO, 8)
+	check("Cámara: arrastrar en horizontal (algo torcido) no inclina la cámara", absf(cam.pitch - p0) < 0.01, "cambio %.3f" % absf(cam.pitch - p0))
 	cam.set_process(false)
 	player.camera_yaw = 0.0
 
@@ -2804,17 +2828,19 @@ func t_air_giro_queue() -> void:
 
 func t_beach_buoy() -> void:
 	var li: Dictionary = game.level_info
-	check("Playa: hay arena y una boya trampolín", li.get("buoys", []).size() == 1 and li.get("sand", []).size() == 1, "")
+	check("Playa: hay arena y una boya trampolín grande", li.get("buoys", []).size() == 1 and li.get("sand", []).size() == 1 and float(li.buoys[0].get("r", 0.0)) > 1.0, "")
 	var c: Vector3 = li.buoys[0].pos
+	var r: float = li.buoys[0].r
+	var start := Vector3(c.x, 0.1, c.z + 9.0)
 	# Salto normal en la arena como referencia
-	await place(c + Vector3(0, 0.1, 8), Vector3.FORWARD)
+	await place(start, Vector3.FORWARD)
 	var ref := {"y0": player.global_position.y, "peak": 0.0}
 	await run(func(i, f):
 		i.jump_pressed = f == 2
 		ref.peak = maxf(ref.peak, player.global_position.y - ref.y0), 200,
 		func(): return _f > 10 and player.state == PlayerController.State.GROUND)
-	# Corriendo hacia la boya: rebote muy alto; mortal atrás con el botón en el aire
-	await place(c + Vector3(0, 0.1, 8), Vector3.FORWARD)
+	# Corriendo hacia la boya sin pulsar nada: rebote alto; mortal atrás con el botón en el aire
+	await place(start, Vector3.FORWARD)
 	moves.clear()
 	landings.clear()
 	var st := {"y0": player.global_position.y, "peak": 0.0, "flip": false}
@@ -2829,8 +2855,67 @@ func t_beach_buoy() -> void:
 		"Buoy Launch" in moves and st.peak > ref.peak * 1.6, str(moves))
 	check("Boya: mortal (atrás en carrera = gainer) en el aire y recepción limpia en la arena (%s)" % str(landings.map(func(l): return l.quality)),
 		("Backflip" in moves or "Gainer" in moves) and landings.size() > 0 and landings[-1].quality in ["perfect", "clean"], str(moves))
+	# SALTO justo al llegar (a ~0,4 m de la superficie): impulso perfecto, sube bastante más
+	await place(start, Vector3.FORWARD)
+	moves.clear()
+	var pk := {"y0": player.global_position.y, "peak": 0.0, "p": false}
+	await run(func(i, f):
+		i.move = Vector2(0, 1.0) if not moves.has("Buoy Launch") else Vector2.ZERO
+		var dsurf := Vector2(player.global_position.x - c.x, player.global_position.z - c.z).length() - r
+		if not pk.p and dsurf < 0.75:
+			i.jump_pressed = true
+			pk.p = true
+		pk.peak = maxf(pk.peak, player.global_position.y - pk.y0), 400,
+		func(): return moves.has("Buoy Launch") and _f > 20 and player.state == PlayerController.State.GROUND)
+	check("Boya: SALTO en el momento justo = impulso perfecto (%.1f m vs %.1f m sin pulsar)" % [pk.peak, st.peak],
+		"Buoy Boost" in moves and pk.peak > st.peak + 1.5 and not ("Long Jump" in moves), str(moves))
+	# SALTO justo después de pisarla también vale (impulso extra)
+	await place(start, Vector3.FORWARD)
+	moves.clear()
+	var late := {"n": -1}
+	await run(func(i, f):
+		i.move = Vector2(0, 1.0) if not moves.has("Buoy Launch") else Vector2.ZERO
+		if moves.has("Buoy Launch") and late.n < 0:
+			late.n = f
+		i.jump_pressed = late.n >= 0 and f == late.n + 4, 300,
+		func(): return late.n >= 0 and f_gt(late.n + 10))
+	check("Boya: SALTO un instante después de pisarla también da impulso", "Buoy Boost" in moves or "Buoy Boost Good" in moves, str(moves))
+	# Salto de longitud desde lejos: va a caer encima de la boya y rebota
+	await place(Vector3(c.x, 0.1, c.z + 16.0), Vector3.FORWARD)
+	moves.clear()
+	var lj := {"p": false, "air": false}
+	await run(func(i, f):
+		i.move = Vector2(0, 1.0) if player.state == PlayerController.State.GROUND else Vector2.ZERO
+		i.sprint = true
+		if not lj.p and player.global_position.z <= c.z + 6.5:
+			i.jump_pressed = true
+			lj.p = true
+		lj.air = lj.air or (lj.p and player.state == PlayerController.State.AIR), 400,
+		func(): return lj.air and (moves.has("Buoy Launch") or player.state == PlayerController.State.GROUND))
+	check("Boya: el salto de longitud detecta la boya y cae encima (%s)" % str(moves), "Long Jump" in moves and "Buoy Launch" in moves, "")
+	# Desviado 1,2 m a un lado: el salto corrige la dirección y también acierta
+	await place(Vector3(c.x + 1.2, 0.1, c.z + 16.0), Vector3.FORWARD)
+	moves.clear()
+	var lj2 := {"p": false, "air": false}
+	await run(func(i, f):
+		i.move = Vector2(0, 1.0) if player.state == PlayerController.State.GROUND else Vector2.ZERO
+		i.sprint = true
+		if not lj2.p and player.global_position.z <= c.z + 6.5:
+			i.jump_pressed = true
+			lj2.p = true
+		lj2.air = lj2.air or (lj2.p and player.state == PlayerController.State.AIR), 400,
+		func(): return lj2.air and (moves.has("Buoy Launch") or player.state == PlayerController.State.GROUND))
+	check("Boya: salto de longitud desviado 1,2 m también acierta (%s)" % str(moves), "Buoy Launch" in moves, "")
+	# Salto de precisión parado delante de la boya
+	await place(Vector3(c.x, 0.1, c.z + r + 1.6), Vector3.FORWARD)
+	moves.clear()
+	await run(func(i, f):
+		i.move = Vector2(0, 0.6) if player.state == PlayerController.State.GROUND else Vector2.ZERO
+		i.jump_pressed = f == 2, 300,
+		func(): return moves.has("Buoy Launch") or (_f > 60 and player.state == PlayerController.State.GROUND))
+	check("Boya: el salto de precisión cae encima de la boya (%s)" % str(moves), "Precision Jump" in moves and "Buoy Launch" in moves, "")
 	# Andando al lado sin ir hacia ella no salta
-	await place(c + Vector3(0.6, 0.1, 3), Vector3.FORWARD)
+	await place(Vector3(c.x + r + 0.2, 0.1, c.z + 3), Vector3.FORWARD)
 	moves.clear()
 	await run(func(i, f):
 		i.move = Vector2(0, 0.4), 120)
@@ -2838,6 +2923,8 @@ func t_beach_buoy() -> void:
 	await place(Vector3(-35, 0.1, 35), Vector3.FORWARD)
 	await frames(20)
 
+func f_gt(n: int) -> bool:
+	return _f > n
 
 ## Parque de obstáculos: cada calle sirve para los movimientos para los que está pensada.
 func t_park() -> void:

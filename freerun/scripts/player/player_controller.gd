@@ -28,10 +28,17 @@ var water_volumes: Array[AABB] = []      # los rellena el nivel
 var buoys: Array = []                    # boyas trampolín de la playa: {"pos", "node"}
 var sand_zones: Array = []               # AABB de arena: recepciones más suaves
 var buoy_cd := 0.0
-const BUOY_R := 0.38
+var buoy_press_t := -1.0                 # tiempo desde que se pulsó SALTO llegando a la boya
+var buoy_post := 0.0                     # ventana tras el rebote para pulsar SALTO
+var buoy_air := false                    # vuelo lanzado por la boya (sin salto corto al soltar)
 const BUOY_VY := 12.0                    # rebote de la boya (salto normal 8,4)
 const BUOY_MIN_SPEED := 4.0             # hay que llegar corriendo (andando no rebota)
-const BUOY_VY_JUMP := 2.0                # + pulsando / manteniendo SALTO al pisarla
+const BUOY_PERFECT := 0.12              # SALTO a menos de esto del contacto = impulso perfecto
+const BUOY_GOOD := 0.3                  # hasta esto antes del contacto = impulso extra menor
+const BUOY_POST_WINDOW := 0.25          # SALTO hasta este tiempo después del contacto aún vale
+const BUOY_BONUS_PERFECT := 5.0
+const BUOY_BONUS_GOOD := 2.2
+const BUOY_MAGNET := 1.0
 const SAND_SOFT := 0.8                   # la arena absorbe parte del impacto
 
 var state: int = State.AIR
@@ -220,6 +227,8 @@ func _set_state(s: int) -> void:
 	var old := state
 	state = s
 	state_time = 0.0
+	if s != State.AIR:
+		buoy_air = false
 	state_changed.emit(old, s)
 
 func _turn_facing(dir: Vector3, rate: float, dt: float) -> void:
@@ -312,7 +321,7 @@ func _physics_process(dt: float) -> void:
 		return
 	prev_velocity = velocity
 	buoy_cd = maxf(0.0, buoy_cd - dt)
-	if (state == State.GROUND or state == State.AIR) and _buoy_check():
+	if (state == State.GROUND or state == State.AIR) and _buoy_check(dt):
 		return
 	match state:
 		State.GROUND: _state_ground(dt)
@@ -674,7 +683,9 @@ func _ballistic(dist: float, dy: float, vy: float) -> Array:
 ## recepción clavada. Si delante hay un borde al alcance, el salto va justo a ese borde.
 func _precision_jump() -> void:
 	var dir := ObstacleSensor.flat(facing).normalized()
-	var edge := sensor.find_landing_edge(global_position, dir, 0.7, 3.4, 1.25, 2.6)
+	var edge := _buoy_target(dir, 0.6, 4.2)
+	if edge.is_empty():
+		edge = sensor.find_landing_edge(global_position, dir, 0.7, 3.4, 1.25, 2.6)
 	if edge.has("blocked"):
 		edge = {}
 	var dist := PRECISION_FLAT
@@ -683,6 +694,8 @@ func _precision_jump() -> void:
 	if not edge.is_empty():
 		var tp: Vector3 = edge.pos
 		dist = ObstacleSensor.flat(tp - global_position).length()
+		if edge.get("buoy", false):
+			dir = ObstacleSensor.flat(tp - global_position).normalized()   # corrige hacia la boya
 		dy = float(edge.dy)
 		jump_target = tp
 	var b := _ballistic(dist, dy, PRECISION_VY)
@@ -692,6 +705,24 @@ func _precision_jump() -> void:
 	_enter_air("precision")
 	precision_t = 2.0
 	move_and_slide()
+
+## Boya delante en la dirección del salto (con margen lateral generoso): {"pos": su parte de
+## arriba, "dy"} para que el salto de precisión o de longitud caiga encima. {} si no hay.
+func _buoy_target(dir: Vector3, dmin: float, dmax: float) -> Dictionary:
+	var best := {}
+	var best_d := INF
+	for bd in buoys:
+		var c: Vector3 = bd.pos
+		var r: float = bd.get("r", 1.0)
+		var v := Vector3(c.x - global_position.x, 0.0, c.z - global_position.z)
+		var along := v.dot(dir)
+		var side := (v - dir * along).length()
+		if along < dmin or along > dmax or side > r + 0.8 or along >= best_d:
+			continue
+		var tp := Vector3(c.x, c.y + r, c.z)
+		best = {"pos": tp, "dy": tp.y - global_position.y, "buoy": true}
+		best_d = along
+	return best
 
 ## Salto de longitud (en carrera + SALTO + joystick adelante): despega a un pie, pedalea en el
 ## aire y cae con los dos pies. Si hay un borde al alcance de la trayectoria, ajusta para caer en él.
@@ -703,7 +734,10 @@ func _long_jump() -> void:
 	var hs := minf(spd * 1.1 + 0.8, t.sprint_speed * 1.3)
 	var natural := hs * (2.0 * vy / t.gravity)          # distancia en llano
 	jump_target = Vector3.INF
-	var edge := sensor.find_landing_edge(global_position, dir, natural * 0.5, natural * 1.25, 1.25, 3.5)
+	var edge := _buoy_target(dir, natural * 0.35, natural * 1.5)
+	var on_buoy := not edge.is_empty()
+	if not on_buoy:
+		edge = sensor.find_landing_edge(global_position, dir, natural * 0.5, natural * 1.25, 1.25, 3.5)
 	if edge.has("blocked"):
 		_do_jump("run")                              # obstáculo muy cerca: salto normal (kong / vault)
 		return
@@ -711,8 +745,14 @@ func _long_jump() -> void:
 		var tp: Vector3 = edge.pos
 		var dist := ObstacleSensor.flat(tp - global_position).length()
 		var dy := float(edge.dy)
+		if on_buoy:
+			dir = ObstacleSensor.flat(tp - global_position).normalized()   # corrige hacia la boya
 		var b := _ballistic(dist, dy, vy)
-		if float(b[1]) >= hs * 0.75 and float(b[1]) < hs * 1.25:
+		if on_buoy:
+			vy = float(b[0])                         # boya delante: el salto va justo encima
+			hs = float(b[1])
+			jump_target = tp
+		elif float(b[1]) >= hs * 0.75 and float(b[1]) < hs * 1.25:
 			vy = float(b[0])
 			hs = float(b[1])
 			jump_target = tp
@@ -800,7 +840,7 @@ func _state_air(dt: float) -> void:
 	velocity.x = hv.x
 	velocity.z = hv.z
 	var g := _air_gravity_base()
-	if velocity.y > 0.0 and not intent.jump_held and intent.rot.length() < 0.3 and not tricks.active and air_kind in ["run", "stand"]:
+	if velocity.y > 0.0 and not intent.jump_held and intent.rot.length() < 0.3 and not tricks.active and air_kind in ["run", "stand"] and not buoy_air:
 		g *= t.low_jump_mult
 	velocity.y = maxf(velocity.y - g * dt, -t.max_fall)
 	peak_y = maxf(peak_y, global_position.y)
@@ -873,46 +913,97 @@ func _state_air(dt: float) -> void:
 		_land()
 
 ## Boya trampolín: entrar corriendo en ella o caerle encima te lanza muy alto (en el aire se
-## hacen los mortales con los botones de siempre). Devuelve true si ha lanzado.
-func _buoy_check() -> bool:
-	if buoys.is_empty() or buoy_cd > 0.0:
+## hacen los mortales con los botones de siempre). Pulsar SALTO justo al pisarla (un poco antes
+## o justo después) da un impulso extra. Devuelve true si ha lanzado.
+func _buoy_check(dt: float) -> bool:
+	if buoys.is_empty():
+		return false
+	if buoy_press_t >= 0.0:
+		buoy_press_t += dt
+		if buoy_press_t > 0.5:
+			buoy_press_t = -1.0
+	# Ventana tras el rebote: SALTO un instante después de pisarla también vale
+	if buoy_post > 0.0:
+		buoy_post -= dt
+		if intent.jump_pressed and state == State.AIR:
+			var late := BUOY_POST_WINDOW - buoy_post
+			_buoy_bonus(late <= BUOY_PERFECT * 0.8)
+			buoy_post = 0.0
+			jump_buffer = 0.0
+			intent.jump_pressed = false
+	if buoy_cd > 0.0:
 		return false
 	var p := global_position
-	for b in buoys:
-		var c: Vector3 = b.pos
+	var hv := horizontal_velocity()
+	for bd in buoys:
+		var c: Vector3 = bd.pos
+		var r: float = bd.get("r", 1.0)
 		var d := Vector3(c.x - p.x, 0.0, c.z - p.z)
-		var top := c.y + BUOY_R
-		var hv := horizontal_velocity()
-		# margen según la velocidad: se detecta antes de que el choque con la esfera frene al jugador
-		if d.length() > BUOY_R + 0.4 + hv.length() * 0.05 or p.y < c.y - 0.15 or p.y > top + 0.35:
+		var dl := d.length()
+		var top := c.y + r
+		var toward := dl < 0.05 or (hv.length() > 0.5 and hv.normalized().dot(d / dl) > 0.6)
+		# SALTO pulsado al llegar a la boya: se guarda para el impulso (no hace un salto normal)
+		if intent.jump_pressed and dl < r + 2.2 and p.y < top + 2.5 and \
+				((state == State.GROUND and toward and hv.length() >= BUOY_MIN_SPEED) or (state == State.AIR and velocity.y < 1.0)):
+			buoy_press_t = 0.0
+			jump_buffer = 0.0
+			intent.jump_pressed = false
+		# En el aire cayendo hacia ella: el cuerpo se dirige un poco hacia el centro (es fácil acertar)
+		if state == State.AIR and velocity.y < 0.0 and dl < r + 1.4 and dl > 0.05 and p.y > top - 0.3 and p.y < top + 3.0:
+			var pull := (d / dl) * minf(BUOY_MAGNET * dt, dl)
+			velocity.x += pull.x * 6.0
+			velocity.z += pull.z * 6.0
+		# Contacto: distancia de los pies (algo por encima) al centro de la esfera
+		var probe := p + Vector3.UP * 0.25
+		var reach := r + 0.35 + (hv.length() * 0.05 if state == State.GROUND else 0.1)
+		if probe.distance_to(c) > reach or p.y < c.y:
 			continue
 		if state == State.GROUND:
-			# hay que ir hacia ella con algo de carrera (andando al lado no salta)
-			if hv.length() < BUOY_MIN_SPEED or (d.length() > 0.05 and hv.normalized().dot(d.normalized()) < 0.6):
+			# hay que ir hacia ella corriendo (andando al lado no salta)
+			if hv.length() < BUOY_MIN_SPEED or not toward:
 				continue
 		elif velocity.y > 0.5:
 			continue                           # subiendo: aún no la pisa
-		_buoy_launch(b, hv)
+		_buoy_launch(bd, hv)
 		return true
 	return false
 
-func _buoy_launch(b: Dictionary, hv: Vector3) -> void:
+func _buoy_launch(bd: Dictionary, hv: Vector3) -> void:
 	buoy_cd = 0.5
-	var c: Vector3 = b.pos
-	global_position.y = maxf(global_position.y, c.y + BUOY_R)
-	var vy := BUOY_VY + (BUOY_VY_JUMP if intent.jump_held or jump_buffer > 0.0 else 0.0)
-	jump_buffer = 0.0
-	velocity = Vector3(hv.x * 0.9, vy, hv.z * 0.9)
+	var c: Vector3 = bd.pos
+	var r: float = bd.get("r", 1.0)
+	# Se apoya en la superficie de la boya en ese punto (sin saltos de posición bruscos)
+	var dxz := Vector2(global_position.x - c.x, global_position.z - c.z).length()
+	if dxz < r:
+		global_position.y = maxf(global_position.y, c.y + sqrt(r * r - dxz * dxz))
+	if state == State.AIR and air_kind == "long":
+		_emit_move("Long Jump", 1.0, {"precision": true})      # el salto de longitud acaba en la boya
+	elif state == State.AIR and air_kind == "precision":
+		_emit_move("Precision Jump", 1.0, {})
+	precision_t = 0.0
+	jump_target = Vector3.INF
+	velocity = Vector3(hv.x * 0.9, BUOY_VY, hv.z * 0.9)
 	_enter_air("run")
+	buoy_air = true
 	_emit_move("Buoy Launch", 1.0, {})
-	var node = b.get("node")
+	if buoy_press_t >= 0.0 and buoy_press_t <= BUOY_GOOD:
+		_buoy_bonus(buoy_press_t <= BUOY_PERFECT)    # SALTO pulsado justo antes de pisarla
+	else:
+		buoy_post = BUOY_POST_WINDOW                 # (demasiado pronto o sin pulsar: aún puede después)
+	buoy_press_t = -1.0
+	var node = bd.get("node")
 	if node is Node3D and (node as Node3D).is_inside_tree():
 		# la boya se aplasta y recupera (goma)
 		var n := node as Node3D
-		n.scale = Vector3(1.25, 0.6, 1.25)
+		n.scale = Vector3(1.12, 0.82, 1.12)
 		var tw := n.create_tween()
-		tw.tween_property(n, "scale", Vector3.ONE, 0.35).set_trans(Tween.TRANS_ELASTIC).set_ease(Tween.EASE_OUT)
+		tw.tween_property(n, "scale", Vector3.ONE, 0.4).set_trans(Tween.TRANS_ELASTIC).set_ease(Tween.EASE_OUT)
 	move_and_slide()
+
+## Impulso extra por pulsar SALTO a tiempo en la boya (perfecto = el máximo).
+func _buoy_bonus(perfect: bool) -> void:
+	velocity.y += BUOY_BONUS_PERFECT if perfect else BUOY_BONUS_GOOD
+	_emit_move("Buoy Boost" if perfect else "Buoy Boost Good", 1.0, {})
 
 func _on_sand() -> bool:
 	for a in sand_zones:

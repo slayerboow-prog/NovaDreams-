@@ -310,7 +310,7 @@ func _park() -> void:
 # ------------------------------------------------------------------ playa
 
 const C_SAND := Color(0.84, 0.68, 0.42)
-const BUOY_R := 0.38
+const BUOY_R := 1.14                 # boya grande (2,3 m de diámetro), medio enterrada
 const BEACH_C := Vector3(125, 0, 0)    # centro de la playa (lejos de la ciudad)
 const BEACH_HALF := 22.0
 
@@ -325,7 +325,7 @@ func _beach() -> void:
 		if c is MeshInstance3D:
 			(c as MeshInstance3D).material_override = sm
 	info.sand.append(AABB(BEACH_C + Vector3(-BEACH_HALF, -1, -BEACH_HALF), Vector3(2 * BEACH_HALF, 3, 2 * BEACH_HALF)))
-	_buoy(BEACH_C + Vector3(0, 0.06, 0))
+	_buoy(BEACH_C + Vector3(0, -0.45, 0))         # asoma ~0,7 m: se pisa corriendo
 
 func _buoy(c: Vector3) -> void:
 	var body := StaticBody3D.new()
@@ -346,4 +346,4 @@ func _buoy(c: Vector3) -> void:
 	mi.material_override = m
 	body.add_child(mi)
 	root.add_child(body)
-	info.buoys.append({"pos": c, "node": mi})
+	info.buoys.append({"pos": c, "node": mi, "r": BUOY_R})

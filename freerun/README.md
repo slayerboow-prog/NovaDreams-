@@ -131,8 +131,10 @@ Cada acrobacia tiene su propio ritmo de giro (backflip explosivo; aerial y butte
   - **Precisiones**: pilares de 0,6 a 1,4 m de alto y dos plataformas separadas 3 m para el salto de longitud.
   - **Muro de 4,5 m**: para wall run, con un muro corto junto a una caja (tic-tac) y una pared con borde (cat leap).
   - **Torre de caídas** de 4,5 m con escalera.
-- **Playa** (modo propio en el menú): un arenal con una boya de barco roja medio enterrada en el centro.
-  - Llegar a la boya corriendo (andando no rebota), o caer encima de ella, te lanza mucho más alto que un salto normal. Con SALTO pulsado, todavía más.
+- **Playa** (modo propio en el menú): un arenal con una boya de barco roja grande (2,3 m de diámetro) medio enterrada en el centro.
+  - Llegar a la boya corriendo (andando no rebota), o caer encima de ella, te lanza mucho más alto que un salto normal.
+  - **Impulso perfecto**: pulsa SALTO justo al pisarla (hasta 0,12 s antes, o un instante después) y subes mucho más. Si lo pulsas algo antes (hasta 0,3 s), el impulso es menor.
+  - Los saltos de precisión y de longitud detectan la boya, corrigen la dirección y caen encima. Cayendo cerca, el cuerpo se dirige un poco hacia su centro.
   - En el aire, los mortales se hacen con los botones de siempre.
   - La arena amortigua las recepciones.
 

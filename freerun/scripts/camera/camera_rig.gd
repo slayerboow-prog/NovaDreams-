@@ -33,14 +33,15 @@ var alt_cam: Camera3D
 # --- Parámetros (ajustados para móvil: suaves pero con respuesta inmediata al control) ---
 const BASE_PITCH := -0.30
 const PITCH_MIN := -1.05          # mirando hacia abajo (desde arriba)
-const PITCH_MAX := 0.28           # mirando hacia arriba: nunca al cielo
+const PITCH_MAX := 0.16           # mirando hacia arriba: poco (la cámara no baja al suelo)
+const GROUND_CLEAR := 0.9         # altura mínima de la cámara sobre los pies del atleta
 const BASE_FOV := 64.0
 const BASE_LEN := 3.3
 const FOCUS_H := 1.35             # altura del punto de mira sobre los pies (pecho/cabeza)
 const COLL_RADIUS := 0.24         # radio de la esfera que barre el espacio cámara-atleta
 const MIN_DIST := 1.25            # más cerca que esto: la cámara sube en vez de acercarse
 const LEAD_TIME := 0.12           # anticipación (segundos de velocidad)
-const LEAD_MAX := 0.8
+const LEAD_MAX := 0.5
 const FOLLOW_HOLD := [1.2, INF, 0.6]   # segundos sin tocar la cámara antes de alinearse (híbrida, manual, automática)
 
 # --- Estado interno (muelles) ---
@@ -93,7 +94,7 @@ func setup(p: PlayerController, r: InputRouter) -> void:
 	_query.collision_mask = 1
 	_query.exclude = [p.get_rid()]
 	var wide := SphereShape3D.new()
-	wide.radius = 0.65
+	wide.radius = 0.45
 	_soft_query = PhysicsShapeQueryParameters3D.new()
 	_soft_query.shape = wide
 	_soft_query.collision_mask = 1
@@ -160,7 +161,8 @@ func _process(dt: float) -> void:
 	if in_air:
 		var t0 := player.takeoff_y
 		if ppos.y >= t0:
-			ref_want = t0 + (ppos.y - t0) * 0.35
+			# Saltos muy altos (boya): nunca más de ~1 m por debajo del atleta, para no perderlo por arriba
+			ref_want = maxf(t0 + (ppos.y - t0) * 0.35, ppos.y - 1.0)
 			ref_smooth = 0.16
 		else:
 			# Cayendo más abajo de donde despegó: le acompaña de cerca (los pies no se salen)
@@ -175,7 +177,7 @@ func _process(dt: float) -> void:
 	var focus_want := Vector3(ppos.x, _ref_y + height - _dip, ppos.z) + _lead
 	if st == S.CRASH:
 		focus_want.y -= 0.5
-	var fr := _damp_v(_focus, focus_want, _focus_vel, 0.11 if not in_air else 0.13, dt)
+	var fr := _damp_v(_focus, focus_want, _focus_vel, 0.05 if not in_air else 0.13, dt)
 	_focus = fr[0]; _focus_vel = fr[1]
 	# En vertical ya va suavizado (_ref_y): sin un segundo retraso encima (al caer rápido el
 	# atleta se saldría del cuadro)
@@ -186,7 +188,7 @@ func _process(dt: float) -> void:
 	# --- Distancia y campo de visión: cambian poco y despacio (no alteran la percepción) ---
 	var spd := player.speed()
 	var speed_t := clampf(spd / player.t.sprint_speed, 0.0, 1.2)
-	var len_want := (BASE_LEN + 0.55 * speed_t) * Settings.camera_distance
+	var len_want := (BASE_LEN + 0.3 * speed_t) * Settings.camera_distance
 	if in_air and player.global_position.y - player.takeoff_y < -2.5:
 		len_want += 0.4                              # caída grande: algo más de campo para el suelo
 	var dr := _damp_f(_len, len_want, _len_vel, 0.5, dt)
@@ -214,7 +216,10 @@ func _read_input(dt: float) -> void:
 	var cd: Vector2 = cam_in.delta
 	if cd.length() > 0.0001:
 		yaw -= cd.x
-		pitch -= cd.y * (-1.0 if Settings.invert_camera_y else 1.0)
+		# Arrastre casi horizontal = solo girar (el pulgar nunca va recto: sin inclinar por accidente);
+		# en vertical, la mitad de sensibilidad
+		var dy := cd.y if absf(cd.y) > absf(cd.x) * 0.45 else 0.0
+		pitch -= dy * 0.55 * (-1.0 if Settings.invert_camera_y else 1.0)
 		pitch = clampf(pitch, PITCH_MIN, PITCH_MAX)
 		manual_timer = 0.0
 		_recenter = 0.0
@@ -307,6 +312,10 @@ func _place_camera(dt: float) -> void:
 		if swing != 0.0:
 			yaw += swing * (1.0 - exp(-4.0 * dt))    # se desliza hacia el hueco libre
 	var eff_pitch := clampf(pitch - _raise, -1.25, PITCH_MAX)
+	# Nunca a ras de suelo: limita la inclinación para que la cámara quede por encima de los pies
+	var feet_y := player.global_position.y if player.state != PlayerController.State.AIR else minf(player.global_position.y, player.takeoff_y)
+	var room := (from.y - feet_y - GROUND_CLEAR) / maxf(_len, 0.5)
+	eff_pitch = minf(eff_pitch, asin(clampf(room, -1.0, 1.0)))
 	var hit := _cast_dir(from, eff_pitch, _len, yaw)
 	# Barrido ancho: ve venir la pared antes de que se interponga y la cámara se acerca con
 	# suavidad (en vez de saltar de golpe cuando el obstáculo cruza la línea de visión)
