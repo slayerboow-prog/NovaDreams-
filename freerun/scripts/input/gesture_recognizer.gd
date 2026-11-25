@@ -328,10 +328,51 @@ static func recognize_salto(screen: PackedVector2Array, radius: float, opts := {
 		if not r.is_empty():
 			return _result(String(r.id), "pattern", 1.0, r, opts)
 		return {"id": "", "kind": "none", "ok": false, "reason": "círculos: van en el joystick morado (tirabuzones)"}
-	# 4. Plantillas
+	# 4. Plantillas (modo gestos: las de parkour van en el joystick de movimiento)
+	return _match_templates(rs, abs_turn, opts, PARKOUR_IDS if opts.get("no_parkour", false) else [], [])
+
+## Movimientos de parkour (vaults, monkey, muros): en el modo gestos se dibujan en el joystick de
+## movimiento (izquierdo). Rodar no: su arco de arriba abajo es igual que darse la vuelta
+## corriendo (tiene su botón RODAR y su gesto en el dorado).
+const PARKOUR_IDS := ["vault", "kong", "speed", "reverse", "cat_leap", "wall_run", "wall_climb", "climb"]
+static var PARKOUR_MIN_LEN := 1.9      # recorrido mínimo (en radios del joystick) para que cuente como dibujo
+
+## Gesto de parkour dibujado con el joystick de movimiento. Dirigir al atleta casi no acumula
+## recorrido; un dibujo (U, dos arcos, Γ...) sí, así que solo se prueba con trazos amplios.
+static func recognize_parkour(screen: PackedVector2Array, radius: float, opts := {}) -> Dictionary:
+	var all := smooth(to_units(screen, radius))
+	if all.size() < 3 or path_length(all) < PARKOUR_MIN_LEN:
+		return {"id": "", "kind": "none", "ok": false, "reason": "trazo corto"}
+	# El dedo suele venir de "adelante" (corriendo) hasta donde empieza el dibujo: se prueba
+	# también sin ese tramo inicial y gana el que más se parezca
+	var rsa := resample(all, 64)
+	var best := {}
+	var fail := {}
+	for cut in [0, 8, 16, 24]:
+		var seg := rsa.slice(cut)
+		if path_length(seg) < PARKOUR_MIN_LEN:
+			break
+		var res := _match_templates(resample(seg, N), abs_turning(resample(seg, 20)), opts, [], PARKOUR_IDS)
+		if String(res.get("id", "")) == "":
+			continue
+		if res.get("ok", false):
+			if best.is_empty() or float(res.get("score", 0.0)) > float(best.get("score", 0.0)):
+				best = res
+		elif fail.is_empty():
+			fail = res
+	if not best.is_empty():
+		return best
+	if not fail.is_empty():
+		return fail
+	return {"id": "", "kind": "none", "ok": false, "reason": "patrón no reconocido"}
+
+## Compara el trazo con las plantillas (sin las de `skip`; si `only` no está vacío, solo esas).
+static func _match_templates(rs: PackedVector2Array, abs_turn: float, opts: Dictionary, skip: Array, only: Array) -> Dictionary:
 	var norm := normalize(rs)
 	var cands := []
 	for id in TEMPLATES.keys():
+		if id in skip or (not only.is_empty() and not (id in only)):
+			continue
 		var best := similarity(norm, id, false)
 		var side := 1
 		var m := similarity(norm, id, true)        # reflejada (en las simétricas: dibujada al revés)

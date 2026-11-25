@@ -118,6 +118,7 @@ func _run_all() -> void:
 	await t_twist_layout_tuck()
 	await t_chutada()
 	await t_double_presses()
+	await t_parkour_move_stick()
 	await t_mocap_backflip()
 	await t_landing_feel()
 	await t_new_tricks()
@@ -2600,5 +2601,80 @@ func t_double_presses() -> void:
 		var clean: bool = landings.size() > 0 and landings[-1].quality in ["perfect", "clean"]
 		check("Botón ATRÁS, %s = %s (%d°)" % [label[cs], expect[cs], rad_to_deg(st.maxp)], expect[cs] in moves and clean,
 			"%s %s" % [moves, landings.map(func(l): return l.quality)])
+	Settings.trick_controls = old_mode
+	game.router.scripted = _drive
+
+
+## Modo gestos: los movimientos de parkour se dibujan en el joystick de movimiento (izquierdo).
+## Dibujar no hace girar al atleta (sigue en su dirección); dirigir normal no dispara nada.
+func t_parkour_move_stick() -> void:
+	var touch: TouchControls = game.ui.touch
+	var old_mode := Settings.trick_controls
+	Settings.trick_controls = 5
+	Settings.force_touch_ui = true
+	touch.visible = true
+	touch.size = Vector2(1542, 720)
+	game.router.scripted = Callable()
+	var r := TouchControls.JOY_R * 0.8 * touch._s()
+	var base := Vector2(230, 520)
+	# Dirigir con normalidad (girar a un lado y volver) no es un gesto
+	await place(Vector3(0, 0.1, 20), Vector3.FORWARD)
+	moves.clear()
+	var e := InputEventScreenTouch.new(); e.index = 7; e.position = base; e.pressed = true
+	touch._on_touch(e)
+	var steer := [Vector2(0, -0.9), Vector2(0.5, -0.8), Vector2(0.8, -0.4), Vector2(0.5, -0.8), Vector2(0, -0.9)]
+	for q in steer:
+		var dr := InputEventScreenDrag.new(); dr.index = 7; dr.position = base + q * r; touch._on_drag(dr)
+		await frames(12)
+	e.pressed = false; touch._on_touch(e)
+	await frames(10)
+	check("Joystick de movimiento: dirigir con normalidad no hace parkour", not moves.any(func(m): return "Vault" in String(m)), str(moves))
+	# Darse la vuelta rápido corriendo (arco de adelante a atrás) tampoco: ni rodar ni parkour
+	await place(Vector3(0, 0.1, 20), Vector3.FORWARD)
+	moves.clear()
+	e.position = base; e.pressed = true
+	touch._on_touch(e)
+	var fw := InputEventScreenDrag.new(); fw.index = 7; fw.position = base + Vector2(0, -0.95) * r; touch._on_drag(fw)
+	await frames(40)
+	var st0 := player.state
+	for i in 13:
+		var a := -PI * 0.5 + PI * float(i) / 12.0
+		var da := InputEventScreenDrag.new(); da.index = 7; da.position = base + Vector2(cos(a), sin(a)) * r * 0.95; touch._on_drag(da)
+		await frames(1)
+	await frames(30)
+	e.pressed = false; touch._on_touch(e)
+	await frames(10)
+	check("Joystick de movimiento: darse la vuelta rápido no hace parkour ni rodar (%s)" % str(moves), moves.is_empty() and player.state != PlayerController.State.ROLL, str(moves))
+	# Correr hacia el muro y dibujar la U del vault en el mismo joystick
+	await place(Vector3(0, 0.1, 2), Vector3.FORWARD)
+	moves.clear()
+	e.position = base; e.pressed = true
+	touch._on_touch(e)
+	var up := InputEventScreenDrag.new(); up.index = 7; up.position = base + Vector2(0, -0.95) * r; touch._on_drag(up)
+	var st := {"drawn": false, "turned": 0.0, "f0": Vector3.ZERO}
+	for k in 240:
+		await get_tree().physics_frame
+		if not st.drawn and player.global_position.z < -3.0:
+			st.drawn = true
+			st.f0 = player.facing
+			var pts := [base + Vector2(0, -0.95) * r]
+			for q in GestureRecognizer.resample(GestureRecognizer.preview_points("vault"), 30):
+				pts.append(base + Vector2(q.x, -q.y) * r * 0.9)
+			# El dedo baja rápido desde "adelante" hasta el inicio de la U y la dibuja
+			var lead: Vector2 = pts[1]
+			for i in range(1, 6):
+				var dl := InputEventScreenDrag.new(); dl.index = 7; dl.position = (pts[0] as Vector2).lerp(lead, i / 5.0); touch._on_drag(dl)
+			for i in range(2, pts.size()):
+				var dd := InputEventScreenDrag.new(); dd.index = 7; dd.position = pts[i]; touch._on_drag(dd)
+		if st.drawn and player.state != PlayerController.State.VAULT:
+			st.turned = maxf(st.turned, (st.f0 as Vector3).angle_to(player.facing))
+		if st.drawn and moves.any(func(m): return "Vault" in String(m)):
+			break
+	e.pressed = false; touch._on_touch(e)
+	check("Joystick de movimiento: la U dibujada delante del muro = vault (%s)" % str(moves), moves.any(func(m): return "Vault" in String(m)), str(moves))
+	check("Joystick de movimiento: mientras dibuja, el atleta no se da la vuelta (%.2f rad)" % st.turned, st.turned < 0.6, "")
+	# En el dorado, el vault ya no se reconoce (va en el de movimiento)
+	var g := GestureRecognizer.recognize_salto(PackedVector2Array(_gpts("vault", Vector2(600, 400), 90)), 95.0, {"no_parkour": true})
+	check("Joystick dorado (modo gestos): el vault ya no se dibuja ahí", String(g.get("id", "")) != "vault", str(g.get("id", "")))
 	Settings.trick_controls = old_mode
 	game.router.scripted = _drive
