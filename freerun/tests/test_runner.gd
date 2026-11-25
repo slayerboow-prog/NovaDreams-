@@ -2086,7 +2086,7 @@ func t_gesture_patterns() -> void:
 	var expect := {"front": "front", "back": "back", "side_l": "side", "side_r": "side", "cork": "cork", "cork720": "cork720",
 		"aerial_twist": "aerial_twist", "gainer": "gainer"}
 	for id in GestureRecognizer.TEMPLATES.keys():
-		expect[id] = id
+		expect[id] = GestureRecognizer.TEMPLATE_ALIAS.get(id, id)
 	expect.erase("roll")                 # rodar ya no es un gesto: es automático al caer desde alto
 	var worst := {"id": "", "rate": 1.0}
 	var tot := {"ok": 0, "n": 0}

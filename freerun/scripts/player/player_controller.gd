@@ -640,7 +640,9 @@ const PRECISION_VY := 6.4               # salto de precisión: arco más bajo qu
 const PRECISION_FLAT := 1.8             # sin borde delante: distancia de un salto de precisión
 const PRECISION_MAX_HS := 6.0
 var jump_target := Vector3.INF          # borde donde caer (salto de precisión / longitud)
+var jump_hs := 0.0                      # velocidad horizontal del salto de precisión / longitud
 var dive_q := 0.0                       # Dive Kong pedido con el joystick GIRO (diagonal arriba)
+const GESTURE_VAULT_SPEED := 4.6        # vault pedido con gesto sin carrera: impulso de un par de pasos
 ## Duración mínima de cada vault (s): ritmo real de cada técnica, se aprecia el movimiento
 const VAULT_MIN_DUR := {"Speed Vault": 0.45, "Step Vault": 0.5, "Lazy Vault": 0.5, "Dash Vault": 0.55,
 	"Kong Vault": 0.55, "Double Kong": 0.75, "Kash Vault": 0.62, "Thief Vault": 0.5, "Reverse Vault": 0.62,
@@ -673,6 +675,7 @@ func _precision_jump() -> void:
 	var b := _ballistic(dist, dy, PRECISION_VY)
 	var hs := minf(float(b[1]), PRECISION_MAX_HS)
 	velocity = dir * hs + Vector3.UP * float(b[0])
+	jump_hs = hs
 	_enter_air("precision")
 	precision_t = 2.0
 	move_and_slide()
@@ -710,6 +713,7 @@ func _long_jump() -> void:
 				hs = hs2
 				jump_target = tp
 	velocity = dir * hs + Vector3.UP * vy
+	jump_hs = hs
 	_enter_air("long")
 	move_and_slide()
 
@@ -770,11 +774,14 @@ func _state_air(dt: float) -> void:
 		return
 	var wish := wish_dir()
 	var hv := horizontal_velocity()
-	if wish.length() > 0.08 and air_kind != "precision":
-		# Control en el aire también durante los mortales: el joystick lleva el cuerpo hacia donde
-		# apuntas (adelante, atrás o a un lado) para caer con precisión encima de otro muro
+	if wish.length() > 0.08:
+		# Control en el aire también durante los mortales y los saltos de precisión / longitud:
+		# el joystick lleva el cuerpo hacia donde apuntas (adelante, atrás o a un lado) para caer
+		# con precisión encima de otro muro
 		var max_s := maxf(hv.length(), t.run_speed)
-		var acc := t.air_accel * (1.35 if tricks.active else 1.0)
+		if air_kind in ["precision", "long"]:
+			max_s = maxf(jump_hs * 1.05, 1.5)       # dirige o frena, pero no acelera: el borde calculado vale
+		var acc := t.air_accel * (1.35 if tricks.active or air_kind in ["precision", "long"] else 1.0)
 		hv += wish * acc * dt
 		hv = hv.limit_length(max_s)
 	velocity.x = hv.x
@@ -1268,9 +1275,14 @@ func gesture_context() -> Dictionary:
 func _try_vault() -> bool:
 	var hv := horizontal_velocity()
 	var spd := hv.length()
+	var dir := hv / spd if spd > 0.3 else ObstacleSensor.flat(facing).normalized()
 	if spd < t.vault_min_speed:
-		return false
-	var dir := hv / spd
+		if vault_pref == "":
+			return false
+		# Vault dibujado con el gesto andando o parado delante del obstáculo: un par de pasos de
+		# impulso y sale igual (antes no hacía nada sin carrera)
+		dir = ObstacleSensor.flat(facing).normalized()
+		spd = GESTURE_VAULT_SPEED
 	var info := sensor.probe_vault(global_position, dir, spd, t.vault_max_height, t.vault_min_height)
 	if info.is_empty():
 		return false

@@ -1259,12 +1259,21 @@ func _vault_pose(p: Dictionary) -> Basis:
 	var arc := sin(s * PI)
 	match kind:
 		"Kong Vault":
-			_tuck_pose(p, arc)
-			p.shoulder_l.x = lerpf(2.8, 0.3, s); p.shoulder_r.x = lerpf(2.8, 0.3, s)
-			p.elbow_l.x = 0.2; p.elbow_r.x = 0.2
-			_apply(p, KONG_EXIT_LEGS, _smooth((s - 0.5) / 0.3))
-			# Tronco casi horizontal: hombros sobre las manos, cadera alta y piernas pasando entre los brazos
-			return Basis(Vector3.RIGHT, -1.4 * arc)
+			# Tres fases como un kong real: se lanza con los brazos al frente (tronco a ~60°),
+			# apoya y empuja mientras las piernas recogidas pasan entre los brazos, y sale con las
+			# piernas delante, el tronco enderezándose y los brazos al frente para equilibrar
+			var dive := _smooth(s / 0.3) * (1.0 - _smooth((s - 0.4) / 0.45))
+			var tk := _smooth((s - 0.15) / 0.2) * (1.0 - _smooth((s - 0.62) / 0.22))
+			_tuck_pose(p, tk)
+			var arms := lerpf(2.6, 1.55, _smooth((s - 0.2) / 0.2))
+			arms = lerpf(arms, 1.15, _smooth((s - 0.55) / 0.25))
+			p.shoulder_l.x = arms; p.shoulder_r.x = arms
+			p.shoulder_l.z = -0.18; p.shoulder_r.z = 0.18
+			p.elbow_l.x = lerpf(0.15, 0.45, _smooth((s - 0.5) / 0.3)); p.elbow_r.x = p.elbow_l.x
+			p.neck.x = 0.4 * dive + 0.05
+			_apply(p, KONG_EXIT_LEGS, _smooth((s - 0.55) / 0.3))
+			p.spine.x -= 0.15 * _smooth((s - 0.6) / 0.3)          # sale algo inclinado hacia delante, no echado atrás
+			return Basis(Vector3.RIGHT, -1.05 * dive)
 		"Dive Kong", "Kong Up":
 			# Llega en plancha con los brazos estirados por delante; recoge las piernas entre los
 			# brazos sobre el obstáculo y se endereza para caer (o quedar de pie arriba)
@@ -1274,7 +1283,7 @@ func _vault_pose(p: Dictionary) -> Basis:
 			p.neck.x = 0.45 * (1.0 - s)
 			_apply(p, KONG_EXIT_LEGS, _smooth((s - 0.55) / 0.3))
 			# Se tumba en plancha en el primer cuarto (sin saltos de orientación) y se endereza al final
-			return Basis(Vector3.RIGHT, -1.45 * minf(_smooth(s / 0.22), sin(PI * (0.3 + 0.7 * s))))
+			return Basis(Vector3.RIGHT, -1.15 * minf(_smooth(s / 0.22), sin(PI * (0.3 + 0.7 * s))))
 		"Double Kong":
 			# Dos apoyos de manos: dos arcos de agrupado sobre el obstáculo
 			var a2 := absf(sin(s * TAU))
