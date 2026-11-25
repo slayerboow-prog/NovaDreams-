@@ -13,6 +13,7 @@ signal bailed(reason: String)
 signal state_changed(old_state: int, new_state: int)
 signal entered_water(result: Dictionary)
 signal respawned
+signal trick_started(style: String)       # empieza un mortal (para la cámara lenta)
 
 enum State { GROUND, AIR, VAULT, WALLRUN, WALLCLIMB, HANG, CLIMB_UP, ROLL, CRASH, SWIM, SKILL }
 const STATE_NAMES := ["Suelo", "Aire", "Vault", "Wall Run", "Wall Climb", "Colgado", "Subida", "Rodando", "Caída", "Agua", "Habilidad"]
@@ -28,6 +29,7 @@ var water_volumes: Array[AABB] = []      # los rellena el nivel
 var buoys: Array = []                    # boyas trampolín de la playa: {"pos", "node"}
 var sand_zones: Array = []               # AABB de arena: recepciones más suaves
 var buoy_cd := 0.0
+var _trick_was_active := false
 var buoy_press_t := -1.0                 # tiempo desde que se pulsó SALTO llegando a la boya
 var buoy_post := 0.0                     # ventana tras el rebote para pulsar SALTO
 var buoy_air := false                    # vuelo lanzado por la boya (sin salto corto al soltar)
@@ -336,6 +338,9 @@ func _physics_process(dt: float) -> void:
 		State.SWIM: _state_swim(dt)
 		State.SKILL: _state_skill(dt)
 	_update_context_hint()
+	if tricks.active and not _trick_was_active and state == State.AIR:
+		trick_started.emit(tricks.style)
+	_trick_was_active = tricks.active and state == State.AIR
 	if global_position.y < t.kill_y:
 		bailed.emit("fall")
 		respawn()

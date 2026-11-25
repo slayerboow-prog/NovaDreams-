@@ -24,6 +24,7 @@ func _ready() -> void:
 	player.camera_yaw = 0.0
 	game.router.scripted = _drive
 	Settings.trick_controls = 0             # las pruebas de doble joystick lo necesitan; la botonera se prueba aparte
+	Settings.slow_motion = false            # la cámara lenta se prueba aparte (cambia el tiempo de física)
 	player.move_performed.connect(func(n, _q, _i): moves.append(n))
 	player.landed.connect(func(r): landings.append(r))
 	player.bailed.connect(func(r): bails.append(r))
@@ -124,6 +125,7 @@ func _run_all() -> void:
 	await t_precision_long_jump()
 	await t_beach_buoy()
 	await t_park()
+	await t_slow_motion()
 	await t_air_giro_queue()
 	await t_mocap_backflip()
 	await t_landing_feel()
@@ -2964,3 +2966,35 @@ func t_park() -> void:
 	check("Parque: muro largo de 4,5 m → wall run", w.hit, str(moves))
 	await place(Vector3(-35, 0.1, 35), Vector3.FORWARD)
 	await frames(10)
+
+
+## Cámara lenta: al empezar un mortal el tiempo va más despacio ~1,5 s y vuelve a la normalidad.
+func t_slow_motion() -> void:
+	Settings.slow_motion = true
+	game.camera.set_process(true)
+	await place(Vector3(-35, 0.1, 35), Vector3.FORWARD)
+	var sm := {"min": 1.0, "t0": -1, "t1": -1, "fov": 999.0}
+	await run(func(i, f):
+		i.jump_pressed = f == 0; i.flick = Vector2(0, -1) if f == 0 else Vector2.ZERO
+		i.tuck = f > 3 and f < 26; i.jump_held = i.tuck
+		if Engine.time_scale < 0.99 and sm.t0 < 0:
+			sm.t0 = Time.get_ticks_msec()
+		if sm.t0 >= 0 and sm.t1 < 0 and Engine.time_scale >= 0.999:
+			sm.t1 = Time.get_ticks_msec()
+		sm.min = minf(sm.min, Engine.time_scale)
+		sm.fov = minf(sm.fov, game.camera.cam.fov), 900,
+		func(): return sm.t1 >= 0 and player.state == PlayerController.State.GROUND)
+	var dur: float = (sm.t1 - sm.t0) / 1000.0 if sm.t1 >= 0 else -1.0
+	check("Cámara lenta: al empezar el mortal el tiempo va a %.2f y dura %.2f s reales" % [sm.min, dur],
+		sm.min < 0.45 and dur > 1.2 and dur < 1.8, "")
+	check("Cámara lenta: el mortal sale igual y cae limpio (%s)" % str(landings.map(func(l): return l.quality)),
+		"Backflip" in moves and landings.size() > 0 and landings[-1].quality in ["perfect", "clean"], str(moves))
+	check("Cámara lenta: el encuadre se cierra un poco y vuelve (fov mín %.1f, ahora %.1f)" % [sm.fov, game.camera.cam.fov],
+		game.camera.cam.fov - sm.fov > 3.0 and Engine.time_scale == 1.0, "")
+	Settings.slow_motion = false
+	await place(Vector3(-35, 0.1, 35), Vector3.FORWARD)
+	await run(func(i, f):
+		i.jump_pressed = f == 0; i.flick = Vector2(0, -1) if f == 0 else Vector2.ZERO
+		sm.min = 1.0 if f == 0 else minf(sm.min, Engine.time_scale), 60)
+	check("Cámara lenta: desactivada en Ajustes no cambia el tiempo", sm.min == 1.0, "")
+	game.camera.set_process(false)

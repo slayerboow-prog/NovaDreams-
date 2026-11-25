@@ -23,6 +23,7 @@ var cam: Camera3D
 var yaw := 0.0
 var pitch := -0.30
 var manual_timer := 10.0
+var slowmo := 0.0                 # 0..1 durante la cámara lenta: el encuadre se cierra un poco
 
 ## Vista de juego: 0 normal · 1 POV (cámara de acción en la cabeza) · 2 dron
 const VIEW_NAMES := ["NORMAL", "POV", "DRON"]
@@ -195,7 +196,7 @@ func _process(dt: float) -> void:
 	_len = dr[0]; _len_vel = dr[1]
 	var fv := _damp_f(_fov, BASE_FOV + 6.0 * speed_t, _fov_vel, 0.6, dt)
 	_fov = fv[0]; _fov_vel = fv[1]
-	cam.fov = _fov
+	cam.fov = _fov - 9.0 * slowmo                    # cámara lenta: acercamiento suave al atleta
 	_roll = lerpf(_roll, -0.05 * float(player.wall.get("side", 1.0)) if st == S.WALLRUN else 0.0, 1.0 - exp(-5.0 * dt))
 
 	_place_camera(dt)

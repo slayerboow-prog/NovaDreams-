@@ -621,6 +621,7 @@ func _build_settings() -> void:
 	_check(right, "Invertir eje Y de cámara", "invert_camera_y")
 	_check(right, "Forzar controles táctiles", "force_touch_ui")
 	_check(right, "Mostrar FPS", "show_fps")
+	_check(right, "Cámara lenta al empezar un mortal", "slow_motion")
 	settings_panel.visible = false
 
 func open_settings() -> void:

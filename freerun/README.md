@@ -123,6 +123,10 @@ El personaje es una **malla continua con piel** (tronco, cuello, brazos y pierna
 
 Cada acrobacia tiene su propio ritmo de giro (backflip explosivo; aerial y butterfly más amplios), el doble mortal gira más rápido que el simple, y se anima por fases a partir del giro real: preparación (flexión antes de despegar), impulso, agrupación, rotación, apertura y recepción, con una forma corporal propia para Backflip, Frontflip, Sideflip, Gainer, Webster, Butterfly Kick, Cork y tirabuzones.
 
+## Cámara lenta
+
+Al empezar cualquier mortal, el tiempo va más despacio durante 1,5 s reales: entra en 0,12 s hasta el 35 % de la velocidad, se mantiene hasta el primer segundo y vuelve suavemente a la normalidad. La cámara se acerca un poco (el campo de visión se cierra 9°) mientras dura. Se puede desactivar en Ajustes → «Cámara lenta al empezar un mortal».
+
 ## Zonas
 
 - **Parque de obstáculos** (en la ciudad, al fondo a la derecha del callejón de wall run). Tiene cuatro calles con alturas distintas:
