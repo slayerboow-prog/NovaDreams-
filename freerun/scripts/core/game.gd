@@ -235,14 +235,12 @@ const SLOWMO_TIME := 1.5
 const SLOWMO_SCALE := 0.35
 const SLOWMO_IN := 0.12
 const SLOWMO_HOLD := 1.0
-var slowmo_t := -1.0                  # segundos reales desde que empezó (-1 = inactiva)
-var _slowmo_ms := 0
+var slowmo_t := -1.0                  # segundos (sin escalar) desde que empezó (-1 = inactiva)
 
 func _on_trick_started(_style: String) -> void:
 	if not Settings.slow_motion or slowmo_t >= 0.0 or paused or in_menu:
 		return
 	slowmo_t = 0.0
-	_slowmo_ms = Time.get_ticks_msec()
 
 func slowmo_scale(t: float) -> float:
 	if t < 0.0 or t >= SLOWMO_TIME:
@@ -259,13 +257,12 @@ func stop_slowmo() -> void:
 	Engine.time_scale = 1.0
 	camera.slowmo = 0.0
 
-func _tick_slowmo() -> void:
-	if slowmo_t < 0.0:
-		return
-	if paused:
-		_slowmo_ms = Time.get_ticks_msec() - int(slowmo_t * 1000.0)   # en pausa el tiempo no corre
-		return
-	slowmo_t = (Time.get_ticks_msec() - _slowmo_ms) / 1000.0
+func _tick_slowmo(dt: float) -> void:
+	if slowmo_t < 0.0 or paused:
+		return                                   # en pausa el tiempo no corre
+	# Tiempo de juego sin escalar (dt viene frenado por la cámara lenta): no depende del reloj
+	# del dispositivo ni de lo rápido que vaya (las pruebas automáticas van más rápido que el real)
+	slowmo_t += dt / maxf(Engine.time_scale, 0.01)
 	if slowmo_t >= SLOWMO_TIME:
 		stop_slowmo()
 		return
@@ -274,7 +271,7 @@ func _tick_slowmo() -> void:
 	camera.slowmo = (1.0 - sc) / (1.0 - SLOWMO_SCALE)
 
 func _process(dt: float) -> void:
-	_tick_slowmo()
+	_tick_slowmo(dt)
 	if in_menu:
 		_menu_orbit += dt * 0.08
 		camera.yaw = _menu_orbit

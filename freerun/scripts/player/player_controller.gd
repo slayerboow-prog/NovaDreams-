@@ -35,6 +35,7 @@ var _trick_was_active := false
 var buoy_press_t := -1.0                 # tiempo desde que se pulsó SALTO llegando a la boya
 var buoy_post := 0.0                     # ventana tras el rebote para pulsar SALTO
 var buoy_air := false                    # vuelo lanzado por la boya (sin salto corto al soltar)
+var buoy_aimed := false                  # salto apuntado a una boya (trayectoria calculada: se respeta)
 const BUOY_VY := 12.0                    # rebote de la boya (salto normal 8,4)
 const BUOY_MIN_SPEED := 4.0             # hay que llegar corriendo (andando no rebota)
 const BUOY_PERFECT := 0.12              # SALTO a menos de esto del contacto = impulso perfecto
@@ -251,6 +252,7 @@ func _set_state(s: int) -> void:
 	state_time = 0.0
 	if s != State.AIR:
 		buoy_air = false
+		buoy_aimed = false
 	state_changed.emit(old, s)
 
 func _turn_facing(dir: Vector3, rate: float, dt: float) -> void:
@@ -686,6 +688,7 @@ func _do_jump(kind: String, link := {}) -> void:
 		velocity.x += facing.x * float(tk.fwd) * slow * aim
 		velocity.z += facing.z * float(tk.fwd) * slow * aim
 	takeoff_style = ""
+	_aim_at_buoy()
 	_enter_air(kind)
 	if not link.is_empty():
 		_apply_link_to_air(link)
@@ -709,8 +712,8 @@ const VAULT_MIN_DUR := {"Speed Vault": 0.6, "Step Vault": 0.65, "Lazy Vault": 0.
 
 ## Velocidad horizontal para caer a `dist` y `dy` metros con velocidad vertical vy (la sube si no
 ## alcanza esa altura). Devuelve [vy, horizontal].
-func _ballistic(dist: float, dy: float, vy: float) -> Array:
-	var g := t.gravity
+func _ballistic(dist: float, dy: float, vy: float, g_override := 0.0) -> Array:
+	var g := g_override if g_override > 0.0 else t.gravity
 	if vy * vy - 2.0 * g * dy < 1.0:
 		vy = sqrt(maxf(2.0 * g * dy, 0.0) + 4.0)        # llega con un poco de margen por encima
 	var tt := (vy + sqrt(maxf(vy * vy - 2.0 * g * dy, 0.0))) / g
@@ -742,6 +745,38 @@ func _precision_jump() -> void:
 	_enter_air("precision")
 	precision_t = 2.0
 	move_and_slide()
+
+## Salto (normal o con mortal) en dirección a una boya: el juego entiende que quieres caer
+## encima y ajusta la trayectoria (dirección y fuerza) para llegar justo a su parte de arriba.
+func _aim_at_buoy() -> void:
+	if buoys.is_empty():
+		return
+	var hv := horizontal_velocity()
+	var dir := hv.normalized() if hv.length() > 0.6 else ObstacleSensor.flat(facing).normalized()
+	var wish := wish_dir()
+	if hv.length() <= 0.6 and wish.length() > 0.3:
+		dir = wish.normalized()
+	for bd in buoys:
+		var c: Vector3 = bd.pos
+		var r: float = bd.get("r", 1.0)
+		var v := Vector3(c.x - global_position.x, 0.0, c.z - global_position.z)
+		var along := v.dot(dir)
+		var side := (v - dir * along).length()
+		if along < 1.0 or along > 9.5 or side > r + 1.0 or v.normalized().dot(dir) < 0.55:
+			continue
+		var top := Vector3(c.x, c.y + r, c.z)
+		# Con mortal el atleta flota algo más (gravedad de acrobacia): la trayectoria lo tiene en cuenta
+		var flip := flick_timer > 0.0 or cork_buffer > 0.0 or mad_stage > 0 or kick_timer > 0.0 or intent.rot.length() > 0.55
+		var g := t.gravity * (t.trick_gravity_mult if flip else 1.0)
+		var b := _ballistic(v.length(), top.y - global_position.y, maxf(velocity.y, 6.0), g)
+		var hs := clampf(float(b[1]), 0.3, 11.0)
+		var to := v.normalized()
+		velocity = Vector3(to.x * hs, float(b[0]), to.z * hs)
+		facing = to
+		jump_target = top
+		jump_hs = hs
+		buoy_aimed = true
+		return
 
 ## Boya delante en la dirección del salto (con margen lateral generoso): {"pos": su parte de
 ## arriba, "dy"} para que el salto de precisión o de longitud caiga encima. {} si no hay.
@@ -872,7 +907,7 @@ func _state_air(dt: float) -> void:
 		# el joystick lleva el cuerpo hacia donde apuntas (adelante, atrás o a un lado) para caer
 		# con precisión encima de otro muro
 		var max_s := maxf(hv.length(), t.run_speed)
-		if air_kind in ["precision", "long"]:
+		if air_kind in ["precision", "long"] or buoy_aimed:
 			max_s = maxf(jump_hs * 1.05, 1.5)       # dirige o frena, pero no acelera: el borde calculado vale
 		var acc := t.air_accel * (1.35 if tricks.active or air_kind in ["precision", "long"] else 1.0)
 		hv += wish * acc * dt
@@ -880,7 +915,7 @@ func _state_air(dt: float) -> void:
 	velocity.x = hv.x
 	velocity.z = hv.z
 	var g := _air_gravity_base()
-	if velocity.y > 0.0 and not intent.jump_held and intent.rot.length() < 0.3 and not tricks.active and air_kind in ["run", "stand"] and not buoy_air:
+	if velocity.y > 0.0 and not intent.jump_held and intent.rot.length() < 0.3 and not tricks.active and air_kind in ["run", "stand"] and not buoy_air and not buoy_aimed:
 		g *= t.low_jump_mult
 	velocity.y = maxf(velocity.y - g * dt, -t.max_fall)
 	peak_y = maxf(peak_y, global_position.y)
@@ -950,6 +985,11 @@ func _state_air(dt: float) -> void:
 	if _check_water():
 		return
 	if is_on_floor():
+		# Cae encima de la boya: rebota (el mortal que traía cuenta si cae bien)
+		var bb := _buoy_below()
+		if not bb.is_empty() and buoy_cd <= 0.0 and _buoy_credit_trick():
+			_buoy_launch(bb, horizontal_velocity())
+			return
 		_land()
 
 ## Boya trampolín: entrar corriendo en ella o caerle encima te lanza muy alto (en el aire se
@@ -983,7 +1023,7 @@ func _buoy_check(dt: float) -> bool:
 		var top := c.y + r
 		var toward := dl < 0.05 or (hv.length() > 0.5 and hv.normalized().dot(d / dl) > 0.6)
 		# SALTO pulsado al llegar a la boya: se guarda para el impulso (no hace un salto normal)
-		if intent.jump_pressed and dl < r + 2.2 and p.y < top + 2.5 and \
+		if intent.jump_pressed and dl < r + 1.3 and p.y < top + 2.5 and \
 				((state == State.GROUND and toward and hv.length() >= BUOY_MIN_SPEED) or (state == State.AIR and velocity.y < 1.0)):
 			buoy_press_t = 0.0
 			jump_buffer = 0.0
@@ -999,14 +1039,41 @@ func _buoy_check(dt: float) -> bool:
 		if probe.distance_to(c) > reach or p.y < c.y:
 			continue
 		if state == State.GROUND:
-			# hay que ir hacia ella corriendo (andando al lado no salta)
-			if hv.length() < BUOY_MIN_SPEED or not toward:
+			# hay que ir hacia ella corriendo (andando al lado no salta); de pie encima, rebota
+			var on_top := dl < r * 0.85 and p.y > c.y + r * 0.5
+			if not on_top and (hv.length() < BUOY_MIN_SPEED or not toward):
 				continue
 		elif velocity.y > 0.5:
 			continue                           # subiendo: aún no la pisa
+		elif not _buoy_credit_trick():
+			continue                           # cae mal (cabeza abajo): recepción normal, sin rebote
 		_buoy_launch(bd, hv)
 		return true
 	return false
+
+## Boya justo bajo los pies (encima de su superficie). {} si no.
+func _buoy_below() -> Dictionary:
+	for bd in buoys:
+		var c: Vector3 = bd.pos
+		var r: float = bd.get("r", 1.0)
+		var dxz := Vector2(global_position.x - c.x, global_position.z - c.z).length()
+		if dxz < r * 0.95 and global_position.y > c.y + r * 0.3:
+			return bd
+	return {}
+
+## Mortal que acaba encima de la boya: si cae de pie se apunta (como una recepción) y rebota;
+## si cae mal, recepción normal (caída). Devuelve si puede rebotar.
+func _buoy_credit_trick() -> bool:
+	if not tricks.has_rotation():
+		return true
+	var err := rad_to_deg(tricks.upright_error())
+	if err > t.sloppy_angle:
+		return false
+	var trick := tricks.evaluate()
+	facing = facing.rotated(Vector3.UP, tricks.landing_yaw()).normalized()
+	if not trick.is_empty():
+		_emit_move(trick.name, 1.25 if err <= t.perfect_angle else (1.0 if err <= t.clean_angle else 0.5), trick)
+	return true
 
 func _buoy_launch(bd: Dictionary, hv: Vector3) -> void:
 	buoy_cd = 0.5

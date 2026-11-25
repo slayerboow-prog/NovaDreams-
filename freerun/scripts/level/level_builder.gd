@@ -55,7 +55,7 @@ func build(parent: Node3D) -> Dictionary:
 	info.spawns["gym"] = [GYM_C + Vector3(0, 0.1, 11), Vector3.FORWARD]
 	info.spawns["plaza"] = [Vector3(28, 0.1, -16), Vector3.FORWARD]
 	info.spawns["park"] = [Vector3(30, 0.1, -38), Vector3.FORWARD]
-	info.spawns["beach"] = [Vector3(125, 0.1, 12), Vector3.FORWARD]
+	info.spawns["beach"] = [Vector3(125, 0.1, 9), Vector3.FORWARD]
 	info.checkpoints = [Vector3(0, 1.4, -10), Vector3(0, 1.4, -24), Vector3(0, 4.4, -43),
 		Vector3(0, 3.6, -49.6), Vector3(0, 1.4, -58)]
 	return info
@@ -336,7 +336,7 @@ func _moves_plaza() -> void:
 # ------------------------------------------------------------------ playa
 
 const C_SAND := Color(0.84, 0.68, 0.42)
-const BUOY_R := 1.14                 # boya grande (2,3 m de diámetro), medio enterrada
+const BUOY_R := 2.0                  # boya grande (4 m de diámetro), medio enterrada
 const BEACH_C := Vector3(125, 0, 0)    # centro de la playa (lejos de la ciudad)
 const BEACH_HALF := 22.0
 
@@ -351,7 +351,7 @@ func _beach() -> void:
 		if c is MeshInstance3D:
 			(c as MeshInstance3D).material_override = sm
 	info.sand.append(AABB(BEACH_C + Vector3(-BEACH_HALF, -1, -BEACH_HALF), Vector3(2 * BEACH_HALF, 3, 2 * BEACH_HALF)))
-	_buoy(BEACH_C + Vector3(0, -0.45, 0))         # asoma ~0,7 m: se pisa corriendo
+	_buoy(BEACH_C + Vector3(0, -0.9, 0))          # asoma 1,1 m y mide ~3,6 m de ancho
 
 func _buoy(c: Vector3) -> void:
 	var body := StaticBody3D.new()

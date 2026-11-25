@@ -956,8 +956,14 @@ func t_camera() -> void:
 	var held := absf(angle_difference(cam.yaw, behind))
 	check("Cámara híbrida: el giro manual se respeta al correr (no lucha contra el jugador)", turned > 1.2 and held > 1.0, "girada %.2f · tras 1 s corriendo %.2f" % [turned, held])
 	await run(north, 300)
+	var kept := absf(angle_difference(cam.yaw, behind))
+	check("Cámara híbrida: un giro grande del jugador se respeta (no da la vuelta sola)", kept > 1.0, "desvío %.2f" % kept)
+	# Desvío pequeño (~0,4 rad): sí lo corrige suavemente al correr
+	await run(func(i, f): i.camera_recenter = f == 0, 60)
+	await run(func(i, f): if f < 3: i.camera_delta = Vector2(0.13, 0), 6)
+	await run(north, 420)
 	var follow := absf(angle_difference(cam.yaw, behind))
-	check("Cámara híbrida: después vuelve sola detrás del movimiento", follow < 0.35, "desvío %.2f" % follow)
+	check("Cámara híbrida: corrige sola los desvíos pequeños al correr", follow < 0.2, "desvío %.2f" % follow)
 	await run(func(i, f): if f < 10: i.camera_delta = Vector2(0.15, 0), 20)
 	await run(func(i, f): i.camera_recenter = f == 0, 40)
 	var rec := absf(angle_difference(cam.yaw, atan2(-player.facing.x, -player.facing.z)))
@@ -3225,8 +3231,8 @@ func t_beach_buoy() -> void:
 	var c: Vector3 = li.buoys[0].pos
 	var r: float = li.buoys[0].r
 	var start := Vector3(c.x, 0.1, c.z + 9.0)
-	# Salto normal en la arena como referencia
-	await place(start, Vector3.FORWARD)
+	# Salto normal en la arena como referencia (de espaldas a la boya: saltar hacia ella apunta a ella)
+	await place(start, Vector3.BACK)
 	var ref := {"y0": player.global_position.y, "peak": 0.0}
 	await run(func(i, f):
 		i.jump_pressed = f == 2
@@ -3307,6 +3313,40 @@ func t_beach_buoy() -> void:
 		i.jump_pressed = f == 2, 300,
 		func(): return moves.has("Buoy Launch") or (_f > 60 and player.state == PlayerController.State.GROUND))
 	check("Boya: el salto de precisión cae encima de la boya (%s)" % str(moves), "Precision Jump" in moves and "Buoy Launch" in moves, "")
+	# Saltar hacia la boya (normal, longitud o con mortal) desde 5,5-8,5 m y con desvío: el juego
+	# entiende que quieres caer encima y ajusta la trayectoria
+	var aim_ok := 0
+	var aim_fails := []
+	for kind in ["salto", "longitud", "mortal"]:
+		for cfg in [[5.5, -1.2], [7.0, 0.0], [8.5, 1.2]]:
+			await place(Vector3(c.x + float(cfg[1]), 0.05, c.z + 16.0), Vector3.FORWARD)
+			moves.clear()
+			var sa := {"p": false, "air": false}
+			var dist: float = cfg[0]
+			await run(func(i, f):
+				var g: bool = player.state == PlayerController.State.GROUND
+				i.move = Vector2(0, 1) if g and (not sa.p or kind == "longitud") else Vector2.ZERO
+				i.sprint = true
+				if not sa.p and player.global_position.z <= c.z + dist:
+					i.jump_pressed = true; sa.p = true
+					if kind == "mortal":
+						i.flick = Vector2(0, -1)
+				sa.air = sa.air or (sa.p and player.state == PlayerController.State.AIR), 300,
+				func(): return moves.has("Buoy Launch") or (sa.air and player.state != PlayerController.State.AIR))
+			if moves.has("Buoy Launch"):
+				aim_ok += 1
+			else:
+				aim_fails.append([kind, cfg])
+	check("Boya: saltando hacia ella (normal, longitud o con mortal) cae encima (%d/9)" % aim_ok, aim_ok == 9, str(aim_fails))
+	# Mortal cayendo encima de la boya: el mortal cuenta y rebota (antes a veces se quedaba de pie)
+	await place(Vector3(c.x + 0.4, c.y + r + 7.5, c.z), Vector3.FORWARD)
+	moves.clear()
+	await run(func(i, f):
+		i.flick = Vector2(0, -1) if f == 1 else Vector2.ZERO
+		i.tuck = f > 1 and f < 22, 200,
+		func(): return moves.has("Buoy Launch"))
+	check("Boya: mortal cayendo encima = el mortal cuenta y rebota (%s)" % str(moves),
+		moves.has("Buoy Launch") and moves.find("Backflip") >= 0 and moves.find("Backflip") < moves.find("Buoy Launch"), "")
 	# Andando al lado sin ir hacia ella no salta
 	await place(Vector3(c.x + r + 0.2, 0.1, c.z + 3), Vector3.FORWARD)
 	moves.clear()
@@ -3364,18 +3404,19 @@ func t_slow_motion() -> void:
 	Settings.slow_motion = true
 	game.camera.set_process(true)
 	await place(Vector3(-35, 0.1, 35), Vector3.FORWARD)
-	var sm := {"min": 1.0, "t0": -1, "t1": -1, "fov": 999.0}
+	var sm := {"min": 1.0, "t0": -1, "t1": -1, "fov": 999.0, "dur": 0.0}
 	await run(func(i, f):
 		i.jump_pressed = f == 0; i.flick = Vector2(0, -1) if f == 0 else Vector2.ZERO
 		i.tuck = f > 3 and f < 26; i.jump_held = i.tuck
 		if Engine.time_scale < 0.99 and sm.t0 < 0:
-			sm.t0 = Time.get_ticks_msec()
+			sm.t0 = 1
+		sm.dur = maxf(sm.dur, game.slowmo_t)
 		if sm.t0 >= 0 and sm.t1 < 0 and Engine.time_scale >= 0.999:
-			sm.t1 = Time.get_ticks_msec()
+			sm.t1 = 1
 		sm.min = minf(sm.min, Engine.time_scale)
 		sm.fov = minf(sm.fov, game.camera.cam.fov), 900,
 		func(): return sm.t1 >= 0 and player.state == PlayerController.State.GROUND)
-	var dur: float = (sm.t1 - sm.t0) / 1000.0 if sm.t1 >= 0 else -1.0
+	var dur: float = sm.dur if sm.t1 >= 0 else -1.0
 	check("Cámara lenta: al empezar el mortal el tiempo va a %.2f y dura %.2f s reales" % [sm.min, dur],
 		sm.min < 0.45 and dur > 1.2 and dur < 1.8, "")
 	check("Cámara lenta: el mortal sale igual y cae limpio (%s)" % str(landings.map(func(l): return l.quality)),

@@ -43,7 +43,8 @@ const COLL_RADIUS := 0.24         # radio de la esfera que barre el espacio cám
 const MIN_DIST := 1.25            # más cerca que esto: la cámara sube en vez de acercarse
 const LEAD_TIME := 0.12           # anticipación (segundos de velocidad)
 const LEAD_MAX := 0.5
-const FOLLOW_HOLD := [1.2, INF, 0.6]   # segundos sin tocar la cámara antes de alinearse (híbrida, manual, automática)
+const FOLLOW_HOLD := [2.5, INF, 0.6]   # segundos sin tocar la cámara antes de alinearse (híbrida, manual, automática)
+const FOLLOW_MAX_DIFF := [0.7, 0.0, 2.4]   # híbrida: solo corrige desvíos pequeños (corriendo de lado no gira sola)
 
 # --- Estado interno (muelles) ---
 var _focus := Vector3.ZERO
@@ -237,7 +238,7 @@ func _auto_align(dt: float, in_air: bool) -> void:
 	var S := PlayerController.State
 	var behind := atan2(-player.facing.x, -player.facing.z)
 	# Tras un tirabuzón que cambia hacia dónde mira: vuelve detrás al aterrizar, sin brusquedad
-	if _was_air and not in_air and Settings.camera_mode != 1 and manual_timer > 0.6 \
+	if _was_air and not in_air and Settings.camera_mode == 2 and manual_timer > 0.6 \
 			and not player.last_landing.get("trick", {}).is_empty() and absf(angle_difference(yaw, behind)) > 1.0:
 		_recenter = 1.0
 	_was_air = in_air
@@ -255,9 +256,12 @@ func _auto_align(dt: float, in_air: bool) -> void:
 		var hv := player.horizontal_velocity()
 		var target := atan2(-hv.x, -hv.z)
 		var diff := absf(angle_difference(yaw, target))
-		if diff < 2.4 and diff > 0.03:
-			# Más rápido cuanto más corre (en sprint sigue las curvas; andando apenas se mueve)
-			yaw = _damp_angle(yaw, target, lerpf(1.1, 0.4, clampf(spd / 9.0, 0.0, 1.0)), dt)
+		var max_diff: float = FOLLOW_MAX_DIFF[clampi(Settings.camera_mode, 0, 2)]
+		if diff < max_diff and diff > 0.03:
+			# Más rápido cuanto más corre (en sprint sigue las curvas; andando apenas se mueve).
+			# En híbrida es una corrección suave de deriva: nunca da la vuelta por su cuenta.
+			var slow := 1.6 if Settings.camera_mode == 0 else 1.0
+			yaw = _damp_angle(yaw, target, lerpf(1.1, 0.4, clampf(spd / 9.0, 0.0, 1.0)) * slow, dt)
 	else:
 		_yaw_vel = 0.0
 	if manual_timer > hold + 0.8:
