@@ -1002,6 +1002,9 @@ func _tick_flip_buttons(dt: float) -> void:
 				mad_stage = 2
 				tricks.request_flip(true)
 				mad_twisted = false
+				# Si el dedo sigue en GIRO, el mortal manda: se agrupa y deja de girar hasta que
+				# levantes ese dedo
+				twist_lock = true
 
 ## Joystick morado en el suelo (GestureRecognizer.recognize_giro): habilidades de suelo y
 ## entradas de potencia. En una habilidad quedan en cola para el enlace.

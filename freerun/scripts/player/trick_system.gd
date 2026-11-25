@@ -420,7 +420,9 @@ func step(dt: float, push: float, time_left: float, assist: float, t: MoveTuning
 	tucked = held and active
 	# Agrupación progresiva: el cuerpo tarda ~0,25 s en cerrarse del todo (y se abre algo más rápido)
 	var tuck_target := maxf(drive, 0.0) if active else 0.0
-	tuck_amount = move_toward(tuck_amount, tuck_target, dt * (4.0 if tuck_target > tuck_amount else 6.0))
+	# Modo gestos: el botón de mortal agrupa de golpe (~0,12 s), como un atleta que se encoge
+	var close_rate := 8.5 if layout_twist else 4.0
+	tuck_amount = move_toward(tuck_amount, tuck_target, dt * (close_rate if tuck_target > tuck_amount else 6.0))
 	if not active:
 		return
 	if drive > 0.5:
