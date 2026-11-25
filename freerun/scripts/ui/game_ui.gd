@@ -512,17 +512,20 @@ func _tutorial_tick(player: PlayerController) -> void:
 	if (want.has("@run") and player.speed() > 5.0) or (want.has("@air") and player.state == PlayerController.State.AIR):
 		_tutorial_advance()
 
+const SET_LABEL_W := 250.0
+const SET_CTRL_W := 290.0
 func _slider(box: VBoxContainer, text: String, key: String, mn: float, mx: float, step: float) -> void:
 	var row := HBoxContainer.new()
 	var l := _label(text, 18)
-	l.custom_minimum_size.x = 260
+	l.custom_minimum_size.x = SET_LABEL_W
+	l.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	row.add_child(l)
 	var s := HSlider.new()
 	s.min_value = mn
 	s.max_value = mx
 	s.step = step
 	s.value = Settings.get(key)
-	s.custom_minimum_size = Vector2(260, 40)
+	s.custom_minimum_size = Vector2(SET_CTRL_W - 70.0, 40)
 	var val := _label("%.2f" % s.value, 18)
 	val.custom_minimum_size.x = 60
 	s.value_changed.connect(func(v):
@@ -535,13 +538,15 @@ func _slider(box: VBoxContainer, text: String, key: String, mn: float, mx: float
 func _option(box: VBoxContainer, text: String, key: String, options: Array) -> void:
 	var row := HBoxContainer.new()
 	var l := _label(text, 18)
-	l.custom_minimum_size.x = 260
+	l.custom_minimum_size.x = SET_LABEL_W
 	row.add_child(l)
 	var ob := OptionButton.new()
 	for o in options:
 		ob.add_item(o)
 	ob.selected = int(Settings.get(key))
-	ob.custom_minimum_size = Vector2(320, 44)
+	ob.custom_minimum_size = Vector2(SET_CTRL_W, 44)
+	ob.clip_text = true
+	ob.fit_to_longest_item = false
 	ob.item_selected.connect(func(i): Settings.set(key, i))
 	row.add_child(ob)
 	box.add_child(row)
@@ -553,24 +558,49 @@ func _check(box: VBoxContainer, text: String, key: String) -> void:
 	cb.toggled.connect(func(v): Settings.set(key, v))
 	box.add_child(cb)
 
+## Ajustes en horizontal: dos columnas que caben en la pantalla del móvil (con desplazamiento si
+## hace falta) y el botón de volver siempre visible arriba.
+var _settings_scroll: ScrollContainer
 func _build_settings() -> void:
 	var r := _centered_panel()
 	settings_panel = r[0]
 	var box: VBoxContainer = r[1]
-	box.add_child(_label("AJUSTES", 40, ACCENT, HORIZONTAL_ALIGNMENT_CENTER))
-	_option(box, "Ayuda de rotación", "rotation_assist", ["Pro (sin ayudas)", "Media", "Alta"])
-	_option(box, "Controles de trucos", "trick_controls", ["Doble joystick (rueda)", "Solo gestos", "Solo cruceta", "Gestos + cruceta", "Botonera de botones", "Gestos: SALTO + GIRO (por defecto)"])
-	_option(box, "Gráficos", "graphics_preset", ["Bajo", "Medio", "Alto"])
+	var head := HBoxContainer.new()
+	var title := _label("AJUSTES", 34, ACCENT)
+	title.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	head.add_child(title)
+	head.add_child(_button("Guardar y volver", func():
+		Settings.save_settings()
+		settings_panel.visible = false))
+	box.add_child(head)
+	_settings_scroll = ScrollContainer.new()
+	_settings_scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	_settings_scroll.custom_minimum_size = Vector2(1160, 460)
+	box.add_child(_settings_scroll)
+	var cols := HBoxContainer.new()
+	cols.add_theme_constant_override("separation", 34)
+	_settings_scroll.add_child(cols)
+	var left := VBoxContainer.new()
+	left.add_theme_constant_override("separation", 8)
+	var right := VBoxContainer.new()
+	right.add_theme_constant_override("separation", 8)
+	cols.add_child(left)
+	cols.add_child(right)
+	# Columna izquierda: juego y cámara
+	_option(left, "Ayuda de rotación", "rotation_assist", ["Pro (sin ayudas)", "Media", "Alta"])
+	_option(left, "Controles de trucos", "trick_controls", ["Doble joystick (rueda)", "Solo gestos", "Solo cruceta", "Gestos + cruceta", "Botonera de botones", "Gestos: SALTO + GIRO (por defecto)"])
+	_option(left, "Gráficos", "graphics_preset", ["Bajo", "Medio", "Alto"])
 	# Backflip de captura real: versión desbloqueable (con N backflips hechos)
 	var brow := HBoxContainer.new()
 	var bl := _label("Estilo de backflip", 18)
-	bl.custom_minimum_size.x = 260
+	bl.custom_minimum_size.x = SET_LABEL_W
 	brow.add_child(bl)
 	var bob := OptionButton.new()
 	bob.add_item("Clásico")
 	bob.add_item("Captura real" if Settings.backflip_real_unlocked() else "Captura real (bloqueado)")
 	bob.selected = Settings.backflip_style
-	bob.custom_minimum_size = Vector2(320, 44)
+	bob.custom_minimum_size = Vector2(SET_CTRL_W, 44)
+	bob.clip_text = true
 	bob.item_selected.connect(func(i):
 		if i == 1 and not Settings.backflip_real_unlocked():
 			bob.selected = 0
@@ -578,25 +608,27 @@ func _build_settings() -> void:
 			return
 		Settings.backflip_style = i)
 	brow.add_child(bob)
-	box.add_child(brow)
-	_slider(box, "Sensibilidad cámara", "camera_sensitivity", 0.3, 2.5, 0.05)
-	_slider(box, "Sensibilidad joystick/gestos", "gesture_sensitivity", 0.4, 2.0, 0.05)
-	_slider(box, "Tamaño controles", "control_scale", 0.7, 1.4, 0.05)
-	_option(box, "Cámara", "camera_mode", ["Híbrida (sigue y respeta lo que muevas)", "Manual", "Automática"])
-	_slider(box, "Distancia cámara", "camera_distance", 0.75, 1.4, 0.05)
-	_slider(box, "Altura cámara", "camera_height", 0.7, 1.5, 0.05)
-	_slider(box, "Opacidad controles", "control_opacity", 0.2, 1.0, 0.05)
-	_check(box, "Modo zurdo (joystick a la derecha)", "left_handed")
-	_check(box, "Invertir eje Y de cámara", "invert_camera_y")
-	_check(box, "Forzar controles táctiles", "force_touch_ui")
-	_check(box, "Mostrar FPS", "show_fps")
-	box.add_child(_button("Guardar y volver", func():
-		Settings.save_settings()
-		settings_panel.visible = false))
+	left.add_child(brow)
+	_option(left, "Cámara", "camera_mode", ["Híbrida (sigue y respeta lo que muevas)", "Manual", "Automática"])
+	_slider(left, "Distancia cámara", "camera_distance", 0.75, 1.4, 0.05)
+	_slider(left, "Altura cámara", "camera_height", 0.7, 1.5, 0.05)
+	_slider(left, "Sensibilidad cámara", "camera_sensitivity", 0.3, 2.5, 0.05)
+	# Columna derecha: controles y pantalla
+	_slider(right, "Sensibilidad joystick/gestos", "gesture_sensitivity", 0.4, 2.0, 0.05)
+	_slider(right, "Tamaño controles", "control_scale", 0.7, 1.4, 0.05)
+	_slider(right, "Opacidad controles", "control_opacity", 0.2, 1.0, 0.05)
+	_check(right, "Modo zurdo (joystick a la derecha)", "left_handed")
+	_check(right, "Invertir eje Y de cámara", "invert_camera_y")
+	_check(right, "Forzar controles táctiles", "force_touch_ui")
+	_check(right, "Mostrar FPS", "show_fps")
 	settings_panel.visible = false
 
 func open_settings() -> void:
 	settings_panel.visible = true
+	# El alto del área de ajustes se ajusta a la pantalla (el botón de volver siempre se ve)
+	if _settings_scroll:
+		var vh: float = get_viewport().get_visible_rect().size.y
+		_settings_scroll.custom_minimum_size.y = clampf(vh - 170.0, 220.0, 520.0)
 	move_child(settings_panel, get_child_count() - 1)
 
 func show_main_menu(v: bool) -> void:

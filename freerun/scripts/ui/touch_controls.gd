@@ -167,10 +167,10 @@ func flip_button_center(i: int) -> Vector2:
 		v.x = -v.x
 	return _jump_center() + v
 
-## Botón 1 PIE: abajo a la derecha, en la esquina junto a SALTO.
+## Botón 1 PIE: abajo a la izquierda, en la esquina junto al joystick de movimiento.
 func one_foot_center() -> Vector2:
 	var s := _s()
-	return Vector2(_mirror(size.x - 46.0 * s), size.y - 56.0 * s)
+	return Vector2(_mirror(46.0 * s), size.y - 56.0 * s)
 
 func flip_button_at(p: Vector2) -> int:
 	for i in FLIP_BTNS.size():
@@ -688,6 +688,9 @@ func _on_touch(e: InputEventScreenTouch) -> void:
 			role = "move"
 			_joy_base = p
 			_joy_vec = Vector2.ZERO
+			info["mpath"] = [p]
+			info["mtime"] = [_time]
+			info["mfast"] = [false]
 		else:
 			role = "camera" if stick_enabled() else "gesture"
 			_hint_time = 99.0
@@ -708,6 +711,7 @@ func _on_touch(e: InputEventScreenTouch) -> void:
 			return
 		if f.role == "move":
 			_joy_vec = Vector2.ZERO
+			_move_gesture_check(f, true)
 		elif f.role == "ringchange":
 			if not f.get("turned", false):
 				ring_turn(1)                      # tocar CAMBIAR = siguiente página
@@ -754,7 +758,29 @@ func _on_drag(e: InputEventScreenDrag) -> void:
 				_joy_base = e.position - d.normalized() * r * 1.25
 				d = e.position - _joy_base
 			var v := d / r
-			_joy_vec = Vector2(v.x, -v.y).limit_length(1.0)
+			var nv := Vector2(v.x, -v.y).limit_length(1.0)
+			# Dibujando un gesto de parkour (dedo rápido): el atleta sigue en la dirección que
+			# llevaba en vez de seguir el trazo (la U del vault iría hacia atrás); al ir despacio o
+			# pararse, vuelve a dirigir
+			var lp: Vector2 = f.get("mlast", e.position)
+			var ldt := maxf(_time - float(f.get("mlast_t", _time - 1.0)), 1.0 / 120.0)
+			var spd := lp.distance_to(e.position) / ldt / r
+			f["mlast"] = e.position
+			f["mlast_t"] = _time
+			if salto_pages_enabled() and spd > MOVE_DRAW_SPEED:
+				f["drawing"] = true
+			else:
+				f["drawing"] = false
+				_joy_vec = nv
+			if f.has("mpath"):
+				(f.mpath as Array).append(e.position)
+				(f.mtime as Array).append(_time)
+				(f.mfast as Array).append(spd > MOVE_DRAW_SPEED)
+				# Solo cuenta el último segundo de recorrido (dibujar es rápido; dirigir, no)
+				while (f.mtime as Array).size() > 2 and _time - float(f.mtime[0]) > MOVE_GESTURE_WINDOW:
+					(f.mpath as Array).pop_front()
+					(f.mtime as Array).pop_front()
+					(f.mfast as Array).pop_front()
 		"jump":
 			if salto_pages_enabled():
 				var path: Array = f.path
@@ -881,7 +907,7 @@ func _salto_opts() -> Dictionary:
 	var ctx := {}
 	if context_provider.is_valid():
 		ctx = context_provider.call()
-	return {"ctx": ctx, "dirs8": salto_page != 0, "training": training}
+	return {"ctx": ctx, "dirs8": salto_page != 0, "training": training, "no_parkour": Settings.trick_controls == 5}
 
 ## Ejecuta lo reconocido en el joystick dorado (al soltar, o antes si el dedo se para tras una línea).
 func _salto_execute(res: Dictionary, f: Dictionary) -> void:
@@ -994,11 +1020,67 @@ func _train_twist(events: Array) -> void:
 	_train_check({"id": tid, "name": GestureRecognizer.twist_name(events)})
 
 func _recognized(res: Dictionary, joy: String) -> void:
-	_toast(String(res.get("name", "")), Neon.GOLD if joy == "gold" else Neon.PURPLE, joy)
+	_toast(String(res.get("name", "")), Neon.GOLD if joy == "gold" else (Neon.CYAN if joy == "move" else Neon.PURPLE), joy)
 	_train_check(res)
 	var info := res.duplicate()
 	info["joystick"] = joy
 	gesture_recognized.emit(info)
+
+## Modo gestos: los movimientos de parkour (vault, monkey, pasavallas, reverso, muros, bordes,
+## rodar) se dibujan con el joystick de movimiento. Se prueba cuando el dedo, tras un trazo amplio,
+## se para un instante (sigue dirigiendo después) o al soltarlo.
+const MOVE_GESTURE_WINDOW := 1.0
+const MOVE_DRAW_SPEED := 5.0            # radios/s: más rápido que esto es dibujar, no dirigir
+const MOVE_DRAW_FRACTION := 0.6         # parte del trazo que debe ser rápida para contar como dibujo
+const MOVE_GESTURE_REST := 0.09
+func _move_gesture_check(f: Dictionary, released: bool) -> void:
+	if not salto_pages_enabled() or not f.has("mpath"):
+		return
+	var path: Array = f.mpath
+	if path.size() < 4:
+		return
+	var times: Array = f.mtime
+	if not released and _time - float(times[times.size() - 1]) < MOVE_GESTURE_REST:
+		return                                   # el dedo aún se mueve: el dibujo sigue
+	var r := JOY_R * 0.8 * _s()
+	# Solo un dibujo de verdad (la mayor parte del trazo hecha rápido): dirigir, aunque sea con
+	# curvas, nunca dispara parkour
+	var fast: Array = f.get("mfast", [])
+	var fast_len := 0.0
+	var tot_len := 0.0
+	for i in range(1, path.size()):
+		var seg := (path[i] as Vector2).distance_to(path[i - 1])
+		tot_len += seg
+		if i < fast.size() and fast[i]:
+			fast_len += seg
+	if tot_len <= 0.0 or fast_len / tot_len < MOVE_DRAW_FRACTION:
+		f.mpath = [path[path.size() - 1]]
+		f.mtime = [_time]
+		f.mfast = [false]
+		return
+	var res := GestureRecognizer.recognize_parkour(PackedVector2Array(path), r, _salto_opts())
+	var id := String(res.get("id", ""))
+	if id == "":
+		f.mpath = [path[path.size() - 1]]            # parado sin dibujo de parkour: se empieza de nuevo
+		f.mtime = [_time]
+		f.mfast = [false]
+		return
+	_add_trail(path, Neon.CYAN)
+	f.mpath = [path[path.size() - 1]]
+	f.mtime = [_time]
+	f.mfast = [false]
+	if not res.get("ok", false) and not training:
+		# Dibujado un poco antes de llegar (aún no se ve el obstáculo o la pared): queda en
+		# espera ~1 s y sale en cuanto llegas
+		var pend := res.duplicate()
+		pend.ok = true
+		_pending.pattern = pend
+		_toast("%s…" % res.get("name", id), Color(Neon.CYAN, 0.75), "move")
+		_train_check(res)
+		return
+	_pending.pattern = res
+	_flash["move_ok"] = 0.4
+	_recognized(res, "move")
 
 ## Nombre del movimiento encima del joystick que lo reconoció (sin tapar al atleta).
 func _toast(txt: String, col: Color, joy: String) -> void:
@@ -1067,16 +1149,16 @@ const TRAIN := [
 	["webster", "WEBSTER", "gold", "Sube, cae por delante y retrocede un poco"],
 	["gainer", "GAINER", "gold", "Baja (hacia atrás) y da una vuelta ovalada"],
 	["palm", "PALM FLIP", "gold", "Línea hacia arriba y un círculo (pared delante)"],
-	["speed", "PASAVALLAS", "gold", "Sube y pasa de lado (Γ) (obstáculo delante)"],
-	["reverse", "REVERSO", "gold", "De abajo arriba rodeando por un lado (obstáculo delante)"],
-	["vault", "VAULT", "gold", "U invertida: sube, pasa por encima y baja (obstáculo delante)"],
-	["kong", "KONG VAULT", "gold", "Dos arcos seguidos (obstáculo con fondo y carrera)"],
-	["wall_run", "WALL RUN", "gold", "Diagonal hacia arriba que se curva adelante (pared al lado)"],
+	["speed", "PASAVALLAS", "move", "Sube y pasa de lado (Γ) (obstáculo delante)"],
+	["reverse", "REVERSO", "move", "De abajo arriba rodeando por un lado (obstáculo delante)"],
+	["vault", "VAULT", "move", "U invertida: sube, pasa por encima y baja (obstáculo delante)"],
+	["kong", "KONG VAULT", "move", "Dos arcos seguidos (obstáculo con fondo y carrera)"],
+	["wall_run", "WALL RUN", "move", "Diagonal hacia arriba que se curva adelante (pared al lado)"],
 	["wall_flip", "WALL FLIP", "gold", "Sube y vuelve en semicírculo (pared delante)"],
-	["climb", "ESCALADA", "gold", "Zigzag hacia arriba de tres tramos (pared delante)"],
-	["wall_climb", "WALL CLIMB", "gold", "Zigzag hacia arriba de dos tramos (pared delante)"],
+	["climb", "ESCALADA", "move", "Zigzag hacia arriba de tres tramos (pared delante)"],
+	["wall_climb", "WALL CLIMB", "move", "Zigzag hacia arriba de dos tramos (pared delante)"],
 	["ledge_grab", "AGARRE DE BORDE", "gold", "J hacia arriba y mantén el dedo"],
-	["cat_leap", "CAT LEAP", "gold", "V y una curva pequeña hacia dentro (pared delante)"],
+	["cat_leap", "CAT LEAP", "move", "V y una curva pequeña hacia dentro (pared delante)"],
 	["precision", "SALTO DE PRECISIÓN", "gold", "Línea corta hacia arriba y un toque"],
 	["roll", "RODAR", "gold", "Curva hacia abajo y adelante (corriendo o en el aire)"],
 ]
@@ -1134,7 +1216,7 @@ func _train_button(i: int) -> void:
 func _draw_training(font: Font, s: float) -> void:
 	var r := _train_panel_rect()
 	var item: Array = TRAIN[train_i]
-	var col: Color = Neon.GOLD if item[2] == "gold" else Neon.PURPLE
+	var col: Color = Neon.GOLD if item[2] == "gold" else (Neon.CYAN if item[2] == "move" else Neon.PURPLE)
 	draw_rect(r, Color(Neon.NAVY, 0.86))
 	draw_rect(r, Color(col, 0.9), false, 2.0 * s)
 	# Ejemplo del trazo (punto = inicio, flecha = final)
@@ -1158,7 +1240,7 @@ func _draw_training(font: Font, s: float) -> void:
 	var tx := x0 + (r.end.x - x0 - 130.0 * s) * 0.5
 	_label(font, Vector2(tx, r.position.y + 20.0 * s), "PRÁCTICA DE GESTOS  %d/%d  ·  hechos %d" % [train_i + 1, TRAIN.size(), train_done.size()], 14 * s, Color(1, 1, 1, 0.8))
 	_label(font, Vector2(tx, r.position.y + 50.0 * s), String(item[1]) + ("  ✓" if train_done.has(item[0]) else ""), 26 * s, col)
-	_label(font, Vector2(tx, r.position.y + 82.0 * s), "Joystick %s: %s" % ["dorado" if item[2] == "gold" else "morado", item[3]], 14 * s, Color(1, 1, 1, 0.92))
+	_label(font, Vector2(tx, r.position.y + 82.0 * s), "Joystick %s: %s" % [{"gold": "dorado", "move": "de movimiento (izquierdo)"}.get(item[2], "morado"), item[3]], 14 * s, Color(1, 1, 1, 0.92))
 	if not train_last.is_empty() and _time - float(train_last.t) < 2.5:
 		_label(font, Vector2(tx, r.position.y + 112.0 * s), String(train_last.text), 15 * s, Color(0.45, 1, 0.55) if train_last.ok else Color(1, 0.5, 0.45))
 	for i in 3:
@@ -1217,10 +1299,14 @@ func _draw_gesture_fx(font: Font, s: float) -> void:
 	# Joystick iluminado y nombre del movimiento reconocido
 	if _flash.has("gold_ok"):
 		draw_arc(_jump_center(), _jump_radius() * 1.12, 0, TAU, 64, Color(Neon.GOLD, minf(1.0, _flash.gold_ok * 2.5)), 8.0 * s, true)
+	if _flash.has("move_ok"):
+		draw_arc(_joy_idle(), JOY_R * s * 1.05, 0, TAU, 64, Color(Neon.CYAN, minf(1.0, _flash.move_ok * 2.5)), 8.0 * s, true)
 	if _flash.has("twist_ok"):
 		draw_arc(_rot_center(), _rot_radius() * 1.1, 0, TAU, 64, Color(Neon.PURPLE, minf(1.0, _flash.twist_ok * 2.5)), 8.0 * s, true)
 	for t in _toasts:
 		var at: Vector2 = _jump_center() + Vector2(0, -_jump_radius() * 2.65) if t.joy == "gold" else _rot_center() + Vector2(0, -_rot_radius() * 1.75)
+		if t.joy == "move":
+			at = _joy_idle() + Vector2(0, -JOY_R * s * 1.45)
 		var a2 := clampf(float(t.t) * 2.0, 0.0, 1.0)
 		var fs := 22.0 * s if String(t.text).length() < 22 else 16.0 * s
 		_pill(font, at + Vector2(0, -(1.1 - float(t.t)) * 18.0 * s), String(t.text), fs, t.col, a2, true)
@@ -1231,6 +1317,15 @@ func _process(dt: float) -> void:
 	_time += dt
 	if salto_pages_enabled():
 		_gesture_rest_checks()
+		for fm in _fingers.values():
+			if fm.get("role", "") == "move":
+				_move_gesture_check(fm, false)
+				if fm.get("drawing", false) and _time - float(fm.get("mlast_t", 0.0)) >= MOVE_GESTURE_REST:
+					# Terminó el trazo: vuelve a dirigir con la posición actual del dedo
+					fm["drawing"] = false
+					var rr := JOY_R * 0.8 * _s()
+					var dd: Vector2 = (fm.get("mlast", _joy_base) as Vector2) - _joy_base
+					_joy_vec = Vector2(dd.x, -dd.y).limit_length(rr) / rr
 		if not _await_tap.is_empty() and _time - float(_await_tap.t) >= PRECISION_WAIT:
 			var res: Dictionary = _await_tap.res
 			_await_tap = {}
@@ -1553,8 +1648,8 @@ func _draw_ring_hint(font: Font, s: float) -> void:
 	var hc := Vector2(size.x * 0.5, size.y * 0.16)
 	var ha := clampf(1.0 - (_hint_time - 7.0) / 2.0, 0.0, 1.0)
 	if salto_pages_enabled():
-		_label(font, hc, "Dorado: línea = mortal · dibuja patrones = cork, aerial, webster, gainer, vault, kong...", 22 * s, Color(1, 1, 1, ha))
-		_label(font, hc + Vector2(0, 34 * s), "Morado: líneas, arcos y scoots = tricking de suelo · círculo + dorado = twist · en el aire, círculo = tirabuzón", 21 * s, Color(1, 1, 1, ha))
+		_label(font, hc, "Azul: mueve · dibuja parkour = vault, monkey, pasavallas, reverso, muros · Dorado: SALTO y acrobacias (cork, chutada, aerial, webster...)", 20 * s, Color(1, 1, 1, ha))
+		_label(font, hc + Vector2(0, 34 * s), "Morado: rondada, flic-flac, rueda · en el aire, inclinar = tirabuzón · Botones de mortal: agruparse (dos toques = doble)", 20 * s, Color(1, 1, 1, ha))
 		_label(font, hc + Vector2(0, 68 * s), "Todos los patrones, con dibujo de ejemplo: botón PRÁCTICA", 20 * s, Color(1, 1, 1, ha * 0.9))
 		return
 	_label(font, hc, "Dibuja una dirección desde SALTO: cada página (botón dorado junto a SALTO) tiene 8 movimientos", 22 * s, Color(1, 1, 1, ha))
