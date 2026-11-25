@@ -29,7 +29,8 @@ const NAMES := {
 	"front": "MORTAL ADELANTE", "back": "MORTAL ATRÁS", "side": "MORTAL LATERAL",
 	"aerial": "AERIAL", "aerial_twist": "AERIAL TWIST", "cork": "CORK", "cork720": "CORK 720", "chutada": "CHUTADA",
 	"webster": "WEBSTER", "gainer": "GAINER",
-	"vault": "VAULT", "kong": "KONG VAULT", "wall_run": "WALL RUN", "wall_flip": "WALL FLIP",
+	"vault": "VAULT", "kong": "KONG VAULT", "double_kong": "DOBLE KONG", "kash": "KASH VAULT",
+	"thief": "THIEF VAULT", "turn": "TURN VAULT", "wall_run": "WALL RUN", "wall_flip": "WALL FLIP",
 	"climb": "ESCALADA", "ledge_grab": "AGARRE DE BORDE", "cat_leap": "CAT LEAP",
 	"precision": "SALTO DE PRECISIÓN", "roll": "RODAR", "wall_climb": "WALL CLIMB",
 	"palm": "PALM FLIP", "speed": "PASAVALLAS", "reverse": "REVERSO",
@@ -37,7 +38,8 @@ const NAMES := {
 
 ## Contexto que necesita cada movimiento de parkour (lo comprueba el jugador).
 const NEEDS := {
-	"vault": "obstacle", "kong": "obstacle", "wall_run": "wall_any", "wall_flip": "wall_front",
+	"vault": "obstacle", "kong": "obstacle", "double_kong": "obstacle", "kash": "obstacle", "thief": "obstacle",
+	"turn": "obstacle", "wall_run": "wall_any", "wall_flip": "wall_front",
 	"climb": "wall_front", "wall_climb": "wall_front", "cat_leap": "wall_front",
 	"ledge_grab": "ledge", "roll": "roll", "palm": "wall_front", "speed": "obstacle", "reverse": "obstacle",
 }
@@ -56,7 +58,16 @@ const TEMPLATES := {
 	# U invertida: empieza abajo, sube, pasa por encima y baja al otro lado
 	"vault": [[-0.55, -1.0], [-0.55, -0.2], [-0.5, 0.45], [-0.32, 0.85], [0.0, 1.0], [0.32, 0.85], [0.5, 0.45], [0.55, -0.2], [0.55, -1.0]],
 	# Dos arcos seguidos (manos y luego piernas)
-	"kong": [[-1.0, 0.0], [-0.85, 0.32], [-0.5, 0.45], [-0.15, 0.32], [0.0, 0.0], [0.15, 0.32], [0.5, 0.45], [0.85, 0.32], [1.0, 0.0]],
+	# Monkey: una M en punta (sube, baja, sube, baja)
+	"kong": [[-1.0, -1.0], [-0.5, 1.0], [0.0, -0.3], [0.5, 1.0], [1.0, -1.0]],
+	# Doble monkey: tres picos
+	"double_kong": [[-1.0, -1.0], [-0.67, 1.0], [-0.33, -0.3], [0.0, 1.0], [0.33, -0.3], [0.67, 1.0], [1.0, -1.0]],
+	# Kash vault: V que sube al final (como ✓)
+	"kash": [[-0.55, 0.6], [0.0, -1.0], [0.65, 1.0]],
+	# Thief vault: V y otra bajada (baja, sube, baja)
+	"thief": [[-0.95, 0.6], [-0.45, -0.8], [0.1, 1.0], [0.8, -0.85]],
+	# Turn vault: el reverso al revés, de arriba abajo rodeando por un lado
+	"turn": [[0.0, 1.0], [0.45, 0.6], [0.62, 0.15], [0.6, -0.3], [0.4, -0.78], [0.0, -1.0]],
 	# Diagonal hacia arriba que termina curvándose hacia delante
 	"wall_run": [[-0.85, -1.0], [-0.45, -0.6], [-0.05, -0.2], [0.22, 0.1], [0.4, 0.42], [0.46, 0.72], [0.4, 0.98]],
 	# Línea hacia arriba y semicírculo de vuelta (horquilla estrecha)
@@ -329,13 +340,19 @@ static func recognize_salto(screen: PackedVector2Array, radius: float, opts := {
 			return _result(String(r.id), "pattern", 1.0, r, opts)
 		return {"id": "", "kind": "none", "ok": false, "reason": "círculos: van en el joystick morado (tirabuzones)"}
 	# 4. Plantillas (modo gestos: las de parkour van en el joystick de movimiento)
-	return _match_templates(rs, abs_turn, opts, PARKOUR_IDS if opts.get("no_parkour", false) else [], [])
+	return _match_templates(rs, abs_turn, opts, PARKOUR_IDS if opts.get("no_parkour", false) else MOVE_ONLY_IDS, [])
 
 ## Movimientos de parkour (vaults, monkey, muros): en el modo gestos se dibujan en el joystick de
 ## movimiento (izquierdo). Rodar no: su arco de arriba abajo es igual que darse la vuelta
 ## corriendo (tiene su botón RODAR y su gesto en el dorado).
-const PARKOUR_IDS := ["vault", "kong", "speed", "reverse", "cat_leap", "wall_run", "wall_climb", "climb"]
-static var PARKOUR_MIN_LEN := 1.9      # recorrido mínimo (en radios del joystick) para que cuente como dibujo
+const PARKOUR_IDS := ["vault", "kong", "double_kong", "kash", "thief", "turn", "speed", "reverse", "cat_leap",
+	"wall_run", "wall_climb", "climb"]
+## Solo del joystick de movimiento (en el dorado el turn vault sería igual que rodar).
+const MOVE_ONLY_IDS := ["double_kong", "kash", "thief", "turn"]
+## En el joystick de movimiento el cat leap no es una plantilla: es un círculo pequeño.
+const MOVE_TEMPLATE_IDS := ["vault", "kong", "double_kong", "kash", "thief", "turn", "speed", "reverse",
+	"wall_run", "wall_climb", "climb"]
+static var PARKOUR_MIN_LEN := 1.5      # recorrido mínimo (en radios del joystick) para que cuente como dibujo
 
 ## Gesto de parkour dibujado con el joystick de movimiento. Dirigir al atleta casi no acumula
 ## recorrido; un dibujo (U, dos arcos, Γ...) sí, así que solo se prueba con trazos amplios.
@@ -346,17 +363,29 @@ static func recognize_parkour(screen: PackedVector2Array, radius: float, opts :=
 	# El dedo suele venir de "adelante" (corriendo) hasta donde empieza el dibujo: se prueba
 	# también sin ese tramo inicial y gana el que más se parezca
 	var rsa := resample(all, 64)
+	# Círculo pequeño = CAT LEAP (saltar a la pared y agarrarse con manos y pies)
+	# (vuelta real de ~330° en el mismo sentido: un trazo que solo se cruza no cuenta)
+	# (sobre el trazo suavizado: el temblor del dedo no suma vueltas)
+	# Hace falta que gire ~330° en el mismo sentido y que esa vuelta sea redonda (la bajada
+	# desde "adelante" + la U del vault también se cierran, pero en forma de D)
+	var sm := resample(smooth(all), 48)
+	var lsp := _loop_span(sm, CIRCLE_MIN_DEG)
+	if not lsp.is_empty() and _roundness(sm.slice(int(lsp.i0), int(lsp.i1) + 1)) < CIRCLE_MAX_CV:
+		return _result("cat_leap", "parkour", 1.0, {"side": 1}, opts)
 	var best := {}
 	var fail := {}
-	for cut in [0, 8, 16, 24]:
+	for cut in [0, 4, 8, 12, 16, 20, 24, 28, 32, 36]:
 		var seg := rsa.slice(cut)
 		if path_length(seg) < PARKOUR_MIN_LEN:
 			break
-		var res := _match_templates(resample(seg, N), abs_turning(resample(seg, 20)), opts, [], PARKOUR_IDS)
+		# Giro absoluto sobre un trazo más grueso: el temblor del pulgar no penaliza la forma
+		var res := _match_templates(resample(seg, N), abs_turning(resample(smooth(seg), 20)), opts, [], MOVE_TEMPLATE_IDS)
 		if String(res.get("id", "")) == "":
 			continue
 		if res.get("ok", false):
-			if best.is_empty() or float(res.get("score", 0.0)) > float(best.get("score", 0.0)):
+			# Recortar mucho deja trozos que se parecen a otra cosa: se prefiere el trazo más entero
+			res["eff"] = float(res.get("score", 0.0)) - 0.006 * float(cut)
+			if best.is_empty() or float(res.eff) > float(best.eff):
 				best = res
 		elif fail.is_empty():
 			fail = res
@@ -365,6 +394,28 @@ static func recognize_parkour(screen: PackedVector2Array, radius: float, opts :=
 	if not fail.is_empty():
 		return fail
 	return {"id": "", "kind": "none", "ok": false, "reason": "patrón no reconocido"}
+
+static var CIRCLE_MIN_DEG := 290.0     # círculo del cat leap: giro mínimo (con el dedo no siempre se cierra del todo)
+static var CIRCLE_MAX_CV := 0.26        # círculo del cat leap: variación máxima de la distancia al centro
+
+## Variación relativa de la distancia al centro (0 = círculo perfecto).
+static func _roundness(pts: PackedVector2Array) -> float:
+	if pts.size() < 6:
+		return 1.0
+	var c := Vector2.ZERO
+	for p in pts:
+		c += p
+	c /= float(pts.size())
+	var m := 0.0
+	for p in pts:
+		m += p.distance_to(c)
+	m /= float(pts.size())
+	if m < 1e-4:
+		return 1.0
+	var v := 0.0
+	for p in pts:
+		v += pow(p.distance_to(c) - m, 2.0)
+	return sqrt(v / float(pts.size())) / m
 
 ## Compara el trazo con las plantillas (sin las de `skip`; si `only` no está vacío, solo esas).
 static func _match_templates(rs: PackedVector2Array, abs_turn: float, opts: Dictionary, skip: Array, only: Array) -> Dictionary:
@@ -514,6 +565,9 @@ static func preview_points(id: String) -> PackedVector2Array:
 			out = PackedVector2Array([Vector2(0, -0.85), Vector2(0, 0.25)])
 			_add_circles(out, Vector2(0, 0.25), 0.3, 1, -1)
 		"chutada": out = PackedVector2Array([Vector2(-0.6, -0.65), Vector2(0.6, 0.65)])
+		"cat_leap":
+			out = PackedVector2Array([Vector2(0, -0.45)])
+			_add_circles(out, Vector2(0, -0.45), 0.45, 1, 1)
 		"cork", "cork720":
 			out = PackedVector2Array([Vector2(-0.7, -0.8), Vector2(0.15, 0.2)])
 			_add_circles(out, Vector2(0.15, 0.2), 0.3, 2 if id == "cork720" else 1, 1)
@@ -619,7 +673,7 @@ static func _giro_result(id: String, side: int, extra: Dictionary) -> Dictionary
 	return r
 
 ## Tramo con un círculo completo (giro acumulado ≥ ~330°) en cualquier parte del trazo.
-static func _loop_span(rs: PackedVector2Array) -> Dictionary:
+static func _loop_span(rs: PackedVector2Array, need_deg := -1.0) -> Dictionary:
 	var heads := [0.0]
 	var prev := INF
 	var acc := 0.0
@@ -634,7 +688,7 @@ static func _loop_span(rs: PackedVector2Array) -> Dictionary:
 				acc += dt
 			prev = h
 		heads.append(acc)
-	var need := deg_to_rad(LOOP_ANGLE + 10.0)
+	var need := deg_to_rad(LOOP_ANGLE + 10.0 if need_deg < 0.0 else need_deg)
 	# El círculo es la ventana MÁS CORTA que gira una vuelta entera (así la hoja del scoot, que
 	# también gira, no se confunde con el principio del círculo)
 	var win := []

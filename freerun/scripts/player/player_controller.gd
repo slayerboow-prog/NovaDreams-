@@ -35,6 +35,7 @@ var sensor: ObstacleSensor
 var coyote := 0.0
 var jump_buffer := 0.0
 var roll_buffer := 0.0
+const AUTO_ROLL_FRAC := 0.95             # caída desde la que rueda solo (× hard_impact, ~4 m)
 var stun := 0.0
 var ledge_cooldown := 0.0
 var wall_cooldown := 0.0
@@ -104,7 +105,7 @@ var cork_buffer := 0.0                  # botón CORK pulsado hace poco (se apli
 var butterfly_buffer := 0.0             # botón MARIPOSA pulsado hace poco
 var cork_side := 1
 # Modo gestos: patrones del joystick dorado y círculos del joystick morado
-var vault_pref := ""                     # "kong": técnica pedida con el patrón de dos arcos
+var vault_pref := ""                     # técnica pedida con un gesto: kong, double_kong, kash, thief, turn, speed, reverse
 var vault_pref_t := 0.0
 var keep_buf := ""                       # "vault" / "grab": el patrón sigue pidiendo esa acción un rato
 var keep_t := 0.0                        # (da tiempo a llegar al obstáculo o a la pared)
@@ -786,7 +787,9 @@ func _land() -> void:
 		quality = "sloppy"
 	elif err > t.perfect_angle:
 		quality = "clean"
-	var rolled := roll_buffer > 0.0
+	# Rueda solo al caer desde una altura alta (~4 m o más) si cae de pie: absorbe el golpe
+	var auto_roll := roll_buffer <= 0.0 and quality != "crash" and impact > t.hard_impact * AUTO_ROLL_FRAC
+	var rolled := roll_buffer > 0.0 or auto_roll
 	var hard := false
 	if quality != "crash" and not rolled:
 		if impact > t.crash_impact:
@@ -1107,7 +1110,7 @@ func _apply_pattern(p: Dictionary) -> void:
 			keep_buf = "grab"
 			keep_t = 0.9
 			palm_t = 1.4
-		"speed", "reverse":
+		"speed", "reverse", "double_kong", "kash", "thief", "turn":
 			vault_buffer = 0.3
 			vault_pref = id
 			vault_pref_t = 1.0
@@ -1207,6 +1210,23 @@ func _try_vault() -> bool:
 	elif vault_pref == "reverse" and not info.mount:
 		kind = "Reverse Vault"             # reverso: entra de espaldas a una mano y media vuelta
 		speed_mult = 0.92
+	elif vault_pref == "double_kong" and not info.mount and spd >= 3.5:
+		# Doble monkey (tres picos): dos apoyos de manos; en un obstáculo corto sale un kong
+		kind = "Double Kong" if depth >= 0.9 else "Kong Vault"
+		ideal = Vector2(0.6, 2.0)
+		speed_mult = 1.1 if depth >= 0.9 else 1.05
+	elif vault_pref == "kash" and not info.mount and spd >= 3.5:
+		kind = "Kash Vault"                # kong y, en el aire, paso de piernas tipo pasavallas
+		ideal = Vector2(0.6, 2.0)
+		speed_mult = 1.05
+	elif vault_pref == "thief" and not info.mount:
+		kind = "Thief Vault"               # piernas primero, una mano detrás
+		ideal = Vector2(0.5, 1.6)
+		speed_mult = 0.95
+	elif vault_pref == "turn" and not info.mount:
+		kind = "Turn Vault"                # dos manos, media vuelta y cae mirando al obstáculo
+		ideal = Vector2(0.1, 1.2)
+		speed_mult = 0.0
 	vault_pref = ""
 	# Variantes elegidas con un gesto justo antes del vault (SALTO + deslizar o cruceta):
 	#   lateral = Reverse Vault (giro de 360 sobre el obstáculo)
