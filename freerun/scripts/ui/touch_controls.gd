@@ -442,6 +442,15 @@ func zones() -> Dictionary:
 	return z
 
 ## Joystick izquierdo: mitad izquierda salvo la franja superior (que mueve la cámara).
+## Joystick de movimiento: zona muerta en el centro (un roce no mueve) y el resto reescalado de
+## 0 a 1, para que poco recorrido = paso lento y preciso.
+const JOY_DEAD := 0.1
+static func joy_shape(v: Vector2) -> Vector2:
+	var l := v.length()
+	if l <= JOY_DEAD:
+		return Vector2.ZERO
+	return v / l * minf((l - JOY_DEAD) / (1.0 - JOY_DEAD), 1.0)
+
 func _has_role(r: String) -> bool:
 	for f in _fingers.values():
 		if f.get("role", "") == r:
@@ -762,8 +771,7 @@ func _on_drag(e: InputEventScreenDrag) -> void:
 			if d.length() > r * 1.25:
 				_joy_base = e.position - d.normalized() * r * 1.25
 				d = e.position - _joy_base
-			var v := d / r
-			_joy_vec = Vector2(v.x, -v.y).limit_length(1.0)
+			_joy_vec = joy_shape(Vector2(d.x, -d.y) / r)
 		"jump":
 			if salto_pages_enabled():
 				var path: Array = f.path
