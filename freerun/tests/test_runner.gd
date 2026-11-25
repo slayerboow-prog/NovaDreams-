@@ -127,6 +127,7 @@ func _run_all() -> void:
 	await t_park()
 	await t_slow_motion()
 	await t_air_giro_queue()
+	await t_air_giro_double()
 	await t_mocap_backflip()
 	await t_landing_feel()
 	await t_new_tricks()
@@ -2827,6 +2828,82 @@ func t_air_giro_queue() -> void:
 	Settings.trick_controls = old_mode
 	game.router.scripted = _drive
 
+
+## En el aire: rondada y flic-flac dibujados seguidos (trazos algo torcidos y curvos, como con el
+## pulgar) salen los dos al caer, en orden, y el mortal no gira por los trazos verticales.
+func t_air_giro_double() -> void:
+	var touch: TouchControls = game.ui.touch
+	var rr := touch._rot_radius()
+	# Reconocimiento: trazos inclinados hasta 35° y curvados
+	var rng := RandomNumberGenerator.new(); rng.seed = 7
+	var ok := 0
+	for k in 40:
+		var up := k % 2 == 0
+		var tilt := deg_to_rad(rng.randf_range(-35.0, 35.0))
+		var bend := rng.randf_range(-0.25, 0.25)
+		var L := rr * rng.randf_range(0.6, 1.1)
+		var pts: Array = []
+		for q in 12:
+			var u := q / 11.0
+			var y := (-1.0 if up else 1.0) * L * u
+			var x := bend * L * sin(u * PI)
+			pts.append(Vector2(x, y).rotated(tilt) + Vector2(rng.randf_range(-3, 3), rng.randf_range(-3, 3)))
+		var g := TouchControls.air_giro(pts, rr)
+		if String(g.get("id", "")) == ("rondada" if up else "flicflac"):
+			ok += 1
+	check("Aire: trazos morados verticales torcidos/curvos reconocidos (%d/40)" % ok, ok >= 38, "")
+	# En juego: frontflip, rondada y flic-flac dibujados en el aire → al caer, rondada › flic-flac
+	var old_mode := Settings.trick_controls
+	Settings.trick_controls = 5
+	Settings.force_touch_ui = true
+	touch.visible = true
+	touch.size = Vector2(1542, 720)
+	game.router.scripted = Callable()
+	var tap := func(pos: Vector2, idx: int) -> void:
+		var e := InputEventScreenTouch.new(); e.index = idx; e.position = pos; e.pressed = true
+		touch._on_touch(e)
+		e.pressed = false; touch._on_touch(e)
+	var stroke := func(v: Vector2) -> void:
+		var rc := touch._rot_center()
+		var te := InputEventScreenTouch.new(); te.index = 12; te.position = rc - v * 0.5; te.pressed = true
+		touch._on_touch(te)
+		for q in 7:
+			var td := InputEventScreenDrag.new(); td.index = 12
+			td.position = rc - v * 0.5 + v * (q / 6.0) + Vector2(sin(q / 6.0 * PI) * 12.0, 0)
+			touch._on_drag(td)
+		te.position = rc + v * 0.5; te.pressed = false; touch._on_touch(te)
+	await place(Vector3(-35, 0.1, 35), Vector3.FORWARD)
+	moves.clear(); landings.clear()
+	var hj := InputEventScreenTouch.new(); hj.index = 14; hj.position = touch._jump_center(); hj.pressed = true
+	touch._on_touch(hj); touch._time += 0.3
+	hj.pressed = false; touch._on_touch(hj)
+	var st := {"stage": 0, "twist": 0.0}
+	for k in 600:
+		await get_tree().physics_frame
+		if player.state == PlayerController.State.AIR:
+			st.twist = maxf(st.twist, absf(player.tricks.total_twist))
+		if st.stage == 0 and player.state == PlayerController.State.AIR:
+			tap.call(touch.flip_button_center(1), 11); st.stage = 1                # ADELANTE
+		elif st.stage == 1 and player.tricks.air_time > 0.2:
+			touch.air_mode = true
+			stroke.call(Vector2(30, -110))                                           # arriba (algo torcido) = rondada
+			st.stage = 2
+		elif st.stage == 2 and player.tricks.air_time > 0.35:
+			stroke.call(Vector2(-25, 105))                                           # abajo = flic-flac
+			st.stage = 3
+		elif st.stage == 3 and player.state != PlayerController.State.AIR:
+			touch.air_mode = false
+			st.stage = 4
+		if st.stage == 4 and "Back Handspring" in moves and player.state == PlayerController.State.GROUND:
+			break
+	touch.air_mode = false
+	var i_r := moves.find("Round-off")
+	var i_b := moves.find("Back Handspring")
+	check("Frontflip › rondada + flic-flac dibujados en el aire › salen los dos en orden (%s)" % str(moves),
+		moves.find("Frontflip") >= 0 and i_r > moves.find("Frontflip") and i_b > i_r, str(moves))
+	check("Aire: los trazos verticales no hacen girar el mortal (giro %.2f rad)" % st.twist, st.twist < 0.5, "")
+	Settings.trick_controls = old_mode
+	game.router.scripted = _drive
 
 func t_beach_buoy() -> void:
 	var li: Dictionary = game.level_info

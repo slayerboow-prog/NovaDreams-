@@ -782,6 +782,8 @@ func _on_drag(e: InputEventScreenDrag) -> void:
 					f["air_origin"] = e.position
 				var dv: Vector2 = e.position - (f.air_origin as Vector2)
 				_rot_vec = (Vector2(dv.x, -dv.y) / _rot_travel()).limit_length(1.0)
+				if absf(dv.y) > 1.2 * absf(dv.x):
+					_rot_vec = Vector2.ZERO           # trazo vertical (rondada / flic-flac): no gira
 				f["air_used"] = true
 		"pad":
 			pass   # la cruceta solo cuenta el toque: arrastrar el dedo no lanza trucos extra
@@ -961,6 +963,17 @@ func _salto_flip(res: Dictionary) -> void:
 ## Joystick morado soltado. En el aire los círculos ya salieron mientras se dibujaban; en el suelo
 ## se reconoce el trazo entero: líneas (rondada, flic-flac, rueda, raiz, touchdown raiz), arcos
 ## (macaco, hook), scoot, entradas de potencia y círculos (giro / tirabuzón con el dorado).
+## Trazo morado en el aire: arriba = rondada, abajo = flic-flac (para cuando toque el suelo).
+## {} si no es un trazo vertical claro (un giro a los lados es el tirabuzón).
+static func air_giro(path: Array, radius: float) -> Dictionary:
+	if path.size() < 2:
+		return {}
+	var ch: Vector2 = (path[path.size() - 1] as Vector2) - (path[0] as Vector2)
+	if ch.length() < radius * 0.42 or absf(ch.y) < 1.2 * absf(ch.x):
+		return {}
+	var side := 1 if ch.x >= 0.0 else -1
+	return GestureRecognizer._giro_result("rondada" if ch.y < 0.0 else "flicflac", side, {"air": true})
+
 func _twist_release(f: Dictionary, p: Vector2) -> void:
 	var lc: GestureRecognizer.LoopCounter = f.lc
 	(f.path as Array).append(p)
@@ -969,14 +982,13 @@ func _twist_release(f: Dictionary, p: Vector2) -> void:
 	if air_mode or f.get("air_used", false):
 		# En el aire el morado es el tirabuzón (izquierda/derecha); un trazo vertical claro
 		# (arriba = rondada, abajo = flic-flac) queda pedido para cuando toque el suelo
-		var pth: Array = f.path
-		var ch: Vector2 = (pth[pth.size() - 1] as Vector2) - (pth[0] as Vector2)
-		if ch.length() >= _rot_radius() * 0.55 and absf(ch.y) > 1.6 * absf(ch.x):
-			var ra := GestureRecognizer.recognize_giro(PackedVector2Array(pth), _rot_radius())
-			if String(ra.get("id", "")) in ["rondada", "flicflac"]:
-				_pending.giro = ra
-				_flash["twist_ok"] = 0.4
-				_toast("%s…" % ra.get("name", ""), Neon.PURPLE, "purple")
+		# Se mira la dirección general del trazo (el pulgar no traza recto): basta con que sea
+		# claramente más vertical que horizontal (hasta ~40° de inclinación)
+		var ra := air_giro(f.path, _rot_radius())
+		if not ra.is_empty():
+			_pending.giro = ra
+			_flash["twist_ok"] = 0.4
+			_toast("%s…" % ra.get("name", ""), Neon.PURPLE, "purple")
 		return
 	var res := GestureRecognizer.recognize_giro(PackedVector2Array(f.path), _rot_radius())
 	var id := String(res.get("id", ""))

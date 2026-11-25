@@ -198,7 +198,7 @@ func respawn() -> void:
 	tricks.reset()
 	stun = 0.0
 	jump_load = 0.0
-	mad_stage = 0; mad_axis = 99; mad_charge = 0.0; one_foot_q = false; mad_twisted = false; chutada_q = false; mad_pre_extra = 0; giro_q = {}
+	mad_stage = 0; mad_axis = 99; mad_charge = 0.0; one_foot_q = false; mad_twisted = false; chutada_q = false; mad_pre_extra = 0; giro_qs = []
 	keep_t = 0.0; air_grab_t = 0.0; wallflip_t = 0.0; wallrun_hold_t = 0.0; precision_t = 0.0
 	extra_twist_t = 0.0; cork_more = 0; pending_twists.clear(); vault_pref = ""
 	ground_wait = 0.0
@@ -667,8 +667,10 @@ const PRECISION_MAX_HS := 6.0
 var jump_target := Vector3.INF          # borde donde caer (salto de precisión / longitud)
 var jump_hs := 0.0                      # velocidad horizontal del salto de precisión / longitud
 var dive_q := 0.0                       # Dive Kong pedido con el joystick GIRO (diagonal arriba)
-var giro_q := {}                        # rondada / flic-flac / rueda dibujada en el aire: al tocar el suelo
+var giro_qs: Array = []                 # rondada / flic-flac / rueda dibujadas en el aire: salen en orden al tocar el suelo
 var giro_q_t := 0.0
+var giro_q_serial := -1                  # habilidad que lanzó la cola (la siguiente va en su enlace)
+const GIRO_Q_MAX := 3
 const GESTURE_VAULT_SPEED := 4.6        # vault pedido con gesto sin carrera: impulso de un par de pasos
 ## Duración mínima de cada vault (s): ritmo real de cada técnica, se aprecia el movimiento
 const VAULT_MIN_DUR := {"Speed Vault": 0.6, "Step Vault": 0.65, "Lazy Vault": 0.65, "Dash Vault": 0.72,
@@ -1187,17 +1189,7 @@ func _tick_gestures(dt: float) -> void:
 		_apply_pattern(intent.pattern)
 	if not intent.giro.is_empty():
 		_apply_giro(intent.giro)
-	if not giro_q.is_empty():
-		if state in [State.GROUND, State.SKILL]:
-			var gq := giro_q
-			giro_q = {}
-			_apply_giro(gq)                        # aterrizó: sale la rondada / flic-flac pedida en el aire
-		elif state in [State.AIR, State.VAULT, State.WALLRUN, State.WALLCLIMB]:
-			giro_q_t = 1.5
-		else:
-			giro_q_t -= 1.0 / 60.0
-			if giro_q_t <= 0.0:
-				giro_q = {}
+	_tick_giro_queue()
 	_tick_flip_buttons(dt)
 	if intent.one_foot:
 		# 1 PIE en cualquier momento (también antes de saltar): la próxima recepción es a un pie
@@ -1294,6 +1286,41 @@ func _tick_flip_buttons(dt: float) -> void:
 				# levantes ese dedo
 				twist_lock = true
 
+## Cola de movimientos de suelo pedidos en el aire: al aterrizar sale el primero; los siguientes
+## se meten en el enlace de la habilidad en curso (rondada → flic-flac) hasta que arrancan.
+func _tick_giro_queue() -> void:
+	if giro_qs.is_empty():
+		return
+	if state in [State.AIR, State.VAULT, State.WALLRUN, State.WALLCLIMB]:
+		giro_q_t = 1.5
+		giro_q_serial = -1
+		return
+	if state == State.SKILL:
+		if giro_q_serial >= 0 and skill_serial != giro_q_serial:
+			giro_qs.pop_front()                     # el siguiente de la cola ya ha arrancado
+			giro_q_serial = skill_serial
+			if giro_qs.is_empty():
+				return
+		if giro_q_serial < 0:
+			giro_q_serial = skill_serial
+		var g: Dictionary = giro_qs[0]
+		var skill_id := String(GIRO_SKILLS.get(String(g.get("id", "")), ""))
+		if skill_id != "":
+			chain_event = {"type": "skill", "id": "%s:%d" % [skill_id, 1 if int(g.get("side", 1)) >= 0 else -1]}
+			chain_event_t = 0.45                    # se mantiene pedido hasta la ventana de enlace
+		return
+	if state == State.GROUND and giro_q_serial < 0:
+		var gq: Dictionary = giro_qs.pop_front()
+		_apply_giro(gq)                            # aterrizó: sale la primera pedida en el aire
+		if state == State.SKILL:
+			giro_q_serial = skill_serial
+		return
+	# Fuera de una habilidad (caída, rodada...) o la cadena terminó: la cola caduca
+	giro_q_t -= 1.0 / 60.0
+	if giro_q_t <= 0.0 or (state == State.GROUND and giro_q_serial >= 0):
+		giro_qs.clear()
+		giro_q_serial = -1
+
 ## Joystick morado en el suelo (GestureRecognizer.recognize_giro): habilidades de suelo y
 ## entradas de potencia. En una habilidad quedan en cola para el enlace.
 const GIRO_SKILLS := {"rondada": "roundoff", "flicflac": "bhs", "rueda": "cartwheel",
@@ -1302,8 +1329,11 @@ func _apply_giro(g: Dictionary) -> void:
 	var id := String(g.get("id", ""))
 	var sd := 1 if int(g.get("side", 1)) >= 0 else -1
 	if id in ["rondada", "flicflac", "rueda"] and state in [State.AIR, State.VAULT, State.WALLRUN, State.WALLCLIMB]:
-		# Dibujada en el aire (p. ej. durante un frontflip): sale en cuanto toca el suelo
-		giro_q = g
+		# Dibujada en el aire (p. ej. durante un frontflip): sale en cuanto toca el suelo. Varias
+		# seguidas (rondada y flic-flac) quedan en cola y salen encadenadas, en el orden dibujado.
+		if giro_qs.size() < GIRO_Q_MAX:
+			giro_qs.append(g)
+		giro_q_t = 1.5
 		return
 	if id == "dive_kong":
 		# Dive Kong: salto de carrera hacia el obstáculo; si las manos llegan, kong desde lejos
