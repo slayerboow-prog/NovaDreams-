@@ -35,6 +35,8 @@ func _ready() -> void:
 	add_child(player)
 	player.router = router
 	player.water_volumes = level_info.water
+	player.buoys = level_info.get("buoys", [])
+	player.sand_zones = level_info.get("sand", [])
 	rig = BodyRig.new()
 	rig.name = "Rig"
 	player.add_child(rig)

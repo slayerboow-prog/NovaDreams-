@@ -26,6 +26,8 @@ var info := {
 	"spawns": {},
 	"water": [] as Array[AABB],
 	"checkpoints": [],
+	"buoys": [],          # boyas de playa (trampolín): {"pos": centro, "node": malla}
+	"sand": [] as Array[AABB],   # zonas de arena (recepciones más suaves)
 }
 
 func build(parent: Node3D) -> Dictionary:
@@ -39,12 +41,16 @@ func build(parent: Node3D) -> Dictionary:
 	_trick_pad()
 	_pool()
 	_dressing()
+	_park()
+	_beach()
 	info.spawns["freerun"] = [Vector3(0, 0.1, 6), Vector3.FORWARD]
 	info.spawns["challenge"] = [Vector3(0, 0.1, 5), Vector3.FORWARD]
 	info.spawns["tricking"] = [Vector3(0, 0.1, 16), Vector3.BACK]
 	info.spawns["freestyle"] = [Vector3(3, 0.1, 6), Vector3.FORWARD]
 	info.spawns["water"] = [Vector3(22, 3.05, 8.8), Vector3.BACK]
 	info.spawns["water_high"] = [Vector3(17, 6.05, 8.8), Vector3.BACK]
+	info.spawns["park"] = [Vector3(30, 0.1, -38), Vector3.FORWARD]
+	info.spawns["beach"] = [Vector3(125, 0.1, 12), Vector3.FORWARD]
 	info.checkpoints = [Vector3(0, 1.4, -10), Vector3(0, 1.4, -24), Vector3(0, 4.4, -43),
 		Vector3(0, 3.6, -49.6), Vector3(0, 1.4, -58)]
 	return info
@@ -260,3 +266,84 @@ func _dressing() -> void:
 		crown.material_override = mat(Color(0.25, 0.5, 0.28))
 		crown.position = p + Vector3(0, 2.8, 0)
 		root.add_child(crown)
+
+
+# ------------------------------------------------------------------ parque
+
+## Parque de obstáculos (x 19..43, z -40..-73): cuatro calles, cada una con alturas distintas,
+## para practicar todos los movimientos. Se corre hacia -z (de cara al fondo del mapa).
+func _park() -> void:
+	flat(Vector3(31, 0, -56.5), Vector2(25, 34), Color(0.3, 0.32, 0.36))
+	# Calle 1 (x 22): vaults. Barandilla baja (speed, lazy, reverse, turn), caja (kong, kash,
+	# dash), caja larga (double kong), murete bajo (step, thief) y barandilla alta con postes.
+	box(Vector3(22, 0.4, -44), Vector3(3.0, 0.8, 0.15), C_METAL)
+	box(Vector3(22, 0.55, -50), Vector3(3.0, 1.1, 1.0), C_OBSTACLE)
+	box(Vector3(22, 0.5, -57), Vector3(3.0, 1.0, 2.6), C_CONCRETE)
+	box(Vector3(22, 0.3, -62.5), Vector3(3.0, 0.6, 0.5), C_OBSTACLE)
+	box(Vector3(22, 1.0, -67), Vector3(3.0, 0.08, 0.08), C_ACCENT)
+	for px in [20.6, 22.0, 23.4]:
+		box(Vector3(px, 0.5, -67), Vector3(0.08, 1.0, 0.08), C_METAL)
+	# Calle 2 (x 28,5): muros cada vez más altos: step up 0,7 · kong up 1,3 · climb up 1,9 ·
+	# 2,6 (subida desde colgado) · 3,4 (escalada de pared y colgarse del borde)
+	var hs := [0.7, 1.3, 1.9, 2.6, 3.4]
+	for k in hs.size():
+		var z0 := -44.0 - k * 6.0
+		block(Vector3(27, 0, z0 - 2.0), Vector3(30, hs[k], z0), C_BRICK if k % 2 == 0 else C_ROOF)
+		box(Vector3(28.5, hs[k] + 0.02, z0 - 0.15), Vector3(3.0, 0.04, 0.3), C_ACCENT, 0.0, false)
+	# Calle 3 (x 35): precisiones entre pilares de alturas variadas y huecos de salto de longitud
+	var pillars := [[-44.0, 0.8], [-46.4, 1.0], [-49.2, 1.4], [-52.0, 1.0], [-55.2, 0.6], [-58.0, 1.2]]
+	for pl in pillars:
+		box(Vector3(35, pl[1] * 0.5, pl[0]), Vector3(0.7, pl[1], 0.7), C_CONCRETE)
+	block(Vector3(33.5, 0, -64), Vector3(36.5, 1.5, -61), C_ROOF)        # plataformas: hueco de 3 m
+	block(Vector3(33.5, 0, -70), Vector3(36.5, 1.5, -67), C_ROOF)
+	# Calle 4 (x 41): muro largo para wall run, muro corto para tic-tac junto a un obstáculo,
+	# y pared con borde para cat leap desde la caja
+	block(Vector3(42.3, 0, -62), Vector3(43.0, 4.5, -44), C_WALL)
+	block(Vector3(38.6, 0, -67), Vector3(39.2, 2.6, -64), C_WALL)
+	box(Vector3(40.6, 0.5, -66), Vector3(1.6, 1.0, 1.2), C_OBSTACLE)
+	block(Vector3(39.5, 0, -73), Vector3(43.0, 2.8, -70.5), C_BRICK)
+	block(Vector3(40.4, 0, -69.2), Vector3(42.2, 1.0, -68.0), C_OBSTACLE)
+	# Torre de caídas (4,5 m) con escalera: dobles mortales y caídas con rodada
+	block(Vector3(19.5, 0, -73.5), Vector3(24.5, 4.5, -70.2), C_ROOF)
+	stairs(Vector3(31.5, 0, -71.8), Vector3.LEFT, 7.0, 4.5, 2.0, C_CONCRETE)
+
+# ------------------------------------------------------------------ playa
+
+const C_SAND := Color(0.84, 0.68, 0.42)
+const BUOY_R := 0.38
+const BEACH_C := Vector3(125, 0, 0)    # centro de la playa (lejos de la ciudad)
+const BEACH_HALF := 22.0
+
+## Playa sencilla: un arenal y, en medio, una boya de barco medio enterrada que hace
+## de trampolín (pisarla corriendo lanza mucho más alto para hacer mortales).
+func _beach() -> void:
+	var sand := block(BEACH_C + Vector3(-BEACH_HALF, -5, -BEACH_HALF), BEACH_C + Vector3(BEACH_HALF, 0, BEACH_HALF), C_SAND)
+	var sm := StandardMaterial3D.new()
+	sm.albedo_color = C_SAND
+	sm.roughness = 1.0
+	for c in sand.get_children():
+		if c is MeshInstance3D:
+			(c as MeshInstance3D).material_override = sm
+	info.sand.append(AABB(BEACH_C + Vector3(-BEACH_HALF, -1, -BEACH_HALF), Vector3(2 * BEACH_HALF, 3, 2 * BEACH_HALF)))
+	_buoy(BEACH_C + Vector3(0, 0.06, 0))
+
+func _buoy(c: Vector3) -> void:
+	var body := StaticBody3D.new()
+	body.position = c
+	var col := CollisionShape3D.new()
+	var sh := SphereShape3D.new()
+	sh.radius = BUOY_R
+	col.shape = sh
+	body.add_child(col)
+	var mi := MeshInstance3D.new()
+	var sp := SphereMesh.new()
+	sp.radius = BUOY_R
+	sp.height = BUOY_R * 2.0
+	mi.mesh = sp
+	var m := StandardMaterial3D.new()
+	m.albedo_color = Color(0.86, 0.1, 0.09)
+	m.roughness = 0.32
+	mi.material_override = m
+	body.add_child(mi)
+	root.add_child(body)
+	info.buoys.append({"pos": c, "node": mi})
