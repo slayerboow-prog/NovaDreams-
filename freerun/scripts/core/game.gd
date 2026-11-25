@@ -70,6 +70,7 @@ func _ready() -> void:
 	player.bailed.connect(_on_bailed)
 	player.entered_water.connect(_on_water)
 	player.respawned.connect(_on_respawned)
+	player.trick_started.connect(_on_trick_started)
 	combo.combo_banked.connect(_on_banked)
 	combo.combo_bailed.connect(_on_combo_bailed)
 	ui.mode_selected.connect(start_mode)
@@ -176,6 +177,7 @@ func show_menu() -> void:
 		mode.stop()
 		mode = null
 	in_menu = true
+	stop_slowmo()
 	combo.reset_all()
 	flow.reset()
 	ui.show_main_menu(true)
@@ -224,7 +226,54 @@ func _unhandled_input(event: InputEvent) -> void:
 	if event is InputEventKey and event.pressed and not event.echo and event.physical_keycode == KEY_ESCAPE and not in_menu:
 		set_paused(not paused)
 
+# ------------------------------------------------------------------ cámara lenta
+
+## Cámara lenta al empezar un mortal: entra rápido, se mantiene y vuelve suave a velocidad
+## normal. Dura 1,5 s de tiempo real.
+const SLOWMO_TIME := 1.5
+const SLOWMO_SCALE := 0.35
+const SLOWMO_IN := 0.12
+const SLOWMO_HOLD := 1.0
+var slowmo_t := -1.0                  # segundos reales desde que empezó (-1 = inactiva)
+var _slowmo_ms := 0
+
+func _on_trick_started(_style: String) -> void:
+	if not Settings.slow_motion or slowmo_t >= 0.0 or paused or in_menu:
+		return
+	slowmo_t = 0.0
+	_slowmo_ms = Time.get_ticks_msec()
+
+func slowmo_scale(t: float) -> float:
+	if t < 0.0 or t >= SLOWMO_TIME:
+		return 1.0
+	if t < SLOWMO_IN:
+		return lerpf(1.0, SLOWMO_SCALE, t / SLOWMO_IN)
+	if t < SLOWMO_HOLD:
+		return SLOWMO_SCALE
+	var k := (t - SLOWMO_HOLD) / (SLOWMO_TIME - SLOWMO_HOLD)
+	return lerpf(SLOWMO_SCALE, 1.0, k * k * (3.0 - 2.0 * k))
+
+func stop_slowmo() -> void:
+	slowmo_t = -1.0
+	Engine.time_scale = 1.0
+	camera.slowmo = 0.0
+
+func _tick_slowmo() -> void:
+	if slowmo_t < 0.0:
+		return
+	if paused:
+		_slowmo_ms = Time.get_ticks_msec() - int(slowmo_t * 1000.0)   # en pausa el tiempo no corre
+		return
+	slowmo_t = (Time.get_ticks_msec() - _slowmo_ms) / 1000.0
+	if slowmo_t >= SLOWMO_TIME:
+		stop_slowmo()
+		return
+	var sc := slowmo_scale(slowmo_t)
+	Engine.time_scale = sc
+	camera.slowmo = (1.0 - sc) / (1.0 - SLOWMO_SCALE)
+
 func _process(dt: float) -> void:
+	_tick_slowmo()
 	if in_menu:
 		_menu_orbit += dt * 0.08
 		camera.yaw = _menu_orbit
@@ -293,6 +342,7 @@ func _on_water(result: Dictionary) -> void:
 		combo.bank()
 
 func _on_respawned() -> void:
+	stop_slowmo()
 	if combo.active:
 		combo.bank()
 	if mode:

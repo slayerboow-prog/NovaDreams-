@@ -123,6 +123,10 @@ El personaje es una **malla continua con piel** (tronco, cuello, brazos y pierna
 
 Cada acrobacia tiene su propio ritmo de giro (backflip explosivo; aerial y butterfly más amplios), el doble mortal gira más rápido que el simple, y se anima por fases a partir del giro real: preparación (flexión antes de despegar), impulso, agrupación, rotación, apertura y recepción, con una forma corporal propia para Backflip, Frontflip, Sideflip, Gainer, Webster, Butterfly Kick, Cork y tirabuzones.
 
+## Cámara lenta
+
+Al empezar cualquier mortal, el tiempo va más despacio durante 1,5 s reales: entra en 0,12 s hasta el 35 % de la velocidad, se mantiene hasta el primer segundo y vuelve suavemente a la normalidad. La cámara se acerca un poco (el campo de visión se cierra 9°) mientras dura. Se puede desactivar en Ajustes → «Cámara lenta al empezar un mortal».
+
 ## Zonas
 
 - **Parque de obstáculos** (en la ciudad, al fondo a la derecha del callejón de wall run). Tiene cuatro calles con alturas distintas:
@@ -131,8 +135,10 @@ Cada acrobacia tiene su propio ritmo de giro (backflip explosivo; aerial y butte
   - **Precisiones**: pilares de 0,6 a 1,4 m de alto y dos plataformas separadas 3 m para el salto de longitud.
   - **Muro de 4,5 m**: para wall run, con un muro corto junto a una caja (tic-tac) y una pared con borde (cat leap).
   - **Torre de caídas** de 4,5 m con escalera.
-- **Playa** (modo propio en el menú): un arenal con una boya de barco roja medio enterrada en el centro.
-  - Llegar a la boya corriendo (andando no rebota), o caer encima de ella, te lanza mucho más alto que un salto normal. Con SALTO pulsado, todavía más.
+- **Playa** (modo propio en el menú): un arenal con una boya de barco roja grande (2,3 m de diámetro) medio enterrada en el centro.
+  - Llegar a la boya corriendo (andando no rebota), o caer encima de ella, te lanza mucho más alto que un salto normal.
+  - **Impulso perfecto**: pulsa SALTO justo al pisarla (hasta 0,12 s antes, o un instante después) y subes mucho más. Si lo pulsas algo antes (hasta 0,3 s), el impulso es menor.
+  - Los saltos de precisión y de longitud detectan la boya, corrigen la dirección y caen encima. Cayendo cerca, el cuerpo se dirige un poco hacia su centro.
   - En el aire, los mortales se hacen con los botones de siempre.
   - La arena amortigua las recepciones.
 

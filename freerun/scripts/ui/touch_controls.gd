@@ -441,6 +441,12 @@ func zones() -> Dictionary:
 	return z
 
 ## Joystick izquierdo: mitad izquierda salvo la franja superior (que mueve la cámara).
+func _has_role(r: String) -> bool:
+	for f in _fingers.values():
+		if f.get("role", "") == r:
+			return true
+	return false
+
 func _is_move_side(p: Vector2) -> bool:
 	if p.y < size.y * 0.3 and stick_enabled():
 		return false
@@ -685,7 +691,7 @@ func _on_touch(e: InputEventScreenTouch) -> void:
 				var sec := sector_of(Vector2(v.x, -v.y))
 				info.sector = sec
 				_emit_flick(sector_dir(sec))
-		elif _is_move_side(p):
+		elif _is_move_side(p) and not _has_role("move"):
 			role = "move"
 			_joy_base = p
 			_joy_vec = Vector2.ZERO

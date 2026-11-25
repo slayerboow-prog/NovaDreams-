@@ -32,6 +32,8 @@ var graphics_preset := 1
 var backflip_style := 0
 const BACKFLIP_REAL_UNLOCK := 20         # backflips hechos para desbloquear el de captura real
 var show_fps := false
+## Cámara lenta de 1,5 s al empezar cada mortal (efecto épico)
+var slow_motion := true
 
 func _ready() -> void:
 	load_settings()
@@ -55,7 +57,7 @@ func save_settings() -> void:
 
 func _keys() -> Array:
 	return ["camera_sensitivity", "gesture_sensitivity", "control_scale", "camera_distance", "camera_height", "camera_mode", "control_opacity",
-		"left_handed", "force_touch_ui", "invert_camera_y", "trick_controls", "controls_version", "rotation_assist", "graphics_preset", "show_fps", "backflip_style"]
+		"left_handed", "force_touch_ui", "invert_camera_y", "trick_controls", "controls_version", "rotation_assist", "graphics_preset", "show_fps", "backflip_style", "slow_motion"]
 
 func backflips_done() -> int:
 	return int(SaveData.stats.get("move_Backflip", 0)) + int(SaveData.stats.get("move_Gainer", 0))

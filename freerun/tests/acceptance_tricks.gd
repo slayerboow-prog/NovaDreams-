@@ -22,6 +22,7 @@ var _label: Label
 const SPOT := Vector3(0, 0.1, 27)
 
 func _ready() -> void:
+	Settings.slow_motion = false
 	for a in OS.get_cmdline_user_args():
 		if a.begins_with("--capture="):
 			capture_dir = a.substr(10)
