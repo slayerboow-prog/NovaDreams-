@@ -44,6 +44,7 @@ func build(joints: Dictionary) -> bool:
 		inst.scale = Vector3.ONE * (rig_hip / hip_y)
 	for mi in inst.find_children("*", "MeshInstance3D", true, false):
 		(mi as MeshInstance3D).cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_ON
+		_tune_materials(mi as MeshInstance3D)
 	# Calibración en reposo: base del hueso = base de la articulación * C
 	for jn in MAP.keys():
 		var j: Node3D = joints[jn]
@@ -63,6 +64,52 @@ func build(joints: Dictionary) -> bool:
 				_pelvis_off = jg.affine_inverse() * bg.origin
 	return true
 
+## Materiales del atleta: el exportador los deja todos semitransparentes (orden de dibujo
+## incorrecto y piel de plástico). Piel, ropa y zapatillas opacas con su rugosidad real y un leve
+## contraluz en la ropa que despega la silueta del fondo.
+func _tune_materials(mi: MeshInstance3D) -> void:
+	for i in mi.mesh.get_surface_count():
+		var src := mi.mesh.surface_get_material(i) as StandardMaterial3D
+		if src == null:
+			continue
+		var m := src.duplicate() as StandardMaterial3D
+		var nm := String(src.resource_name).to_lower()
+		if nm.ends_with("body"):
+			m.transparency = BaseMaterial3D.TRANSPARENCY_DISABLED
+			m.roughness = 0.6
+			m.metallic_specular = 0.3
+		elif nm.contains("suit"):
+			m.transparency = BaseMaterial3D.TRANSPARENCY_DISABLED
+			m.roughness = 0.9
+			m.metallic_specular = 0.25
+			# La textura es negro absoluto (silueta plana); una tela negra real refleja algo de luz
+			# y se le ven los pliegues: ~8 veces más clara (la franja y la estrella siguen blancas)
+			m.albedo_color = Color(2.4, 2.4, 2.45)
+			m.normal_scale = 1.4
+			m.rim_enabled = true
+			m.rim = 0.35
+			m.rim_tint = 0.2
+		elif nm.contains("shoe"):
+			m.transparency = BaseMaterial3D.TRANSPARENCY_DISABLED
+			m.roughness = 0.58
+			m.metallic_specular = 0.4
+			m.albedo_color = Color(2.1, 2.1, 2.1)
+			m.rim_enabled = true
+			m.rim = 0.2
+			m.rim_tint = 0.3
+		elif nm.contains("short02"):
+			# Pelo: recorte por alfa (sin problemas de orden) y brillo suave
+			m.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA_SCISSOR
+			m.alpha_scissor_threshold = 0.35
+			m.roughness = 0.55
+			m.metallic_specular = 0.45
+			m.cull_mode = BaseMaterial3D.CULL_DISABLED
+		elif nm.contains("eye") and not nm.contains("brow") and not nm.contains("lash"):
+			m.transparency = BaseMaterial3D.TRANSPARENCY_DISABLED
+			m.roughness = 0.15
+			m.metallic_specular = 0.7
+		mi.set_surface_override_material(i, m)
+
 const FINGERS := ["index", "middle", "ring", "pinky"]
 var _finger_bones := []    # [hueso, rotación de reposo, curva]
 
@@ -81,7 +128,7 @@ func sync(grip := 0.0) -> void:
 				var tb := skeleton.find_bone("thumb_0%d_%s" % [k, sd])
 				if tb >= 0:
 					_finger_bones.append([tb, skeleton.get_bone_rest(tb).basis.get_rotation_quaternion(), 0.6])
-	var g := clampf(grip, 0.0, 1.0) * 0.85 + 0.15        # en reposo, dedos algo curvados (natural)
+	var g := clampf(grip, 0.0, 1.0) * 0.72 + 0.28        # en reposo, dedos algo curvados (mano relajada)
 	for fb in _finger_bones:
 		skeleton.set_bone_pose_rotation(fb[0], (fb[1] as Quaternion) * Quaternion(Vector3.RIGHT, FINGER_SIGN * float(fb[2]) * g))
 	var sk_inv := skeleton.global_transform.affine_inverse()

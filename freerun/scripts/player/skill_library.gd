@@ -219,7 +219,7 @@ const SWAP := {"shoulder_l": "shoulder_r", "shoulder_r": "shoulder_l", "elbow_l"
 # keys: [t, pitch(+atrás), roll(+cabeza a la derecha), yaw, twist(eje largo), com(m), pose, vel(0..1), fase]
 # contacts: hl/hr manos, fl/fr pies: listas de intervalos [desde, hasta] en tiempo normalizado.
 const SKILLS := {
-	"roundoff": {"name": "Round-off", "dur": 0.66, "travel": Vector2(0, 1), "keep": 0.8, "leg": 0.6, "arm": 1.2,
+	"roundoff": {"name": "Round-off", "dur": 0.84, "travel": Vector2(0, 1), "keep": 0.8, "leg": 0.6, "arm": 1.2,
 		"vmin": 2.6, "vmax": 8.0, "conv": 0.09, "rebound": 0.22, "land_drop": 0.45, "stability": 0.85,
 		"exit_yaw": PI, "link_at": 0.84, "window": 0.38, "difficulty": 0.8, "chain_start": 0.0,
 		"rot": "360° adelante con medio giro (eje largo)",
@@ -233,21 +233,21 @@ const SKILLS := {
 			[0.86, -6.283, 0, 0, 3.1416, 0.74, "land", 0.6, "recepción"],
 			[1.0, -6.283, 0, 0, 3.1416, 0.8, "land_rebound", 0.55, "rebote"]],
 		"contacts": {"hl": [[0.27, 0.5]], "hr": [[0.36, 0.6]], "fl": [[0.0, 0.12], [0.86, 1.0]], "fr": [[0.0, 0.2], [0.86, 1.0]]}},
-	"bhs": {"name": "Back Handspring", "dur": 0.64, "travel": Vector2(0, -1), "keep": 0.95, "leg": 0.8, "arm": 1.6,
+	"bhs": {"name": "Back Handspring", "dur": 0.76, "travel": Vector2(0, -1), "keep": 0.95, "leg": 0.8, "arm": 1.6,
 		"vmin": 3.0, "vmax": 7.0, "conv": 0.05, "rebound": 0.25, "land_drop": 0.45, "stability": 0.8,
 		"exit_yaw": 0.0, "link_at": 0.84, "window": 0.36, "difficulty": 0.9, "chain_start": 0.16,
 		"rot": "360° atrás con fase de manos",
 		"keys": [[0.0, 0, 0, 0, 0, 0.95, "stand", 0.0, "preparación"],
-			[0.13, 0.25, 0, 0, 0, 0.6, "squat_swing", 0.25, "flexión y brazos atrás"],
-			[0.24, 0.9, 0, 0, 0, 0.86, "arch_takeoff", 1.0, "impulso atrás"],
-			[0.37, 2.25, 0, 0, 0, 1.0, "arch", 1.0, "arqueo en vuelo"],
+			[0.11, 0.2, 0, 0, 0, 0.62, "squat_swing", 0.25, "flexión y brazos atrás"],
+			[0.27, 0.95, 0, 0, 0, 0.86, "arch_takeoff", 1.0, "impulso atrás (los brazos pasan por delante)"],
+			[0.38, 2.25, 0, 0, 0, 1.0, "arch", 1.0, "arqueo en vuelo"],
 			[0.47, 3.05, 0, 0, 0, 1.14, "hollow", 0.9, "apoyo de manos"],
 			[0.58, 4.0, 0, 0, 0, 1.02, "snap", 0.85, "bloqueo de hombros"],
 			[0.72, 5.4, 0, 0, 0, 0.86, "snap", 0.8, "paso de piernas"],
 			[0.84, 6.283, 0, 0, 0, 0.74, "land", 0.7, "recepción"],
 			[1.0, 6.283, 0, 0, 0, 0.82, "land_rebound", 0.65, "extensión"]],
-		"contacts": {"hl": [[0.42, 0.62]], "hr": [[0.42, 0.62]], "fl": [[0.0, 0.24], [0.84, 1.0]], "fr": [[0.0, 0.24], [0.84, 1.0]]}},
-	"cartwheel": {"name": "Cartwheel", "dur": 0.82, "travel": Vector2(1, 0), "keep": 0.35, "leg": 2.6, "arm": 0.5,
+		"contacts": {"hl": [[0.42, 0.62]], "hr": [[0.42, 0.62]], "fl": [[0.0, 0.27], [0.84, 1.0]], "fr": [[0.0, 0.27], [0.84, 1.0]]}},
+	"cartwheel": {"name": "Cartwheel", "dur": 1.02, "travel": Vector2(1, 0), "keep": 0.35, "leg": 2.6, "arm": 0.5,
 		"vmin": 2.4, "vmax": 4.5, "conv": 0.0, "rebound": 0.12, "land_drop": 0.15, "stability": 0.75,
 		"exit_yaw": 0.0, "link_at": 0.86, "window": 0.3, "difficulty": 0.5, "chain_start": 0.0,
 		"rot": "360° lateral (plano frontal)",
@@ -392,53 +392,110 @@ static func sample(id: String, s: float, side: int) -> Dictionary:
 	var b: Array = keys[mini(i + 1, keys.size() - 1)]
 	var span := maxf(float(b[0]) - float(a[0]), 0.0001)
 	var u := clampf((s - float(a[0])) / span, 0.0, 1.0)
-	var us := u * u * (3.0 - 2.0 * u)
 	var sd := float(side)
-	var pitch := lerpf(a[1], b[1], u)
-	var roll := lerpf(a[2], b[2], u) * sd
-	var yaw := lerpf(a[3], b[3], u) * sd
-	var twist := lerpf(a[4], b[4], u) * sd
-	var com := lerpf(a[5], b[5], us)
+	# Curvas suaves (Hermite monótona) entre las claves: la velocidad de giro y de cada
+	# articulación es continua al pasar por una clave (antes iba a tramos rectos y cada pose se
+	# paraba en su clave: el movimiento se veía a tirones). Pasa exactamente por las claves.
+	var ip := i - 1 if i > 0 else -1
+	var inx := i + 2 if i + 2 < keys.size() else -1
+	var kp: Array = keys[ip] if ip >= 0 else []
+	var kn: Array = keys[inx] if inx >= 0 else []
+	var pitch := _hermite_ch(kp, a, b, kn, 1, u)
+	var roll := _hermite_ch(kp, a, b, kn, 2, u) * sd
+	var yaw := _hermite_ch(kp, a, b, kn, 3, u) * sd
+	var twist := _hermite_ch(kp, a, b, kn, 4, u) * sd
+	var com := _hermite_ch(kp, a, b, kn, 5, u)
 	var vel := lerpf(a[7], b[7], u)
 	var pa: Dictionary = POSES[a[6]]
 	var pb: Dictionary = POSES[b[6]]
+	var pp: Dictionary = POSES[kp[6]] if not kp.is_empty() else {}
+	var pn: Dictionary = POSES[kn[6]] if not kn.is_empty() else {}
 	var pose := {}
 	for k in pa.keys():
 		pose[k] = pa[k]
 	for k in pb.keys():
 		if not pose.has(k):
 			pose[k] = Vector3.ZERO
+	var ta := float(a[0])
+	var tb := float(b[0])
+	var tpv := float(kp[0]) if not kp.is_empty() else NAN
+	var tnx := float(kn[0]) if not kn.is_empty() else NAN
 	for k in pose.keys():
 		var va: Vector3 = pa.get(k, Vector3.ZERO)
 		var vb: Vector3 = pb.get(k, Vector3.ZERO)
-		pose[k] = va.lerp(vb, us)
+		var vp: Vector3 = pp.get(k, Vector3.ZERO) if not kp.is_empty() else va
+		var vn: Vector3 = pn.get(k, Vector3.ZERO) if not kn.is_empty() else vb
+		pose[k] = Vector3(
+			_hermite(vp.x, va.x, vb.x, vn.x, tpv, ta, tb, tnx, u),
+			_hermite(vp.y, va.y, vb.y, vn.y, tpv, ta, tb, tnx, u),
+			_hermite(vp.z, va.z, vb.z, vn.z, tpv, ta, tb, tnx, u))
 	if side < 0:
 		pose = mirror_pose(pose)
 	var basis := (Basis(Vector3.UP, yaw) * Basis(Vector3.RIGHT, pitch) * Basis(Vector3.BACK, -roll)
 		* Basis(Vector3.UP, twist)).orthonormalized()
 	var contacts := {}
+	var soft := {}
+	# Contactos: la mano/pie se clava en ~0,03 de la duración (apoyo seco, sin resbalar). La
+	# altura del cuerpo se adapta al apoyo con una transición más larga (~0,12 s) para que no
+	# salte de golpe al tocar con la mano (se veía "trabado").
+	var ramp_soft := clampf(0.12 / float(d.dur), 0.03, 0.18)
 	for c in ["hl", "hr", "fl", "fr"]:
 		var w := 0.0
+		var ws := 0.0
 		for iv in d.contacts.get(c, []):
-			var x0: float = iv[0]
-			var x1: float = iv[1]
-			var ramp := 0.03
-			if s >= x0 and s <= x1:
-				w = 1.0
-			elif s < x0 and s > x0 - ramp:
-				w = maxf(w, (s - (x0 - ramp)) / ramp)
-			elif s > x1 and s < x1 + ramp:
-				w = maxf(w, 1.0 - (s - x1) / ramp)
+			w = maxf(w, _contact_w(s, float(iv[0]), float(iv[1]), ramp_soft, ramp_soft))
+			ws = maxf(ws, _contact_w(s, float(iv[0]), float(iv[1]), ramp_soft, ramp_soft))
 		contacts[contact_name(c, side)] = w
+		soft[contact_name(c, side)] = ws
 	# Apoyo de manos: el cuerpo pivota sobre las manos. Los hombros quedan a la longitud del
 	# brazo por encima del apoyo (el centro de masas se ajusta a ello) y el desplazamiento lo
 	# da la propia rotación alrededor de las manos (ver support_velocity).
 	var hw := maxf(contacts.hl, contacts.hr)
 	var off := shoulder_offset(basis, contacts, pose.get("spine", Vector3.ZERO))
-	if hw > 0.0:
-		com = lerpf(com, SUPPORT_H - off.y, _smooth(hw))
-	return {"basis": basis, "com": com, "support": hw, "shoulder": off, "pose": pose, "vel": vel, "contacts": contacts,
+	var hs := maxf(soft.hl, soft.hr)
+	if hs > 0.0:
+		com = lerpf(com, SUPPORT_H - off.y, _smooth(hs))
+	return {"basis": basis, "com": com, "support": hw, "shoulder": off, "pose": pose, "vel": vel, "contacts": contacts, "soft": soft,
 		"phase": a[8] if u < 0.5 else b[8], "pitch": pitch, "roll": roll, "yaw": yaw, "twist": twist}
+
+## Un canal (columna c) de las claves con Hermite monótona; kp/kn vacíos en los extremos.
+static func _hermite_ch(kp: Array, a: Array, b: Array, kn: Array, c: int, u: float) -> float:
+	return _hermite(float(kp[c]) if not kp.is_empty() else float(a[c]), float(a[c]), float(b[c]),
+		float(kn[c]) if not kn.is_empty() else float(b[c]),
+		float(kp[0]) if not kp.is_empty() else NAN, float(a[0]), float(b[0]),
+		float(kn[0]) if not kn.is_empty() else NAN, u)
+
+## Hermite cúbica monótona (Fritsch-Carlson) entre a (t=ta) y b (t=tb), con las claves vecinas
+## p (tp) y n (tn) para las tangentes. Sin vecina (NAN) la tangente es cero: arranca o termina
+## en reposo. Sin rebasar: si la curva cambia de sentido en una clave, allí la tangente es cero.
+static func _hermite(p: float, a: float, b: float, n: float, tp: float, ta: float, tb: float, tn: float, u: float) -> float:
+	var h := maxf(tb - ta, 1e-4)
+	var dab := (b - a) / h
+	var ma := 0.0
+	var mb := 0.0
+	if not is_nan(tp):
+		var dpa := (a - p) / maxf(ta - tp, 1e-4)
+		if dpa * dab > 0.0:
+			ma = 2.0 / (1.0 / dpa + 1.0 / dab)
+	if not is_nan(tn):
+		var dbn := (n - b) / maxf(tn - tb, 1e-4)
+		if dbn * dab > 0.0:
+			mb = 2.0 / (1.0 / dab + 1.0 / dbn)
+	var u2 := u * u
+	var u3 := u2 * u
+	return (2.0 * u3 - 3.0 * u2 + 1.0) * a + (u3 - 2.0 * u2 + u) * h * ma \
+		+ (-2.0 * u3 + 3.0 * u2) * b + (u3 - u2) * h * mb
+
+## Peso de un contacto [x0, x1] en s, con rampa de entrada de anchura ramp.
+## Al soltar la rampa es más larga (ramp_out): el brazo vuelve a su pose sin latigazo.
+static func _contact_w(s: float, x0: float, x1: float, ramp: float, ramp_out: float) -> float:
+	if s >= x0 and s <= x1:
+		return 1.0
+	if s < x0 and s > x0 - ramp:
+		return (s - (x0 - ramp)) / ramp
+	if s > x1 and s < x1 + ramp_out:
+		return 1.0 - (s - x1) / ramp_out
+	return 0.0
 
 const SUPPORT_H := 0.52           # altura de los hombros sobre el suelo con los brazos de apoyo
 const SHOULDER := Vector3(0.0, 0.53, 0.0)
@@ -465,8 +522,10 @@ static func support_velocity(id: String, s: float, side: int, dur: float) -> Vec
 	var e := 0.01
 	var a := sample(id, clampf(s, 0.0, 1.0), side)
 	var b := sample(id, clampf(s + e, 0.0, 1.0), side)
-	var da: Vector3 = a.shoulder
-	var db: Vector3 = b.shoulder
+	# Los dos instantes con los mismos apoyos: el cambio de una mano a la otra no es un
+	# movimiento del cuerpo (antes daba un salto de 15-25 cm en dos fotogramas)
+	var da := shoulder_offset(a.basis, a.contacts, (a.pose as Dictionary).get("spine", Vector3.ZERO))
+	var db := shoulder_offset(b.basis, a.contacts, (b.pose as Dictionary).get("spine", Vector3.ZERO))
 	var v := -(db - da) / (e * dur)
 	return Vector3(v.x, 0.0, v.z)
 
