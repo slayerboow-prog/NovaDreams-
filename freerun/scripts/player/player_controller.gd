@@ -149,6 +149,10 @@ var one_foot_side := 1
 var land_flip_q := 99                    # botón de mortal pulsado justo antes de caer: sale al recepcionar
 var land_flip_t := 0.0
 var land_flip_now := false
+## KONG GAINER (kong + mortal atrás) y PLANCHA BACK (plancha en un muro bajo + mortal atrás)
+var gainer_q := 0.0                      # ATRÁS pedido delante de un obstáculo: el próximo vault es kong gainer
+const GAINER_POP := 0.42                 # fase del kong en la que las manos empujan y empieza el giro atrás
+const KONG_KINDS := ["Kong Vault", "Double Kong", "Kash Vault", "Dive Kong"]
 ## Bonificación por recepción perfecta: si tras caer perfecto un mortal enlazas otro enseguida
 ## (la inercia se conserva), el siguiente sale más alto y gira más rápido. Se acumula (x3 máx.).
 var perfect_bonus_t := 0.0               # ventana abierta tras una recepción perfecta
@@ -1270,6 +1274,7 @@ func _tick_gestures(dt: float) -> void:
 ## El impulso (mantener para saltar más alto) es del botón SALTO.
 ## Con ayuda alta, si no abres, se abre solo cuando ya no cabe otra vuelta.
 func _tick_flip_buttons(dt: float) -> void:
+	gainer_q = maxf(0.0, gainer_q - dt)
 	if intent.jump_charge > 0.0 and state in [State.GROUND, State.SKILL, State.ROLL]:
 		# SALTO mantenido antes de soltar: impulso, salto algo más alto
 		mad_charge = clampf(intent.jump_charge, 0.0, 0.3) / 0.3 * MAD_CHARGE_MAX
@@ -1285,6 +1290,10 @@ func _tick_flip_buttons(dt: float) -> void:
 		land_flip_now = false
 		return
 	var sec := intent.flip_press
+	if state == State.GROUND and sec == -2 and jump_load <= 0.0 and not land_flip_now:
+		# ATRÁS junto a un obstáculo: plancha back (parado ante un muro bajo) o kong gainer
+		if _try_plancha_back() or _try_gainer_start():
+			return
 	match state:
 		State.GROUND, State.SKILL, State.ROLL:
 			mad_axis = sec
@@ -1329,7 +1338,9 @@ func _tick_flip_buttons(dt: float) -> void:
 				if mad_axis == 99:
 					mad_axis = sec               # cayendo de una altura: empieza el mortal ya
 				var d := TouchControls.sector_dir(mad_axis)
-				if state == State.VAULT:
+				if state == State.VAULT and sec == -2 and String(vault.kind) in KONG_KINDS and vault_progress() < 0.5:
+					vault.gainer = true                # ATRÁS en el apoyo del kong: kong gainer
+				elif state == State.VAULT:
 					vault.flick = d
 				else:
 					_apply_jump_flick(d)
@@ -1546,8 +1557,9 @@ func _try_vault() -> bool:
 	var hv := horizontal_velocity()
 	var spd := hv.length()
 	var dir := hv / spd if spd > 0.3 else ObstacleSensor.flat(facing).normalized()
+	var gainer := gainer_q > 0.0
 	if spd < t.vault_min_speed:
-		if vault_pref == "":
+		if vault_pref == "" and not gainer:
 			return false
 		# Vault dibujado con el gesto andando o parado delante del obstáculo: un par de pasos de
 		# impulso y sale igual (antes no hacía nada sin carrera)
@@ -1646,6 +1658,12 @@ func _try_vault() -> bool:
 			ideal = Vector2(0.1, 1.2)
 		if kind in ["Reverse Vault", "Double Kong", "Kash Vault", "Thief Vault", "Turn Vault"]:
 			flick_timer = 0.0
+	if gainer and not info.mount:
+		# Kong gainer: apoyo de kong en cualquier obstáculo (también una valla fina, desde parado)
+		kind = "Kong Vault"
+		ideal = Vector2(0.15, 2.3)
+		speed_mult = 1.0
+		flick_timer = 0.0
 	var timing := 1.0
 	if d < ideal.x or d > ideal.y:
 		timing = 0.6
@@ -1677,7 +1695,8 @@ func _try_vault() -> bool:
 	vault = {"kind": kind, "p0": global_position, "dir": dir, "length": length, "duration": duration,
 		"y0": y0, "y1": y1, "ctrl": ctrl, "exit_speed": exit_speed,
 		"mount": info.mount, "jump_queued": false, "flick": Vector2.ZERO, "top_y": top_y,
-		"front": d, "depth": depth}
+		"front": d, "depth": depth, "land_y": float(info.land_y), "gainer": gainer and not info.mount}
+	gainer_q = 0.0
 	facing = dir
 	tricks.reset("vault", spd)
 	_set_state(State.VAULT)
@@ -2074,9 +2093,121 @@ func _finish_skill(keep_speed: bool) -> void:
 
 func _vault_point(s: float) -> Vector3:
 	var p0: Vector3 = vault.p0
+	if vault.kind == "Plancha Back":
+		# Se acerca al muro, sube la cadera sobre las manos (plancha) y vuelve atrás al empujar
+		var appr: float = clampf(float(vault.front) - 0.42, 0.0, 0.5)
+		var x: float = appr * _sm(s / 0.3) * (1.0 - _sm((s - 0.6) / 0.3)) - 0.18 * _sm((s - 0.65) / 0.35)
+		var lift: float = clampf((float(vault.top_y) - float(vault.y0)) * 0.55, 0.25, 0.6)
+		var y: float = float(vault.y0) + lift * _sm((s - 0.18) / 0.3) * (1.0 - _sm((s - 0.58) / 0.22)) + 0.12 * _sm((s - 0.8) / 0.2)
+		var hp: Vector3 = p0 + vault.dir * x
+		return Vector3(hp.x, y, hp.z)
 	var horiz: Vector3 = p0 + vault.dir * vault.length * s
 	var y: float = (1.0 - s) * (1.0 - s) * vault.y0 + 2.0 * s * (1.0 - s) * vault.ctrl + s * s * vault.y1
 	return Vector3(horiz.x, y, horiz.z)
+
+static func _sm(x: float) -> float:
+	x = clampf(x, 0.0, 1.0)
+	return x * x * (3.0 - 2.0 * x)
+
+## Kong gainer: las manos empujan sobre el obstáculo y, en vez de estirarse para caer, sube las
+## rodillas y gira hacia atrás por encima, cayendo de pie al otro lado (más abajo si hay caída).
+func _gainer_exit() -> void:
+	var p := global_position
+	var dir: Vector3 = vault.dir
+	var along := ObstacleSensor.flat(p - vault.p0).dot(dir)
+	var rem := maxf(float(vault.front) + float(vault.depth) + 0.8 - along, 0.6)
+	var top_y: float = vault.top_y
+	var land_y: float = vault.get("land_y", top_y - 0.6)
+	var g := t.gravity * t.trick_gravity_mult
+	var apex := maxf(top_y + 1.1, p.y + 0.75)
+	var vy := sqrt(2.0 * g * (apex - p.y))
+	var tt := vy / g + sqrt(2.0 * maxf(apex - land_y, 0.1) / g)
+	var hs := clampf(rem / tt, 1.2, 7.0)
+	velocity = dir * hs + Vector3.UP * vy
+	facing = dir
+	_enter_air("vault")
+	tricks.takeoff_detail = String(vault.kind)
+	_apply_jump_flick(Vector2(0, -1), true)
+	mad_stage = 2
+	mad_axis = -2
+	ledge_cooldown = 0.6
+	move_and_slide()
+
+## Plancha back: tras la plancha sobre el muro bajo, empuja con los brazos, queda de pie en el
+## aire y mete un mortal atrás, cayendo en el mismo lado desde el que empezó.
+func _plancha_exit() -> void:
+	var dir: Vector3 = vault.dir
+	velocity = -dir * 0.9 + Vector3.UP * t.jump_velocity * 0.98
+	facing = dir
+	_enter_air("stand")
+	tricks.takeoff_detail = "plancha"
+	_apply_jump_flick(Vector2(0, -1), true)
+	mad_stage = 2
+	mad_axis = -2
+	ledge_cooldown = 0.6
+	move_and_slide()
+
+## ATRÁS parado delante de un muro bajo (sin empujar hacia él): plancha back.
+func _try_plancha_back() -> bool:
+	if speed() > 1.5 or intent.move.y > 0.4:
+		return false
+	var dir := ObstacleSensor.flat(facing).normalized()
+	var info := sensor.probe_vault(global_position, dir, 1.5, 1.2, 0.35)
+	if info.is_empty() or float(info.dist) > 0.85 or float(info.height) > 1.15:
+		return false
+	vault = {"kind": "Plancha Back", "p0": global_position, "dir": dir, "length": 0.0, "duration": 0.9,
+		"y0": global_position.y, "y1": global_position.y, "ctrl": global_position.y, "exit_speed": 0.0,
+		"mount": false, "jump_queued": false, "flick": Vector2.ZERO, "top_y": float(info.top_y),
+		"front": float(info.dist), "depth": minf(float(info.depth), 0.5), "land_y": global_position.y}
+	tricks.reset("vault", 0.0)
+	_set_state(State.VAULT)
+	return true
+
+## ATRÁS corriendo hacia un obstáculo (o parado empujando hacia una valla): kong gainer. Corriendo
+## hacia el borde de una altura: apoya las manos en el borde y gira hacia atrás en la caída.
+func _try_gainer_start() -> bool:
+	var hv := horizontal_velocity()
+	var spd := hv.length()
+	var wish := wish_dir()
+	var moving := spd > 1.5
+	var dir := hv / spd if moving else ObstacleSensor.flat(facing).normalized()
+	if not moving and (wish.length() < 0.4 or wish.normalized().dot(dir) < 0.5):
+		return false
+	# Mira algo más lejos que un vault normal: pulsado un poco antes de llegar, queda pedido y
+	# el kong gainer sale al llegar al obstáculo (no un mortal que choca contra la valla)
+	var info := sensor.probe_vault(global_position, dir, maxf(spd, 3.0) + (5.0 if moving else 0.0), t.vault_max_height, t.vault_min_height)
+	if not info.is_empty() and not info.mount and float(info.dist) < (3.2 if moving else 1.1):
+		gainer_q = 0.7
+		facing = dir
+		if _try_vault():
+			return true
+		vault_buffer = 0.7                       # aún lejos: se intenta en cada paso hasta llegar
+		return true
+	if not moving or spd < 3.0:
+		return false
+	for k in [0.45, 0.75, 1.05, 1.35]:
+		var q: Vector3 = global_position + dir * k
+		var gy := sensor.ground_below(q + Vector3.UP * 0.5, 8.0)
+		if gy < global_position.y - 0.9:
+			_start_edge_gainer(dir, k, gy if gy != -INF else global_position.y - 6.0, spd)
+			return true
+	return false
+
+func _start_edge_gainer(dir: Vector3, k: float, land_y: float, spd: float) -> void:
+	var front := maxf(k - 0.3, 0.12)
+	var top_y := global_position.y
+	var length := front + 0.45
+	var y0 := global_position.y
+	var y1 := top_y - 0.25
+	var peak := top_y + 0.3
+	vault = {"kind": "Kong Vault", "p0": global_position, "dir": dir, "length": length,
+		"duration": clampf((front + 0.2) / maxf(spd, 4.0) / GAINER_POP, 0.35, 0.8),
+		"y0": y0, "y1": y1, "ctrl": 2.0 * peak - 0.5 * (y0 + y1), "exit_speed": spd,
+		"mount": false, "jump_queued": false, "flick": Vector2.ZERO, "top_y": top_y,
+		"front": front, "depth": 0.25, "land_y": land_y, "gainer": true, "edge": true}
+	facing = dir
+	tricks.reset("vault", spd)
+	_set_state(State.VAULT)
 
 func vault_progress() -> float:
 	return clampf(state_time / maxf(vault.get("duration", 1.0), 0.01), 0.0, 1.0) if state == State.VAULT else 0.0
@@ -2087,7 +2218,10 @@ func _state_vault(dt: float) -> void:
 		vault.jump_queued = true
 		jump_buffer = 0.0
 	if intent.flick != Vector2.ZERO:
-		vault.flick = intent.flick
+		if s < 0.5 and String(vault.kind) in KONG_KINDS and TouchControls.sector_of(intent.flick) == -2:
+			vault.gainer = true                    # mortal atrás pedido en el apoyo: kong gainer
+		else:
+			vault.flick = intent.flick
 	if intent.cork_request:
 		vault.cork = true
 	if intent.kick:
@@ -2096,6 +2230,12 @@ func _state_vault(dt: float) -> void:
 	var p := _vault_point(s)
 	global_position = p
 	velocity = (p - prev) / maxf(dt, 0.001)
+	if vault.get("gainer", false) and s >= GAINER_POP:
+		_gainer_exit()
+		return
+	if vault.kind == "Plancha Back" and s >= 1.0:
+		_plancha_exit()
+		return
 	if s >= 1.0:
 		var exit: Vector3 = vault.dir * vault.exit_speed
 		if vault.kind == "Turn Vault":

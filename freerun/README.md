@@ -43,6 +43,12 @@ Atajos: `godot --path freerun -- --mode=freerun` salta el menú (`tricking`, `wa
 - **Backflip de captura real** (desbloqueable con 20 backflips; Ajustes › Estilo de backflip): movimiento de un atleta real de la base de datos pública de captura de movimiento de Carnegie Mellon (CMU, uso libre también comercial), sincronizado con el giro del juego: flexión y braceo reales, agrupado y apertura. El backflip clásico sigue siendo el de por defecto. Conversión: `tools/mocap/cmu_to_clip.py`.
 - **Botón 1 PIE** (abajo a la izquierda): es un interruptor. Púlsalo una vez y queda activado (el botón se ilumina): todos los mortales caen a un pie, alternando la pierna, hasta que lo vuelvas a pulsar. Los saltos sin voltereta siguen cayendo con los dos pies. En la recepción a un pie la pierna de apoyo queda flexionada y la otra estirada atrás, lista para lanzarse al siguiente mortal; durante ~0,8 s hay una ventana de enlace para encadenar el siguiente mortal o habilidad sin apoyar el otro pie (backflips o corks a un pie seguidos).
   - **Botón de mortal justo antes de caer** (últimos 0,3 s, ya bajando): ya no añade una vuelta que no cabe; queda para el siguiente mortal, que sale al recepcionar (a un pie si 1 PIE está activado, o con rebote si caes con los dos).
+- **Kong + mortal atrás (Kong Gainer)**: apoyo de kong y, en vez de estirarse para caer, sube las rodillas y gira hacia atrás por encima del obstáculo, cayendo de pie al otro lado. Se hace con ATRÁS:
+  - corriendo hacia una valla, caja o muro bajo (vale pulsarlo un poco antes de llegar: sale al llegar);
+  - desde parado empujando el joystick hacia la valla (p. ej. la valla de la plataforma de la plaza: la salta y cae de altura);
+  - corriendo hacia el borde de una altura: apoya las manos en el borde y gira en la caída;
+  - durante la primera mitad del apoyo de cualquier kong.
+- **Plancha back**: parado delante de un muro bajo (0,4-1,15 m), sin empujar hacia él, pulsa ATRÁS: manos al muro, patada arriba hasta la plancha, empuje de brazos hasta quedar de pie en el aire y mortal atrás, cayendo en el mismo lado.
 - **Bonus perfecto**: si caes un mortal en recepción perfecta y enlazas otro mortal antes de 0,9 s (sin pararte), el siguiente sale más alto (+0,9 m/s de impulso) y gira un 15 % más rápido, con aviso «RECEPCIÓN PERFECTA · +ALTURA +GIRO». Se acumula con cada recepción perfecta seguida, hasta x3; si fallas la recepción o te paras, vuelve a empezar.
 - **Cámaras** (botón CÁMARA, arriba a la derecha): NORMAL · **POV** (cámara de acción en la cabeza, tipo GoPro) · **DRON** (alta y detrás, siguiendo con retraso).
 - **Repetición** (botón REPETIR o Pausa › Ver repetición): reproduce los últimos 15 s con **cámara libre** (arrastra para girar alrededor del atleta, + / - para acercar), POV, dron o seguir, a velocidad x1, x0.5 o x0.25, con barra para buscar el momento. Para guardar el vídeo, usa la grabación de pantalla del móvil mientras se reproduce.
@@ -137,6 +143,7 @@ Al empezar cualquier mortal, el tiempo va más despacio durante 1,5 s reales: en
   - **Precisiones**: pilares de 0,6 a 1,4 m de alto y dos plataformas separadas 3 m para el salto de longitud.
   - **Muro de 4,5 m**: para wall run, con un muro corto junto a una caja (tic-tac) y una pared con borde (cat leap).
   - **Torre de caídas** de 4,5 m con escalera.
+- **Plaza de movimientos** (junto al parque): muro bajo para la plancha back, plataforma de 1,6 m con escalera y valla en el borde (kong gainer desde parado cayendo de altura), borde abierto (kong gainer en el borde) y valla de 1 m a ras de suelo (kong gainer corriendo).
 - **Playa** (modo propio en el menú): un arenal con una boya de barco roja grande (2,3 m de diámetro) medio enterrada en el centro.
   - Llegar a la boya corriendo (andando no rebota), o caer encima de ella, te lanza mucho más alto que un salto normal.
   - **Impulso perfecto**: pulsa SALTO justo al pisarla (hasta 0,12 s antes, o un instante después) y subes mucho más. Si lo pulsas algo antes (hasta 0,3 s), el impulso es menor.

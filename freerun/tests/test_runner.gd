@@ -130,6 +130,7 @@ func _run_all() -> void:
 	await t_air_giro_double()
 	await t_one_foot_chain()
 	await t_perfect_bonus()
+	await t_kong_gainer_plancha()
 	await t_mocap_backflip()
 	await t_landing_feel()
 	await t_new_tricks()
@@ -3081,6 +3082,74 @@ func t_perfect_bonus() -> void:
 		i.tuck = f > 3 and f < 26; i.jump_held = i.tuck, 200,
 		func(): return _f > 30 and player.state == PlayerController.State.GROUND)
 	check("Bonus perfecto: si esperas parado, el siguiente mortal no lleva bonus", perfect_first and not ("Perfect Bonus" in moves), str(moves))
+	Settings.trick_controls = old_mode
+
+## Movimientos de los vídeos de referencia (plaza de movimientos y parque):
+##   KONG GAINER — kong y mortal atrás por encima del obstáculo (corriendo, desde parado saltando
+##   la valla de una plataforma con caída, apoyando las manos en el borde de una altura, o
+##   pulsando ATRÁS durante el apoyo de un kong) y PLANCHA BACK en un muro bajo.
+func _move_case(pos: Vector3, face: Vector3, drive: Callable, frames_max := 320) -> Dictionary:
+	await place(pos, face)
+	moves.clear(); landings.clear()
+	var st := {"kinds": [], "air": false, "done": false, "max_tuck_in_vault": 0.0}
+	await run(func(i, f):
+		drive.call(i, f, st)
+		if player.state == PlayerController.State.VAULT and not (player.vault.kind in st.kinds):
+			st.kinds.append(player.vault.kind)
+		if player.state == PlayerController.State.AIR:
+			st.air = true, frames_max,
+		func(): return st.air and _f > 10 and player.state in [PlayerController.State.GROUND, PlayerController.State.SKILL,
+			PlayerController.State.CRASH, PlayerController.State.ROLL])
+	await run(func(i, f): pass, 10)
+	st["moves"] = moves.duplicate()
+	st["q"] = landings.map(func(l): return l.quality)
+	st["pos"] = player.global_position
+	return st
+
+func t_kong_gainer_plancha() -> void:
+	var old_mode := Settings.trick_controls
+	Settings.trick_controls = 5
+	# Plancha back: parado delante del muro bajo, ATRÁS
+	var r := await _move_case(Vector3(24, 0.1, -26.1), Vector3.FORWARD, func(i, f, st):
+		i.flip_press = -2 if f == 3 else 99)
+	check("Plancha back: plancha en el muro bajo y mortal atrás, cae en su lado (%s %s z=%.2f)" % [r.moves, r.q, r.pos.z],
+		"Plancha Back" in r.kinds and "Plancha Back" in r.moves and r.q.size() > 0 and r.q[-1] in ["perfect", "clean"] and r.pos.z > -26.5, "")
+	# Kong gainer corriendo hacia la valla (ATRÁS un poco antes de llegar)
+	r = await _move_case(Vector3(39, 0.1, -11), Vector3.FORWARD, func(i, f, st):
+		i.move = Vector2(0, 1); i.sprint = true
+		i.flip_press = 99
+		if not st.done and player.global_position.z <= -17.2:
+			i.flip_press = -2; st.done = true)
+	check("Kong gainer corriendo: kong en la valla y mortal atrás por encima (%s %s z=%.2f)" % [r.moves, r.q, r.pos.z],
+		"Kong Gainer" in r.moves and r.q.size() > 0 and r.q[-1] in ["perfect", "clean"] and r.pos.z < -20.6, "")
+	# Desde parado en la plataforma: salta la valla del borde y cae de 1,6 m
+	r = await _move_case(Vector3(32.5, 1.7, -30.35), Vector3.FORWARD, func(i, f, st):
+		i.move = Vector2(0, 0.6) if player.state == PlayerController.State.GROUND else Vector2.ZERO
+		i.flip_press = -2 if f == 4 else 99)
+	check("Kong gainer desde parado: salta la valla de la plataforma y cae de altura (%s %s y=%.2f)" % [r.moves, r.q, r.pos.y],
+		"Kong Gainer" in r.moves and r.q.size() > 0 and r.q[-1] in ["perfect", "clean"] and r.pos.y < 0.3 and r.pos.z < -31.2, "")
+	# Corriendo hacia el borde de la plataforma: manos en el borde y mortal atrás en la caída
+	r = await _move_case(Vector3(30.4, 1.7, -28.5), Vector3.RIGHT, func(i, f, st):
+		i.move = Vector2(0, 1) if player.state == PlayerController.State.GROUND else Vector2.ZERO
+		i.sprint = true
+		i.flip_press = 99
+		if not st.done and player.global_position.x >= 33.7:
+			i.flip_press = -2; st.done = true)
+	check("Kong gainer en el borde de una altura (%s %s x=%.2f)" % [r.moves, r.q, r.pos.x],
+		"Kong Gainer" in r.moves and r.q.size() > 0 and r.q[-1] in ["perfect", "clean"] and r.pos.x > 35.3 and r.pos.y < 0.3, "")
+	# ATRÁS durante el apoyo de un kong normal: el mortal empieza encima del obstáculo
+	r = await _move_case(Vector3(22, 0.1, -44.6), Vector3.FORWARD, func(i, f, st):
+		i.move = Vector2(0, 1); i.sprint = true
+		i.flip_press = 99
+		i.vault_pressed = player.global_position.z <= -48.0
+		if not st.done and player.state == PlayerController.State.VAULT and player.vault_progress() > 0.15:
+			i.flip_press = -2; st.done = true)
+	check("Kong + ATRÁS en el apoyo = kong gainer encima de la caja (%s %s z=%.2f)" % [r.moves, r.q, r.pos.z],
+		"Kong Vault" in r.kinds and "Kong Gainer" in r.moves and r.q.size() > 0 and r.q[-1] in ["perfect", "clean"] and r.pos.z < -50.6, "")
+	# ATRÁS en llano sin obstáculo: sigue siendo un mortal normal (no se inventa un kong)
+	r = await _move_case(Vector3(-35, 0.1, 35), Vector3.FORWARD, func(i, f, st):
+		i.flip_press = -2 if f == 3 else 99)
+	check("ATRÁS sin obstáculo delante: no hay plancha ni kong", r.kinds.is_empty() and not ("Kong Gainer" in r.moves), str(r.moves))
 	Settings.trick_controls = old_mode
 
 func t_beach_buoy() -> void:
